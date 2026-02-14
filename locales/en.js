@@ -3,5 +3,9 @@ export default {
   ru: "Russian",
   ua: "Ukrainian",
   headerTitle: "Guitar Chords",
-  searchPlaceholder: "Search chords..."
+  searchPlaceholder: "Search chords...",
+  Home: "Home",
+  Search: "Search",
+  Library: "Library",
+  Create: "Create"
 };

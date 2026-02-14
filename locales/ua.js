@@ -3,5 +3,9 @@ export default {
   ru: "Російська",
   ua: "Українська",
   headerTitle: "Гітарні аккорди",
-  searchPlaceholder: "Пошук аккордів..."
+  searchPlaceholder: "Пошук аккордів...",
+  Home: "Головна",
+  Search: "Пошук",
+  Library: "Бібліотека",
+  Create: "Створити"
 };
