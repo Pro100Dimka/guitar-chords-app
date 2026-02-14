@@ -10,8 +10,8 @@ module.exports = defineConfig([
       "no-console": [
         1,
         {
-          allow: ["error", "info"],
-        },
+          allow: ["error", "info"]
+        }
       ], // 0: "off", 1: "warn", 2: "error"
       // 0: "off", 1: "warn", 2: "error"
       "func-names": 0,
@@ -22,8 +22,8 @@ module.exports = defineConfig([
           vars: "all",
           args: "after-used",
           varsIgnorePattern: "^_$",
-          argsIgnorePattern: "^_$",
-        },
+          argsIgnorePattern: "^_$"
+        }
       ],
       "linebreak-style": 0,
       "arrow-body-style": 0,
@@ -49,14 +49,7 @@ module.exports = defineConfig([
       "no-bitwise": 0,
       "no-restricted-syntax": 0,
       "no-extra-boolean-cast": 0,
-      "import/order": [
-        1,
-        {
-          alphabetize: {
-            order: "asc",
-          },
-        },
-      ],
+      "import/order": 0,
       "react/jsx-wrap-multilines": 0,
       "lines-between-class-members": 1,
       "react-hooks/rules-of-hooks": 2,
@@ -68,8 +61,8 @@ module.exports = defineConfig([
       "react/jsx-filename-extension": [
         2,
         {
-          extensions: [".jsx", ".tsx"],
-        },
+          extensions: [".jsx", ".tsx"]
+        }
       ],
       "react/jsx-fragments": 0,
       "no-lonely-if": 0,
@@ -91,7 +84,7 @@ module.exports = defineConfig([
       "no-unused-expressions": 0,
       "no-use-before-define": 0,
       "no-restricted-globals": 0,
-      "no-else-return": 0,
-    },
-  },
+      "no-else-return": 0
+    }
+  }
 ]);
