@@ -7,5 +7,11 @@ export default {
   Home: "Home",
   Search: "Search",
   Library: "Library",
-  Create: "Create"
+  Create: "Create",
+  NewSong: "New Song",
+  SongTitle: "Song title",
+  ChordsLyrics: "Chords / Lyrics",
+  EnterSongTitle: "Enter song title",
+  SaveSong: "Save song",
+  FieldRequired: "Required field"
 };

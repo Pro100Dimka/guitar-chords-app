@@ -7,5 +7,11 @@ export default {
   Home: "Главная",
   Search: "Поиск",
   Library: "Библиотека",
-  Create: "Создать"
+  Create: "Создать",
+  NewSong: "Новая песня",
+  SongTitle: "Название песни",
+  ChordsLyrics: "Аккорды / текст",
+  EnterSongTitle: "Введите название песни",
+  SaveSong: "Сохранить песню",
+  FieldRequired: "Обязательное поле"
 };

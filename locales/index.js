@@ -20,10 +20,13 @@ i18n.use(initReactI18next).init({
 
 export const changeLanguage = (lng) =>
   AsyncStorage.setItem("language", lng).then(() => i18n.changeLanguage(lng));
-export const initLanguage = () => {
-  AsyncStorage.getItem("language")
-    .then((lng) => lng && i18n.changeLanguage(lng))
-    .catch(() => {});
+export const initLanguage = async () => {
+  try {
+    const lng = await AsyncStorage.getItem("language");
+    if (lng) await i18n.changeLanguage(lng);
+  } catch (e) {
+    console.warn("Error loading language:", e);
+  }
 };
 
 export const { t } = i18n;

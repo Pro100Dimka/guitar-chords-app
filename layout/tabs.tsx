@@ -2,62 +2,64 @@ import { Ionicons } from "@expo/vector-icons";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import React from "react";
 import { useTranslation } from "react-i18next";
-import Header from "./header";
-import CreateChordSong from "./screens/create";
+
+import Library from "@/layout/screens/library";
+import Header from "../app/header";
+import CreateChordSong from "./screens/create-song-chords";
 import Home from "./screens/home";
 
-const Tab = createBottomTabNavigator();
+type TabParamList = {
+  Home: undefined;
+  Search: undefined;
+  Library: undefined;
+  Create: undefined;
+};
+
+const Tab = createBottomTabNavigator<TabParamList>();
 
 const SearchScreen = () => null;
-const LibraryScreen = () => null;
-const icons = {
-  Home: "home-outline",
-  Search: "search-outline",
-  Library: "book-outline",
-  Create: "add-circle-outline"
-} as const;
+
+const screens: Record<
+  keyof TabParamList,
+  { component: React.ComponentType<any>; icon: keyof typeof Ionicons.glyphMap }
+> = {
+  Home: { component: Home, icon: "home-outline" },
+  Search: { component: SearchScreen, icon: "search-outline" },
+  Library: { component: Library, icon: "book-outline" },
+  Create: { component: CreateChordSong, icon: "add-circle-outline" }
+};
+
 const Tabs = () => {
   const { t } = useTranslation();
 
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        header: () => (
+        header: ({ options }) => (
           <Header
-            title={t(route.name)}
-            onProfilePress={() => console.info("Profile pressed")}
+            title={options.title as string}
+            icon={screens[route.name].icon}
           />
         ),
         sceneStyle: { backgroundColor: "transparent" },
-        headerTransparent: true,
         tabBarIcon: ({ color, size }) => (
-          <Ionicons
-            name={icons[route.name as keyof typeof icons]}
-            size={size}
-            color={color}
-          />
+          <Ionicons name={screens[route.name].icon} size={size} color={color} />
         ),
         tabBarActiveTintColor: "#FF6600",
-        tabBarInactiveTintColor: "#555"
+        tabBarStyle: { backgroundColor: "rgba(20,20,20,0.55)" },
+        tabBarInactiveTintColor: "white"
       })}
     >
-      <Tab.Screen name="Home" component={Home} options={{ title: t("Home") }} />
-      <Tab.Screen
-        name="Search"
-        component={SearchScreen}
-        options={{ title: t("Search") }}
-      />
-      <Tab.Screen
-        name="Library"
-        component={LibraryScreen}
-        options={{ title: t("Library") }}
-      />
-      <Tab.Screen
-        name="Create"
-        component={CreateChordSong}
-        options={{ title: t("Create") }}
-      />
+      {Object.entries(screens).map(([name, screen]) => (
+        <Tab.Screen
+          key={name}
+          name={name as keyof TabParamList}
+          component={screen.component}
+          options={{ title: t(name) }}
+        />
+      ))}
     </Tab.Navigator>
   );
 };
+
 export default Tabs;
