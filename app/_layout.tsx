@@ -1,4 +1,3 @@
-import Header from "@/app/header";
 import backgroundImage from "@/assets/images/guitar-background.jpg";
 import { Stack } from "expo-router";
 import { ImageBackground, StatusBar, StyleSheet, View } from "react-native";
@@ -12,24 +11,15 @@ export default function RootLayout() {
     >
       <StatusBar barStyle="light-content" />
       <View style={styles.overlay} />
-
       <Stack
         screenOptions={{
-          contentStyle: { backgroundColor: "transparent" },
-
-          // 🔥 Вот тут подключаем твой Header
-          header: ({ options, route }) => (
-            <Header
-              title={(options.title as string) ?? route.name}
-              icon={(options as any).icon}
-            />
-          )
+          headerShown: false,
+          contentStyle: { backgroundColor: "transparent" }
         }}
       />
     </ImageBackground>
   );
 }
-
 const styles = StyleSheet.create({
   background: { flex: 1 },
   overlay: {
