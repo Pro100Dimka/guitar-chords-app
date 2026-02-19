@@ -8,9 +8,15 @@ interface HeaderProps {
   title: string;
   showBack?: boolean; // флаг для отображения кнопки назад
   icon?: string;
+  children?: React.ReactNode;
 }
 
-const Header: React.FC<HeaderProps> = ({ title, showBack = false, icon }) => {
+const Header: React.FC<HeaderProps> = ({
+  title,
+  showBack = false,
+  icon,
+  children
+}) => {
   const navigation = useNavigation();
 
   return (
@@ -34,6 +40,7 @@ const Header: React.FC<HeaderProps> = ({ title, showBack = false, icon }) => {
       ) : (
         <View style={{ width: 35 }} /> // чтобы иконка справа не прыгала
       )}
+      {children}
     </View>
   );
 };

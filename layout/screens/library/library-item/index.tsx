@@ -22,7 +22,9 @@ const LibraryItem = ({ song }: { song: ISong }) => {
         })
       }
     >
-      <Text style={styles.title}>{song.title}</Text>
+      <Text style={styles.title}>
+        {song.band_name} - {song.title}
+      </Text>
     </Pressable>
   );
 };

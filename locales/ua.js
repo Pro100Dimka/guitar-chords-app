@@ -9,9 +9,15 @@ export default {
   Library: "Бібліотека",
   Create: "Створити",
   NewSong: "Нова пісня",
-  SongTitle: "Назва пісні",
+  SongTitle: "Пісня",
+  Band: "Гурт/Артист",
   ChordsLyrics: "Аккорди / текст",
-  EnterSongTitle: "Введіть назву пісні",
+  EnterSongTitle: "Введіть назву пісні та виконавця",
   SaveSong: "Зберегти пісню",
-  FieldRequired: "Обов'язкове поле"
+  FieldRequired: "Обов'язкове поле",
+  Edit: "Редагувати",
+  SongLink: "Пісня",
+  TrainingLink: "Тренінг",
+  Close: "Закрити",
+  InvalidUrl: "Невірний URL"
 };

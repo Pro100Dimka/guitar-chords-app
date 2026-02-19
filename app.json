@@ -28,7 +28,8 @@
         "backgroundColor": "transparent"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.pro100dimka.guitarchordssongs"
     },
     "web": {
       "favicon": "./assets/images/guitar-pick.png",
@@ -45,6 +46,12 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "cab569ba-eb39-4f5f-856f-7936bf734ec5"
+      }
     }
   }
 }

@@ -10,8 +10,14 @@ export default {
   Create: "Создать",
   NewSong: "Новая песня",
   SongTitle: "Название песни",
+  Band: "Группа/Исполнитель",
   ChordsLyrics: "Аккорды / текст",
-  EnterSongTitle: "Введите название песни",
+  EnterSongTitle: "Введите название песни и исполнителя",
   SaveSong: "Сохранить песню",
-  FieldRequired: "Обязательное поле"
+  FieldRequired: "Обязательное поле",
+  Edit: "Редактировать",
+  SongLink: "Песня",
+  TrainingLink: "Обучение",
+  Close: "Закрыть",
+  InvalidUrl: "Неверный URL"
 };

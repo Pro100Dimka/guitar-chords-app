@@ -10,8 +10,14 @@ export default {
   Create: "Create",
   NewSong: "New Song",
   SongTitle: "Song title",
+  Band: "Band/Artist",
   ChordsLyrics: "Chords / Lyrics",
-  EnterSongTitle: "Enter song title",
+  EnterSongTitle: "Enter song title and artist",
   SaveSong: "Save song",
-  FieldRequired: "Required field"
+  FieldRequired: "Required field",
+  Edit: "Edit",
+  SongLink: "Song",
+  TrainingLink: "Training",
+  Close: "Close",
+  InvalidUrl: "Invalid URL"
 };
