@@ -27,7 +27,7 @@ const LocaleButton = () => {
   );
 };
 const styles = StyleSheet.create({
-  container: { alignItems: "center", marginTop: 20 }
+  container: { alignItems: "center", width: "100%", flex: 1, marginTop: 20 }
 });
 
 export default LocaleButton;

@@ -4,10 +4,11 @@ export default {
   ua: "Ukrainian",
   headerTitle: "Guitar Chords",
   searchPlaceholder: "Search chords...",
-  Home: "Home",
+  home: "Home",
   Search: "Search",
-  Library: "Library",
+  library: "Library",
   Create: "Create",
+  createSong: "Create song",
   NewSong: "New Song",
   SongTitle: "Song title",
   Band: "Band/Artist",
@@ -19,5 +20,11 @@ export default {
   SongLink: "Song",
   TrainingLink: "Training",
   Close: "Close",
-  InvalidUrl: "Invalid URL"
+  InvalidUrl: "Invalid URL",
+  Delete: "Delete",
+  ElementChanged: "Element changed",
+  ElementDeleted: "Element deleted",
+  ElementAdded: "Element added",
+  ErrorSavingSong: "Error saving song",
+  NoSongs: "No songs found"
 };

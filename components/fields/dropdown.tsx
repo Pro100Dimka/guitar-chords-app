@@ -70,13 +70,9 @@ const Dropdown: React.FC<IDropdownProps> = ({ value, options, onSelect }) => {
 
 const styles = StyleSheet.create({
   container: {
+    width: "100%",
     alignItems: "center",
     marginTop: 20
-  },
-  label: {
-    color: COLORS.text,
-    fontSize: 14,
-    marginBottom: 6
   },
   pickerCard: {
     width: 200,

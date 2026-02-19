@@ -4,11 +4,12 @@ export default {
   ua: "Українский",
   headerTitle: "Гитарные аккорды",
   searchPlaceholder: "Поиск аккордов...",
-  Home: "Главная",
+  home: "Главная",
   Search: "Поиск",
-  Library: "Библиотека",
+  library: "Библиотека",
   Create: "Создать",
   NewSong: "Новая песня",
+  createSong: "Создать песню",
   SongTitle: "Название песни",
   Band: "Группа/Исполнитель",
   ChordsLyrics: "Аккорды / текст",
@@ -19,5 +20,11 @@ export default {
   SongLink: "Песня",
   TrainingLink: "Обучение",
   Close: "Закрыть",
-  InvalidUrl: "Неверный URL"
+  InvalidUrl: "Неверный URL",
+  Delete: "Удалить",
+  ElementChanged: "Элемент изменен",
+  ElementDeleted: "Элемент удален",
+  ElementAdded: "Элемент сохранен",
+  ErrorSavingSong: "Error saving song",
+  NoSongs: "Нет песен"
 };

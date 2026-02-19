@@ -1,5 +1,5 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import i18n from "i18next";
+import * as i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import en from "./en.js";
 import ru from "./ru.js";
@@ -25,7 +25,7 @@ export const initLanguage = async () => {
     const lng = await AsyncStorage.getItem("language");
     if (lng) await i18n.changeLanguage(lng);
   } catch (e) {
-    console.warn("Error loading language:", e);
+    console.info("Error loading language:", e);
   }
 };
 

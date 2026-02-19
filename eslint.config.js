@@ -1,21 +1,16 @@
-// https://docs.expo.dev/guides/using-eslint/
 const { defineConfig } = require("eslint/config");
 const expoConfig = require("eslint-config-expo/flat");
+const reactNativePlugin = require("eslint-plugin-react-native"); // импортируем плагин
 
 module.exports = defineConfig([
   expoConfig,
   {
     ignores: ["dist/*"],
+    plugins: {
+      "react-native": reactNativePlugin // ✅ так подключаем
+    },
     rules: {
-      "no-console": [
-        1,
-        {
-          allow: ["error", "info"]
-        }
-      ], // 0: "off", 1: "warn", 2: "error"
-      // 0: "off", 1: "warn", 2: "error"
-      "func-names": 0,
-      "comma-dangle": 0,
+      "no-console": [1, { allow: ["error", "info"] }],
       "no-unused-vars": [
         1,
         {
@@ -25,66 +20,21 @@ module.exports = defineConfig([
           argsIgnorePattern: "^_$"
         }
       ],
-      "linebreak-style": 0,
-      "arrow-body-style": 0,
-      quotes: [0, "double"],
-      "no-plusplus": 0,
-      "no-prototype-builtins": 0,
-      "no-return-assign": 0,
-      "implicit-arrow-linebreak": 0,
-      "react/function-component-definition": 0,
-      "object-curly-newline": 0,
-      "react/prop-types": 0,
-      "react/jsx-props-no-spreading": 0,
-      "no-shadow": 0,
-      "react/react-in-jsx-scope": 0,
-      "import/no-extraneous-dependencies": 0,
-      "no-param-reassign": 0,
-      "react/no-array-index-key": 0,
-      "react/jsx-curly-newline": 0,
-      curly: 0,
-      "operator-linebreak": 0,
-      "no-underscore-dangle": 0,
-      "no-undef-init": 0,
-      "no-bitwise": 0,
-      "no-restricted-syntax": 0,
-      "no-extra-boolean-cast": 0,
-      "import/order": 0,
-      "react/jsx-wrap-multilines": 0,
-      "lines-between-class-members": 1,
+
+      // React Native правила
+      "react-native/no-unused-styles": 2,
+      "react-native/split-platform-components": 2,
+      "react-native/no-inline-styles": 1,
+      "react-native/no-color-literals": 1,
+
+      // React hooks
       "react-hooks/rules-of-hooks": 2,
-      "react-hooks/exhaustive-deps": 0,
-      "no-useless-return": 0,
-      "import/prefer-default-export": 0,
-      "react/jsx-one-expression-per-line": 0,
-      "nonblock-statement-body-position": 0,
-      "react/jsx-filename-extension": [
-        2,
-        {
-          extensions: [".jsx", ".tsx"]
-        }
-      ],
-      "react/jsx-fragments": 0,
-      "no-lonely-if": 0,
-      "import/no-cycle": 0,
-      "react/no-unstable-nested-components": 0,
-      indent: 0,
-      "react/destructuring-assignment": 0,
-      "no-confusing-arrow": 0,
-      "react/no-unused-class-component-methods": 0,
-      "function-paren-newline": 0,
-      "class-methods-use-this": 0,
-      "no-nested-ternary": 0,
-      "react/default-props-match-prop-types": 0,
-      "react/forbid-prop-types": 0,
-      "react/require-default-props": 0,
-      "react/no-unused-prop-types": 1,
-      "import/no-named-as-default": 0,
-      camelcase: 0,
-      "no-unused-expressions": 0,
-      "no-use-before-define": 0,
-      "no-restricted-globals": 0,
-      "no-else-return": 0
+      "react-hooks/exhaustive-deps": 2,
+
+      // Базовые ошибки
+      "no-undef": 2,
+      "import/no-cycle": 2,
+      "react/prop-types": 2
     }
   }
 ]);

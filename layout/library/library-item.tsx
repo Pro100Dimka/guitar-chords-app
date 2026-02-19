@@ -1,13 +1,8 @@
+import { COLORS } from "@/components/fields/text-field";
 import { ISong } from "@/database";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
-const COLORS = {
-  card: "rgba(20,20,20,0.55)",
-  border: "rgba(255,255,255,0.15)",
-  text: "#fff",
-  accent: "#FF6600"
-};
 
 const LibraryItem = ({ song }: { song: ISong }) => {
   const router = useRouter();
@@ -31,12 +26,12 @@ const LibraryItem = ({ song }: { song: ISong }) => {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
+    backgroundColor: COLORS.blackOpacity,
     borderRadius: 12,
     padding: 16,
     marginVertical: 8,
     borderWidth: 1,
-    borderColor: COLORS.border
+    borderColor: COLORS.blackOpacityTiny
   },
   title: {
     color: COLORS.text,

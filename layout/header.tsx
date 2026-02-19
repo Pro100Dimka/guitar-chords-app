@@ -1,4 +1,5 @@
 import Logo from "@/assets/images/guitar-pick.svg";
+import { COLORS } from "@/components/fields/text-field";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native"; // импортируем хук
 import React from "react";
@@ -27,7 +28,7 @@ const Header: React.FC<HeaderProps> = ({
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={28} color="#FF6600" />
+            <Ionicons name="arrow-back" size={28} color={COLORS.accent} />
           </Pressable>
         )}
         <Logo width={50} height={50} />
@@ -36,9 +37,9 @@ const Header: React.FC<HeaderProps> = ({
       <Text style={styles.title}>{title}</Text>
 
       {icon ? (
-        <Ionicons name={icon as any} size={35} color="#FF6600" />
+        <Ionicons name={icon as any} size={35} color={COLORS.accent} />
       ) : (
-        <View style={{ width: 35 }} /> // чтобы иконка справа не прыгала
+        <View style={styles.viewIco} /> // чтобы иконка справа не прыгала
       )}
       {children}
     </View>
@@ -46,19 +47,20 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
+  viewIco: { width: 35 },
   container: {
     paddingTop: 40,
-    backgroundColor: "rgba(20,20,20,0.55)",
+    backgroundColor: COLORS.blackOpacity,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderColor: "rgba(255,255,255,0.15)"
+    borderColor: COLORS.placeholder
   },
   left: { flexDirection: "row", alignItems: "center" },
   backButton: { marginRight: 8 },
-  title: { fontSize: 18, fontWeight: "bold", color: "#FF6600" }
+  title: { fontSize: 18, fontWeight: "bold", color: COLORS.accent }
 });
 
 export default Header;

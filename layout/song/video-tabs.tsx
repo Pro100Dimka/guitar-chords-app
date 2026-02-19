@@ -1,3 +1,4 @@
+import { COLORS } from "@/components/fields/text-field";
 import extractYoutubeId from "@/components/utils/extract-youtube-id";
 import { ISong } from "@/database";
 import { FC, useRef, useState } from "react";
@@ -15,44 +16,53 @@ const VideoTabs: FC<ISong> = (song) => {
   const [activeTab, setActiveTab] = useState(Object.keys(tabs)[0]);
   const rawLink = song[activeTab as keyof ISong];
   const videoId = typeof rawLink === "string" ? extractYoutubeId(rawLink) : "";
-
   return (
-    <View style={{ flex: 1, gap: 15 }}>
+    <View style={styles.flexGap}>
       <View style={styles.tabContainer}>
-        {Object.entries(tabs).map(([key, label]) => (
-          <TouchableOpacity
-            key={key}
-            style={[styles.tabButton, activeTab === key && styles.activeTab]}
-            onPress={() => setActiveTab(key)}
-          >
-            <Text style={styles.tabText}>{label}</Text>
-          </TouchableOpacity>
-        ))}
+        {Object.entries(tabs).map(
+          ([key, label]) =>
+            song[key as keyof ISong] && (
+              <TouchableOpacity
+                key={key}
+                style={[
+                  styles.tabButton,
+                  activeTab === key && styles.activeTab
+                ]}
+                onPress={() => setActiveTab(key)}
+              >
+                <Text style={styles.tabText}>{label}</Text>
+              </TouchableOpacity>
+            )
+        )}
       </View>
-      <View style={{ flex: 1 }}>
-        <YoutubePlayer ref={playerRef} height={250} videoId={videoId} />
-      </View>
+      {videoId && (
+        <View style={styles.flex}>
+          <YoutubePlayer ref={playerRef} height={250} videoId={videoId} />
+        </View>
+      )}
     </View>
   );
 };
 const styles = StyleSheet.create({
+  flexGap: { flex: 1, gap: 15 },
+  flex: { flex: 1 },
   tabContainer: {
     flexDirection: "row",
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: "#FF6600"
+    borderColor: COLORS.accent
   },
   tabButton: {
     flex: 1,
     paddingVertical: 13,
     alignItems: "center",
-    backgroundColor: "rgba(0,0,0,0.3)"
+    backgroundColor: COLORS.black
   },
   activeTab: {
-    backgroundColor: "rgba(255,102,0,0.8)"
+    backgroundColor: COLORS.accent
   },
-  tabText: { color: "#fff", fontWeight: "700" }
+  tabText: { color: COLORS.text, fontWeight: "700" }
 });
 
 export default VideoTabs;

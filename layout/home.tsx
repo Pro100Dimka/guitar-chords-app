@@ -9,7 +9,6 @@ const Home = () => {
   );
 };
 const styles = StyleSheet.create({
-  overlay: { flex: 1, width: "100%" },
-  text: { fontSize: 16, color: "#000" }
+  overlay: { flex: 1, width: "100%" }
 });
 export default Home;

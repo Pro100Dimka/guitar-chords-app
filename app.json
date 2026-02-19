@@ -14,18 +14,18 @@
       "splash": {
         "image": "./assets/images/guitar-pick.png",
         "resizeMode": "contain",
-        "backgroundColor": "transparent"
+        "backgroundColor": "#00000000"
       }
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/guitar-pick.png",
-        "backgroundColor": "transparent"
+        "backgroundColor": "#00000000"
       },
       "splash": {
         "image": "./assets/images/guitar-pick.png",
         "resizeMode": "contain",
-        "backgroundColor": "transparent"
+        "backgroundColor": "#00000000"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
@@ -36,13 +36,10 @@
       "splash": {
         "image": "./assets/images/guitar-pick.png",
         "resizeMode": "contain",
-        "backgroundColor": "transparent"
+        "backgroundColor": "#00000000"
       }
     },
-    "plugins": [
-      "expo-router",
-      "expo-sqlite"
-    ],
+    "plugins": ["expo-router", "expo-sqlite"],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
@@ -52,6 +49,7 @@
       "eas": {
         "projectId": "cab569ba-eb39-4f5f-856f-7936bf734ec5"
       }
-    }
+    },
+    "owner": "pro100dimka"
   }
 }

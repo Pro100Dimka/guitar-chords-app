@@ -3,9 +3,20 @@ import { StyleSheet, Text, TextInput, View } from "react-native";
 
 export const COLORS = {
   input: "rgba(0,0,0,0.35)",
-  label: "#ddd",
-  text: "#fff",
-  placeholder: "#aaa"
+  label: "#dddddd",
+  text: "#ffffff",
+  placeholder: "#aaaaaa",
+  red: "#ff0000",
+  white: "#ffffff",
+  gray: "#aaaaaa",
+  accent: "#FF6600",
+  background: "#eeeeee",
+  black: "#000000",
+  grayOpacity: "rgba(255,255,255,0.35)",
+  grayOpacityTiny: "rgba(255,255,255,0.15)",
+  blackOpacity: "rgba(20,20,20,0.55)",
+  blackOpacityTiny: "rgba(0,0,0,0.25)",
+  transparent: "#00000000"
 };
 
 interface ITextFieldProps {
@@ -79,10 +90,8 @@ const styles = StyleSheet.create({
     width: "100%"
   },
   multiline: { minHeight: 150, fontFamily: "Tahoma" },
-  errorInput: {
-    borderColor: "red"
-  },
-  error: { color: "red", marginTop: 4, fontSize: 12 }
+  errorInput: { borderColor: COLORS.red },
+  error: { color: COLORS.red, marginTop: 4, fontSize: 12 }
 });
 
 export default TextField;

@@ -4,10 +4,13 @@ const db = openDatabaseSync("chords.db");
 
 export const initDB = async () => {
   const tableSProps = [
-    ["bands", "id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL"],
+    [
+      "bands",
+      "id INTEGER PRIMARY KEY NOT NULL, name TEXT NOT NULL, search_text_lower TEXT"
+    ],
     [
       "songs",
-      "id INTEGER PRIMARY KEY NOT NULL, band_id INTEGER, title TEXT NOT NULL, content TEXT NOT NULL, youtobe_link_music TEXT, youtobe_link_chords TEXT"
+      "id INTEGER PRIMARY KEY NOT NULL, band_id INTEGER, title TEXT NOT NULL, content TEXT NOT NULL, youtobe_link_music TEXT, youtobe_link_chords TEXT, search_text_lower TEXT"
     ]
   ];
   for (const [tableName, tableProps] of tableSProps) {
@@ -15,6 +18,14 @@ export const initDB = async () => {
     await db.execAsync(
       `CREATE TABLE IF NOT EXISTS ${tableName} (${tableProps});`
     );
+    const columnName = "search_text_lower";
+    const columns = await db.getAllAsync(`PRAGMA table_info(${tableName});`);
+    const columnExists = columns.some((col: any) => col.name === columnName);
+    if (!columnExists) {
+      await db.execAsync(
+        `ALTER TABLE ${tableName} ADD COLUMN ${columnName} TEXT;`
+      );
+    }
   }
   console.info(
     `Database initialized with tables: ${tableSProps.map(([name]) => name).join(", ")}`
@@ -45,7 +56,7 @@ export interface IBand {
   id: number;
   name: string;
 }
-interface IFetchDataParams {
+export interface IFetchDataParams {
   tableName?: string;
   fields?: string;
   filters?: string;
@@ -61,10 +72,8 @@ interface IFetchDataByIdParams {
 }
 export const fetchData = async <T>(params: IFetchDataParams): Promise<T[]> => {
   const { tableName, fields, filters, page = 0, limit = 10, join } = params;
-  return await db.getAllAsync(
-    `SELECT ${fields ? fields : "*"} FROM ${tableName} ${join ? `JOIN ${join}` : " "}${filters ? "WHERE " + filters : ""} LIMIT ? OFFSET ?;`,
-    [limit, page * limit]
-  );
+  const str = `SELECT ${fields ? fields : "*"} FROM ${tableName} ${join ? `JOIN ${join}` : " "} ${filters ? "WHERE " + filters : " "} LIMIT ${limit} OFFSET ${page * limit};`;
+  return await db.getAllAsync(str);
 };
 export const fetchDataById = async <T>(
   params: IFetchDataByIdParams
@@ -101,16 +110,18 @@ export const updateData = async (
   updatedData: Record<string, any>,
   conditions: Record<string, any>
 ) => {
-  const updateKeys = Object.keys(updatedData);
-  const updateValues = Object.values(updatedData).map((v) => v ?? null); // защита от undefined
-  const conditionKeys = Object.keys(conditions);
-  const conditionValues = Object.values(conditions).map((v) => v ?? null);
-
-  const updateSet = updateKeys.map((key) => `${key} = ?`).join(", ");
-  const conditionsSet = conditionKeys.map((key) => `${key} = ?`).join(" AND ");
+  const updateSet = Object.keys(updatedData)
+    .map((key) => `${key} = ?`)
+    .join(", ");
+  const conditionsSet = Object.keys(conditions)
+    .map((key) => `${key} = ?`)
+    .join(" AND ");
   await db.runAsync(
     `UPDATE ${tableName} SET ${updateSet} WHERE ${conditionsSet};`,
-    [...updateValues, ...conditionValues]
+    [
+      ...Object.values(updatedData).map((v) => v ?? null),
+      ...Object.values(conditions).map((v) => v ?? null)
+    ]
   );
 };
 export const deleteData = async (

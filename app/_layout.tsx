@@ -1,6 +1,7 @@
-import backgroundImage from "@/assets/images/guitar-background.jpg";
+import { COLORS } from "@/components/fields/text-field";
 import { Stack } from "expo-router";
 import { ImageBackground, StatusBar, StyleSheet, View } from "react-native";
+const backgroundImage = require("@/assets/images/guitar-background.jpg");
 
 export default function RootLayout() {
   return (
@@ -13,8 +14,9 @@ export default function RootLayout() {
       <View style={styles.overlay} />
       <Stack
         screenOptions={{
+          animationTypeForReplace: "pop",
           headerShown: false,
-          contentStyle: { backgroundColor: "transparent", flex: 1 }
+          contentStyle: { backgroundColor: COLORS.transparent, flex: 1 }
         }}
       />
     </ImageBackground>
@@ -24,6 +26,6 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(0,0,0,0.45)"
+    backgroundColor: COLORS.blackOpacityTiny
   }
 });

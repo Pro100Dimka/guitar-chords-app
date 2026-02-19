@@ -81,7 +81,7 @@ function SearchableSelect<T extends Record<string, any>>({
     }, 400);
 
     return () => clearTimeout(timeout);
-  }, [query, modalVisible]);
+  }, [query, modalVisible, labelKey, tableName, pageLimit]);
 
   const loadMore = async () => {
     if (!hasMore || loading) return;
@@ -105,7 +105,10 @@ function SearchableSelect<T extends Record<string, any>>({
 
   const handleCreate = async () => {
     const newItem = (await createData(tableName, {
-      [labelKey]: query
+      [labelKey]: query,
+      ...(selectedValue.hasOwnProperty("search_text_lower") && {
+        search_text_lower: query.toLowerCase()
+      })
     })) as T;
 
     setValue(newItem);
@@ -163,14 +166,14 @@ function SearchableSelect<T extends Record<string, any>>({
             onEndReachedThreshold={0.5}
           />
 
-          {loading && <ActivityIndicator style={{ marginVertical: 8 }} />}
+          {loading && <ActivityIndicator style={styles.activity} />}
 
           {!loading &&
             query.length > 2 &&
             data.length === 0 &&
             hasCreateBtn && (
               <TouchableOpacity style={styles.create} onPress={handleCreate}>
-                <Text style={{ color: "#fff" }}>
+                <Text style={{ color: COLORS.white }}>
                   {t("Create")}: {query}
                 </Text>
               </TouchableOpacity>
@@ -198,16 +201,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     width: "100%"
   },
-
+  activity: { marginVertical: 20 },
   modalContainer: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#fff"
+    backgroundColor: COLORS.white
   },
 
   searchInput: {
     borderWidth: 1,
-    borderColor: "#ddd",
+    borderColor: COLORS.label,
     borderRadius: 10,
     padding: 12,
     marginBottom: 10
@@ -216,12 +219,12 @@ const styles = StyleSheet.create({
   item: {
     padding: 15,
     borderBottomWidth: 1,
-    borderColor: "#eee"
+    borderColor: COLORS.background
   },
 
   create: {
     marginTop: 10,
-    backgroundColor: "#FF6600",
+    backgroundColor: COLORS.accent,
     padding: 12,
     borderRadius: 8,
     alignItems: "center"
@@ -233,7 +236,7 @@ const styles = StyleSheet.create({
   },
 
   errorInput: {
-    borderColor: "red"
+    borderColor: COLORS.red
   },
-  error: { color: "red", marginTop: 4, fontSize: 12 }
+  error: { color: COLORS.red, marginTop: 4, fontSize: 12 }
 });

@@ -1,8 +1,9 @@
+import { FC } from "react";
 import { StyleSheet, Text, TextProps } from "react-native";
 import palette from "../theme/palette";
 
 type StyledTextProps = TextProps;
-const StyledText: React.FC<StyledTextProps> = (props) => (
+const StyledText: FC<StyledTextProps> = (props) => (
   <Text {...props} style={[styles.base, props.style]} />
 );
 

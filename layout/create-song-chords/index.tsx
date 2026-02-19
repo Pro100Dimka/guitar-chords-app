@@ -1,8 +1,9 @@
 import SearchableSelect from "@/components/fields/api-select";
 import TextField from "@/components/fields/text-field";
 import { ISong } from "@/database";
+import { useFocusEffect } from "expo-router";
 import { Formik, FormikHelpers } from "formik";
-import React, { memo, useEffect, useState } from "react";
+import React, { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import initialValues from "./formik/initial-values";
@@ -13,7 +14,8 @@ const COLORS = {
   card: "rgba(20,20,20,0.55)",
   border: "rgba(255,255,255,0.15)",
   text: "#fff",
-  accent: "#FF6600"
+  accent: "#FF6600",
+  gray: "#aaaaaa"
 };
 
 // интерфейс для формы
@@ -23,7 +25,7 @@ interface FormValues {
   content: string;
   youtobe_link_music: string;
   youtobe_link_chords: string;
-  fk_band: { id: string; name: string };
+  fk_band: { id: string; name: string; search_text_lower: string };
 }
 
 const CreateChordSong: React.FC<{
@@ -34,32 +36,37 @@ const CreateChordSong: React.FC<{
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialValuesState, setInitialValuesState] =
     useState<FormValues>(initialValues);
-  useEffect(() => {
-    if (song && song.id) {
-      const { band_name, band_id, ...songProps } = song;
-      setInitialValuesState({
-        ...initialValues,
-        ...songProps,
-        fk_band: { name: band_name ?? "", id: band_id?.toString() ?? "" }
-      });
-    } else {
-      setInitialValuesState(initialValues);
-    }
-  }, [song]);
-
+  useFocusEffect(
+    useCallback(() => {
+      if (song && song.id) {
+        const { band_name, band_id, ...songProps } = song;
+        setInitialValuesState({
+          ...initialValues,
+          ...songProps,
+          fk_band: {
+            name: band_name ?? "",
+            id: band_id?.toString() ?? "",
+            search_text_lower: (band_name ?? "").toLowerCase()
+          }
+        });
+      } else {
+        setInitialValuesState(initialValues);
+      }
+    }, [song])
+  );
   const handleSubmit = async (
     values: FormValues,
     actions: FormikHelpers<FormValues>
   ) => {
     setIsSubmitting(true);
-    await onSubmit(values, setIsEdit);
+    await onSubmit(values, setIsEdit).then(() => actions.resetForm());
     setIsSubmitting(false);
     actions.setSubmitting(false);
   };
 
   return (
     <ScrollView
-      style={{ flex: 1 }}
+      style={styles.flex}
       contentContainerStyle={styles.container}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
@@ -73,10 +80,8 @@ const CreateChordSong: React.FC<{
           onSubmit={handleSubmit}
         >
           {(formik) => (
-            <View style={{ flex: 1 }}>
-              <Text style={{ color: "#aaa", marginBottom: 10 }}>
-                {t("EnterSongTitle")}
-              </Text>
+            <View style={styles.flex}>
+              <Text style={styles.titleLabel}>{t("EnterSongTitle")}</Text>
               <View style={styles.row}>
                 <SearchableSelect
                   hasCreateBtn
@@ -88,7 +93,7 @@ const CreateChordSong: React.FC<{
                   formik={formik}
                   style={{ container: { flex: 0.6 } }}
                 />
-                <Text style={{ color: "#aaa", marginTop: 10 }}>-</Text>
+                <Text style={styles.minus}>-</Text>
                 <TextField
                   placeholder={t("SongTitle")}
                   formik={formik}
@@ -122,7 +127,7 @@ const CreateChordSong: React.FC<{
                 multiline
               />
               <Pressable
-                style={[styles.saveButton, isSubmitting && { opacity: 0.6 }]}
+                style={[styles.saveButton, isSubmitting && styles.disabled]}
                 onPress={() => formik.handleSubmit()}
                 disabled={isSubmitting}
               >
@@ -137,11 +142,8 @@ const CreateChordSong: React.FC<{
 };
 
 const styles = StyleSheet.create({
-  row: {
-    flexDirection: "row",
-    gap: 5,
-    alignItems: "flex-start"
-  },
+  row: { flexDirection: "row", gap: 5, alignItems: "flex-start" },
+  flex: { flex: 1 },
   container: { padding: 10, paddingBottom: 40, flexGrow: 1 },
   card: {
     flex: 1,
@@ -151,6 +153,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border
   },
+  disabled: { opacity: 0.6 },
+  titleLabel: { color: COLORS.gray, marginBottom: 10 },
+  minus: { color: COLORS.gray, marginTop: 10 },
   title: {
     fontSize: 22,
     fontWeight: "700",
@@ -164,7 +169,7 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center"
   },
-  saveText: { color: "#fff", fontWeight: "700", fontSize: 16 }
+  saveText: { color: COLORS.text, fontWeight: "700", fontSize: 16 }
 });
 
 export default memo(CreateChordSong);

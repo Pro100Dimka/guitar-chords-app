@@ -4,6 +4,6 @@ const initialValues = {
   content: "",
   youtobe_link_music: "",
   youtobe_link_chords: "",
-  fk_band: { id: "", name: "" }
+  fk_band: { id: "", name: "", search_text_lower: "" }
 };
 export default initialValues;
