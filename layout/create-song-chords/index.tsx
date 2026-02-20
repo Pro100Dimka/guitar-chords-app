@@ -143,7 +143,7 @@ const CreateChordSong: React.FC<{
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 5, alignItems: "flex-start" },
-  flex: { flex: 1 },
+  flex: { flex: 1, display: "flex", flexDirection: "column" },
   container: { padding: 10, paddingBottom: 40, flexGrow: 1 },
   card: {
     flex: 1,

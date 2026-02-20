@@ -1,6 +1,6 @@
 import Logo from "@/assets/images/guitar-pick.svg";
 import { COLORS } from "@/components/fields/text-field";
-import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native"; // импортируем хук
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
@@ -28,7 +28,11 @@ const Header: React.FC<HeaderProps> = ({
             onPress={() => navigation.goBack()}
             style={styles.backButton}
           >
-            <Ionicons name="arrow-back" size={28} color={COLORS.accent} />
+            <MaterialCommunityIcons
+              name="skip-backward"
+              size={28}
+              color={COLORS.accent}
+            />
           </Pressable>
         )}
         <Logo width={50} height={50} />
@@ -37,7 +41,11 @@ const Header: React.FC<HeaderProps> = ({
       <Text style={styles.title}>{title}</Text>
 
       {icon ? (
-        <Ionicons name={icon as any} size={35} color={COLORS.accent} />
+        <MaterialCommunityIcons
+          name={icon as any}
+          size={35}
+          color={COLORS.accent}
+        />
       ) : (
         <View style={styles.viewIco} /> // чтобы иконка справа не прыгала
       )}

@@ -75,12 +75,12 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: COLORS.blackOpacity
+    backgroundColor: COLORS.blackOpacityTiny
   },
-  container: { padding: 16, paddingBottom: 40, flex: 1 },
+  container: { paddingBottom: 40 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   content: {
-    marginTop: 10,
+    padding: 16,
     fontSize: 17.5,
     color: COLORS.text,
     lineHeight: 27,

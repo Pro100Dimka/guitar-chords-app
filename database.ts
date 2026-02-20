@@ -32,16 +32,6 @@ export const initDB = async () => {
   );
 };
 
-export const insertSong = async (title: string, content: string) => {
-  return await db.runAsync(
-    `INSERT INTO songs (title, content) VALUES (?, ?);`,
-    [title, content]
-  );
-};
-
-export const fetchSongs = async () => {
-  return await db.getAllAsync(`SELECT * FROM songs;`);
-};
 export interface ISong {
   id: number;
   title: string;
@@ -82,12 +72,14 @@ export const fetchDataById = async <T>(
   const keys = Object.keys(data);
   const values = Object.values(data);
   const conditions = keys.map((key) => `${key} = ?`).join(" AND ");
-  const result = await db.getAllSync(
+  const result = await db.getAllAsync(
     `SELECT ${fields ? fields : "*"} FROM ${tableName} ${join ? `JOIN ${join}` : " "} ${conditions ? "WHERE " + conditions : ""};`,
     values
   );
   return result[0] as T;
 };
+let queue = Promise.resolve();
+
 export const createData = async <T>(
   tableName: string,
   data: Record<string, any>
@@ -96,14 +88,18 @@ export const createData = async <T>(
   const values = Object.values(data);
   const columns = keys.join(", ");
   const placeholders = keys.map(() => "?").join(", ");
-  const result = await db.runAsync(
-    `INSERT INTO ${tableName} (${columns}) VALUES (${placeholders});`,
-    values
-  );
-  return {
-    id: result.lastInsertRowId,
-    ...data
-  } as T;
+  let lastInsertId = 0;
+  queue = queue.then(async () => {
+    const result = await db.runAsync(
+      `INSERT INTO ${tableName} (${columns}) VALUES (${placeholders});`,
+      values
+    );
+    lastInsertId = result.lastInsertRowId;
+  });
+
+  await queue; // ждём выполнения всех предыдущих запросов
+
+  return { id: lastInsertId, ...data } as T;
 };
 export const updateData = async (
   tableName: string,

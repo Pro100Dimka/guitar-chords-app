@@ -50,6 +50,7 @@ function SearchableSelect<T extends Record<string, any>>({
   const [loading, setLoading] = useState(false);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [error, setError] = useState(null);
   const selectedValue = formik && name ? formik.values[name] : value;
   const setValue = (val: T | null) => {
     if (formik && name) {
@@ -120,7 +121,13 @@ function SearchableSelect<T extends Record<string, any>>({
     setQuery("");
     setData([]);
   };
-  const error = formik && name && formik.touched[name] && formik.errors[name];
+  useEffect(() => {
+    if (formik?.values) {
+      const error =
+        formik && name && formik.touched[name] && formik.errors[name];
+      setError(error);
+    }
+  }, [selectedValue]);
   return (
     <View style={[styles.container, style?.container]}>
       <TouchableOpacity

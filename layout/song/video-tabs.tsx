@@ -17,7 +17,7 @@ const VideoTabs: FC<ISong> = (song) => {
   const rawLink = song[activeTab as keyof ISong];
   const videoId = typeof rawLink === "string" ? extractYoutubeId(rawLink) : "";
   return (
-    <View style={styles.flexGap}>
+    <View style={styles.container}>
       <View style={styles.tabContainer}>
         {Object.entries(tabs).map(
           ([key, label]) =>
@@ -37,32 +37,39 @@ const VideoTabs: FC<ISong> = (song) => {
       </View>
       {videoId && (
         <View style={styles.flex}>
-          <YoutubePlayer ref={playerRef} height={250} videoId={videoId} />
+          <YoutubePlayer
+            ref={playerRef}
+            width="100%"
+            height="100%"
+            videoId={videoId}
+          />
         </View>
       )}
     </View>
   );
 };
 const styles = StyleSheet.create({
-  flexGap: { flex: 1, gap: 15 },
-  flex: { flex: 1 },
+  container: { flex: 1, paddingBottom: 10 },
   tabContainer: {
+    margin: 16,
     flexDirection: "row",
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: COLORS.accent
+    borderColor: COLORS.accent,
+    flex: 1
   },
   tabButton: {
     flex: 1,
     paddingVertical: 13,
     alignItems: "center",
-    backgroundColor: COLORS.black
+    backgroundColor: COLORS.blackOpacityTiny
   },
   activeTab: {
     backgroundColor: COLORS.accent
   },
-  tabText: { color: COLORS.text, fontWeight: "700" }
+  tabText: { color: COLORS.text, fontWeight: "700" },
+  flex: { width: "100%", maxHeight: 225 }
 });
 
 export default VideoTabs;

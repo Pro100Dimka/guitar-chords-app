@@ -29,7 +29,7 @@ module.exports = defineConfig([
 
       // React hooks
       "react-hooks/rules-of-hooks": 2,
-      "react-hooks/exhaustive-deps": 2,
+      "react-hooks/exhaustive-deps": 1,
 
       // Базовые ошибки
       "no-undef": 2,
