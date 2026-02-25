@@ -31,7 +31,7 @@ interface FormValues {
 const CreateChordSong: React.FC<{
   song?: ISong;
   setIsEdit: (_: boolean) => void;
-}> = ({ song, setIsEdit }) => {
+}> = memo(({ song, setIsEdit }) => {
   const { t } = useTranslation();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [initialValuesState, setInitialValuesState] =
@@ -139,7 +139,7 @@ const CreateChordSong: React.FC<{
       </View>
     </ScrollView>
   );
-};
+});
 
 const styles = StyleSheet.create({
   row: { flexDirection: "row", gap: 5, alignItems: "flex-start" },
@@ -171,5 +171,4 @@ const styles = StyleSheet.create({
   },
   saveText: { color: COLORS.text, fontWeight: "700", fontSize: 16 }
 });
-
-export default memo(CreateChordSong);
+export default CreateChordSong;

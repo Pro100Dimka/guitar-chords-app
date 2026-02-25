@@ -1,7 +1,7 @@
-import Dropdown from "@/components/fields/dropdown";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, View } from "react-native";
+import Dropdown from "../components/fields/dropdown";
 import { changeLanguage, langs } from "./index";
 
 const LocaleButton = () => {
