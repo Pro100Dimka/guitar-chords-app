@@ -1,6 +1,3 @@
-import guitarBgSong from "@/assets/images/guitar-background-song.jpg";
-import { COLORS } from "@/components/fields/text-field";
-import { fetchDataById, ISong } from "@/database";
 import { useLocalSearchParams } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -10,6 +7,9 @@ import {
   Text,
   View
 } from "react-native";
+import guitarBgSong from "../../assets/images/guitar-background-song.jpg";
+import { COLORS } from "../../components/fields/text-field";
+import { fetchDataById, ISong } from "../../database";
 import CreateChordSong from "../create-song-chords";
 import Header from "../header";
 import SongModal from "./header-modal";

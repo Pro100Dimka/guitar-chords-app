@@ -1,11 +1,11 @@
-import SearchableSelect from "@/components/fields/api-select";
-import TextField from "@/components/fields/text-field";
-import { ISong } from "@/database";
 import { useFocusEffect } from "expo-router";
 import { Formik, FormikHelpers } from "formik";
 import React, { memo, useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import SearchableSelect from "../../components/fields/api-select";
+import TextField from "../../components/fields/text-field";
+import { ISong } from "../../database";
 import initialValues from "./formik/initial-values";
 import onSubmit from "./formik/on-sabmit";
 import { validationSchema } from "./formik/validation-schema";

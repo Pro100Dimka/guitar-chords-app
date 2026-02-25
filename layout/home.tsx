@@ -1,5 +1,5 @@
-import LocaleButton from "@/locales/button";
 import { StyleSheet, View } from "react-native";
+import LocaleButton from "../locales/button";
 
 const Home = () => {
   return (

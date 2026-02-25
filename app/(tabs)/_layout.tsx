@@ -1,8 +1,8 @@
-import { COLORS } from "@/components/fields/text-field";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
 import React from "react";
 import { useTranslation } from "react-i18next";
+import { COLORS } from "../../components/fields/text-field";
 import Header from "../../layout/header";
 import CreateChordSong from "./createSong";
 import Home from "./home";

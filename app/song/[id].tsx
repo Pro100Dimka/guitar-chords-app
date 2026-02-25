@@ -1,2 +1,2 @@
-export { default } from "@/layout/song/[id]";
+export { default } from "../../layout/song/[id]";
 

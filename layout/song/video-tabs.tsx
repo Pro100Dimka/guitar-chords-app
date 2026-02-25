@@ -1,10 +1,10 @@
-import { COLORS } from "@/components/fields/text-field";
-import extractYoutubeId from "@/components/utils/extract-youtube-id";
-import { ISong } from "@/database";
 import { FC, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
+import { COLORS } from "../../components/fields/text-field";
+import extractYoutubeId from "../../components/utils/extract-youtube-id";
+import { ISong } from "../../database";
 
 const VideoTabs: FC<ISong> = (song) => {
   const { t } = useTranslation();

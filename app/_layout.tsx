@@ -1,7 +1,7 @@
-import { COLORS } from "@/components/fields/text-field";
 import { Stack } from "expo-router";
 import { ImageBackground, StatusBar, StyleSheet, View } from "react-native";
-const backgroundImage = require("@/assets/images/guitar-background.jpg");
+import { COLORS } from "../components/fields/text-field";
+const backgroundImage = require("../assets/images/guitar-background.jpg");
 
 export default function RootLayout() {
   return (

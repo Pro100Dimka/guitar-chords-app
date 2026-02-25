@@ -1,2 +1,2 @@
-export { default } from "@/layout/home";
+export { default } from "../../layout/home";
 

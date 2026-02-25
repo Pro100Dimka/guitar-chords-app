@@ -1,9 +1,9 @@
-import Logo from "@/assets/images/guitar-pick.svg";
-import { COLORS } from "@/components/fields/text-field";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native"; // импортируем хук
 import React from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Logo from "../assets/images/guitar-pick.svg";
+import { COLORS } from "../components/fields/text-field";
 
 interface HeaderProps {
   title: string;

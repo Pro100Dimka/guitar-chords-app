@@ -1,5 +1,3 @@
-import { COLORS } from "@/components/fields/text-field";
-import { fetchData, IFetchDataParams } from "@/database";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
@@ -13,6 +11,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { COLORS } from "../../components/fields/text-field";
+import { fetchData, IFetchDataParams } from "../../database";
 
 interface ISearchBarProps {
   setFilters: React.Dispatch<React.SetStateAction<string>>;

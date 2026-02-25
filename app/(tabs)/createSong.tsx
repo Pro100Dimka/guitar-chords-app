@@ -1,2 +1,2 @@
-export { default } from "@/layout/create-song-chords";
+export { default } from "../../layout/create-song-chords";
 

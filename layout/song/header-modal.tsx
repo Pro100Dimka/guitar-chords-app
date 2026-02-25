@@ -1,5 +1,3 @@
-import { COLORS } from "@/components/fields/text-field";
-import { deleteData } from "@/database";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { FC, useState } from "react";
@@ -12,6 +10,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { COLORS } from "../../components/fields/text-field";
+import { deleteData } from "../../database";
 interface ISongModalProps {
   setIsEdit: (_: boolean) => void;
   songId: number;

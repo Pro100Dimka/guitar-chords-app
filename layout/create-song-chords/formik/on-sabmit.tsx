@@ -1,6 +1,6 @@
-import { createData, ISong, updateData } from "@/database";
-import { t } from "@/locales";
 import { router } from "expo-router";
+import { createData, ISong, updateData } from "../../../database";
+import { t } from "../../../locales";
 import initialValues from "./initial-values";
 
 const onSabmit = async (

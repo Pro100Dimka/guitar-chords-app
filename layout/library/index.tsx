@@ -1,6 +1,3 @@
-import { COLORS } from "@/components/fields/text-field";
-import { fetchData, ISong } from "@/database";
-import { t } from "@/locales";
 import { useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -10,6 +7,9 @@ import {
   Text,
   View
 } from "react-native";
+import { COLORS } from "../../components/fields/text-field";
+import { fetchData, ISong } from "../../database";
+import { t } from "../../locales";
 import LibraryItem from "./library-item";
 import SearchBar from "./search";
 

@@ -1,8 +1,8 @@
-import { COLORS } from "@/components/fields/text-field";
-import { ISong } from "@/database";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
+import { COLORS } from "../../components/fields/text-field";
+import { ISong } from "../../database";
 
 const LibraryItem = ({ song }: { song: ISong }) => {
   const router = useRouter();

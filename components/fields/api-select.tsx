@@ -1,4 +1,3 @@
-import { createData, fetchData } from "@/database";
 import React, { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -11,6 +10,7 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+import { createData, fetchData } from "../..//database";
 import { COLORS } from "./text-field";
 
 interface ISearchableSelectProps<T> {
