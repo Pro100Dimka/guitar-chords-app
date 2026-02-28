@@ -1,18 +1,23 @@
+// tsconfig.json
 {
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "moduleResolution": "bundler",
     "strict": true,
+    "checkJs": true,
     "paths": {
-      "@/*": [
-        "./src/*"
-      ]
-    }
+      "*": ["/*"],
+      "@/*": ["./src/*"]
+    },
+    "typeRoots": ["./src/types", "./node_modules/@types"]
   },
-  "include": [
-    "**/*.ts",
-    "**/*.tsx",
-    ".expo/types/**/*.ts",
-    "expo-env.d.ts"
-  ]
+  // "include": [
+  //   "src/**/*.ts",
+  //   "src/**/*.tsx",
+  //   "src/**/*.js",
+  //   "src/**/*.jsx",
+  //   "*.ts",
+  //   "*.js"
+  // ],
+  "exclude": ["node_modules", "dist", "build", "ios", "android", "web", "*.cjs"]
 }

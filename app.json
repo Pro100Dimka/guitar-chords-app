@@ -6,8 +6,8 @@
     "orientation": "portrait",
     "icon": "./assets/images/guitar-pick.png",
     "scheme": "guitarchordssongs",
-    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
       "icon": "./assets/images/guitar-pick.png",
@@ -23,11 +23,10 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/guitar-pick.png",
+        "foregroundImage": "./assets/images/guitar-background.jpg",
         "backgroundColor": "#000000"
       },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
+
       "package": "com.pro100dimka.guitarchordssongs"
     },
     "web": {
@@ -47,10 +46,14 @@
           "backgroundColor": "#000000"
         }
       ],
-      "expo-router",
+      "react-native-edge-to-edge",
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Microphone access is needed to hear the instrument."
+        }
+      ],
       "expo-sqlite",
-      "expo-font",
-      "expo-web-browser",
       [
         "expo-build-properties",
         {
@@ -63,10 +66,6 @@
         }
       ]
     ],
-    "experiments": {
-      "typedRoutes": true,
-      "reactCompiler": true
-    },
     "extra": {
       "router": {},
       "eas": {
