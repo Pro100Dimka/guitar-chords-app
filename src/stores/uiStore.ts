@@ -1,49 +1,64 @@
-import { create } from "zustand"
-import { InstrumentString } from "../layout/tuner/instruments"
+import { InstrumentString } from "@/screens/tuner/instruments";
+import { create } from "zustand";
 
-interface uiState {
-  pitchHistory: number[]
-  addPitch: (pitch: number) => void
-  rmsHistory: number[]
-  addRMS: (rms: number) => void
-  idHistory: number[]
-  addId: (id: number) => void
-  stringHistory: (InstrumentString | undefined)[]
-  addString: (string?: InstrumentString) => void
-  currentString?: InstrumentString
-  setCurrentString: (string?: InstrumentString) => void
+const PITCH_HISTORY = 3;
+const RMS_HISTORY = 3;
+const STRING_HISTORY = 3;
+const ID_HISTORY = 3;
+interface IUiState {
+  pitchHistory: number[];
+  addPitch: (_: number) => void;
+
+  rmsHistory: number[];
+  addRMS: (_: number) => void;
+
+  idHistory: number[];
+  addId: (_: number) => void;
+
+  stringHistory: (InstrumentString | undefined)[];
+  addString: (_?: InstrumentString) => void;
+
+  currentString?: InstrumentString;
+  setCurrentString: (_?: InstrumentString) => void;
 }
+const pushFixed = <T>(arr: T[], value: T) => {
+  if (arr[arr.length - 1] === value) return arr;
+  const next = arr.slice(1);
+  next.push(value);
+  return next;
+};
 
-const PITCH_HISTORY = 3
-const RMS_HISTORY = 3
-const STRING_HISTORY = 3
-const ID_HISTORY = 3
-
-export const useUiStore = create<uiState>()((set, get) => ({
-  pitchHistory: new Array(PITCH_HISTORY).fill(-1),
+export const useUiStore = create<IUiState>((set, get) => ({
+  pitchHistory: Array(PITCH_HISTORY).fill(-1),
+  rmsHistory: Array(RMS_HISTORY).fill(0),
+  idHistory: Array(ID_HISTORY).fill(0),
+  stringHistory: Array<InstrumentString | undefined>(STRING_HISTORY).fill(
+    undefined
+  ),
   addPitch: (pitch) => {
-    const pitchHistory = get().pitchHistory.toSpliced(0, 1)
-    pitchHistory.push(pitch)
-    set({ pitchHistory })
+    const prev = get().pitchHistory;
+    const next = pushFixed(prev, pitch);
+    if (next !== prev) set({ pitchHistory: next });
   },
-  rmsHistory: new Array(RMS_HISTORY).fill(0),
   addRMS: (rms) => {
-    const rmsHistory = get().rmsHistory.toSpliced(0, 1)
-    rmsHistory.push(rms)
-    set({ rmsHistory })
+    const prev = get().rmsHistory;
+    const next = pushFixed(prev, rms);
+    if (next !== prev) set({ rmsHistory: next });
   },
-  idHistory: new Array(ID_HISTORY).fill(0),
   addId: (id) => {
-    const idHistory = get().idHistory.toSpliced(0, 1)
-    idHistory.push(id)
-    set({ idHistory })
+    const prev = get().idHistory;
+    const next = pushFixed(prev, id);
+    if (next !== prev) set({ idHistory: next });
   },
-  stringHistory: new Array<InstrumentString | undefined>(STRING_HISTORY).fill(undefined),
   addString: (string) => {
-    const stringQueue = get().stringHistory.toSpliced(0, 1)
-    stringQueue.push(string)
-    set({ stringHistory: stringQueue })
+    const prev = get().stringHistory;
+    const next = pushFixed(prev, string);
+    if (next !== prev) set({ stringHistory: next });
   },
   currentString: undefined,
-  setCurrentString: (currentString) => set({ currentString }),
-}))
+  setCurrentString: (currentString) => {
+    if (get().currentString !== currentString) {
+      set({ currentString });
+    }
+  }
+}));

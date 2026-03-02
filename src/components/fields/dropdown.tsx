@@ -11,6 +11,7 @@ interface IDropdownProps {
   value?: string;
   options: { label: string; value: string }[];
   onSelect: (_: string) => void;
+  style?: any;
 }
 
 const COLORS = {
@@ -20,7 +21,12 @@ const COLORS = {
   placeholder: "#aaa"
 };
 
-const Dropdown: React.FC<IDropdownProps> = ({ value, options, onSelect }) => {
+const Dropdown: React.FC<IDropdownProps> = ({
+  value,
+  options,
+  onSelect,
+  style
+}) => {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
 
@@ -35,19 +41,18 @@ const Dropdown: React.FC<IDropdownProps> = ({ value, options, onSelect }) => {
     setOpen(false);
     onSelect(item);
   };
-
+  const selectedOption = options.find((o) => o.value === selected);
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, style?.container]}>
       <View style={styles.pickerCard}>
         <TouchableOpacity style={styles.picker} onPress={() => setOpen(!open)}>
-          <Text style={{ color: COLORS.text }}>
-            {selected
-              ? options.find((o) => o.value === selected)?.label
-              : "Select an option"}
-          </Text>
+          {typeof selectedOption?.label === "string" ? (
+            <Text style={{ color: COLORS.text }}>{selectedOption.label}</Text>
+          ) : (
+            selectedOption?.label
+          )}
         </TouchableOpacity>
       </View>
-
       {open && (
         <View style={styles.dropdown}>
           <FlatList
@@ -70,12 +75,12 @@ const Dropdown: React.FC<IDropdownProps> = ({ value, options, onSelect }) => {
 
 const styles = StyleSheet.create({
   container: {
-    width: "100%",
+    width: 200,
     alignItems: "center",
     marginTop: 20
   },
   pickerCard: {
-    width: 200,
+    width: "100%",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -84,12 +89,12 @@ const styles = StyleSheet.create({
   },
   picker: {
     width: "100%",
-    height: 50,
+    minHeight: 50,
     justifyContent: "center",
-    paddingHorizontal: 12
+    alignItems: "center"
   },
   dropdown: {
-    width: 200,
+    width: "100%",
     borderRadius: 12,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -98,7 +103,7 @@ const styles = StyleSheet.create({
     maxHeight: 200
   },
   option: {
-    padding: 12,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border
   },

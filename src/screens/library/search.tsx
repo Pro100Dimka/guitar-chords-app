@@ -111,7 +111,7 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
             <View style={styles.dropdown}>
               <FlatList
                 data={results}
-                keyExtractor={(item) => item.id.toString()}
+                keyExtractor={(item, i) => `${item.id}-${i}`}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <TouchableOpacity

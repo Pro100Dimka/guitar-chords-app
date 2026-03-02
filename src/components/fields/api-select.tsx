@@ -159,7 +159,7 @@ function SearchableSelect<T extends Record<string, any>>({
 
           <FlatList
             data={data}
-            keyExtractor={(item) => String(item[valueKey])}
+            keyExtractor={(item, i) => `${item[valueKey]}-${i}`}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.item}

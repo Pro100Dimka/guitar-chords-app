@@ -77,7 +77,7 @@ const Library: React.FC = () => {
       )}
       <FlatList
         data={songs}
-        keyExtractor={(item) => String(item.id)}
+        keyExtractor={(item, i) => `${item.id}-${i}`}
         renderItem={({ item }) => <LibraryItem song={item} />}
         onEndReached={() => loadSongs(page)}
         onEndReachedThreshold={0.5}

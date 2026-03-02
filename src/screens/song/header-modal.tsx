@@ -1,5 +1,5 @@
+// src/screens/song/header-modal.tsx
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
 import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -12,6 +12,8 @@ import {
 } from "react-native";
 import { deleteData } from "../../../database";
 import palette from "../../theme/palette";
+import { useNavigation } from "@react-navigation/native";
+import { NavigationProp } from "@/router";
 interface ISongModalProps {
   setIsEdit: (_: boolean) => void;
   songId: number;
@@ -19,6 +21,7 @@ interface ISongModalProps {
 
 const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
   const { t } = useTranslation();
+  const navigation = useNavigation<NavigationProp>();
   const [menuVisible, setMenuVisible] = useState(false);
   const menuItems: [string, () => void][] = [
     [t`Edit`, () => setIsEdit(true)],
@@ -27,8 +30,8 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
       async () => {
         await deleteData("songs", { id: songId })
           .then(() => {
+            navigation.navigate("Tabs", { screen: "library" });
             alert(t`ElementDeleted`);
-            router.replace("/(tabs)/library");
           })
           .catch((err) => console.error(err));
       }

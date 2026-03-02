@@ -1,11 +1,18 @@
 // src/screens/song/video-tabs.tsx
-import { FC, useRef, useState } from "react";
+import { FC, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Dimensions,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View
+} from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
 import extractYoutubeId from "../../components/utils/extract-youtube-id";
 import { ISong } from "../../../database";
 import palette from "../../theme/palette";
+import { useFocusEffect } from "@react-navigation/native";
 
 const VideoTabs: FC<ISong> = (song) => {
   const { t } = useTranslation();
@@ -17,31 +24,35 @@ const VideoTabs: FC<ISong> = (song) => {
   const [activeTab, setActiveTab] = useState(Object.keys(tabs)[0]);
   const rawLink = song[activeTab as keyof ISong];
   const videoId = typeof rawLink === "string" ? extractYoutubeId(rawLink) : "";
+  const { width } = Dimensions.get("window");
+  const [existTabs, setExistTabs] = useState<Array<[string, string]>>([]);
+  useFocusEffect(
+    useCallback(() => {
+      const filteredTabs = Object.entries(tabs).filter(
+        ([key]) => song[key as keyof ISong]
+      );
+      setExistTabs(filteredTabs);
+    }, [song])
+  );
   return (
     <View style={styles.container}>
       <View style={styles.tabContainer}>
-        {Object.entries(tabs).map(
-          ([key, label]) =>
-            song[key as keyof ISong] && (
-              <TouchableOpacity
-                key={key}
-                style={[
-                  styles.tabButton,
-                  activeTab === key && styles.activeTab
-                ]}
-                onPress={() => setActiveTab(key)}
-              >
-                <Text style={styles.tabText}>{label}</Text>
-              </TouchableOpacity>
-            )
-        )}
+        {existTabs.map(([key, label]) => (
+          <TouchableOpacity
+            key={key}
+            style={[styles.tabButton, activeTab === key && styles.activeTab]}
+            onPress={() => setActiveTab(key)}
+          >
+            <Text style={styles.tabText}>{label}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
       {videoId && (
         <View style={styles.flex}>
           <YoutubePlayer
             ref={playerRef}
-            width={100}
-            height={100}
+            width={width}
+            height={225}
             videoId={videoId}
           />
         </View>

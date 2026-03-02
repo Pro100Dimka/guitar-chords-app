@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 // src/router/index.tsx
-import { createStaticNavigation } from "@react-navigation/native";
+import { createStaticNavigation, RouteProp } from "@react-navigation/native";
 import {
   createNativeStackNavigator,
   NativeStackNavigationProp
@@ -10,18 +10,17 @@ import palette from "../theme/palette";
 import Song from "@/screens/song";
 
 export type RootStackParamList = {
-  Tabs: undefined;
-  Song: { id: string };
-  CreateChordSong: undefined;
-  Home: undefined;
-  Library: undefined;
-  Tuner: undefined;
+  Tabs: { screen: string };
+  Song: { id: string } | undefined;
 };
 export type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   keyof RootStackParamList
 >;
-
+export type ScreenRouteProp = RouteProp<
+  RootStackParamList,
+  keyof RootStackParamList
+>;
 declare global {
   namespace ReactNavigation {
     interface RootParamList extends RootStackParamList {}

@@ -48,6 +48,7 @@
   "graphics": "Graphics",
   "graphics_high": "Increase graphics",
   "graphics_low": "Reduce graphics",
-  "error_mic_access": "Microphone access denied. Go to settings and enable microphone access.",
-  "configure_permissions": "Configure permissions"
+  "ErrorMicAccess": "Microphone access denied. Go to settings and enable microphone access.",
+  "configure_permissions": "Configure permissions",
+  "tuner": "Tuner"
 }

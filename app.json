@@ -23,7 +23,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/guitar-background.jpg",
+        "foregroundImage": "./assets/images/guitar-pick.png",
         "backgroundColor": "#000000"
       },
 

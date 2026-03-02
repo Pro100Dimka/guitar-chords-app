@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ImageBackground,
   ScrollView,
@@ -13,33 +13,36 @@ import SongModal from "./header-modal";
 import VideoTabs from "./video-tabs";
 import Header from "@/components/header";
 import palette from "../../theme/palette";
-import { useLocalSearchParams } from "expo-router";
+import { useFocusEffect, useRoute } from "@react-navigation/native";
+import { ScreenRouteProp } from "@/router";
 
 const SongDetail: React.FC = () => {
-  const params = useLocalSearchParams();
-  const songId = Number(params.id);
+  const route = useRoute<ScreenRouteProp>();
+  const songId = Number(route?.params?.id);
   const [song, setSong] = useState<ISong | undefined>(undefined);
   const [loading, setLoading] = useState(true);
   const [isEdit, setIsEdit] = useState(false);
-  useEffect(() => {
-    const loadSong = async () => {
-      try {
-        const song = await fetchDataById<ISong>({
-          tableName: "songs",
-          data: { "songs.id": songId },
-          fields:
-            "songs.id, fk_band.name as band_name, fk_band.id as band_id, title, content, youtobe_link_music, youtobe_link_chords",
-          join: "bands fk_band ON songs.band_id = fk_band.id"
-        });
-        setSong(song);
-      } catch (error) {
-        console.error("Error loading song:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    loadSong();
-  }, [songId, isEdit]);
+  useFocusEffect(
+    useCallback(() => {
+      const loadSong = async () => {
+        try {
+          const song = await fetchDataById<ISong>({
+            tableName: "songs",
+            data: { "songs.id": songId },
+            fields:
+              "songs.id, fk_band.name as band_name, fk_band.id as band_id, title, content, youtobe_link_music, youtobe_link_chords",
+            join: "bands fk_band ON songs.band_id = fk_band.id"
+          });
+          setSong(song);
+        } catch (error) {
+          console.error("Error loading song:", error);
+        } finally {
+          setLoading(false);
+        }
+      };
+      loadSong();
+    }, [songId, isEdit])
+  );
   return (
     <ImageBackground
       source={guitarBgSong}
