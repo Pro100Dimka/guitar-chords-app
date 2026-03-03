@@ -1,4 +1,4 @@
-import MicrophoneStreamModule from "@/../modules/microphone-stream";
+// src/screens/tuner/index.tsx
 import DSPModule from "@/../specs/NativeDSPModule";
 import "@expo/metro-runtime";
 import { AudioModule } from "expo-audio";
@@ -18,77 +18,19 @@ import { Strings } from "./components/Strings";
 import { RightButtons } from "./components/RightButtons";
 import ConfigButton from "./components/ConfigButton";
 import RequireMicAccess from "./components/RequireMicAccess";
-import { getRelativeDiff, sameNote } from "@/stores/notes";
+import { sameNote } from "@/stores/notes";
 import WaveProfiller from "./components/WaveProfiller";
 import { useNavigationState } from "@react-navigation/native";
+import { MicrophoneAccess } from "@/@types";
+import {
+  BUF_SIZE,
+  calculateGaugeDeviation,
+  DEF_SAMPLE_RATE,
+  GAUGE_WIDTH,
+  getPitchFilterParams,
+  WAVE_FORM_Y
+} from "./const";
 
-export type MicrophoneAccess = "pending" | "granted" | "denied";
-type FilterParams = {
-  minFreq: number;
-  maxFreq: number;
-  threshold: number;
-};
-
-export const BUF_SIZE = 9000;
-const MIN_FREQ = 30;
-const MAX_FREQ = 500;
-const MAX_PITCH_DEV = 0.2;
-const THRESHOLD_DEFAULT = 0.15;
-const THRESHOLD_NOISY = 0.6;
-const RMS_GAP = 1.1;
-const ENABLE_FILTER = true;
-const TEST_MODE = false;
-const DEF_SAMPLE_RATE = MicrophoneStreamModule.getSampleRate() || 44100;
-const GAUGE_WIDTH = 10;
-const WAVE_FORM_Y = 60;
-const BUF_PER_SEC = MicrophoneStreamModule.BUF_PER_SEC;
-
-const calculateGaugeDeviation = (
-  h: number,
-  pitch: number,
-  stringFreq?: number
-): any => {
-  const obj: any = {
-    waveformH: h / 8,
-    movingGridY: h * 0.55
-  };
-  obj.movingGridH = h - obj.movingGridY;
-  obj.stringsH =
-    h - WAVE_FORM_Y - obj.waveformH - obj.movingGridH - GAUGE_WIDTH / 2;
-  if (pitch > 0 && stringFreq)
-    obj.gaugeDeviation =
-      Math.atan((10 * (pitch - stringFreq)) / stringFreq) / (Math.PI / 2);
-  obj.gaugeColor = Colors.getColorFromGaugeDeviation(obj?.gaugeDeviation);
-  return obj;
-};
-
-const getPitchFilterParams = (
-  pitchQ: number[],
-  rmsQ: number[]
-): FilterParams => {
-  const last = pitchQ.length - 1;
-  const pitch1 = pitchQ[last] ?? 0;
-  const pitch2 = pitchQ[last - 1] ?? pitch1;
-  const rms1 = rmsQ[last] ?? 0;
-  const rms2 = rmsQ[last - 1] ?? rms1;
-  const restrictRange =
-    ENABLE_FILTER &&
-    pitch1 > 0 &&
-    rms1 < rms2 * RMS_GAP &&
-    getRelativeDiff(pitch1, pitch2) <= MAX_PITCH_DEV;
-  if (!restrictRange) {
-    return {
-      minFreq: MIN_FREQ,
-      maxFreq: MAX_FREQ,
-      threshold: THRESHOLD_DEFAULT
-    };
-  }
-  return {
-    minFreq: pitch1 * (1 - MAX_PITCH_DEV),
-    maxFreq: pitch1 * (1 + MAX_PITCH_DEV),
-    threshold: THRESHOLD_NOISY
-  };
-};
 const Tuner: React.FC = () => {
   const { t } = useTranslation();
   const config = useConfigStore();
@@ -200,9 +142,7 @@ const Tuner: React.FC = () => {
     <View style={styles.container}>
       <Canvas style={styles.flex}>
         <WaveProfiller
-          TEST_MODE={TEST_MODE}
           sampleRate={sampleRate}
-          BUF_PER_SEC={BUF_PER_SEC}
           micAccess={micAccess}
           setBufferId={setBufferId}
           isFocused={activeRoute.name === "tuner"}
@@ -224,14 +164,12 @@ const Tuner: React.FC = () => {
           positionY={movingGridY}
           pitchId={bufferId}
           deviation={gaugeDeviation}
-          pointsPerSec={BUF_PER_SEC}
         />
         <TuningGauge
           positionY={movingGridY}
           gaugeColor={gaugeColor}
           gaugeDeviation={gaugeDeviation}
           gaugeWidth={GAUGE_WIDTH}
-          framesPerSec={BUF_PER_SEC}
         />
       </Canvas>
       <Strings

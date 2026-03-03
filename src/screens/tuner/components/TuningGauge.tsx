@@ -8,19 +8,18 @@ import {
   useDerivedValue
 } from "react-native-reanimated";
 import Colors from "../colors";
+import { BUF_PER_SEC } from "../const";
 
 export const TuningGauge = ({
   positionY,
   gaugeDeviation,
   gaugeColor,
-  gaugeWidth,
-  framesPerSec
+  gaugeWidth
 }: {
   positionY: number;
   gaugeDeviation: number | undefined;
   gaugeColor: string;
   gaugeWidth: number;
-  framesPerSec: number;
 }) => {
   const { width } = useWindowDimensions();
   const gaugeRadius = gaugeWidth / 2 + 2;
@@ -29,11 +28,11 @@ export const TuningGauge = ({
 
   useEffect(() => {
     const newVal = (width / 2) * (1 + (gaugeDeviation ?? 0));
-    gaugeX.value = withTiming(newVal, { duration: 1000 / framesPerSec });
+    gaugeX.value = withTiming(newVal, { duration: 1000 / BUF_PER_SEC });
 
     return () => cancelAnimation(gaugeX);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [gaugeDeviation, framesPerSec, width]);
+  }, [gaugeDeviation, width]);
 
   const gaugeXY = useDerivedValue(() => {
     return { x: gaugeX.value, y: 0 };

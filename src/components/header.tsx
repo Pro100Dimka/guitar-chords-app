@@ -2,8 +2,8 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import Logo from "../../assets/images/guitar-pick.svg";
+import { Pressable, StyleSheet, Text, View, Image } from "react-native";
+import logo from "../../assets/images/icon.png";
 import palette from "../theme/palette";
 
 interface HeaderProps {
@@ -35,15 +35,13 @@ const Header: React.FC<HeaderProps> = ({
             />
           </Pressable>
         )}
-        <Logo width={50} height={50} />
+        <Image source={logo} style={styles.viewIco} />
       </View>
-
       <Text style={styles.title}>{title}</Text>
-
       {icon ? (
         <MaterialCommunityIcons
           name={icon as any}
-          size={35}
+          size={styles.viewIco.height}
           color={palette.colors.accent}
         />
       ) : (
@@ -55,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
-  viewIco: { width: 35 },
+  viewIco: { width: 50, height: 50 },
   container: {
     backgroundColor: palette.colors.blackOpacity,
     flexDirection: "row",
@@ -63,6 +61,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    paddingTop: 25,
     borderColor: palette.colors.placeholder
   },
   left: { flexDirection: "row", alignItems: "center" },

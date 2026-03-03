@@ -18,6 +18,7 @@ import {
 import { useWindowDimensions } from "react-native";
 import { useConfigStore } from "@/stores/configStore";
 import Colors from "../colors";
+import { BUF_PER_SEC } from "../const";
 
 const GRID_COLOR = Colors.bgInactive;
 const BACKGROUND_GRADIENT_START = Colors.bgActive;
@@ -29,18 +30,16 @@ const MISSING_NOTE = -2;
 const MovingGrid = ({
   positionY,
   pitchId,
-  deviation,
-  pointsPerSec
+  deviation
 }: {
   positionY: number;
   pitchId: number;
   deviation?: number;
-  pointsPerSec: number;
 }) => {
   const { width, height } = useWindowDimensions();
   const graphics = useConfigStore((state) => state.graphics);
   const boxHeight = useMemo(() => height / 2, [height]);
-  const pointSpacing = useMemo(() => GRID_SPEED / pointsPerSec, [pointsPerSec]);
+  const pointSpacing = useMemo(() => GRID_SPEED / BUF_PER_SEC, []);
   const maxHistory = useMemo(
     () => Math.floor(boxHeight / pointSpacing),
     [boxHeight, pointSpacing]

@@ -2,55 +2,46 @@
   "expo": {
     "name": "guitar-chords-songs",
     "slug": "guitar-chords-songs",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "orientation": "portrait",
-    "icon": "./assets/images/guitar-pick.png",
+    "icon": "./assets/images/icon.png",
     "scheme": "guitarchordssongs",
-    "newArchEnabled": true,
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "icon": "./assets/images/guitar-pick.png",
-      "splash": {
-        "image": "./assets/images/guitar-pick.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#000000"
-      },
-      "bundleIdentifier": "com.pro100dimka.guitarchordssongs",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+      "bundleIdentifier": "com.pro100dimka.guitarchordssongs"
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/guitar-pick.png",
+        "foregroundImage": "./assets/images/adaptive.png",
         "backgroundColor": "#000000"
       },
-
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.MODIFY_AUDIO_SETTINGS"
+      ],
       "package": "com.pro100dimka.guitarchordssongs"
     },
     "web": {
-      "favicon": "./assets/images/guitar-pick.png",
-      "splash": {
-        "image": "./assets/images/guitar-pick.png",
-        "resizeMode": "contain",
-        "backgroundColor": "#000000"
-      }
+      "favicon": "./assets/images/icon.png"
     },
     "plugins": [
       "expo-asset",
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/guitar-pick.png",
-          "backgroundColor": "#000000"
+          "backgroundColor": "#000000",
+          "image": "./assets/images/logo.png",
+          "resizeMode": "contain",
+          "hideAnimationDuration": 300,
+          "hideAnimationType": "fade"
         }
       ],
       "react-native-edge-to-edge",
       [
         "expo-audio",
         {
-          "microphonePermission": "Microphone access is needed to hear the instrument."
+          "microphonePermission": "The app uses the microphone to detect guitar pitch and tune your instrument."
         }
       ],
       "expo-sqlite",

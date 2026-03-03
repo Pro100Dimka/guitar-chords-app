@@ -10,18 +10,16 @@ const LocaleButton = () => {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    if (i18n.isInitialized) {
-      setLoaded(true);
-    }
+    if (i18n.isInitialized) setLoaded(true);
   }, [i18n.isInitialized]);
-  if (!loaded) return null; // или какой-то Loader
+  if (!loaded) return null;
 
   return (
     <View style={styles.container}>
       <Dropdown
         options={langs.map((lng) => ({ label: t(lng), value: lng }))}
         value={lang}
-        onSelect={(lng) => changeLanguage(lng)}
+        onSelect={changeLanguage}
       />
     </View>
   );

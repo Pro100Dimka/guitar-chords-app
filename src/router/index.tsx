@@ -10,7 +10,7 @@ import palette from "../theme/palette";
 import Song from "@/screens/song";
 
 export type RootStackParamList = {
-  Tabs: { screen: string };
+  Tabs: { screen: string; id: string };
   Song: { id: string } | undefined;
 };
 export type NavigationProp = NativeStackNavigationProp<

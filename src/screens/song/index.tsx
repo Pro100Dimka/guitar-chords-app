@@ -6,7 +6,7 @@ import {
   Text,
   View
 } from "react-native";
-import guitarBgSong from "../../../assets/images/guitar-background-song.jpg";
+import guitarBgSong from "../../../assets/images/screen-background/song.jpg";
 import { fetchDataById, ISong } from "../../../database";
 import CreateChordSong from "../create-song-chords";
 import SongModal from "./header-modal";
@@ -41,7 +41,7 @@ const SongDetail: React.FC = () => {
         }
       };
       loadSong();
-    }, [songId, isEdit])
+    }, [songId])
   );
   return (
     <ImageBackground

@@ -1,18 +1,15 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { StateStorage } from "zustand/middleware"
 
+type StateStorage = {
+  getItem: (_: string) => string | null | Promise<string | null>;
+  setItem: (_: string, __: string) => void | Promise<void>;
+  removeItem: (_: string) => void | Promise<void>;
+};
 
-export const localStorage =  AsyncStorage
+export const localStorage = AsyncStorage;
 
 export const zustandStorage: StateStorage = {
-  setItem: (name, value) => {
-    return localStorage.setItem(name, value)
-  },
-  getItem: (name) => {
-    const value = localStorage.getItem(name)
-    return value ?? null
-  },
-  removeItem: (name) => {
-    return localStorage.removeItem(name)
-  },
-}
+  setItem: localStorage.setItem,
+  getItem: localStorage.getItem,
+  removeItem: localStorage.removeItem
+};

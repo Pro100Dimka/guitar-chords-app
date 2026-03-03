@@ -4,30 +4,15 @@ import { getTestSignal } from "../../test";
 import MicrophoneStreamModule, {
   AudioBuffer
 } from "../../../../../modules/microphone-stream/src/MicrophoneStreamModule";
-import { BUF_SIZE, MicrophoneAccess } from "../..";
-// import NativeDSPModule from "../../../../../specs/NativeDSPModule";
+import { BUF_PER_SEC, BUF_SIZE, TEST_MODE } from "../../const";
+import { IWaveProfillerProps } from "@/@interfaces";
 
-interface IWaveProfillerProps {
-  TEST_MODE: boolean;
-  sampleRate: number;
-  BUF_PER_SEC: number;
-  micAccess: MicrophoneAccess;
-  setBufferId: (_: number) => void;
-  setAudioBuffer: (_: number[]) => void;
-  isFocused: boolean;
-  WAVE_FORM_Y: number;
-  waveformH: number;
-  addRMS: (_: number) => void;
-  audioBuffer: number[];
-  bufferId: number;
-}
+// import NativeDSPModule from "../../../../../specs/NativeDSPModule";
 
 const WaveformMemo = memo(Waveform);
 
 const WaveProfiller: FC<IWaveProfillerProps> = ({
-  TEST_MODE,
   sampleRate,
-  BUF_PER_SEC,
   micAccess,
   setBufferId,
   WAVE_FORM_Y,
@@ -89,16 +74,7 @@ const WaveProfiller: FC<IWaveProfillerProps> = ({
         micStartedRef.current = false;
       }
     };
-  }, [
-    TEST_MODE,
-    sampleRate,
-    micAccess,
-    isFocused,
-    BUF_PER_SEC,
-    setBufferId,
-    setAudioBuffer,
-    addRMS
-  ]);
+  }, [sampleRate, micAccess, isFocused, setBufferId, setAudioBuffer, addRMS]);
 
   return (
     <Profiler id="Waveform" onRender={onRenderCallback}>
