@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from "react";
+import palette from "@/theme/palette";
+import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
+  Modal,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -29,13 +32,17 @@ const Dropdown: React.FC<IDropdownProps> = ({
 }) => {
   const [open, setOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
-
+  const [layout, setLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
+  const ref = useRef<View>(null);
   useEffect(() => {
-    if (value) {
-      setSelected(value);
-    }
+    if (value) setSelected(value);
   }, [value]);
-
+  const openDropdown = () => {
+    ref.current?.measureInWindow((x, y, width, height) => {
+      setLayout({ x, y, width, height });
+      setOpen(true);
+    });
+  };
   const handleSelect = (item: string) => {
     setSelected(item);
     setOpen(false);
@@ -44,54 +51,71 @@ const Dropdown: React.FC<IDropdownProps> = ({
   const selectedOption = options.find((o) => o.value === selected);
   return (
     <View style={[styles.container, style?.container]}>
-      <View style={styles.pickerCard}>
-        <TouchableOpacity style={styles.picker} onPress={() => setOpen(!open)}>
-          {typeof selectedOption?.label === "string" ? (
-            <Text style={{ color: COLORS.text }}>{selectedOption.label}</Text>
-          ) : (
-            selectedOption?.label
-          )}
+      <View ref={ref}>
+        <TouchableOpacity
+          style={[styles.picker, style?.picker]}
+          onPress={openDropdown}
+        >
+          <Text style={[styles.optionText, style?.optionText]}>
+            {selectedOption?.label ?? "Select"}
+          </Text>
         </TouchableOpacity>
       </View>
-      {open && (
-        <View style={styles.dropdown}>
+
+      <Modal visible={open} transparent animationType="fade">
+        <Pressable style={styles.overlay} onPress={() => setOpen(false)} />
+
+        <View
+          style={[
+            styles.dropdown,
+            {
+              top: layout.y + layout.height + 4,
+              left: layout.x,
+              width: layout.width
+            }
+          ]}
+        >
           <FlatList
             data={options}
-            keyExtractor={(_, index) => index.toString()}
+            keyExtractor={(_, i) => i.toString()}
             renderItem={({ item }) => (
               <TouchableOpacity
                 style={styles.option}
                 onPress={() => handleSelect(item.value)}
               >
-                <Text style={styles.optionText}>{item.label}</Text>
+                <Text style={[styles.optionText, style?.optionText]}>
+                  {item.label}
+                </Text>
               </TouchableOpacity>
             )}
           />
         </View>
-      )}
+      </Modal>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
+  overlay: {
+    position: "absolute",
+    width: "100%",
+    height: "100%",
+    zIndex: 1
+  },
   container: {
     width: 200,
     alignItems: "center",
-    marginTop: 20
-  },
-  pickerCard: {
-    width: "100%",
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.card,
-    overflow: "hidden"
+    marginTop: 5,
+    zIndex: 2
   },
   picker: {
-    width: "100%",
-    minHeight: 50,
+    padding: 12,
     justifyContent: "center",
-    alignItems: "center"
+    alignItems: "center",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: palette.colors.blackOpacityTiny,
+    backgroundColor: palette.colors.blackOpacity
   },
   dropdown: {
     width: "100%",
@@ -99,18 +123,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.card,
-    marginTop: 5,
     maxHeight: 200
   },
   option: {
-    paddingHorizontal: 12,
+    padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border
   },
-  optionText: {
-    fontSize: 16,
-    color: COLORS.text
-  }
+  optionText: { fontSize: 16, color: COLORS.text }
 });
 
 export default Dropdown;

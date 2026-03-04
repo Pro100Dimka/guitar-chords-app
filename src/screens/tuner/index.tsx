@@ -1,35 +1,41 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/screens/tuner/index.tsx
 import DSPModule from "@/../specs/NativeDSPModule";
 import "@expo/metro-runtime";
 import { AudioModule } from "expo-audio";
-import { InstrumentType, useConfigStore } from "../../stores/configStore";
-import React, { useEffect, useMemo, useState } from "react";
+import { useConfigStore } from "../../stores/configStore";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas } from "@shopify/react-native-skia";
 import { useShallow } from "zustand/react/shallow";
 import { Alert, StyleSheet, View, useWindowDimensions } from "react-native";
 import { useUiStore } from "../../stores/uiStore";
 import { Instrument, instruments } from "./instruments";
-import Colors from "./colors";
 import { useTranslation } from "react-i18next";
-import { MainNote } from "./components/MainNote";
-import MovingGrid from "./components/MovingGrid";
-import { TuningGauge } from "./components/TuningGauge";
-import { Strings } from "./components/Strings";
 import { RightButtons } from "./components/RightButtons";
-import ConfigButton from "./components/ConfigButton";
 import RequireMicAccess from "./components/RequireMicAccess";
-import { sameNote } from "@/stores/notes";
-import WaveProfiller from "./components/WaveProfiller";
+import { getFreqFromNote, Note, sameNote } from "@/stores/notes";
 import { useNavigationState } from "@react-navigation/native";
-import { MicrophoneAccess } from "@/@types";
+import { InstrumentType, MicrophoneAccess } from "@/@types";
 import {
+  BUF_PER_SEC,
   BUF_SIZE,
   calculateGaugeDeviation,
   DEF_SAMPLE_RATE,
-  GAUGE_WIDTH,
   getPitchFilterParams,
+  TEST_MODE,
   WAVE_FORM_Y
 } from "./const";
+import GaugeWithNote from "./components/gauge-with-note";
+import StringsView, {
+  NOTE_BOX_WIDTH,
+  TRANSLATE_Y_STRINGS
+} from "./components/strings";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { runOnJS } from "react-native-reanimated";
+import { getTestSignal } from "./test";
+import MicrophoneStreamModule, {
+  AudioBuffer
+} from "../../../modules/microphone-stream/src/MicrophoneStreamModule";
 
 const Tuner: React.FC = () => {
   const { t } = useTranslation();
@@ -37,31 +43,34 @@ const Tuner: React.FC = () => {
   const { width, height } = useWindowDimensions();
   const { setManual } = config;
   const [pitch, setPitch] = useState(-1);
-  const [audioBuffer, setAudioBuffer] = useState<number[]>(() =>
-    new Array(BUF_SIZE).fill(0)
-  );
   const [bufferId, setBufferId] = useState(0);
   const [sampleRate, setSampleRate] = useState(0);
   const [micAccess, setMicAccess] = useState<MicrophoneAccess>("pending");
   const activeRoute = useNavigationState((state) => state.routes[state.index]);
+  const audioBufferRef = useRef<number[]>(new Array(BUF_SIZE).fill(0));
+  const micStartedRef = useRef(false);
+  const bufferIdRef = useRef(0);
   const {
     pitchHistory,
     rmsHistory,
     idHistory,
-    addRMS,
     addPitch,
     addId,
     stringHistory,
     addString,
     currentString,
-    setCurrentString
+    setCurrentString,
+    addRMS
   } = useUiStore(useShallow((state) => state));
-  const { gaugeDeviation, gaugeColor, waveformH, movingGridY, stringsH } =
-    calculateGaugeDeviation(height, pitch, currentString?.freq);
+  const { gaugeDeviation, gaugeColor, waveformH } = useMemo(
+    () => calculateGaugeDeviation(height, pitch, currentString?.freq),
+    [height, pitch, currentString?.freq]
+  );
   const instrument: Instrument = useMemo(
     () => new instruments[config.instrument as InstrumentType](config.tuning),
-    [config.instrument, config.tuning]
+    [config.instrument]
   );
+  const stringNotes = useMemo(() => instrument.getStrings(), [instrument]);
 
   useEffect(() => {
     (async () => {
@@ -71,7 +80,6 @@ const Tuner: React.FC = () => {
           console.info(`Setting sample rate to ${DEF_SAMPLE_RATE}Hz`);
           setSampleRate(DEF_SAMPLE_RATE);
         }
-        setMicAccess("granted");
       } else {
         const result = await AudioModule.requestRecordingPermissionsAsync();
         granted = result.granted;
@@ -80,10 +88,61 @@ const Tuner: React.FC = () => {
       if (!granted) Alert.alert(t`ErrorMicAccess`);
     })();
   }, [t, micAccess]);
-
+  useEffect(() => {
+    if (activeRoute.name !== "tuner") return;
+    let intervalRender = null;
+    let intervalTest = null;
+    let subscriber: any = null;
+    if (TEST_MODE && sampleRate > 0) {
+      // тестовый сигнал
+      const bufSize = sampleRate / BUF_PER_SEC;
+      intervalTest = setInterval(() => {
+        const buffer = getTestSignal(bufferIdRef.current, sampleRate, bufSize);
+        audioBufferRef.current = buffer;
+        bufferIdRef.current += 1;
+      }, 1000 / BUF_PER_SEC);
+    } else if (micAccess === "granted" && !micStartedRef.current) {
+      // микрофон
+      micStartedRef.current = true;
+      MicrophoneStreamModule.startRecording();
+      subscriber = MicrophoneStreamModule.addListener(
+        "onAudioBuffer",
+        (buffer: AudioBuffer) => {
+          const len = buffer.samples.length;
+          const rms = +DSPModule.rms(buffer.samples).toFixed(2);
+          if (rms <= 0.01) {
+            audioBufferRef.current = new Array(BUF_SIZE).fill(0);
+            bufferIdRef.current = 0;
+            return;
+          }
+          audioBufferRef.current = [
+            ...audioBufferRef.current.slice(-BUF_SIZE + len),
+            ...buffer.samples
+          ];
+          addRMS(rms);
+          bufferIdRef.current += 1;
+        }
+      );
+    }
+    // общий интервал рендера 30 FPS
+    intervalRender = setInterval(() => {
+      if (bufferIdRef.current !== bufferId) {
+        setBufferId(bufferIdRef.current);
+      }
+    }, 150);
+    return () => {
+      if (intervalTest) clearInterval(intervalTest);
+      if (intervalRender) clearInterval(intervalRender);
+      if (subscriber) {
+        subscriber.remove();
+        MicrophoneStreamModule.stopRecording();
+        micStartedRef.current = false;
+      }
+    };
+  }, [sampleRate, micAccess, activeRoute.name]);
   useEffect(() => {
     if (
-      !audioBuffer.length ||
+      !audioBufferRef.current.length ||
       micAccess !== "granted" ||
       bufferId === idHistory.at(-1)
     )
@@ -94,12 +153,13 @@ const Tuner: React.FC = () => {
       rmsHistory
     );
     const pitch = DSPModule.pitch(
-      audioBuffer,
+      audioBufferRef.current,
       sampleRate,
       minFreq,
       maxFreq,
       threshold
     );
+
     if (pitch !== pitchHistory[pitchHistory.length - 1]) {
       // console.info(
       //   `Pitch: ${pitch.toFixed(1)}Hz [${minFreq.toFixed(1)}Hz-${maxFreq.toFixed(1)}Hz] `
@@ -107,81 +167,67 @@ const Tuner: React.FC = () => {
       setPitch(pitch);
       addPitch(pitch);
     }
-  }, [
-    audioBuffer,
-    sampleRate,
-    micAccess,
-    addId,
-    addPitch,
-    rmsHistory,
-    pitchHistory,
-    idHistory,
-    bufferId
-  ]);
+  }, [sampleRate, micAccess, rmsHistory, pitchHistory, idHistory, bufferId]);
 
   useEffect(() => {
-    if (!instrument.hasStrings && config.manual) setManual(false);
-  }, [instrument, config.manual, setManual]);
-  useEffect(() => {
-    if (config.manual || pitch <= 0) return;
-    const nearest = instrument.getNearestString(pitch);
-    if (!nearest) return;
-    const current = currentString;
-    if (current?.note === nearest.note) return;
+    const nearest =
+      !(config.manual || pitch <= 0) && instrument.getNearestString(pitch);
+    if (!nearest || currentString?.note === nearest?.note) return;
     addString(nearest);
-  }, [pitch, instrument, config.manual, addString, currentString]);
+  }, [pitch, instrument, config.manual, addString, currentString?.note]);
   useEffect(() => {
-    if (config.manual) return;
-    if (stringHistory.length < 3) return;
+    if (config.manual || stringHistory.length < 3) return;
     const [s1, s2, s3] = stringHistory.slice(-3);
     const stable = sameNote(s1?.note, s2?.note) && sameNote(s1?.note, s3?.note);
     if (stable) setCurrentString(s1);
   }, [stringHistory, config.manual, setCurrentString]);
+  if (activeRoute.name !== "tuner") return;
+  const selectString = (note: Note) => {
+    setManual(true);
+    setCurrentString({
+      note,
+      freq: getFreqFromNote(note, config.tuning)
+    });
+  };
+  const tapGesture = Gesture.Tap().onStart((e) => {
+    const { x, y } = e;
+    const bottom = height / 3;
+    const spacing = width / (stringNotes.length + 1);
+    stringNotes.forEach((note, i) => {
+      const stringX = spacing * (i + 1);
+      const halfBox = NOTE_BOX_WIDTH / 2;
+      const hit =
+        Math.abs(x - stringX) < halfBox &&
+        y >= TRANSLATE_Y_STRINGS &&
+        y <= bottom;
+      if (hit) {
+        runOnJS(selectString)(note);
+      }
+    });
+  });
 
   return micAccess === "granted" ? (
     <View style={styles.container}>
-      <Canvas style={styles.flex}>
-        <WaveProfiller
-          sampleRate={sampleRate}
-          micAccess={micAccess}
-          setBufferId={setBufferId}
-          isFocused={activeRoute.name === "tuner"}
-          WAVE_FORM_Y={WAVE_FORM_Y}
-          waveformH={waveformH}
-          audioBuffer={audioBuffer}
-          setAudioBuffer={setAudioBuffer}
-          bufferId={bufferId}
-          addRMS={addRMS}
-        />
-        <MainNote
-          positionY={movingGridY - GAUGE_WIDTH - 10}
-          currentString={currentString}
-          pitch={pitch}
-          gaugeDeviation={gaugeDeviation}
-          gaugeColor={gaugeColor}
-        />
-        <MovingGrid
-          positionY={movingGridY}
-          pitchId={bufferId}
-          deviation={gaugeDeviation}
-        />
-        <TuningGauge
-          positionY={movingGridY}
-          gaugeColor={gaugeColor}
-          gaugeDeviation={gaugeDeviation}
-          gaugeWidth={GAUGE_WIDTH}
-        />
-      </Canvas>
-      <Strings
-        positionY={WAVE_FORM_Y + waveformH}
-        height={stringsH}
-        instrument={instrument}
-      />
       <RightButtons
         positionY={WAVE_FORM_Y + waveformH}
         instrument={instrument}
       />
-      <ConfigButton x={width - 50 * 1.5} y={height - 50 * 1.5} size={1.5} />
+      <GestureDetector gesture={tapGesture}>
+        <Canvas style={styles.flex}>
+          <GaugeWithNote
+            gaugeDeviation={gaugeDeviation}
+            gaugeColor={gaugeColor}
+            currentString={currentString}
+            pitch={pitch}
+          />
+          <StringsView
+            currentString={currentString}
+            volume={rmsHistory.at(-1) ?? 0}
+            stringNotes={stringNotes}
+            gaugeColor={gaugeColor}
+          />
+        </Canvas>
+      </GestureDetector>
     </View>
   ) : micAccess === "denied" ? (
     <RequireMicAccess />
@@ -191,7 +237,10 @@ const Tuner: React.FC = () => {
 };
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flex: 1, backgroundColor: Colors.bgInactive }
+  container: {
+    flex: 1,
+    justifyContent: "center"
+  }
 });
 
 export default Tuner;

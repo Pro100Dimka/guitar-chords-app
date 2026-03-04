@@ -13,7 +13,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/adaptive.png",
+        "foregroundImage": "./assets/images/icon.png",
         "backgroundColor": "#000000"
       },
       "permissions": [
@@ -32,7 +32,6 @@
         {
           "backgroundColor": "#000000",
           "image": "./assets/images/logo.png",
-          "resizeMode": "contain",
           "hideAnimationDuration": 300,
           "hideAnimationType": "fade"
         }

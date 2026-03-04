@@ -19,6 +19,7 @@ build/
 *.p12
 *.key
 *.mobileprovision
+.expo-shared
 
 # Metro
 .metro-health-check*

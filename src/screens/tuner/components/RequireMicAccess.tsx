@@ -13,19 +13,15 @@ import Colors from "../colors";
 const RequireMicAccess = () => {
   const { t } = useTranslation();
 
-  const openAppSettings = () => {
-    if (Platform.OS === "ios") {
-      Linking.openURL("app-settings:"); // Opens iOS settings for the app
-    } else {
-      Linking.openSettings(); // Opens Android settings for the app
-    }
-  };
-
+  const openAppSettings = () =>
+    Platform.OS === "ios"
+      ? Linking.openURL("app-settings:")
+      : Linking.openSettings();
   return (
     <View style={styles.container}>
-      <Text style={styles.errorText}>🎸 {t("error_mic_access")}</Text>
+      <Text style={styles.errorText}>{t`ErrorMicAccess`}</Text>
       <TouchableOpacity style={styles.button} onPress={openAppSettings}>
-        <Text style={styles.buttonText}>{t("configure_permissions")}</Text>
+        <Text style={styles.buttonText}>{t`ConfigurePermissions`}</Text>
       </TouchableOpacity>
     </View>
   );

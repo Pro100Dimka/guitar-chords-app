@@ -3,6 +3,8 @@ import MicrophoneStreamModule from "../../../modules/microphone-stream/src/Micro
 import Colors from "./colors";
 import { getRelativeDiff } from "@/stores/notes";
 
+const MIN_FREQ = 30;
+const MAX_FREQ = 500;
 const MAX_PITCH_DEV = 0.2;
 const THRESHOLD_DEFAULT = 0.15;
 const THRESHOLD_NOISY = 0.6;
@@ -31,8 +33,8 @@ export const getPitchFilterParams = (
     getRelativeDiff(pitch1, pitch2) <= MAX_PITCH_DEV;
   if (!restrictRange) {
     return {
-      minFreq: 30,
-      maxFreq: 500,
+      minFreq: MIN_FREQ,
+      maxFreq: MAX_FREQ,
       threshold: THRESHOLD_DEFAULT
     };
   }
@@ -52,8 +54,6 @@ export const calculateGaugeDeviation = (
     movingGridY: h * 0.55
   };
   obj.movingGridH = h - obj.movingGridY;
-  obj.stringsH =
-    h - WAVE_FORM_Y - obj.waveformH - obj.movingGridH - GAUGE_WIDTH / 2;
   if (pitch > 0 && stringFreq)
     obj.gaugeDeviation =
       Math.atan((10 * (pitch - stringFreq)) / stringFreq) / (Math.PI / 2);

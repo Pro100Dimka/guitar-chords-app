@@ -1,5 +1,6 @@
+import { InstrumentType, TuningType } from "@/@types";
 import { getFreqFromNote, getNoteFromFreq, Note } from "../../stores/notes";
-import { InstrumentType, TuningType } from "../../stores/configStore";
+import { IString } from "@/@interfaces";
 
 export type InstrumentString = { note: Note; freq: number };
 
@@ -29,12 +30,12 @@ export abstract class Instrument {
 
 export class Guitar extends Instrument {
   stringNotes: Note[] = [
-    { name: "E", octave: 2 },
-    { name: "A", octave: 2 },
-    { name: "D", octave: 3 },
-    { name: "G", octave: 3 },
-    { name: "B", octave: 3 },
-    { name: "E", octave: 4 }
+    { name: "E", thickness: 4, baseColor: [0.78, 0.58, 0.2], octave: 2 }, // тёмное золото
+    { name: "A", thickness: 3.5, baseColor: [0.82, 0.62, 0.22], octave: 2 }, // золотистая бронза
+    { name: "D", thickness: 3, baseColor: [0.86, 0.66, 0.24], octave: 3 }, // яркое золото
+    { name: "G", thickness: 2.5, baseColor: [0.9, 0.7, 0.26], octave: 3 }, // светлое золото
+    { name: "B", thickness: 2, baseColor: [0.93, 0.75, 0.28], octave: 3 }, // почти жёлтое золото
+    { name: "E", thickness: 1.5, baseColor: [0.95, 0.9, 0.7], octave: 4 } // светлое золото с серебристым отблеском
   ];
   stringFreqs: number[]; // depends on tuning type
 

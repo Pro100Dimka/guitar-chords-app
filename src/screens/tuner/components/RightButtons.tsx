@@ -1,10 +1,5 @@
 import { Instrument } from "../instruments";
-import {
-  getTuningFreq,
-  InstrumentType,
-  TuningType,
-  useConfigStore
-} from "@/stores/configStore";
+import { getTuningFreq, useConfigStore } from "@/stores/configStore";
 import { Feather, FontAwesome5, Ionicons } from "@expo/vector-icons";
 import {
   Linking,
@@ -21,9 +16,9 @@ import Dropdown from "@/components/fields/dropdown";
 import ChromaticIcon from "../icons/chromatic";
 import palette from "@/theme/palette";
 import GuitarIcon from "../icons/guitar";
+import { InstrumentType, TuningType } from "@/@types";
 
 export const RightButtons = ({
-  positionY,
   instrument
 }: {
   positionY: number;
@@ -40,7 +35,6 @@ export const RightButtons = ({
   const fontHeight = height / 70;
   const fontSize = fontHeight / 1.3;
   const btnBorder = 1;
-  const btnSpacing = 10;
 
   const instruments: any[] = useMemo(() => {
     const subactions = [
@@ -64,9 +58,9 @@ export const RightButtons = ({
 
   const tunings: any[] = useMemo(() => {
     const subactions = [
-      { value: "ref_440" as TuningType, label: t("tuning_440") },
-      { value: "ref_432" as TuningType, label: t("tuning_432") },
-      { value: "ref_444" as TuningType, label: t("tuning_444") }
+      { value: "ref_440", label: t("tuning_440") },
+      { value: "ref_432", label: t("tuning_432") },
+      { value: "ref_444", label: t("tuning_444") }
     ];
     // Avoid nested menus in android (collapsed by default)
     return Platform.OS === "android"
@@ -85,59 +79,67 @@ export const RightButtons = ({
     <View
       style={{
         position: "absolute",
-        top: positionY + 10,
-        right: btnSpacing,
-        gap: btnSpacing
+        top: 0,
+        width: "100%",
+        justifyContent: "space-between",
+        flexDirection: "row"
       }}
     >
-      <Dropdown
-        options={instruments}
-        value={instrument.name}
-        style={{ container: { width: "auto" } }}
-        onSelect={(value) => setInstrument(value as InstrumentType)}
-      />
-      {/* <Dropdown
-        options={tunings}
-        value={tuning}
-        style={{ container: { width: "auto" } }}
-        onSelect={(value) => setTuning(value as TuningType)}
-      /> */}
-      {instrument.hasStrings && (
-        <Pressable
-          onPress={() => setManual(!manual)}
+      <View style={{ paddingHorizontal: 10 }}>
+        <Dropdown
+          options={tunings}
+          value={tuning}
           style={{
-            marginLeft: btnSpacing,
-            width: btnW,
-            borderRadius: 10,
-            backgroundColor: manual ? Colors.bgActive : Colors.secondary,
-            borderColor: manual ? Colors.secondary : Colors.accent,
-            borderWidth: btnBorder,
-            justifyContent: "center",
-            paddingVertical: 10,
-            gap: 3
+            container: { width: "auto" },
+            optionText: { textAlign: "center" }
           }}
-        >
-          <Text
+          onSelect={(value) => setTuning(value as TuningType)}
+        />
+      </View>
+      <View style={{ paddingHorizontal: 10 }}>
+        <Dropdown
+          options={instruments}
+          value={instrument.name}
+          style={{ container: { width: "auto" }, picker: { padding: 5 } }}
+          onSelect={(value) => setInstrument(value as InstrumentType)}
+        />
+        {instrument.hasStrings && (
+          <Pressable
+            onPress={() => setManual(!manual)}
             style={{
-              color: Colors.primary,
-              fontSize: fontSize * 0.8,
-              textAlign: "center"
+              marginLeft: 5,
+              width: btnW,
+              borderRadius: 10,
+              backgroundColor: manual ? Colors.bgActive : Colors.secondary,
+              borderColor: manual ? Colors.secondary : Colors.accent,
+              borderWidth: btnBorder,
+              justifyContent: "center",
+              paddingVertical: 10,
+              gap: 3
             }}
           >
-            {t("gtr_string")}
-          </Text>
-          <Text
-            style={{
-              color: manual ? Colors.warn : Colors.ok,
-              fontSize: fontSize,
-              textAlign: "center",
-              fontWeight: "600"
-            }}
-          >
-            {manual ? "MANUAL" : "AUTO"}
-          </Text>
-        </Pressable>
-      )}
+            <Text
+              style={{
+                color: Colors.primary,
+                fontSize: fontSize * 0.8,
+                textAlign: "center"
+              }}
+            >
+              {t("gtr_string")}
+            </Text>
+            <Text
+              style={{
+                color: manual ? Colors.warn : Colors.ok,
+                fontSize: fontSize,
+                textAlign: "center",
+                fontWeight: "600"
+              }}
+            >
+              {manual ? "MANUAL" : "AUTO"}
+            </Text>
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 };
