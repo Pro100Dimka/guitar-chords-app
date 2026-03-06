@@ -2,7 +2,7 @@
   "expo": {
     "name": "guitar-chords-songs",
     "slug": "guitar-chords-songs",
-    "version": "0.0.3",
+    "version": "0.0.4",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "guitarchordssongs",

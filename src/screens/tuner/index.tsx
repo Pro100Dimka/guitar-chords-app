@@ -161,14 +161,13 @@ const Tuner: React.FC = () => {
     );
 
     if (pitch !== pitchHistory[pitchHistory.length - 1]) {
-      // console.info(
-      //   `Pitch: ${pitch.toFixed(1)}Hz [${minFreq.toFixed(1)}Hz-${maxFreq.toFixed(1)}Hz] `
-      // );
+      console.info(
+        `Pitch: ${pitch.toFixed(1)}Hz [${minFreq.toFixed(1)}Hz-${maxFreq.toFixed(1)}Hz] `
+      );
       setPitch(pitch);
       addPitch(pitch);
     }
   }, [sampleRate, micAccess, rmsHistory, pitchHistory, idHistory, bufferId]);
-
   useEffect(() => {
     const nearest =
       !(config.manual || pitch <= 0) && instrument.getNearestString(pitch);
