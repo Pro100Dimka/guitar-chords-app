@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 // src/router/index.tsx
 import { createStaticNavigation, RouteProp } from "@react-navigation/native";
 import {
@@ -7,10 +6,10 @@ import {
 } from "@react-navigation/native-stack";
 import Tabs from "./tabs";
 import palette from "../theme/palette";
-import Song from "@/screens/song";
+import Song from "../screens/song";
 
 export type RootStackParamList = {
-  Tabs: { screen: string; id: string };
+  Tabs: { screen: string; id?: string };
   Song: { id: string } | undefined;
 };
 export type NavigationProp = NativeStackNavigationProp<

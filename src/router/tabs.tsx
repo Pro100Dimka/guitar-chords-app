@@ -1,9 +1,10 @@
 // src/router/tabs.tsx
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+
 import React from "react";
 import { useTranslation } from "react-i18next";
 import Header from "../components/header";
-import screens from "@/screens";
+import screens from "../screens";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import palette from "../theme/palette";
 

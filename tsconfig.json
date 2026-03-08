@@ -1,23 +1,17 @@
 // tsconfig.json
 {
-  "extends": "expo/tsconfig.base",
+  "extends": "@react-native/typescript-config",
   "compilerOptions": {
     "moduleResolution": "bundler",
     "strict": true,
     "checkJs": true,
+    "types": ["jest"],
     "paths": {
       "*": ["/*"],
       "@/*": ["./src/*"]
     },
-    "typeRoots": ["./src/types", "./node_modules/@types"]
+    "typeRoots": ["./src/@types", "./node_modules/@types"]
   },
-  // "include": [
-  //   "src/**/*.ts",
-  //   "src/**/*.tsx",
-  //   "src/**/*.js",
-  //   "src/**/*.jsx",
-  //   "*.ts",
-  //   "*.js"
-  // ],
+  // "include": ["src/**/*", "**/*.ts", "**/*.tsx", "index.tsx"],
   "exclude": ["node_modules", "dist", "build", "ios", "android", "web", "*.cjs"]
 }

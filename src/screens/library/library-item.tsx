@@ -2,9 +2,9 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { Pressable, StyleSheet, Text } from "react-native";
-import { ISong } from "../../../database";
 import palette from "../../theme/palette";
 import { NavigationProp } from "@/router";
+import { ISong } from "@/@interfaces";
 
 const LibraryItem: React.FC<{ song: ISong }> = ({ song }) => {
   const navigation = useNavigation<NavigationProp>();

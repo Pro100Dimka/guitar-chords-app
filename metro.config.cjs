@@ -1,13 +1,11 @@
-// metro.config.cjs
-const { getDefaultConfig } = require("expo/metro-config");
+const { getDefaultConfig } = require("@react-native/metro-config");
 
-const config = getDefaultConfig(__dirname);
+const defaultConfig = getDefaultConfig(__dirname);
 
-config.transformer.babelTransformerPath =
-  require.resolve("react-native-svg-transformer");
-config.resolver.assetExts = config.resolver.assetExts.filter(
-  (ext) => ext !== "svg"
-);
-config.resolver.sourceExts.push("svg");
-
-module.exports = config;
+module.exports = {
+  ...defaultConfig,
+  resolver: {
+    ...defaultConfig.resolver,
+    sourceExts: [...defaultConfig.resolver.sourceExts, "ts", "tsx"] // добавляем ts и tsx
+  }
+};

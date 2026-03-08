@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 // src/screens/song/video-tabs.tsx
 import { FC, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,16 +11,16 @@ import {
 } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
 import extractYoutubeId from "../../components/utils/extract-youtube-id";
-import { ISong } from "../../../database";
 import palette from "../../theme/palette";
 import { useFocusEffect } from "@react-navigation/native";
+import { ISong } from "@/@interfaces";
 
 const VideoTabs: FC<ISong> = (song) => {
   const { t } = useTranslation();
   const playerRef = useRef(null);
   const tabs = {
-    youtobe_link_music: t("SongLink"),
-    youtobe_link_chords: t("TrainingLink")
+    youtube_music: t("SongLink"),
+    youtobe_lesson: t("TrainingLink")
   };
   const [activeTab, setActiveTab] = useState(Object.keys(tabs)[0]);
   const rawLink = song[activeTab as keyof ISong];

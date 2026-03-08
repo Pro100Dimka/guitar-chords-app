@@ -6,12 +6,12 @@ import { useTranslation } from "react-i18next";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import SearchableSelect from "../../components/fields/api-select";
 import TextField from "../../components/fields/text-field";
-import { ISong } from "../../../database";
 import initialValues from "./formik/initial-values";
 import onSubmit from "./formik/on-sabmit";
 import { validationSchema } from "./formik/validation-schema";
 import { useNavigation } from "@react-navigation/native";
 import { NavigationProp } from "@/router";
+import { ISong } from "@/@interfaces";
 
 const COLORS = {
   card: "rgba(20,20,20,0.55)",
@@ -22,12 +22,12 @@ const COLORS = {
 };
 
 // интерфейс для формы
-interface FormValues {
+export interface FormValues {
   id: number;
   title: string;
   content: string;
-  youtobe_link_music: string;
-  youtobe_link_chords: string;
+  youtube_music: string;
+  youtobe_lesson: string;
   fk_band: { id: string; name: string; search_text_lower: string };
 }
 interface ICreateChordSongProps {
@@ -65,9 +65,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       actions: FormikHelpers<FormValues>
     ) => {
       setIsSubmitting(true);
-      await onSubmit(values, navigation, setIsEdit).then(() =>
-        actions.resetForm()
-      );
+      await onSubmit(actions, values, navigation, setIsEdit);
       setIsSubmitting(false);
       actions.setSubmitting(false);
     };
@@ -114,13 +112,13 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     placeholder={`${t("SongLink")} (YouTube)`}
                     formik={formik}
                     style={{ container: { flex: 1 } }}
-                    name="youtobe_link_music"
+                    name="youtube_music"
                   />
                   <TextField
                     placeholder={`${t("TrainingLink")} (YouTube)`}
                     formik={formik}
                     style={{ container: { flex: 1 } }}
-                    name="youtobe_link_chords"
+                    name="youtobe_lesson"
                   />
                 </View>
                 <TextField

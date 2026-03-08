@@ -7,14 +7,15 @@ import {
   View
 } from "react-native";
 import guitarBgSong from "../../../assets/images/screen-background/song.jpg";
-import { fetchDataById, ISong } from "../../../database";
 import CreateChordSong from "../create-song-chords";
 import SongModal from "./header-modal";
 import VideoTabs from "./video-tabs";
-import Header from "@/components/header";
+import Header from "../../components/header";
 import palette from "../../theme/palette";
 import { useFocusEffect, useRoute } from "@react-navigation/native";
-import { ScreenRouteProp } from "@/router";
+import { ScreenRouteProp } from "../../router";
+import { ISong } from "../../@interfaces";
+import { getAllItems } from "@/components/database/crud";
 
 const SongDetail: React.FC = () => {
   const route = useRoute<ScreenRouteProp>();
@@ -26,12 +27,13 @@ const SongDetail: React.FC = () => {
     useCallback(() => {
       const loadSong = async () => {
         try {
-          const song = await fetchDataById<ISong>({
+          const [song] = await getAllItems({
             tableName: "songs",
-            data: { "songs.id": songId },
+            filters: `songs.id = ${songId}`,
             fields:
-              "songs.id, fk_band.name as band_name, fk_band.id as band_id, title, content, youtobe_link_music, youtobe_link_chords",
-            join: "bands fk_band ON songs.band_id = fk_band.id"
+              "songs.id, fk_band.name as band_name, fk_band.id as band_id, title, content, youtube_music, youtobe_lesson",
+            joins: ["LEFT JOIN bands fk_band ON songs.band_id = fk_band.id"],
+            limit: 1
           });
           setSong(song);
         } catch (error) {

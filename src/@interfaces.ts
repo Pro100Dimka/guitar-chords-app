@@ -1,14 +1,28 @@
 import { SharedValue } from "react-native-reanimated";
 import {
-  GraphicsMode,
-  InstrumentType,
+  InstrumentString,
   MicrophoneAccess,
   ParagraphTuple,
-  TuningType
+  TFields
 } from "./@types";
-import { InstrumentString } from "./screens/tuner/instruments";
-import { Note } from "./stores/notes";
+import { JSX } from "react";
+import { SvgProps } from "react-native-svg";
 
+export interface IModel {
+  fields: TFields;
+  foreignKeys?: string[];
+}
+export interface IInstrument {
+  Icon: (props: SvgProps) => JSX.Element;
+  stringNotes: IString[] | null;
+}
+export interface ITunerConfig {
+  instruments: { [key: string]: IInstrument };
+  tunings: string[];
+  autoDetect: boolean;
+  selectedTuning: string;
+  selectedInstrument: string;
+}
 export interface IWaveProfillerProps {
   sampleRate: number;
   micAccess: MicrophoneAccess;
@@ -38,18 +52,9 @@ export interface IStringsProps {
   currentString?: InstrumentString;
   volume: number;
   gaugeColor: string;
-  stringNotes: Note[];
+  stringNotes: IString[];
 }
-export interface ConfigState {
-  instrument: InstrumentType;
-  tuning: TuningType;
-  graphics: GraphicsMode;
-  manual: boolean;
-  setInstrument: (_: InstrumentType) => void;
-  setTuning: (_: TuningType) => void;
-  setGraphics: (_: GraphicsMode) => void;
-  setManual: (_: boolean) => void;
-}
+
 export interface ITuningGaugeProps {
   positionY: number;
   gaugeDeviation?: number;
@@ -70,8 +75,15 @@ export interface IGaugeTextProps extends IMainNoteProps {
 }
 export interface IString {
   name: string;
-  thickness: number;
-  baseColor: [number, number, number];
+  octave: number;
+  thickness?: number;
+  baseColor?: [number, number, number];
+}
+export interface INote {
+  name: string;
+  pitch: number;
+  refFreq: number;
+  direction: string;
   octave: number;
 }
 export interface StringWithVibrationProps {
@@ -82,4 +94,40 @@ export interface StringWithVibrationProps {
   baseColor: number[];
   active: boolean;
   volume?: number;
+}
+export interface IGetItems {
+  tableName?: string;
+  fields?: string;
+  filters?: string;
+  page?: number;
+  limit?: number;
+  joins?: string[];
+}
+
+export interface ICreateItem {
+  tableName: string;
+  data: Record<string, any>;
+}
+export interface IUpdateItem {
+  tableName: string;
+  data: Record<string, any>;
+  filters: string;
+}
+export interface IDeleteItem {
+  tableName: string;
+  filters: string;
+}
+export interface ISong {
+  id: number;
+  title: string;
+  content: string;
+  youtobe_link_music?: string;
+  youtobe_link_chords?: string;
+  fk_band?: IBand;
+  band_id?: number;
+  band_name?: string;
+}
+export interface IBand {
+  id: number;
+  name: string;
 }

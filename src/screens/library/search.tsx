@@ -1,6 +1,5 @@
 // src/screens/library/search.tsx
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
@@ -12,8 +11,10 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { fetchData, IFetchDataParams } from "../../../database";
 import palette from "../../theme/palette";
+import { useNavigation } from "@react-navigation/native";
+import { NavigationProp } from "../../router";
+import { getAllItems } from "@/components/database/crud";
 
 interface ISearchBarProps {
   setFilters: React.Dispatch<React.SetStateAction<string>>;
@@ -23,7 +24,7 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<any[]>([]);
   const inputRef = useRef<TextInput>(null);
-  const router = useRouter();
+  const navigation = useNavigation<NavigationProp>();
 
   useEffect(() => {
     if (!query.trim()) {
@@ -32,7 +33,7 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
     }
 
     const delay = setTimeout(async () => {
-      const params: IFetchDataParams = {
+      const params = {
         tableName: "songs s",
         join: "bands b ON s.band_id = b.id",
         fields:
@@ -41,7 +42,7 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
         page: 0,
         limit: 10
       };
-      const data = await fetchData<any>(params);
+      const data = await getAllItems(params);
       setResults(data);
     }, 300);
 
@@ -49,10 +50,7 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
   }, [query]);
 
   const handleSelect = (item: any) => {
-    router.push({
-      pathname: "/song/[id]",
-      params: { id: item.id }
-    });
+    navigation.navigate("Song", { id: item.id });
     handleDismiss();
   };
 

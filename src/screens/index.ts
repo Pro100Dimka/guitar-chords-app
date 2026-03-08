@@ -1,14 +1,13 @@
 // src/screens/index.ts
 import { ComponentType } from "react";
 import Home from "./home";
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import Library from "./library";
 import CreateChordSong from "./create-song-chords";
 import Tuner from "./tuner";
 
 interface ScreenConfig {
   component: ComponentType;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
+  icon: any; // keyof typeofMaterialCommunityIcons
 }
 
 export interface Screens {

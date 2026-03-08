@@ -1,5 +1,5 @@
 import { Skia, TextAlign, useFonts } from "@shopify/react-native-skia";
-import fontFamilies from "@/../assets/fonts/index";
+import fontFamilies from "../../../assets/fonts/index";
 
 export const useParagraphBuilder = () => {
   const fonts = useFonts(fontFamilies);

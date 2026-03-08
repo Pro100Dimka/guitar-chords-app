@@ -1,5 +1,5 @@
 // src/components/header.tsx
-import { MaterialCommunityIcons } from "@expo/vector-icons";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
 import { Pressable, StyleSheet, Text, View, Image } from "react-native";
@@ -53,7 +53,7 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
-  viewIco: { width: 50, height: 50 },
+  viewIco: { width: 60, height: 60 },
   container: {
     backgroundColor: palette.colors.blackOpacity,
     flexDirection: "row",
@@ -61,7 +61,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
-    paddingTop: 25,
+    paddingTop: 35,
     borderColor: palette.colors.placeholder
   },
   left: { flexDirection: "row", alignItems: "center" },

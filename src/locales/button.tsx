@@ -8,7 +8,6 @@ const LocaleButton = () => {
   const { t, i18n } = useTranslation();
   const lang = i18n.language || "ua";
   const [loaded, setLoaded] = useState(false);
-
   useEffect(() => {
     if (i18n.isInitialized) setLoaded(true);
   }, [i18n.isInitialized]);

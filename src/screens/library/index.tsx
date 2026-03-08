@@ -8,11 +8,12 @@ import {
   Text,
   View
 } from "react-native";
-import { fetchData, ISong } from "../../../database";
 import { t } from "../../locales";
 import LibraryItem from "./library-item";
 import SearchBar from "./search";
 import palette from "../../theme/palette";
+import { ISong } from "@/@interfaces";
+import { getAllItems } from "@/components/database/crud";
 
 const PAGE_LIMIT = 10;
 
@@ -29,9 +30,9 @@ const Library: React.FC = () => {
       if (pageNumber === 0) setLoading(true);
       else setLoadingMore(true);
       try {
-        const data = await fetchData<ISong>({
+        const data = await getAllItems({
           tableName: "songs s",
-          join: "bands b ON s.band_id = b.id",
+          joins: ["LEFT JOIN bands b ON s.band_id = b.id"],
           page: pageNumber,
           limit: PAGE_LIMIT,
           filters:

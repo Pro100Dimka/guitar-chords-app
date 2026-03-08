@@ -10,8 +10,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { createData, fetchData } from "../../../database";
 import palette from "../../theme/palette";
+import { createItem, getAllItems } from "../database/crud";
 
 interface ISearchableSelectProps<T> {
   value?: T | null;
@@ -67,7 +67,7 @@ function SearchableSelect<T extends Record<string, any>>({
       setLoading(true);
       try {
         const filters = `lower(${labelKey}) LIKE lower('%${query}%')`;
-        const result: T[] = await fetchData({
+        const result: T[] = await getAllItems({
           tableName,
           filters,
           page: 0,
@@ -90,7 +90,7 @@ function SearchableSelect<T extends Record<string, any>>({
     setLoading(true);
     try {
       const filters = `lower(${labelKey}) LIKE lower('%${query}%')`;
-      const result: T[] = await fetchData({
+      const result: T[] = await getAllItems({
         tableName,
         filters,
         page,
@@ -105,11 +105,14 @@ function SearchableSelect<T extends Record<string, any>>({
   };
 
   const handleCreate = async () => {
-    const newItem = (await createData(tableName, {
-      [labelKey]: query,
-      ...(selectedValue.hasOwnProperty("search_text_lower") && {
-        search_text_lower: query.toLowerCase()
-      })
+    const newItem = (await createItem({
+      tableName,
+      data: {
+        [labelKey]: query,
+        ...(selectedValue.hasOwnProperty("search_text_lower") && {
+          search_text_lower: query.toLowerCase()
+        })
+      }
     })) as T;
 
     setValue(newItem);
@@ -127,7 +130,7 @@ function SearchableSelect<T extends Record<string, any>>({
         formik && name && formik.touched[name] && formik.errors[name];
       setError(error);
     }
-  }, [selectedValue]);
+  }, [selectedValue, formik, name]);
   return (
     <View style={[styles.container, style?.container]}>
       <TouchableOpacity

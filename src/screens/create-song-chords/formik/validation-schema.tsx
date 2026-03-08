@@ -10,10 +10,10 @@ export const validationSchema = (t: typeof import("i18next").t) =>
       })
       .required(t`FieldRequired`),
     content: Yup.string().required(t`FieldRequired`),
-    youtobe_link_music: Yup.string()
+    youtube_music: Yup.string()
       .url(t`InvalidUrl`)
       .nullable(),
-    youtobe_link_chords: Yup.string()
+    youtobe_lesson: Yup.string()
       .url(t`InvalidUrl`)
       .nullable()
   });

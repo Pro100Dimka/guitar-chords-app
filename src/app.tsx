@@ -1,23 +1,21 @@
 // src/app.tsx
-import "@expo/metro-runtime";
-import { registerRootComponent } from "expo";
-import { GestureHandlerRootView } from "react-native-gesture-handler";
-import Router from "./router";
-import { FC, useEffect } from "react";
+import React, { FC, useEffect } from "react";
 import { ImageBackground, StyleSheet, View } from "react-native";
-import "./components/utils/logger";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { SystemBars } from "react-native-edge-to-edge";
+import Router from "./router";
 import backgroundImage from "../assets/images/screen-background/background.jpg";
 import palette from "./theme/palette";
 import { initLanguage } from "./locales";
-import { initDB } from "../database";
-import { SystemBars } from "react-native-edge-to-edge";
-import { SafeAreaProvider } from "react-native-safe-area-context";
+import { initDatabase } from "./components/database";
 
 const App: FC = () => {
   useEffect(() => {
+    initDatabase();
     initLanguage();
-    initDB();
   }, []);
+
   return (
     <SafeAreaProvider>
       <SystemBars style="light" />
@@ -46,4 +44,4 @@ const styles = StyleSheet.create({
   }
 });
 
-registerRootComponent(App);
+export default App;

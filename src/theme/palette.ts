@@ -23,13 +23,30 @@ const COLORS = {
   grayOpacityTiny: "rgba(255,255,255,0.15)",
   blackOpacity: "rgba(20,20,20,0.55)",
   blackOpacityTiny: "rgba(0,0,0,0.25)",
-  transparent: "#00000000"
+  transparent: "#00000000",
+  bgInactive: "#222222",
+  bgActive: "#333333",
+  bgTitle: "#222222",
+  secondary: "#7a7a7a",
+  primary: "#ffffff",
+  bgLight: "#ffffff",
+  fgLight: "#000000",
+  ok: "rgb(120, 255, 0)",
+  warn: "rgb(255, 60, 0)"
 };
-
+const TUNER = {
+  low: "rgb(255, 60, 0)",
+  high: "rgb(255, 60, 0)",
+  center: "rgb(120, 255, 0)",
+  lowTuple: [255, 60, 0],
+  highTuple: [255, 60, 0],
+  centerTuple: [120, 255, 0]
+};
 const palette = {
   primary: PRIMARY,
   secondary: SECONDARY,
   error: ERROR,
-  colors: COLORS
+  colors: COLORS,
+  tuner: TUNER
 };
 export default palette;

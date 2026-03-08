@@ -1,4 +1,4 @@
-import palette from "@/theme/palette";
+import palette from "../../theme/palette";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
@@ -44,9 +44,9 @@ const Dropdown: React.FC<IDropdownProps> = ({
     });
   };
   const handleSelect = (item: string) => {
+    onSelect(item);
     setSelected(item);
     setOpen(false);
-    onSelect(item);
   };
   const selectedOption = options.find((o) => o.value === selected);
   return (
@@ -80,7 +80,7 @@ const Dropdown: React.FC<IDropdownProps> = ({
             keyExtractor={(_, i) => i.toString()}
             renderItem={({ item }) => (
               <TouchableOpacity
-                style={styles.option}
+                style={[styles.option, style?.option]}
                 onPress={() => handleSelect(item.value)}
               >
                 <Text style={[styles.optionText, style?.optionText]}>
@@ -100,7 +100,8 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: "100%",
     height: "100%",
-    zIndex: 1
+    zIndex: 1,
+    pointerEvents: "box-none"
   },
   container: {
     width: 200,

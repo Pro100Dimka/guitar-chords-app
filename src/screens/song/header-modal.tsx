@@ -1,8 +1,9 @@
 // src/screens/song/header-modal.tsx
-import { Ionicons } from "@expo/vector-icons";
+import Ionicons from "react-native-vector-icons/Ionicons";
 import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
+  Alert,
   Modal,
   Pressable,
   StyleSheet,
@@ -10,10 +11,10 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { deleteData } from "../../../database";
 import palette from "../../theme/palette";
 import { useNavigation } from "@react-navigation/native";
-import { NavigationProp } from "@/router";
+import { NavigationProp } from "../../router";
+import { deleteItem } from "@/components/database/crud";
 interface ISongModalProps {
   setIsEdit: (_: boolean) => void;
   songId: number;
@@ -28,10 +29,10 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
     [
       t`Delete`,
       async () => {
-        await deleteData("songs", { id: songId })
+        await deleteItem({ tableName: "songs", filters: `id =${songId}` })
           .then(() => {
             navigation.navigate("Tabs", { screen: "library" });
-            alert(t`ElementDeleted`);
+            Alert.alert(t`ElementDeleted`);
           })
           .catch((err) => console.error(err));
       }
