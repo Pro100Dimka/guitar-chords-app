@@ -30,7 +30,11 @@ const RequireMicAccess: FC = () => {
   return !hasPermission ? (
     <View style={styles.container}>
       <Text style={styles.errorText}>{t`ErrorMicAccess`}</Text>
-      <TouchableOpacity style={styles.button} onPress={openAppSettings}>
+      <TouchableOpacity
+        style={styles.button}
+        activeOpacity={0.8}
+        onPress={openAppSettings}
+      >
         <Text style={styles.buttonText}>{t`ConfigurePermissions`}</Text>
       </TouchableOpacity>
     </View>

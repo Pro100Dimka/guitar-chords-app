@@ -14,8 +14,9 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
+require_relative '../node_modules/react-native-permissions/scripts/setup.rb'
+
 target 'freetune' do
-   use_frameworks! :linkage => :static
   config = use_native_modules!
 
   use_react_native!(
@@ -24,6 +25,10 @@ target 'freetune' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
+    setup_permissions([
+    'Microphone',
+  ])
+
   post_install do |installer|
     react_native_post_install(
       installer,
@@ -31,5 +36,6 @@ target 'freetune' do
       :mac_catalyst_enabled => false,
       # :ccache_enabled => true
     )
+        
   end
 end
