@@ -3,7 +3,7 @@ import { ComponentType } from "react";
 import Home from "./home";
 import Library from "./library";
 import CreateChordSong from "./create-song-chords";
-import Tuner from "./tuner";
+// import Tuner from "./tuner";
 
 interface ScreenConfig {
   component: ComponentType;
@@ -17,8 +17,8 @@ export interface Screens {
 const screens: Screens = {
   home: { component: Home, icon: "guitar-acoustic" },
   library: { component: Library, icon: "music-clef-treble" },
-  createSong: { component: CreateChordSong, icon: "music-note-plus" },
-  tuner: { component: Tuner, icon: "waveform" }
+  createSong: { component: CreateChordSong, icon: "music-note-plus" }
+  // tuner: { component: Tuner, icon: "waveform" }
 };
 
 export default screens;
