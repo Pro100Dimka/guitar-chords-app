@@ -39,6 +39,8 @@ const Tuner: FC = () => {
         octave: buffer.octave,
         pitch: buffer.pitch
       };
+      console.log(buffer.note, buffer.pitch);
+
       if (buffer.note === "Silence" || buffer.rms < 0.002) {
         silenceCount++;
       } else {

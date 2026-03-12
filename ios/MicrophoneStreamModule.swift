@@ -1,207 +1,272 @@
-// ios/MicrophoneStreamModule.swift
-import Foundation
 import AVFoundation
+import Accelerate
+// ios/MicrophoneStream.swift
+import Foundation
 import React
 
 @objc(MicrophoneStream)
 class MicrophoneStream: RCTEventEmitter {
+
+    static let BUF_PER_SEC = 15
+    private let sampleRate: Double = 44100.0
+
     private var audioEngine: AVAudioEngine?
+    private var inputNode: AVAudioInputNode?
+    private var isRecording = false
+
     private var pitchHistory: [Float] = []
     private var targetNotes: [NoteSpec] = []
-    private let sampleRate: Double = 44100.0
-    private let bufPerSec: Int = 15
 
-    struct NoteSpec {
+    @objc
+    class NoteSpec: NSObject {
         let name: String
         let octave: Int
         let refFreq: Double
         let thickness: Double?
         let baseColor: [Double]?
+
+        init(name: String, octave: Int, refFreq: Double, thickness: Double?, baseColor: [Double]?) {
+            self.name = name
+            self.octave = octave
+            self.refFreq = refFreq
+            self.thickness = thickness
+            self.baseColor = baseColor
+        }
     }
 
-    override static func requiresMainQueueSetup() -> Bool {
-        return false
+    // MARK: - JS Methods
+
+    @objc
+    func setTargetNotes(_ notes: [NSDictionary]) {
+        var list: [NoteSpec] = []
+        for obj in notes {
+            guard let name = obj["name"] as? String,
+                let octave = obj["octave"] as? Int
+            else { continue }
+            let thickness = obj["thickness"] as? Double
+            let baseColor = obj["baseColor"] as? [Double]
+
+            let midi: Int
+            switch name {
+            case "C": midi = 0
+            case "C#": midi = 1
+            case "D": midi = 2
+            case "D#": midi = 3
+            case "E": midi = 4
+            case "F": midi = 5
+            case "F#": midi = 6
+            case "G": midi = 7
+            case "G#": midi = 8
+            case "A": midi = 9
+            case "A#": midi = 10
+            case "B": midi = 11
+            default: midi = 0
+            }
+            let midiTotal = midi + (octave + 1) * 12
+            let refFreq = 440.0 * pow(2.0, Double(midiTotal - 69) / 12.0)
+            list.append(
+                NoteSpec(
+                    name: name, octave: octave, refFreq: refFreq,
+                    thickness: thickness, baseColor: baseColor))
+        }
+        targetNotes = list
     }
+
+    @objc
+    func startRecording() {
+        if isRecording { return }
+
+        audioEngine = AVAudioEngine()
+        inputNode = audioEngine?.inputNode
+        guard let inputNode = inputNode else { return }
+
+        let format = inputNode.outputFormat(forBus: 0)
+        let bufferSize = AVAudioFrameCount(max(sampleRate / Double(Self.BUF_PER_SEC), 2048))
+
+        inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: format) {
+            [weak self] buffer, _ in
+            guard let self = self else { return }
+            let channelData = buffer.floatChannelData![0]
+            let floatData = Array(
+                UnsafeBufferPointer(start: channelData, count: Int(buffer.frameLength)))
+
+            let rms = sqrt(floatData.map { $0 * $0 }.reduce(0, +) / Float(floatData.count))
+            if rms < 0.02 {
+                self.pitchHistory.removeAll()
+                self.sendEvent(
+                    "onAudioBuffer",
+                    body: [
+                        "samples": floatData.map { Double($0) },
+                        "rms": Double(rms),
+                        "note": "Silence",
+                        "pitch": 0.0,
+                        "refFreq": 0.0,
+                        "octave": 0,
+                        "direction": "=",
+                    ])
+                return
+            }
+
+            let rawPitch = self.estimatePitchFFT(floatData, sampleRate: self.sampleRate)
+            let pitch = self.smoothPitch(rawPitch)
+            var noteData = self.frequencyToNoteData(pitch)
+            noteData["samples"] = floatData.map { Double($0) }
+            noteData["rms"] = Double(rms)
+            self.sendEvent("onAudioBuffer", body: noteData)
+        }
+
+        do {
+            try audioEngine?.start()
+            isRecording = true
+        } catch {
+            print("AudioEngine start error: \(error)")
+        }
+    }
+
+    @objc
+    func stopRecording() {
+        isRecording = false
+        inputNode?.removeTap(onBus: 0)
+        audioEngine?.stop()
+        audioEngine = nil
+        pitchHistory.removeAll()
+    }
+
+    @objc
+    func getSampleRate(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
+        resolve(sampleRate)
+    }
+
+    @objc
+    func getBufPerSec(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
+        resolve(Self.BUF_PER_SEC)
+    }
+
+    // MARK: - Pitch и ноты
+
+    private func smoothPitch(_ pitch: Float) -> Float {
+        if pitch > 0 {
+            if pitchHistory.count >= 15 { pitchHistory.removeFirst() }
+            pitchHistory.append(pitch)
+        }
+        return pitchHistory.isEmpty ? 0 : pitchHistory.reduce(0, +) / Float(pitchHistory.count)
+    }
+
+    private func frequencyToNoteData(_ freq: Float) -> [String: Any] {
+        var map: [String: Any] = [:]
+        if freq <= 20 || freq > 5000 || freq.isNaN || freq.isInfinite {
+            map["note"] = "Silence"
+            map["pitch"] = 0.0
+            map["refFreq"] = 0.0
+            map["octave"] = 0
+            map["direction"] = "="
+            pitchHistory.removeAll()
+            return map
+        }
+
+        if let closest = targetNotes.min(by: {
+            abs(freq - Float($0.refFreq)) < abs(freq - Float($1.refFreq))
+        }) {
+            let direction: String
+            if freq > Float(closest.refFreq) + 0.5 {
+                direction = ">"
+            } else if freq < Float(closest.refFreq) - 0.5 {
+                direction = "<"
+            } else {
+                direction = "="
+            }
+
+            map["note"] = closest.name
+            map["pitch"] = Double(freq)
+            map["refFreq"] = closest.refFreq
+            map["octave"] = closest.octave
+            map["direction"] = direction
+            if let thickness = closest.thickness { map["thickness"] = thickness }
+            if let baseColor = closest.baseColor { map["baseColor"] = baseColor }
+            return map
+        }
+
+        let midiExact = 69 + 12 * log2(Double(freq) / 440.0)
+        let midi = Int(round(midiExact))
+        let noteNames = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"]
+        let noteIndex = (midi % 12 + 12) % 12
+        let note = noteNames[noteIndex]
+        let octave = midi / 12 - 1
+        let refFreq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
+        let direction: String
+        if Double(freq) > refFreq + 0.5 {
+            direction = ">"
+        } else if Double(freq) < refFreq - 0.5 {
+            direction = "<"
+        } else {
+            direction = "="
+        }
+
+        map["note"] = note
+        map["pitch"] = Double(freq)
+        map["refFreq"] = refFreq
+        map["octave"] = octave
+        map["direction"] = direction
+        return map
+    }
+    // Новый метод pitch через FFT
+    private func estimatePitchFFT(_ buffer: [Float], sampleRate: Double) -> Float {
+        let n = buffer.count
+        guard n > 0 else { return 0 }
+
+        let log2n = vDSP_Length(log2(Float(n)))
+        var realp = [Float](repeating: 0, count: n / 2)
+        var imagp = [Float](repeating: 0, count: n / 2)
+        var output = DSPSplitComplex(realp: &realp, imagp: &imagp)
+
+        buffer.withUnsafeBufferPointer { ptr in
+            ptr.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: n) { complexPtr in
+                if let fftSetup = vDSP_create_fftsetup(log2n, Int32(kFFTRadix2)) {
+                    vDSP_ctoz(complexPtr, 2, &output, 1, vDSP_Length(n / 2))
+                    vDSP_fft_zrip(fftSetup, &output, 1, log2n, Int32(FFT_FORWARD))
+                    vDSP_destroy_fftsetup(fftSetup)
+                }
+            }
+        }
+
+        // Амплитуды спектра
+        var magnitudes = [Float](repeating: 0.0, count: n / 2)
+        vDSP_zvmags(&output, 1, &magnitudes, 1, vDSP_Length(n / 2))
+
+        // Находим индекс максимальной амплитуды
+        var maxMag: Float = 0
+        var maxIndex: vDSP_Length = 0
+        vDSP_maxvi(magnitudes, 1, &maxMag, &maxIndex, vDSP_Length(n / 2))
+
+        // Интерполяция пика (parabolic interpolation)
+        let i = Int(maxIndex)
+        if i > 0 && i < magnitudes.count - 1 {
+            let alpha = magnitudes[i - 1]
+            let beta = magnitudes[i]
+            let gamma = magnitudes[i + 1]
+            let p = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma)
+            let refinedIndex = Float(i) + Float(p)
+            let freq = refinedIndex * Float(sampleRate) / Float(n)
+
+            // Проверка на гармоники: если частота слишком высокая, попробуем делить на 2
+            if freq > 1000 {
+                return freq / 2
+            }
+            return freq
+        }
+
+        // Если интерполяция невозможна — обычный расчёт
+        let freq = Float(maxIndex) * Float(sampleRate) / Float(n)
+        return freq > 1000 ? freq / 2 : freq
+    }
+
+    // MARK: - RCTEventEmitter
 
     override func supportedEvents() -> [String]! {
         return ["onAudioBuffer"]
     }
 
-    // MARK: - JS Methods
-    @objc func setTargetNotes(_ notes: NSArray) {
-        var list: [NoteSpec] = []
-        for case let obj as NSDictionary in notes {
-            guard let name = obj["name"] as? String,
-                  let octave = obj["octave"] as? Int else { continue }
-            let thickness = obj["thickness"] as? Double
-            let baseColor = obj["baseColor"] as? [Double]
-
-            let midiBase: Int
-            switch name {
-            case "C": midiBase = 0; case "C#": midiBase = 1
-            case "D": midiBase = 2; case "D#": midiBase = 3
-            case "E": midiBase = 4; case "F": midiBase = 5
-            case "F#": midiBase = 6; case "G": midiBase = 7
-            case "G#": midiBase = 8; case "A": midiBase = 9
-            case "A#": midiBase = 10; case "B": midiBase = 11
-            default: midiBase = 0
-            }
-            let midi = midiBase + (octave + 1) * 12
-            let refFreq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
-
-            list.append(NoteSpec(name: name, octave: octave, refFreq: refFreq,
-                                 thickness: thickness, baseColor: baseColor))
-        }
-        targetNotes = list
-    }
-
-    @objc func startRecording() {
-        audioEngine = AVAudioEngine()
-        guard let input = audioEngine?.inputNode else { return }
-        let format = input.outputFormat(forBus: 0)
-
-        input.installTap(onBus: 0, bufferSize: 1024, format: format) { buffer, _ in
-            guard let channelData = buffer.floatChannelData?[0] else { return }
-            let frameCount = Int(buffer.frameLength)
-            let samples = Array(UnsafeBufferPointer(start: channelData, count: frameCount))
-
-            // RMS
-            let rms = sqrt(samples.map { Double($0 * $0) }.reduce(0, +) / Double(frameCount))
-            if rms < 0.02 {
-                self.pitchHistory.removeAll()
-                self.sendEvent(withName: "onAudioBuffer", body: [
-                    "samples": samples,
-                    "rms": rms,
-                    "note": "Silence",
-                    "pitch": 0.0,
-                    "refFreq": 0.0,
-                    "octave": 0,
-                    "direction": "="
-                ])
-                return
-            }
-
-            let rawPitch = self.estimatePitch(samples: samples, sampleRate: self.sampleRate)
-            let pitch = self.smoothPitch(rawPitch)
-            let noteData = self.frequencyToNoteData(freq: pitch)
-
-            var map: [String: Any] = [
-                "samples": samples,
-                "rms": rms
-            ]
-            noteData.forEach { map[$0.key] = $0.value }
-            self.sendEvent(withName: "onAudioBuffer", body: map)
-        }
-
-        try? audioEngine?.start()
-    }
-
-    @objc func stopRecording() {
-        audioEngine?.stop()
-        audioEngine?.inputNode.removeTap(onBus: 0)
-        audioEngine = nil
-        pitchHistory.removeAll()
-    }
-
-    @objc func getSampleRate(_ resolve: RCTPromiseResolveBlock,
-                            rejecter reject: RCTPromiseRejectBlock) {
-        resolve(sampleRate)
-    }
-
-    @objc func getBufPerSec(_ resolve: RCTPromiseResolveBlock,
-                            rejecter reject: RCTPromiseRejectBlock) {
-        resolve(bufPerSec)
-    }
-
-    // MARK: - Helpers
-    private func smoothPitch(_ pitch: Float) -> Float {
-        if pitch > 0 {
-            if pitchHistory.count >= 5 { pitchHistory.removeFirst() }
-            pitchHistory.append(pitch)
-        }
-        return pitchHistory.isEmpty ? 0 : pitchHistory.reduce(0,+)/Float(pitchHistory.count)
-    }
-
-    private func frequencyToNoteData(freq: Float) -> [String: Any] {
-        if freq <= 20 || freq > 5000 || freq.isNaN || !freq.isFinite {
-            pitchHistory.removeAll()
-            return [
-                "note": "Silence",
-                "pitch": 0.0,
-                "refFreq": 0.0,
-                "octave": 0,
-                "direction": "="
-            ]
-        }
-
-        if let closest = targetNotes.min(by: { abs(Double(freq) - $0.refFreq) < abs(Double(freq) - $1.refFreq) }) {
-            let direction: String
-            if Double(freq) > closest.refFreq + 0.5 { direction = ">" }
-            else if Double(freq) < closest.refFreq - 0.5 { direction = "<" }
-            else { direction = "=" }
-
-            var map: [String: Any] = [
-                "note": closest.name,
-                "pitch": Double(freq),
-                "refFreq": closest.refFreq,
-                "octave": closest.octave,
-                "direction": direction
-            ]
-            if let t = closest.thickness { map["thickness"] = t }
-            if let c = closest.baseColor { map["baseColor"] = c }
-            return map
-        }
-
-        // стандартное вычисление
-        let midiExact = 69 + 12 * log(Double(freq)/440.0)/log(2.0)
-        let midi = Int(round(midiExact))
-        let noteNames = ["C","C#","D","D#","E","F","F#","G","G#","A","A#","B"]
-        let noteIndex = midi % 12
-        let note = noteNames[noteIndex]
-        let octave = midi/12 - 1
-        let refFreq = 440.0 * pow(2.0, Double(midi - 69)/12.0)
-        let direction: String
-        if Double(freq) > refFreq + 0.5 { direction = ">" }
-        else if Double(freq) < refFreq - 0.5 { direction = "<" }
-        else { direction = "=" }
-
-        return [
-            "note": note,
-            "pitch": Double(freq),
-            "refFreq": refFreq,
-            "octave": octave,
-            "direction": direction
-        ]
-    }
-
-    private func estimatePitch(samples: [Float], sampleRate: Double) -> Float {
-        let rms = sqrt(samples.map { Double($0*$0) }.reduce(0,+)/Double(samples.count))
-        if rms < 0.01 { return 0 }
-
-        let minFreq = 80.0, maxFreq = 1000.0
-        let minLag = Int(sampleRate/maxFreq), maxLag = Int(sampleRate/minFreq)
-        var bestLag = -1
-        var bestCorr = 0.0
-
-        for lag in minLag...maxLag {
-            var corr = 0.0
-            for i in 0..<(samples.count - lag) {
-                corr += Double(samples[i] * samples[i+lag])
-            }
-            if corr > bestCorr {
-                bestCorr = corr
-                bestLag = lag
-            }
-        }
-        if bestLag <= 0 { return 0 }
-
-        // параболическая интерполяция
-        let prev = max(bestLag-1, minLag)
-        let next = min(bestLag+1, maxLag)
-        let corrPrev = (0..<(samples.count-prev)).map { Double(samples[$0]*samples[$0+prev]) }.reduce(0,+)
-        let corrNext = (0..<(samples.count-next)).map { Double(samples[$0]*samples[$0+next]) }.reduce(0,+)
-        let shift = 0.5 * (corrPrev - corrNext) / (corrPrev - 2*bestCorr + corrNext)
-        let refinedLag = Double(bestLag) + shift
-        return Float(sampleRate/refinedLag)
+    private func sendEvent(_ name: String, body: [String: Any]) {
+        self.sendEvent(withName: name, body: body)
     }
 }
