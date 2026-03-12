@@ -214,12 +214,18 @@ class MicrophoneStream: RCTEventEmitter {
         let n = buffer.count
         guard n > 0 else { return 0 }
 
+        // Hann window
+        var window = [Float](repeating: 0, count: n)
+        vDSP_hann_window(&window, vDSP_Length(n), Int32(vDSP_HANN_NORM))
+        var windowed = [Float](repeating: 0, count: n)
+        vDSP_vmul(buffer, 1, window, 1, &windowed, 1, vDSP_Length(n))
+
         let log2n = vDSP_Length(log2(Float(n)))
         var realp = [Float](repeating: 0, count: n / 2)
         var imagp = [Float](repeating: 0, count: n / 2)
         var output = DSPSplitComplex(realp: &realp, imagp: &imagp)
 
-        buffer.withUnsafeBufferPointer { ptr in
+        windowed.withUnsafeBufferPointer { ptr in
             ptr.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: n) { complexPtr in
                 if let fftSetup = vDSP_create_fftsetup(log2n, Int32(kFFTRadix2)) {
                     vDSP_ctoz(complexPtr, 2, &output, 1, vDSP_Length(n / 2))
@@ -229,35 +235,24 @@ class MicrophoneStream: RCTEventEmitter {
             }
         }
 
-        // Амплитуды спектра
         var magnitudes = [Float](repeating: 0.0, count: n / 2)
         vDSP_zvmags(&output, 1, &magnitudes, 1, vDSP_Length(n / 2))
 
-        // Находим индекс максимальной амплитуды
-        var maxMag: Float = 0
-        var maxIndex: vDSP_Length = 0
-        vDSP_maxvi(magnitudes, 1, &maxMag, &maxIndex, vDSP_Length(n / 2))
-
-        // Интерполяция пика (parabolic interpolation)
-        let i = Int(maxIndex)
-        if i > 0 && i < magnitudes.count - 1 {
-            let alpha = magnitudes[i - 1]
-            let beta = magnitudes[i]
-            let gamma = magnitudes[i + 1]
-            let p = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma)
-            let refinedIndex = Float(i) + Float(p)
-            let freq = refinedIndex * Float(sampleRate) / Float(n)
-
-            // Проверка на гармоники: если частота слишком высокая, попробуем делить на 2
-            if freq > 1000 {
-                return freq / 2
+        // Harmonic Product Spectrum
+        let maxHarmonics = 4
+        var hps = magnitudes
+        for h in 2...maxHarmonics {
+            for i in 0..<(magnitudes.count / h) {
+                hps[i] *= magnitudes[i * h]
             }
-            return freq
         }
 
-        // Если интерполяция невозможна — обычный расчёт
+        var maxMag: Float = 0
+        var maxIndex: vDSP_Length = 0
+        vDSP_maxvi(hps, 1, &maxMag, &maxIndex, vDSP_Length(hps.count))
+
         let freq = Float(maxIndex) * Float(sampleRate) / Float(n)
-        return freq > 1000 ? freq / 2 : freq
+        return freq
     }
 
     // MARK: - RCTEventEmitter
