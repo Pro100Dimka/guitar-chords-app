@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-  "postinstall": "react-native setup-ios-permissions && pod-install"
+    "postinstall": "react-native setup-ios-permissions && pod-install"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.6",
@@ -28,6 +28,7 @@
     "react-native-gesture-handler": "^2.30.0",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-logs": "^5.6.0",
+    "react-native-make": "^1.0.1",
     "react-native-nitro-modules": "^0.35.0",
     "react-native-permissions": "^5.5.1",
     "react-native-reanimated": "^4.2.2",
