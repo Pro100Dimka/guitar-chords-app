@@ -145,9 +145,7 @@ class MicrophoneStream: RCTEventEmitter {
     // MARK: - Pitch и ноты
 
     private func smoothPitch(_ pitch: Float) -> Float {
-        let alpha: Float = 0.25  // скорость сглаживания EMA
-        let maxJump: Float = 50.0  // максимальный допустимый скачок за кадр
-
+        let alpha: Float = 0.25
         guard pitch > 0 else { return pitchHistory.first ?? 0 }
 
         if pitchHistory.isEmpty {
@@ -156,8 +154,7 @@ class MicrophoneStream: RCTEventEmitter {
         }
 
         let prev = pitchHistory[0]
-        let correctedPitch = abs(pitch - prev) > maxJump ? prev : pitch
-        pitchHistory[0] = prev * (1 - alpha) + correctedPitch * alpha
+        pitchHistory[0] = prev * (1 - alpha) + pitch * alpha
 
         return pitchHistory[0]
 
@@ -225,7 +222,7 @@ class MicrophoneStream: RCTEventEmitter {
         var n = buffer.count
         guard n > 0 else { return 0 }
 
-        // --- Zero padding до степени двойки ---
+        // --- Zero padding ---
         let targetSize = 1 << Int(ceil(log2(Double(n))))
         var padded = buffer
         if targetSize > n {
@@ -244,7 +241,6 @@ class MicrophoneStream: RCTEventEmitter {
         var realp = [Float](repeating: 0, count: n / 2)
         var imagp = [Float](repeating: 0, count: n / 2)
         var fftOutput = DSPSplitComplex(realp: &realp, imagp: &imagp)
-
         windowed.withUnsafeBufferPointer { ptr in
             ptr.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: n) { complexPtr in
                 if let fftSetup = vDSP_create_fftsetup(log2n, Int32(kFFTRadix2)) {
@@ -255,29 +251,23 @@ class MicrophoneStream: RCTEventEmitter {
             }
         }
 
-        // --- Амплитуды спектра ---
+        // --- Амплитуды спектра + log ---
         var magnitudes = [Float](repeating: 0.0, count: n / 2)
         vDSP_zvmags(&fftOutput, 1, &magnitudes, 1, vDSP_Length(n / 2))
-
-        // --- Log-normalization для стабильности HPS ---
         for i in 0..<magnitudes.count { magnitudes[i] = log10(magnitudes[i] + 1e-6) }
 
-        // --- Harmonic Product Spectrum с весами ---
+        // --- Weighted HPS ---
         var hps = magnitudes
         for i in 0..<(magnitudes.count / 4) {
             hps[i] =
-                magnitudes[i]
-                + 0.5 * magnitudes[i * 2]
-                + 0.3 * magnitudes[i * 3]
-                + 0.2 * magnitudes[i * 4]
+                magnitudes[i] + 0.5 * magnitudes[i * 2] + 0.3 * magnitudes[i * 3] + 0.2
+                * magnitudes[i * 4]
         }
 
-        // --- Находим максимум ---
+        // --- Max + Interpolation ---
         var maxMag: Float = 0
         var maxIndex: vDSP_Length = 0
         vDSP_maxvi(hps, 1, &maxMag, &maxIndex, vDSP_Length(hps.count))
-
-        // --- Интерполяция пика ---
         let i = Int(maxIndex)
         var freq: Float = 0
         if i > 0 && i < hps.count - 1 {
@@ -290,17 +280,16 @@ class MicrophoneStream: RCTEventEmitter {
             freq = Float(maxIndex) * Float(sampleRate) / Float(n)
         }
 
-        // --- Ограничение диапазона (50–1500 Гц для гитары/вокала) ---
+        // --- Ограничение диапазона ---
         if freq < 50 || freq > 1500 { return 0 }
 
         // --- Фильтр скачков октав ---
         if let prevFreq = pitchHistory.first, prevFreq > 0 {
-            if freq > prevFreq * 2.5 || freq < prevFreq / 2.5 {
-                freq = prevFreq
-            }
+            if freq > prevFreq * 2.5 || freq < prevFreq / 2.5 { freq = prevFreq }
         }
 
         return freq
+
     }
 
     // MARK: - RCTEventEmitter
