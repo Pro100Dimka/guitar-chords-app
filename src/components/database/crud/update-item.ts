@@ -1,7 +1,6 @@
 // src/components/database/crud/update-item.ts
 import { IUpdateItem } from "@/@interfaces";
-import SQLite, { WebsqlDatabase } from "react-native-sqlite-2";
-const db: WebsqlDatabase = SQLite.openDatabase("freetune.db");
+import { db } from "../index";
 
 const updateItem = ({
   tableName,

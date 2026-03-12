@@ -1,5 +1,4 @@
-// src/app.tsx
-import React, { FC, useEffect } from "react";
+import React, { FC, useEffect, useState } from "react";
 import { ImageBackground, StyleSheet, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -11,10 +10,20 @@ import { initLanguage } from "./locales";
 import { initDatabase } from "./components/database";
 
 const App: FC = () => {
+  const [ready, setReady] = useState(false);
+
   useEffect(() => {
-    initDatabase();
-    initLanguage();
+    const init = async () => {
+      await initDatabase(); // дождались создания таблиц
+      await initLanguage();
+      setReady(true); // можно рендерить Router
+    };
+    init();
   }, []);
+
+  if (!ready) {
+    return <View style={styles.flex} />; // пустой экран/спиннер пока база не готова
+  }
 
   return (
     <SafeAreaProvider>

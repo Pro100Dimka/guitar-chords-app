@@ -63,6 +63,7 @@ const Library: React.FC = () => {
   useEffect(() => {
     if (filters) loadSongs(0);
   }, [filters, loadSongs]);
+
   return (
     <View style={styles.container}>
       {songs.length > 0 && <SearchBar setFilters={setFilters} />}
@@ -98,16 +99,15 @@ const styles = StyleSheet.create({
   activityIndicatorFlat: { marginVertical: 12 },
   loading: {
     color: palette.colors.accent,
+    backgroundColor: palette.colors.blackOpacity,
     flex: 1,
     fontSize: 30,
-    position: "absolute",
-    width: "110%",
-    backgroundColor: palette.colors.blackOpacity,
-    lineHeight: 1,
-    fontWeight: "700",
-    height: "110%",
     textAlign: "center",
-    textAlignVertical: "center"
+    position: "absolute",
+    paddingTop: "80%",
+    width: "110%",
+    fontWeight: "700",
+    height: "110%"
   }
 });
 

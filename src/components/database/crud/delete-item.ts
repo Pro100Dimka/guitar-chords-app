@@ -1,7 +1,6 @@
 // src/components/database/crud/delete-item.ts
 import { IDeleteItem } from "@/@interfaces";
-import SQLite, { WebsqlDatabase } from "react-native-sqlite-2";
-const db: WebsqlDatabase = SQLite.openDatabase("freetune.db");
+import { db } from "../index";
 
 const deleteItem = ({ tableName, filters }: IDeleteItem): Promise<void> => {
   return new Promise((resolve, reject) => {

@@ -9,27 +9,46 @@
 /* Begin PBXBuildFile section */
 		1175EDDC4BD4E922B2B48DC1 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
-		1B2D408F66CDB8F12EFD494A /* libPods-freetune.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 1EE98BFF4E4E89274199A0F5 /* libPods-freetune.a */; };
 		5BD81FA42F61EB5E00227B71 /* MicrophoneStreamModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD81FA32F61EB5E00227B71 /* MicrophoneStreamModule.swift */; };
 		5BD81FAB2F61EFBB00227B71 /* MicrophoneStreamModule.m in Sources */ = {isa = PBXBuildFile; fileRef = 5BD81FAA2F61EFBB00227B71 /* MicrophoneStreamModule.m */; };
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
+		E8150F1D3188B57C862CD8A3 /* libPods-freetune.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BD01E36BBDA6828B64FDB240 /* libPods-freetune.a */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		0DD4C93C15DB4BA98D7D5FF6 /* EvilIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = EvilIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/EvilIcons.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* freetune.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = freetune.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = freetune/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = freetune/Info.plist; sourceTree = "<group>"; };
 		13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = PrivacyInfo.xcprivacy; path = freetune/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
-		1EE98BFF4E4E89274199A0F5 /* libPods-freetune.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-freetune.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1CF78166A20B474DABD8B595 /* FontAwesome6_Brands.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome6_Brands.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome6_Brands.ttf"; sourceTree = "<group>"; };
+		250E12AE5679FBBBCABB115D /* Pods-freetune.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-freetune.release.xcconfig"; path = "Target Support Files/Pods-freetune/Pods-freetune.release.xcconfig"; sourceTree = "<group>"; };
+		28CBFD41DEC2428A97C4525B /* FontAwesome5_Solid.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome5_Solid.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome5_Solid.ttf"; sourceTree = "<group>"; };
+		543007889A974BC7A3FD7228 /* Octicons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Octicons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Octicons.ttf"; sourceTree = "<group>"; };
+		57EF8CBA0D734DDFA28F9ECB /* FontAwesome5_Brands.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome5_Brands.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome5_Brands.ttf"; sourceTree = "<group>"; };
 		5BD81FA32F61EB5E00227B71 /* MicrophoneStreamModule.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MicrophoneStreamModule.swift; sourceTree = "<group>"; };
 		5BD81FA92F61EF4D00227B71 /* freetune-Bridging-Header.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "freetune-Bridging-Header.h"; sourceTree = "<group>"; };
 		5BD81FAA2F61EFBB00227B71 /* MicrophoneStreamModule.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = MicrophoneStreamModule.m; sourceTree = "<group>"; };
+		5D75797D868545FDB8873037 /* AntDesign.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = AntDesign.ttf; path = "../node_modules/react-native-vector-icons/Fonts/AntDesign.ttf"; sourceTree = "<group>"; };
+		5F266ADC9EE64F71B57AB476 /* Foundation.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Foundation.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Foundation.ttf"; sourceTree = "<group>"; };
+		652DB7BF37BC47B4A14DD2C1 /* Entypo.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Entypo.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Entypo.ttf"; sourceTree = "<group>"; };
+		683482C3D8AD4AF0A7E311C8 /* Ionicons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Ionicons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Ionicons.ttf"; sourceTree = "<group>"; };
+		75C6D5920B3245BCADB23071 /* MaterialCommunityIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialCommunityIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialCommunityIcons.ttf"; sourceTree = "<group>"; };
 		761780EC2CA45674006654EE /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = AppDelegate.swift; path = freetune/AppDelegate.swift; sourceTree = "<group>"; };
 		81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = LaunchScreen.storyboard; path = freetune/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		96A0CA3B92DAEBF367978482 /* Pods-freetune.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-freetune.debug.xcconfig"; path = "Target Support Files/Pods-freetune/Pods-freetune.debug.xcconfig"; sourceTree = "<group>"; };
+		83B6A763E8DE447F92BA6EE5 /* FontAwesome6_Solid.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome6_Solid.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome6_Solid.ttf"; sourceTree = "<group>"; };
+		AADB869465C54A188AB036FE /* Feather.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Feather.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Feather.ttf"; sourceTree = "<group>"; };
+		AC000D74B3FE4E29AB1DF469 /* FontAwesome5_Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome5_Regular.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome5_Regular.ttf"; sourceTree = "<group>"; };
+		B28E5EED109947879AC9FD98 /* Fontisto.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Fontisto.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Fontisto.ttf"; sourceTree = "<group>"; };
+		BD01E36BBDA6828B64FDB240 /* libPods-freetune.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-freetune.a"; sourceTree = BUILT_PRODUCTS_DIR; };
+		C59924FCE95E98B5D90E71C2 /* Pods-freetune.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-freetune.debug.xcconfig"; path = "Target Support Files/Pods-freetune/Pods-freetune.debug.xcconfig"; sourceTree = "<group>"; };
+		CBBB6AB2B6EA45A8B01556B6 /* Zocial.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = Zocial.ttf; path = "../node_modules/react-native-vector-icons/Fonts/Zocial.ttf"; sourceTree = "<group>"; };
+		D18DBC8FD77A41F2BBE3C23B /* FontAwesome.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome.ttf"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
-		F2267D444ABC57E106F8E9DF /* Pods-freetune.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-freetune.release.xcconfig"; path = "Target Support Files/Pods-freetune/Pods-freetune.release.xcconfig"; sourceTree = "<group>"; };
+		F10E5B0961944C1C99713943 /* SimpleLineIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = SimpleLineIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/SimpleLineIcons.ttf"; sourceTree = "<group>"; };
+		F9196EF997654BC2B9FD3CFD /* MaterialIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialIcons.ttf"; sourceTree = "<group>"; };
+		F96106DC96864D378E01874E /* FontAwesome6_Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome6_Regular.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome6_Regular.ttf"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -37,7 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1B2D408F66CDB8F12EFD494A /* libPods-freetune.a in Frameworks */,
+				E8150F1D3188B57C862CD8A3 /* libPods-freetune.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -63,7 +82,7 @@
 			isa = PBXGroup;
 			children = (
 				ED297162215061F000B7C4FE /* JavaScriptCore.framework */,
-				1EE98BFF4E4E89274199A0F5 /* libPods-freetune.a */,
+				BD01E36BBDA6828B64FDB240 /* libPods-freetune.a */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -83,6 +102,7 @@
 				83CBBA001A601CBA00E9B192 /* Products */,
 				2D16E6871FA4F8E400B85C8A /* Frameworks */,
 				BBD78D7AC51CEA395F1C20DB /* Pods */,
+				D9CC67E7256A427B9C4A9AB2 /* Resources */,
 			);
 			indentWidth = 2;
 			sourceTree = "<group>";
@@ -100,10 +120,36 @@
 		BBD78D7AC51CEA395F1C20DB /* Pods */ = {
 			isa = PBXGroup;
 			children = (
-				96A0CA3B92DAEBF367978482 /* Pods-freetune.debug.xcconfig */,
-				F2267D444ABC57E106F8E9DF /* Pods-freetune.release.xcconfig */,
+				C59924FCE95E98B5D90E71C2 /* Pods-freetune.debug.xcconfig */,
+				250E12AE5679FBBBCABB115D /* Pods-freetune.release.xcconfig */,
 			);
 			path = Pods;
+			sourceTree = "<group>";
+		};
+		D9CC67E7256A427B9C4A9AB2 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B28E5EED109947879AC9FD98 /* Fontisto.ttf */,
+				543007889A974BC7A3FD7228 /* Octicons.ttf */,
+				AADB869465C54A188AB036FE /* Feather.ttf */,
+				F96106DC96864D378E01874E /* FontAwesome6_Regular.ttf */,
+				652DB7BF37BC47B4A14DD2C1 /* Entypo.ttf */,
+				57EF8CBA0D734DDFA28F9ECB /* FontAwesome5_Brands.ttf */,
+				75C6D5920B3245BCADB23071 /* MaterialCommunityIcons.ttf */,
+				5D75797D868545FDB8873037 /* AntDesign.ttf */,
+				5F266ADC9EE64F71B57AB476 /* Foundation.ttf */,
+				683482C3D8AD4AF0A7E311C8 /* Ionicons.ttf */,
+				28CBFD41DEC2428A97C4525B /* FontAwesome5_Solid.ttf */,
+				AC000D74B3FE4E29AB1DF469 /* FontAwesome5_Regular.ttf */,
+				D18DBC8FD77A41F2BBE3C23B /* FontAwesome.ttf */,
+				CBBB6AB2B6EA45A8B01556B6 /* Zocial.ttf */,
+				0DD4C93C15DB4BA98D7D5FF6 /* EvilIcons.ttf */,
+				83B6A763E8DE447F92BA6EE5 /* FontAwesome6_Solid.ttf */,
+				F10E5B0961944C1C99713943 /* SimpleLineIcons.ttf */,
+				1CF78166A20B474DABD8B595 /* FontAwesome6_Brands.ttf */,
+				F9196EF997654BC2B9FD3CFD /* MaterialIcons.ttf */,
+			);
+			name = Resources;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -113,13 +159,13 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "freetune" */;
 			buildPhases = (
-				0ABF778E259866B4B94D29F9 /* [CP] Check Pods Manifest.lock */,
+				E75364A86E89F7ABD1987DBE /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
 				13B07F8E1A680F5B00A75B9A /* Resources */,
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
-				44C4E43E0A733C6E42119C71 /* [CP] Embed Pods Frameworks */,
-				8A9611A92CFFDE0771B4BB4D /* [CP] Copy Pods Resources */,
+				D40D52C1512B94B6DAD20BC3 /* [CP] Embed Pods Frameworks */,
+				348A70508EADE18A8CBCC369 /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -191,7 +237,41 @@
 			shellPath = /bin/sh;
 			shellScript = "set -e\n\nWITH_ENVIRONMENT=\"$REACT_NATIVE_PATH/scripts/xcode/with-environment.sh\"\nREACT_NATIVE_XCODE=\"$REACT_NATIVE_PATH/scripts/react-native-xcode.sh\"\n\n/bin/sh -c \"\\\"$WITH_ENVIRONMENT\\\" \\\"$REACT_NATIVE_XCODE\\\"\"\n";
 		};
-		0ABF778E259866B4B94D29F9 /* [CP] Check Pods Manifest.lock */ = {
+		348A70508EADE18A8CBCC369 /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		D40D52C1512B94B6DAD20BC3 /* [CP] Embed Pods Frameworks */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-frameworks-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Embed Pods Frameworks";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-frameworks-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-frameworks.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		E75364A86E89F7ABD1987DBE /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -213,48 +293,6 @@
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
-		44C4E43E0A733C6E42119C71 /* [CP] Embed Pods Frameworks */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-frameworks-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			inputPaths = (
-			);
-			name = "[CP] Embed Pods Frameworks";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-frameworks-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-frameworks.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
-		8A9611A92CFFDE0771B4BB4D /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			inputPaths = (
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			outputPaths = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-freetune/Pods-freetune-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -273,7 +311,7 @@
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = 96A0CA3B92DAEBF367978482 /* Pods-freetune.debug.xcconfig */;
+			baseConfigurationReference = C59924FCE95E98B5D90E71C2 /* Pods-freetune.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
@@ -309,7 +347,7 @@
 		};
 		13B07F951A680F5B00A75B9A /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = F2267D444ABC57E106F8E9DF /* Pods-freetune.release.xcconfig */;
+			baseConfigurationReference = 250E12AE5679FBBBCABB115D /* Pods-freetune.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;

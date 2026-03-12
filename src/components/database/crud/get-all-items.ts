@@ -1,8 +1,6 @@
 // src/components/database/crud/get-all-items.ts
 import { IGetItems } from "@/@interfaces";
-import SQLite, { WebsqlDatabase } from "react-native-sqlite-2";
-
-const db: WebsqlDatabase = SQLite.openDatabase("freetune.db");
+import { db } from "../index";
 
 const getAllItems = ({
   tableName,

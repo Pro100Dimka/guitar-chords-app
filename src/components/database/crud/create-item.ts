@@ -1,7 +1,6 @@
 // src/components/database/crud/create-item.ts
 import { ICreateItem } from "@/@interfaces";
-import SQLite, { WebsqlDatabase } from "react-native-sqlite-2";
-const db: WebsqlDatabase = SQLite.openDatabase("freetune.db");
+import { db } from "../index";
 
 const createItem = ({ tableName, data }: ICreateItem): Promise<any> => {
   return new Promise((resolve, reject) => {
