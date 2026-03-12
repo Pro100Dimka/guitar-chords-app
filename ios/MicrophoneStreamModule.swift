@@ -222,7 +222,7 @@ class MicrophoneStream: RCTEventEmitter {
         var n = buffer.count
         guard n > 0 else { return 0 }
 
-        // --- Zero padding ---
+        // --- Zero padding до степени 2 ---
         let targetSize = 1 << Int(ceil(log2(Double(n))))
         var padded = buffer
         if targetSize > n {
@@ -241,6 +241,7 @@ class MicrophoneStream: RCTEventEmitter {
         var realp = [Float](repeating: 0, count: n / 2)
         var imagp = [Float](repeating: 0, count: n / 2)
         var fftOutput = DSPSplitComplex(realp: &realp, imagp: &imagp)
+
         windowed.withUnsafeBufferPointer { ptr in
             ptr.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: n) { complexPtr in
                 if let fftSetup = vDSP_create_fftsetup(log2n, Int32(kFFTRadix2)) {
@@ -251,23 +252,31 @@ class MicrophoneStream: RCTEventEmitter {
             }
         }
 
-        // --- Амплитуды спектра + log ---
+        // --- Амплитуды спектра ---
         var magnitudes = [Float](repeating: 0.0, count: n / 2)
         vDSP_zvmags(&fftOutput, 1, &magnitudes, 1, vDSP_Length(n / 2))
         for i in 0..<magnitudes.count { magnitudes[i] = log10(magnitudes[i] + 1e-6) }
 
-        // --- Weighted HPS ---
+        // --- Weighted HPS (но не завышаем гармоники) ---
         var hps = magnitudes
         for i in 0..<(magnitudes.count / 4) {
-            hps[i] =
+            let weighted =
                 magnitudes[i] + 0.5 * magnitudes[i * 2] + 0.3 * magnitudes[i * 3] + 0.2
                 * magnitudes[i * 4]
+            hps[i] = weighted
         }
 
-        // --- Max + Interpolation ---
+        // --- Находим **первый пиковый максимум**, но ближе к низким частотам ---
         var maxMag: Float = 0
         var maxIndex: vDSP_Length = 0
-        vDSP_maxvi(hps, 1, &maxMag, &maxIndex, vDSP_Length(hps.count))
+        for i in 1..<hps.count {
+            if hps[i] > maxMag {
+                maxMag = hps[i]
+                maxIndex = vDSP_Length(i)
+            }
+        }
+
+        // --- Интерполяция для точного пика ---
         let i = Int(maxIndex)
         var freq: Float = 0
         if i > 0 && i < hps.count - 1 {
@@ -281,11 +290,26 @@ class MicrophoneStream: RCTEventEmitter {
         }
 
         // --- Ограничение диапазона ---
-        if freq < 50 || freq > 1500 { return 0 }
+        if freq < 50 || freq > 5000 { return 0 }
 
-        // --- Фильтр скачков октав ---
+        // --- Проверка гармоник: если сильная гармоника выше основного то исправляем ---
         if let prevFreq = pitchHistory.first, prevFreq > 0 {
-            if freq > prevFreq * 2.5 || freq < prevFreq / 2.5 { freq = prevFreq }
+            let harmonics = [freq / 2, freq / 3, freq / 4]  // возможные нижние гармоники
+            for h in harmonics {
+                if abs(h - prevFreq) < 5.0 {
+                    freq = Float(prevFreq)
+                    break
+                }
+            }
+        }
+
+        // --- Фильтр скачков октав по полутоновым интервалам ---
+        if let prevFreq = pitchHistory.first, prevFreq > 0 {
+            let prevMidi = 69 + 12 * log2(Double(prevFreq) / 440.0)
+            let currMidi = 69 + 12 * log2(Double(freq) / 440.0)
+            if abs(currMidi - prevMidi) > 12 {  // больше октавы — игнорируем
+                freq = prevFreq
+            }
         }
 
         return freq
