@@ -145,11 +145,22 @@ class MicrophoneStream: RCTEventEmitter {
     // MARK: - Pitch и ноты
 
     private func smoothPitch(_ pitch: Float) -> Float {
-        if pitch > 0 {
-            if pitchHistory.count >= 15 { pitchHistory.removeFirst() }
+        let alpha: Float = 0.25  // скорость сглаживания EMA
+        let maxJump: Float = 50.0  // максимальный допустимый скачок за кадр
+
+        guard pitch > 0 else { return pitchHistory.first ?? 0 }
+
+        if pitchHistory.isEmpty {
             pitchHistory.append(pitch)
+            return pitch
         }
-        return pitchHistory.isEmpty ? 0 : pitchHistory.reduce(0, +) / Float(pitchHistory.count)
+
+        let prev = pitchHistory[0]
+        let correctedPitch = abs(pitch - prev) > maxJump ? prev : pitch
+        pitchHistory[0] = prev * (1 - alpha) + correctedPitch * alpha
+
+        return pitchHistory[0]
+
     }
 
     private func frequencyToNoteData(_ freq: Float) -> [String: Any] {
@@ -211,47 +222,84 @@ class MicrophoneStream: RCTEventEmitter {
     }
     // Новый метод pitch через FFT
     private func estimatePitchFFT(_ buffer: [Float], sampleRate: Double) -> Float {
-        let n = buffer.count
+        var n = buffer.count
         guard n > 0 else { return 0 }
 
-        // Hann window
-        var window = [Float](repeating: 0, count: n)
-        vDSP_hann_window(&window, vDSP_Length(n), Int32(vDSP_HANN_NORM))
-        var windowed = [Float](repeating: 0, count: n)
-        vDSP_vmul(buffer, 1, window, 1, &windowed, 1, vDSP_Length(n))
+        // --- Zero padding до степени двойки ---
+        let targetSize = 1 << Int(ceil(log2(Double(n))))
+        var padded = buffer
+        if targetSize > n {
+            padded.append(contentsOf: repeatElement(Float(0), count: targetSize - n))
+            n = targetSize
+        }
 
+        // --- Hann окно ---
+        var window = [Float](repeating: 0, count: n)
+        vDSP_hann_window(&window, vDSP_Length(n), Int32(vDSP_HANN_DENORM))
+        var windowed = [Float](repeating: 0, count: n)
+        vDSP_vmul(padded, 1, window, 1, &windowed, 1, vDSP_Length(n))
+
+        // --- FFT ---
         let log2n = vDSP_Length(log2(Float(n)))
         var realp = [Float](repeating: 0, count: n / 2)
         var imagp = [Float](repeating: 0, count: n / 2)
-        var output = DSPSplitComplex(realp: &realp, imagp: &imagp)
+        var fftOutput = DSPSplitComplex(realp: &realp, imagp: &imagp)
 
         windowed.withUnsafeBufferPointer { ptr in
             ptr.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: n) { complexPtr in
                 if let fftSetup = vDSP_create_fftsetup(log2n, Int32(kFFTRadix2)) {
-                    vDSP_ctoz(complexPtr, 2, &output, 1, vDSP_Length(n / 2))
-                    vDSP_fft_zrip(fftSetup, &output, 1, log2n, Int32(FFT_FORWARD))
+                    vDSP_ctoz(complexPtr, 2, &fftOutput, 1, vDSP_Length(n / 2))
+                    vDSP_fft_zrip(fftSetup, &fftOutput, 1, log2n, Int32(FFT_FORWARD))
                     vDSP_destroy_fftsetup(fftSetup)
                 }
             }
         }
 
+        // --- Амплитуды спектра ---
         var magnitudes = [Float](repeating: 0.0, count: n / 2)
-        vDSP_zvmags(&output, 1, &magnitudes, 1, vDSP_Length(n / 2))
+        vDSP_zvmags(&fftOutput, 1, &magnitudes, 1, vDSP_Length(n / 2))
 
-        // Harmonic Product Spectrum
-        let maxHarmonics = 4
+        // --- Log-normalization для стабильности HPS ---
+        for i in 0..<magnitudes.count { magnitudes[i] = log10(magnitudes[i] + 1e-6) }
+
+        // --- Harmonic Product Spectrum с весами ---
         var hps = magnitudes
-        for h in 2...maxHarmonics {
-            for i in 0..<(magnitudes.count / h) {
-                hps[i] *= magnitudes[i * h]
-            }
+        for i in 0..<(magnitudes.count / 4) {
+            hps[i] =
+                magnitudes[i]
+                + 0.5 * magnitudes[i * 2]
+                + 0.3 * magnitudes[i * 3]
+                + 0.2 * magnitudes[i * 4]
         }
 
+        // --- Находим максимум ---
         var maxMag: Float = 0
         var maxIndex: vDSP_Length = 0
         vDSP_maxvi(hps, 1, &maxMag, &maxIndex, vDSP_Length(hps.count))
 
-        let freq = Float(maxIndex) * Float(sampleRate) / Float(n)
+        // --- Интерполяция пика ---
+        let i = Int(maxIndex)
+        var freq: Float = 0
+        if i > 0 && i < hps.count - 1 {
+            let alpha = hps[i - 1]
+            let beta = hps[i]
+            let gamma = hps[i + 1]
+            let p = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma)
+            freq = (Float(i) + Float(p)) * Float(sampleRate) / Float(n)
+        } else {
+            freq = Float(maxIndex) * Float(sampleRate) / Float(n)
+        }
+
+        // --- Ограничение диапазона (50–1500 Гц для гитары/вокала) ---
+        if freq < 50 || freq > 1500 { return 0 }
+
+        // --- Фильтр скачков октав ---
+        if let prevFreq = pitchHistory.first, prevFreq > 0 {
+            if freq > prevFreq * 2.5 || freq < prevFreq / 2.5 {
+                freq = prevFreq
+            }
+        }
+
         return freq
     }
 
