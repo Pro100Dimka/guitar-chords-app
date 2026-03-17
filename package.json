@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "start": "react-native start",
     "test": "jest",
-    "postinstall": "react-native setup-ios-permissions && pod-install"
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "@babel/runtime": "^7.28.6",
@@ -34,6 +34,7 @@
     "react-native-reanimated": "^4.2.2",
     "react-native-safe-area-context": "^5.7.0",
     "react-native-screens": "^4.24.0",
+    "react-native-splash-screen": "^3.3.0",
     "react-native-sqlite-2": "^3.6.3",
     "react-native-svg": "^15.15.3",
     "react-native-vector-icons": "^10.3.0",
@@ -69,11 +70,13 @@
     "jest": "^30.2.0",
     "metro-react-native-babel-preset": "^0.77.0",
     "metro-react-native-babel-transformer": "^0.77.0",
+    "patch-package": "^8.0.1",
+    "postinstall-postinstall": "^2.1.0",
     "prettier": "^3.8.1",
     "react-test-renderer": "19.2.3",
     "typescript": "^5.8.3"
   },
   "engines": {
-    "node": ">= 22.11.0"
+    "node": ">= 20.19.5"
   }
 }

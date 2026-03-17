@@ -1,3 +1,4 @@
 {
-  "cmake.sourceDirectory": "C:/Users/YOJIK/Desktop/Freetune/freetune/node_modules/expo-modules-core/android"
+  "cmake.sourceDirectory": "C:/Users/YOJIK/Desktop/Freetune/freetune/node_modules/expo-modules-core/android",
+  "git.ignoreLimitWarning": true
 }
