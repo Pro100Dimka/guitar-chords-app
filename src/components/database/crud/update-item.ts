@@ -12,13 +12,11 @@ const updateItem = ({
     if (!data || Object.keys(data).length === 0)
       return reject(new Error("data is required"));
     if (!filters) return reject(new Error("filters (WHERE) is required"));
-    // строим SET часть: "col1 = ?, col2 = ?"
     const setClause = Object.keys(data)
       .map((key) => `${key} = ?`)
       .join(", ");
     const values = Object.values(data);
     const sql = `UPDATE ${tableName} SET ${setClause} WHERE ${filters}`;
-    console.info("Executing SQL:", sql, values);
     db.transaction((tx) => {
       tx.executeSql(
         sql,

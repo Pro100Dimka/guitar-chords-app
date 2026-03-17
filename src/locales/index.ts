@@ -20,6 +20,7 @@ i18n.use(initReactI18next).init({
   },
   lng: "ua",
   fallbackLng: "ua",
+  showSupportNotice: false,
   interpolation: { escapeValue: false }
 });
 

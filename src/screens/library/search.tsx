@@ -67,6 +67,12 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
       <View style={styles.container}>
         <Pressable onPress={(e) => e.stopPropagation()}>
           <View style={styles.searchRow}>
+            <TouchableOpacity
+              style={styles.button}
+              onPress={() => navigation.navigate("createSong")}
+            >
+              <Ionicons name="add" size={22} color="white" />
+            </TouchableOpacity>
             <View style={styles.inputWrapper}>
               <TextInput
                 ref={inputRef}
@@ -166,7 +172,7 @@ const styles = StyleSheet.create({
     zIndex: 10
   },
   button: {
-    marginLeft: 8,
+    marginHorizontal: 8,
     backgroundColor: palette.colors.accent,
     padding: 10,
     borderRadius: 8

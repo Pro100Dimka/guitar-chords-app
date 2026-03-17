@@ -4,6 +4,7 @@
   "compilerOptions": {
     "moduleResolution": "bundler",
     "strict": true,
+    "noEmit": true,
     "checkJs": true,
     "types": ["jest"],
     "paths": {

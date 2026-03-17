@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from "react";
+import React, { FC, use, useCallback, useEffect, useState } from "react";
 import checkMicPermission from "@/components/permissions";
 import { useTranslation } from "react-i18next";
 import {
@@ -11,9 +11,11 @@ import {
 } from "react-native";
 import palette from "@/theme/palette";
 import Tuner from "./tuner";
+import { useIsFocused } from "@react-navigation/native";
 
 const RequireMicAccess: FC = () => {
   const { t } = useTranslation();
+  const isFocused = useIsFocused();
   const [hasPermission, setHasPermission] = useState(false);
   const openAppSettings = async () =>
     Platform.OS === "ios"
@@ -27,6 +29,8 @@ const RequireMicAccess: FC = () => {
       }
     });
   }, []);
+
+  if (!isFocused) return null;
   return !hasPermission ? (
     <View style={styles.container}>
       <Text style={styles.errorText}>{t`ErrorMicAccess`}</Text>

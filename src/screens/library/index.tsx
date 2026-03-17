@@ -1,11 +1,12 @@
 // src/screens/library/index.tsx
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View
 } from "react-native";
 import { t } from "../../locales";
@@ -14,10 +15,12 @@ import SearchBar from "./search";
 import palette from "../../theme/palette";
 import { ISong } from "@/@interfaces";
 import { getAllItems } from "@/components/database/crud";
+import { NavigationProp } from "@/router";
 
 const PAGE_LIMIT = 10;
 
 const Library: React.FC = () => {
+  const navigation = useNavigation<NavigationProp>();
   const [songs, setSongs] = useState<ISong[]>([]);
   const [loading, setLoading] = useState(true); // для первой загрузки
   const [loadingMore, setLoadingMore] = useState(false); // для подгрузки
@@ -75,7 +78,15 @@ const Library: React.FC = () => {
         />
       )}
       {!loading && songs.length === 0 && (
-        <Text style={styles.loading}>{t("NoSongs")}</Text>
+        <View style={styles.noSongsContainer}>
+          <Text style={styles.noSongsText}>{t("NoSongs")}</Text>
+          <TouchableOpacity
+            style={styles.createButton}
+            onPress={() => navigation.navigate("createSong")}
+          >
+            <Text style={styles.createButtonText}>{t`createSong`}</Text>
+          </TouchableOpacity>
+        </View>
       )}
       <FlatList
         data={songs}
@@ -108,6 +119,36 @@ const styles = StyleSheet.create({
     width: "110%",
     fontWeight: "700",
     height: "110%"
+  },
+  noSongsContainer: {
+    color: palette.colors.accent,
+    backgroundColor: palette.colors.blackOpacity,
+    flex: 1,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    justifyContent: "center",
+    alignItems: "center"
+  },
+  noSongsText: {
+    color: palette.colors.accent,
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 16
+  },
+  createButton: {
+    backgroundColor: palette.colors.accent,
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    zIndex: 999
+  },
+  createButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600"
   }
 });
 

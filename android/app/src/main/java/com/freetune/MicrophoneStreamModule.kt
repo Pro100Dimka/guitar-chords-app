@@ -251,4 +251,13 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
             .getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             .emit(eventName, params)
     }
+    @ReactMethod
+fun addListener(eventName: String) {
+    // required for NativeEventEmitter
+}
+
+@ReactMethod
+fun removeListeners(count: Int) {
+    // required for NativeEventEmitter
+}
 }

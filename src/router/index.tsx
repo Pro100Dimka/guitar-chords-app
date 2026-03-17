@@ -7,10 +7,13 @@ import {
 import Tabs from "./tabs";
 import palette from "../theme/palette";
 import Song from "../screens/song";
+import CreateChordSong from "@/screens/create-song-chords";
+import Header from "@/components/header";
 
 export type RootStackParamList = {
   Tabs: { screen: string; id?: string };
   Song: { id: string } | undefined;
+  createSong: undefined;
 };
 export type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -43,6 +46,17 @@ const RootStack = createNativeStackNavigator({
         headerShown: true,
         contentStyle: { backgroundColor: palette.colors.transparent }
       }
+    },
+    createSong: {
+      screen: CreateChordSong,
+      options: ({ route }) => ({
+        header: () => (
+          <Header title={`Song `} icon="music-note-plus" showBack />
+        ),
+        animationTypeForReplace: "pop",
+        headerShown: true,
+        contentStyle: { backgroundColor: palette.colors.transparent }
+      })
     }
   }
 });

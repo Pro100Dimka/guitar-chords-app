@@ -1,6 +1,6 @@
 // /MicrophoneStream.ts
 import { IString } from "@/@interfaces";
-import { NativeModules, NativeEventEmitter } from "react-native";
+import { NativeEventEmitter, NativeModules } from "react-native";
 
 const { MicrophoneStream } = NativeModules;
 
