@@ -12,6 +12,8 @@ import { INote, IString } from "@/@interfaces";
 import { Dimensions, View, StyleSheet } from "react-native";
 import defConfig from "./config";
 import TunerButtons from "./buttons";
+import ChromaticWheel from "./chormatic-wheel";
+import palette from "@/theme/palette";
 
 const Tuner: FC = () => {
   const { width, height } = Dimensions.get("window");
@@ -39,7 +41,7 @@ const Tuner: FC = () => {
         octave: buffer.octave,
         pitch: buffer.pitch
       };
-      console.log(buffer.note, buffer.pitch);
+      // console.log(buffer.note, buffer.pitch);
 
       if (buffer.note === "Silence" || buffer.rms < 0.002) {
         silenceCount++;
@@ -82,14 +84,27 @@ const Tuner: FC = () => {
     <View style={styles.container}>
       <TunerButtons config={config} setConfig={setConfig} />
       <GestureDetector gesture={tapGesture}>
-        <Canvas style={styles.flex}>
-          <NoteIndicator note={note} currString={currString} />
-          <Strings
-            rms={rms}
-            note={note}
-            stringNotes={strings}
-            currString={currString}
-          />
+        <Canvas
+          style={[
+            styles.flex,
+            config.selectedInstrument !== "guitar" && {
+              backgroundColor: palette.colors.blackOpacity
+            }
+          ]}
+        >
+          {config.selectedInstrument === "guitar" ? (
+            <>
+              <NoteIndicator note={note} currString={currString} />
+              <Strings
+                rms={rms}
+                note={note}
+                stringNotes={strings}
+                currString={currString}
+              />
+            </>
+          ) : (
+            <ChromaticWheel rms={rms} note={note} />
+          )}
         </Canvas>
       </GestureDetector>
     </View>

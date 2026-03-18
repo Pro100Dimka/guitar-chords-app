@@ -14,8 +14,8 @@ export interface Screens {
 }
 
 const screens: Screens = {
-  library: { component: Library, icon: "music-clef-treble" },
   tuner: { component: Tuner, icon: "waveform" },
+  library: { component: Library, icon: "music-clef-treble" },
   settings: { component: Settings, icon: "music-rest-quarter" }
 };
 

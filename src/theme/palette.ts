@@ -37,7 +37,7 @@ const COLORS = {
 const TUNER = {
   low: "rgb(255, 60, 0)",
   high: "rgb(255, 60, 0)",
-  center: "rgb(120, 255, 0)",
+  center: "rgb(59, 126, 0)",
   lowTuple: [255, 60, 0],
   highTuple: [255, 60, 0],
   centerTuple: [120, 255, 0]

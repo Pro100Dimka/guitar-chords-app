@@ -6,6 +6,7 @@ import palette from "@/theme/palette";
 import { useParagraphBuilder } from "../paragraphs";
 import { INote, ITextItem } from "@/@interfaces";
 import { ParagraphProps } from "@/@types";
+import { getNoteColor } from "./note-pitch";
 
 export const noteBox = { width: 90, height: 90 };
 
@@ -15,24 +16,20 @@ const CurrentNote: FC<INote> = (currentNote) => {
   const { centered } = useParagraphBuilder();
   const getParagraphs = (): ITextItem[] => {
     if (!currentNote) return [];
-    const { name, pitch, refFreq, direction, octave } = currentNote;
+    const { name, pitch, refFreq, octave } = currentNote;
     const diff = refFreq ? Math.abs(pitch - refFreq).toFixed(1) + "Hz" : null;
+    const gaugeColor = getNoteColor(pitch, refFreq) || palette.colors.white;
     const items: ParagraphProps[] = [
       [
-        [name === "Silence" ? "-" : name, 54, 600, palette.colors.white],
+        [name === "Silence" ? "-" : name, 54, 600, gaugeColor],
         [0, centerX, noteBox.width]
       ],
       [
-        [`${octave || ""}`, 18, 600, palette.colors.white],
+        [`${octave || ""}`, 18, 600, gaugeColor],
         [42, centerX + 65, 20]
       ],
       refFreq && [
-        [
-          diff,
-          14,
-          500,
-          direction === "=" ? palette.colors.accent : palette.colors.red
-        ],
+        [diff, 14, 500, gaugeColor],
         [noteBox.height - 20, centerX, noteBox.width]
       ]
     ].filter(Boolean) as ParagraphProps[];

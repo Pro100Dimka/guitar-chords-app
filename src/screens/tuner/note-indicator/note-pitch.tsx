@@ -8,6 +8,18 @@ import { Dimensions } from "react-native";
 
 export const TRANSLATE_Y_GAUGE = 90 + 32; // высота блока ноты + отступ
 const GAUGE_WIDTH = 350; // ширина шкалы
+export const getNoteColor = (
+  pitch?: number,
+  refFreq?: number
+): string | null => {
+  const maxDiff = 3; // Гц для полного красного
+  if (!pitch || !refFreq) return null;
+  const diff = Math.abs(pitch - refFreq);
+  const t = Math.min(diff / maxDiff, 1); // 0..1
+  const r = Math.round(255 * t); // красный растет с удалением
+  const g = Math.round(255 * (1 - t)); // зелёный уменьшается
+  return `rgb(${r},${g},0)`;
+};
 
 const NotePitch: FC<{
   pitch?: number;
@@ -23,15 +35,12 @@ const NotePitch: FC<{
       const maxCents = 300;
       const normalized = Math.max(-1, Math.min(1, cents / maxCents));
       gaugeX.value = withSpring(width / 2 + normalized * (GAUGE_WIDTH / 2));
-      if (Math.abs(cents) < 10) gaugeColor.value = palette.tuner.center;
-      else if (cents > 0) gaugeColor.value = palette.tuner.high;
-      else gaugeColor.value = palette.tuner.low;
-      // радиус увеличивается при большом отклонении
       gaugeRadius.value = withSpring(8 + Math.abs(normalized) * 6);
+      gaugeColor.value = getNoteColor(pitch, refFreq) || palette.tuner.center;
     } else {
       gaugeX.value = withSpring(width / 2);
-      gaugeColor.value = palette.tuner.center;
       gaugeRadius.value = withSpring(8);
+      gaugeColor.value = palette.tuner.center;
     }
   }, [pitch, refFreq]);
 
