@@ -16,14 +16,7 @@ interface ITunerBtnProps {
   setConfig: Dispatch<SetStateAction<ITunerConfig>>;
 }
 const Buttons = ({ config, setConfig }: ITunerBtnProps) => {
-  const {
-    instruments,
-    tunings,
-    selectedInstrument,
-    selectedTuning,
-    autoDetect
-  } = config;
-
+  const { instruments, selectedInstrument, autoDetect } = config;
   const { height } = Dimensions.get("window");
   const { t } = useTranslation();
   const fontHeight = height / 68;
@@ -44,26 +37,21 @@ const Buttons = ({ config, setConfig }: ITunerBtnProps) => {
       : [{ id: "instrument", title: t`mode`, subactions }];
   }, [instruments, t]);
 
-  const tuningOptions: any[] = useMemo(() => {
-    const subactions = tunings.map((value) => ({ value, label: t(value) }));
-    return Platform.OS === "android"
-      ? subactions
-      : [{ id: "tuning-type", title: t`refA4`, subactions }];
-  }, [t, tunings]);
-
   return (
     <View style={styles.container}>
       <View style={styles.sight}>
         <Dropdown
-          options={tuningOptions}
-          value={selectedTuning}
-          onSelect={(val) =>
-            setConfig((prev) => ({ ...prev, selectedTuning: val }))
-          }
+          options={instrOptions}
+          value={selectedInstrument}
           style={{
             container: { width: "auto" },
+            picker: { padding: 0 },
+            option: { padding: 0 },
             optionText: { textAlign: "center" }
           }}
+          onSelect={(val) =>
+            setConfig((prev) => ({ ...prev, selectedInstrument: val }))
+          }
         />
       </View>
       <View style={styles.sight}>
@@ -101,19 +89,6 @@ const Buttons = ({ config, setConfig }: ITunerBtnProps) => {
             </Text>
           </Pressable>
         )}
-        <Dropdown
-          options={instrOptions}
-          value={selectedInstrument}
-          style={{
-            container: { width: "auto" },
-            picker: { padding: 0 },
-            option: { padding: 0 },
-            optionText: { textAlign: "center" }
-          }}
-          onSelect={(val) =>
-            setConfig((prev) => ({ ...prev, selectedInstrument: val }))
-          }
-        />
       </View>
     </View>
   );

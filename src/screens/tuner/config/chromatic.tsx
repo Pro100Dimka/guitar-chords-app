@@ -3,6 +3,6 @@ import ChromaticIcon from "./icons/chromatic";
 
 const chromatic: IInstrument = {
   Icon: ChromaticIcon,
-  stringNotes: null
+  stringNotes: []
 };
 export default chromatic;

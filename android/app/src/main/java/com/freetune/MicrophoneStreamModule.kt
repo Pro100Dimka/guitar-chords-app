@@ -156,75 +156,76 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
     }
     @ReactMethod
     fun startRecording() {
-        if (isRecording) return
-        audioRecord = AudioRecord(
-            MediaRecorder.AudioSource.MIC,
-            sampleRate,
-            AudioFormat.CHANNEL_IN_MONO,
-            AudioFormat.ENCODING_PCM_16BIT,
-            bufferSize
-        )
-        isRecording = true
-        audioRecord?.startRecording()
-        thread {
-            val buffer = ShortArray(bufferSize)
-            var lastSent = System.currentTimeMillis()
-            var emptyCount = 0
-            while (isRecording) {
-                val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-                if (read <= 0) {
-                    emptyCount++
-                    Thread.sleep(10)
-                    continue
-                }
-                if (read > 0) {
-                    val array = Arguments.createArray()
-                    var sumSquares = 0.0 
-                    for (i in 0 until read) {
-                        val normalized = buffer[i] / 32768.0
-                        array.pushDouble(normalized)
-                        sumSquares += normalized * normalized
-                    }
-                    if (buffer.all { it == 0.toShort() }) {
-                        emptyCount++
-                    } else {
-                        emptyCount = 0
-                    }
-                    if (emptyCount > 50) {
-                        Log.w("MicrophoneStream", "No data, restarting AudioRecord")
-                        stopRecording()
-                        audioRecord?.release()
-                        audioRecord = null
-                        startRecording()
-                        emptyCount = 0
-                        continue
-                    }
-                    val rms = Math.sqrt(sumSquares / read)
-                    if (rms < 0.02) { // порог можно подобрать: 0.01–0.05
-                        pitchHistory.clear()
-                        val map = Arguments.createMap()
-                        map.putArray("samples", array)
-                        map.putDouble("rms", rms)
-                        map.putString("note", "Silence")
-                        map.putDouble("pitch", 0.0)
-                        map.putDouble("refFreq", 0.0)
-                        map.putInt("octave", 0)
-                        map.putString("direction", "=")
-                        sendEvent("onAudioBuffer", map)
-                        continue // пропускаем вычисление pitch
-                    }
-                    val rawPitch = estimatePitch(buffer, sampleRate)
-                    val pitch = smoothPitch(rawPitch) 
-                    val noteData = frequencyToNoteData(pitch)   
+    if (isRecording) return
+
+    audioRecord = AudioRecord(
+        MediaRecorder.AudioSource.MIC,
+        sampleRate,
+        AudioFormat.CHANNEL_IN_MONO,
+        AudioFormat.ENCODING_PCM_16BIT,
+        bufferSize
+    )
+
+    isRecording = true
+    audioRecord?.startRecording()
+
+    thread {
+        val buffer = ShortArray(bufferSize)
+        var wasSilent = false // флаг, чтобы слать одно уведомление "тишина"
+
+        while (isRecording) {
+            val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
+            if (read <= 0) {
+                Thread.sleep(10)
+                continue
+            }
+
+            // вычисляем RMS
+            var sumSquares = 0.0
+            for (i in 0 until read) {
+                val normalized = buffer[i] / 32768.0
+                sumSquares += normalized * normalized
+            }
+            val rms = Math.sqrt(sumSquares / read)
+
+            if (rms < 0.003) {
+                // если был звук раньше, отправляем событие "Silence"
+                if (!wasSilent) {
+                    wasSilent = true
                     val map = Arguments.createMap()
-                    map.putArray("samples", array)
-                    map.putDouble("rms", rms) 
-                    map.merge(noteData) 
+                    map.putString("note", "Silence")
+                    map.putDouble("pitch", 0.0)
+                    map.putDouble("refFreq", 0.0)
+                    map.putInt("octave", 0)
+                    map.putString("direction", "=")
                     sendEvent("onAudioBuffer", map)
                 }
+                pitchHistory.clear()
+                continue
             }
+
+            // если есть звук, сбрасываем флаг
+            wasSilent = false
+
+            // формируем массив нормализованных сэмплов
+            val array = Arguments.createArray()
+            for (i in 0 until read) array.pushDouble(buffer[i] / 32768.0)
+
+            // вычисляем pitch
+            val rawPitch = estimatePitch(buffer, sampleRate)
+            val pitch = smoothPitch(rawPitch)
+            val noteData = frequencyToNoteData(pitch)
+
+            // формируем карту для отправки
+            val map = Arguments.createMap()
+            map.putArray("samples", array)
+            map.putDouble("rms", rms)
+            map.merge(noteData)
+
+            sendEvent("onAudioBuffer", map)
         }
     }
+}
     @ReactMethod
     fun stopRecording() {
         isRecording = false

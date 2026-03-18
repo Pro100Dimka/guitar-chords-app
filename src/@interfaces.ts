@@ -18,9 +18,7 @@ export interface IInstrument {
 }
 export interface ITunerConfig {
   instruments: { [key: string]: IInstrument };
-  tunings: string[];
   autoDetect: boolean;
-  selectedTuning: string;
   selectedInstrument: string;
 }
 export interface IWaveProfillerProps {
