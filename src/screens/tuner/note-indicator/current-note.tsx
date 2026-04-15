@@ -8,11 +8,12 @@ import { INote, ITextItem } from "@/@interfaces";
 import { ParagraphProps } from "@/@types";
 import { getNoteColor } from "./note-pitch";
 
-export const noteBox = { width: 90, height: 90 };
+export const noteBox = { width: 225, height: 250 };
 
 const CurrentNote: FC<INote> = (currentNote) => {
-  const { width } = Dimensions.get("window");
+  const { width, height } = Dimensions.get("window");
   const centerX = width / 2 - noteBox.width / 2;
+  const centerY = height / 2 - noteBox.height / 2;
   const { centered } = useParagraphBuilder();
   const getParagraphs = (): ITextItem[] => {
     if (!currentNote) return [];
@@ -22,11 +23,11 @@ const CurrentNote: FC<INote> = (currentNote) => {
     const items: ParagraphProps[] = [
       [
         [name === "Silence" ? "-" : name, 54, 600, gaugeColor],
-        [0, centerX, noteBox.width]
+        [0, centerX, centerY]
       ],
       [
         [`${octave || ""}`, 18, 600, gaugeColor],
-        [42, centerX + 65, 20]
+        [42, centerX + 65, centerY + 20]
       ],
       refFreq && [
         [diff, 14, 500, gaugeColor],
@@ -48,7 +49,7 @@ const CurrentNote: FC<INote> = (currentNote) => {
         y={0}
         width={noteBox.width}
         height={noteBox.height}
-        r={10}
+        r={115}
         color={palette.colors.blackOpacity}
       />
       {getParagraphs().map(({ p, y, x = centerX, w = noteBox.width }, i) => (

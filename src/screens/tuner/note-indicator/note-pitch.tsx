@@ -7,7 +7,7 @@ import palette from "@/theme/palette";
 import { Dimensions } from "react-native";
 
 export const TRANSLATE_Y_GAUGE = 90 + 32; // высота блока ноты + отступ
-const GAUGE_WIDTH = 350; // ширина шкалы
+const GAUGE_HEIGHT = 350; // ширина шкалы
 export const getNoteColor = (
   pitch?: number,
   refFreq?: number
@@ -27,45 +27,46 @@ const NotePitch: FC<{
 }> = ({ pitch = 0, refFreq = 0 }) => {
   const { width } = Dimensions.get("window");
   const gaugeColor = useSharedValue(palette.tuner.center);
-  const gaugeX = useSharedValue(width / 2);
+  const gaugeY = useSharedValue(width / 2);
   const gaugeRadius = useSharedValue(8);
   useEffect(() => {
     if (refFreq > 0 && pitch > 0) {
       const cents = 1200 * Math.log2(pitch / refFreq);
       const maxCents = 300;
       const normalized = Math.max(-1, Math.min(1, cents / maxCents));
-      gaugeX.value = withSpring(width / 2 + normalized * (GAUGE_WIDTH / 2));
+      // теперь двигаем по Y, а не по X
+      gaugeY.value = withSpring(normalized * (GAUGE_HEIGHT / 2));
       gaugeRadius.value = withSpring(8 + Math.abs(normalized) * 6);
       gaugeColor.value = getNoteColor(pitch, refFreq) || palette.tuner.center;
     } else {
-      gaugeX.value = withSpring(width / 2);
+      gaugeY.value = withSpring(0);
       gaugeRadius.value = withSpring(8);
       gaugeColor.value = palette.tuner.center;
     }
   }, [pitch, refFreq]);
 
-  // линии сетки
+  // линии сетки — теперь вертикальные
   const lines = [
     {
-      p1: { x: width / 2 - GAUGE_WIDTH / 2, y: 0 },
-      p2: { x: width / 2 + GAUGE_WIDTH / 2, y: 0 },
+      p1: { x: 0, y: -GAUGE_HEIGHT / 2 },
+      p2: { x: 0, y: GAUGE_HEIGHT / 2 },
       strokeWidth: 2,
       color: gaugeColor
     },
     {
-      p1: { x: width / 2, y: -10 },
-      p2: { x: width / 2, y: 10 },
+      p1: { x: -10, y: 0 },
+      p2: { x: 10, y: 0 },
       strokeWidth: 2,
       color: palette.colors.primary
     }
   ];
 
   return (
-    <Group transform={[{ translateY: TRANSLATE_Y_GAUGE }]}>
+    <Group transform={[{ translateY: 250 }, { translateX: width - 30 }]}>
       {lines.map((props, i) => (
         <Line key={i} {...props} style="stroke" />
       ))}
-      <Circle cx={gaugeX} cy={0} r={gaugeRadius}>
+      <Circle cx={0} cy={gaugeY} r={gaugeRadius}>
         <Paint style="fill" color={gaugeColor} />
         <Paint style="stroke" color={palette.colors.white} strokeWidth={2} />
       </Circle>

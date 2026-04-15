@@ -9,10 +9,11 @@ import NoteIndicator from "./note-indicator";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-worklets";
 import { INote, IString } from "@/@interfaces";
-import { Dimensions, View, StyleSheet } from "react-native";
+import { Dimensions, View, StyleSheet, ImageBackground } from "react-native";
 import defConfig from "./config";
 import TunerButtons from "./buttons";
 import ChromaticWheel from "./chormatic-wheel";
+import Chromatic from "./chormatic";
 import palette from "@/theme/palette";
 
 const Tuner: FC = () => {
@@ -65,14 +66,14 @@ const Tuner: FC = () => {
   const tapGesture = Gesture.Tap().onStart((e) => {
     if (!strings) return;
     const { x, y } = e;
-    const bottom = height / 3;
+    const bottom = height;
     const spacing = width / (strings.length + 1);
     strings.forEach((n, i) => {
       const stringX = spacing * (i + 1);
       const halfBox = NOTE_BOX_WIDTH / 2;
       const hit =
         Math.abs(x - stringX) < halfBox &&
-        y >= TRANSLATE_Y_STRINGS &&
+        y >= TRANSLATE_Y_STRINGS - 30 &&
         y <= bottom;
       if (hit) runOnJS(selectString)(n);
     });
@@ -82,36 +83,44 @@ const Tuner: FC = () => {
 
   return (
     <View style={styles.container}>
-      <TunerButtons config={config} setConfig={setConfig} />
-      <GestureDetector gesture={tapGesture}>
-        <Canvas
-          style={[
-            styles.flex,
-            config.selectedInstrument !== "guitar" && {
-              backgroundColor: palette.colors.blackOpacity
-            }
-          ]}
-        >
-          {config.selectedInstrument === "guitar" ? (
-            <>
-              <NoteIndicator note={note} currString={currString} />
-              <Strings
-                rms={rms}
-                note={note}
-                stringNotes={strings}
-                currString={currString}
-              />
-            </>
-          ) : (
-            <ChromaticWheel rms={rms} note={note} />
-          )}
-        </Canvas>
-      </GestureDetector>
+      <ImageBackground
+        source={require("../../../assets/images/screen-background/tuner-back.png")}
+        style={styles.flex}
+        resizeMode="stretch"
+      >
+        {/* <Chromatic /> */}
+
+        <GestureDetector gesture={tapGesture}>
+          <Canvas
+            style={[
+              styles.flex,
+              config.selectedInstrument !== "guitar" && {
+                backgroundColor: palette.colors.blackOpacity
+              }
+            ]}
+          >
+            {config.selectedInstrument === "guitar" ? (
+              <>
+                <NoteIndicator note={note} currString={currString} />
+                <Strings
+                  rms={rms}
+                  note={note}
+                  stringNotes={strings}
+                  currString={currString}
+                />
+              </>
+            ) : (
+              <ChromaticWheel rms={rms} note={note} />
+            )}
+          </Canvas>
+        </GestureDetector>
+        <TunerButtons config={config} setConfig={setConfig} />
+      </ImageBackground>
     </View>
   );
 };
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
+  flex: { flex: 1, height: "105%" },
   container: { flex: 1, justifyContent: "center" }
 });
 export default Tuner;

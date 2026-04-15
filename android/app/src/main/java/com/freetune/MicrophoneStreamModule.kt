@@ -261,4 +261,4 @@ fun addListener(eventName: String) {
 fun removeListeners(count: Int) {
     // required for NativeEventEmitter
 }
-}
+} 

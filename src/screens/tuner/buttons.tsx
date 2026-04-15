@@ -21,7 +21,6 @@ const Buttons = ({ config, setConfig }: ITunerBtnProps) => {
   const { t } = useTranslation();
   const fontHeight = height / 68;
   const fontSize = fontHeight / 1.3;
-  const btnBorder = 1;
   const instrOptions: any[] = useMemo(() => {
     const subactions = (
       Object.entries(instruments) as [
@@ -30,7 +29,7 @@ const Buttons = ({ config, setConfig }: ITunerBtnProps) => {
       ][]
     ).map(([value, { Icon }]) => ({
       value,
-      label: <Icon fill={palette.colors.accent} height={60} width={60} />
+      label: <Icon fill={palette.colors.accent} height={45} width={45} />
     }));
     return Platform.OS === "android"
       ? subactions
@@ -62,15 +61,7 @@ const Buttons = ({ config, setConfig }: ITunerBtnProps) => {
             }
             style={[
               styles.detect,
-              {
-                backgroundColor: !autoDetect
-                  ? palette.colors.bgActive
-                  : palette.colors.secondary,
-                borderWidth: btnBorder,
-                borderColor: !autoDetect
-                  ? palette.colors.secondary
-                  : palette.colors.accent
-              }
+              { backgroundColor: palette.colors.blackOpacity }
             ]}
           >
             <Text style={[styles.detectStr, { fontSize: fontSize * 1 }]}>
@@ -96,18 +87,20 @@ const Buttons = ({ config, setConfig }: ITunerBtnProps) => {
 const styles = StyleSheet.create({
   container: {
     position: "absolute",
-    top: 0,
-    width: "100%",
-    justifyContent: "space-between",
-    flexDirection: "row",
+    top: "10%",
+    gap: 10,
+    right: 0,
+    // width: "100%",
+    // justifyContent: "space-between",
+    flexDirection: "column",
     zIndex: 9
   },
-  sight: { paddingHorizontal: 10, gap: 10 },
+  sight: { paddingHorizontal: 5, gap: 10 },
   detect: {
     borderRadius: 10,
     justifyContent: "center",
     paddingVertical: 8,
-    paddingHorizontal: 10,
+    paddingHorizontal: 5,
     gap: 4
   },
   detectStr: { color: palette.colors.primary, textAlign: "center" },

@@ -25,7 +25,7 @@ const NoteIndicator: FC<{
   });
   if (!currentNote) return null;
   return (
-    <Group transform={[{ translateY: 15 }]}>
+    <Group transform={[{ translateY: 135 }]}>
       <CurrentNote
         {...{ ...currentNote, name: currString?.name || currentNote.name }}
       />

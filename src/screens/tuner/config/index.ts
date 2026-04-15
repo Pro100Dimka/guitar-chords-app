@@ -8,7 +8,7 @@ const instruments = { chromatic, guitar };
 const config: ITunerConfig = {
   instruments,
   autoDetect: true,
-  selectedInstrument: "chromatic"
-  // selectedInstrument: "guitar"
+  // selectedInstrument: "chromatic",
+  selectedInstrument: "guitar"
 };
 export default config;

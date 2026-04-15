@@ -9,7 +9,6 @@ import {
 } from "@shopify/react-native-skia";
 import palette from "../../../theme/palette";
 import StringWithVibration from "./string-vibration";
-import { TRANSLATE_Y_GAUGE } from "../note-indicator/note-pitch";
 import { SharedValue, useDerivedValue } from "react-native-reanimated";
 import { runOnJS } from "react-native-worklets";
 import { useParagraphBuilder } from "../paragraphs";
@@ -17,10 +16,10 @@ import { INote, IString } from "@/@interfaces";
 
 const { primary } = palette.colors;
 
-export const STRINGS_TOP = 60;
+export const STRINGS_TOP = 0;
 export const NOTE_BOX_TOP = STRINGS_TOP - 55;
 export const NOTE_BOX_WIDTH = 50;
-export const TRANSLATE_Y_STRINGS = TRANSLATE_Y_GAUGE + 30;
+export const TRANSLATE_Y_STRINGS = 40 + 30;
 
 const Strings: FC<{
   rms: SharedValue<number>;
@@ -47,7 +46,7 @@ const Strings: FC<{
     if (volume !== rms.value) runOnJS(setVolume)(rms.value);
   });
   if (!stringNotes) return null;
-  const bottom = height / 1.7;
+  const bottom = height / 1.46;
   const spacing = width / (stringNotes.length + 1);
   return (
     <Group transform={[{ translateY: TRANSLATE_Y_STRINGS }]}>

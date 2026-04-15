@@ -104,24 +104,12 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
       <Path path={animatedPath} style="stroke" strokeWidth={thickness}>
         <Shader source={effect!} uniforms={{ thickness, baseColor }} />
       </Path>
-      <Circle cx={x} cy={bottom} r={10} color="#fdfdfd" />
-      <Circle
-        cx={x}
-        cy={bottom}
-        r={10}
-        color="black"
-        style="stroke"
-        strokeWidth={0.5}
-      />
-      <Circle cx={x} cy={bottom} r={10 * 0.3} color="black" />
       <Circle cx={x} cy={bottom} r={10}>
-        <Paint>
-          <RadialGradient
-            c={vec(x, bottom)}
-            r={10}
-            colors={["#ffffff", "#8d8282"]}
-          />
-        </Paint>
+        <RadialGradient
+          c={vec(x, bottom)}
+          r={10}
+          colors={["#ffffff", "#ffffff", "#949494"]}
+        />
       </Circle>
     </>
   );
