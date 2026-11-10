@@ -47,7 +47,7 @@ const TextField: React.FC<ITextFieldProps> = ({
         value={fieldValue}
         onChangeText={handleChange}
         placeholder={placeholder}
-        placeholderTextColor={palette.colors.placeholder}
+        placeholderTextColor={palette.glass.muted}
         multiline={multiline}
         textAlignVertical={multiline ? "top" : "center"}
         autoCorrect={false}
@@ -62,17 +62,19 @@ const TextField: React.FC<ITextFieldProps> = ({
 
 const styles = StyleSheet.create({
   container: { marginBottom: 16 },
-  label: { color: palette.colors.label, marginBottom: 6, fontSize: 14 },
+  label: { color: palette.glass.muted, marginBottom: 6, fontSize: 14 },
   input: {
-    backgroundColor: palette.colors.input,
+    backgroundColor: palette.glass.control,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: palette.glass.edge,
     padding: 10,
-    color: palette.colors.text,
+    color: palette.glass.ink,
     fontSize: 16,
-    fontFamily: "Tahoma",
+
     width: "100%"
   },
-  multiline: { minHeight: 150, fontFamily: "Tahoma" },
+  multiline: { minHeight: 220 },
   errorInput: { borderColor: palette.colors.red },
   error: { color: palette.colors.red, marginTop: 4, fontSize: 12 }
 });

@@ -27,14 +27,15 @@ i18n.use(initReactI18next).init({
 export const changeLanguage = async (lng: string) => {
   const existing = await getAllItems({
     tableName: "settings",
-    filters: `key = "language"`
+    filters: "key = ?",
+    parameters: ["language"]
   });
 
   if (existing.length) {
     await updateItem({
       tableName: "settings",
       data: { value: lng },
-      filters: `key = "language"`
+      filters: "key = 'language'"
     });
   } else {
     await createItem({
@@ -45,18 +46,15 @@ export const changeLanguage = async (lng: string) => {
   await i18n.changeLanguage(lng);
 };
 export const initLanguage = async () => {
-  try {
-    const [res] = await getAllItems({
-      tableName: "settings",
-      filters: `key = "language"`
-    });
-    const lng = res?.value ?? "ua";
-    if (lng) {
-      await i18n.changeLanguage(lng);
-      await changeLanguage(lng);
-    }
-  } catch (e) {
-    console.info("Error loading language:", e);
+  const [res] = await getAllItems<{ value: string }>({
+    tableName: "settings",
+    filters: "key = ?",
+    parameters: ["language"]
+  });
+  const lng = res?.value ?? "ua";
+  if (lng) {
+    await i18n.changeLanguage(lng);
+    await changeLanguage(lng);
   }
 };
 

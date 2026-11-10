@@ -1,8 +1,10 @@
 // permissions.ios.ts
-import { request, PERMISSIONS } from "react-native-permissions";
+import { check, request, PERMISSIONS } from "react-native-permissions";
 
-const checkIOSPermission = async () => {
-  const result = await request(PERMISSIONS.IOS.MICROPHONE);
+const checkIOSPermission = async (requestPermission = true) => {
+  const result = await (requestPermission ? request : check)(
+    PERMISSIONS.IOS.MICROPHONE
+  );
   return result === "granted";
 };
 export default checkIOSPermission;

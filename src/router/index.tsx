@@ -8,6 +8,7 @@ import Tabs from "./tabs";
 import palette from "../theme/palette";
 import Song from "../screens/song";
 import CreateChordSong from "@/screens/create-song-chords";
+import { t } from "@/locales";
 import Header from "@/components/header";
 
 export type RootStackParamList = {
@@ -43,20 +44,20 @@ const RootStack = createNativeStackNavigator({
       screen: Song,
       options: {
         animationTypeForReplace: "pop",
-        headerShown: true,
+        headerShown: false,
         contentStyle: { backgroundColor: palette.colors.transparent }
       }
     },
     createSong: {
       screen: CreateChordSong,
-      options: ({ route }) => ({
+      options: {
         header: () => (
-          <Header title={`Song `} icon="music-note-plus" showBack />
+          <Header title={t("NewSong")} icon="music-note-plus" showBack glass />
         ),
         animationTypeForReplace: "pop",
         headerShown: true,
         contentStyle: { backgroundColor: palette.colors.transparent }
-      })
+      }
     }
   }
 });

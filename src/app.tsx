@@ -1,32 +1,65 @@
 import React, { FC, useEffect, useState } from "react";
-import { ImageBackground, Platform, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  AppState,
+  ImageBackground,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View
+} from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SystemBars } from "react-native-edge-to-edge";
 import Router from "./router";
 import backgroundImage from "../assets/images/screen-background/background.jpg";
 import palette from "./theme/palette";
-import { initLanguage } from "./locales";
+import { initLanguage, t } from "./locales";
 import { initDatabase } from "./components/database";
 import SplashScreen from "react-native-splash-screen";
+import {
+  flushPreferences,
+  loadPreferences,
+  usePreferences
+} from "./components/preferences";
 
 const App: FC = () => {
+  const saveError = usePreferences((state) => state.saveError);
   const [ready, setReady] = useState(false);
+  const [failed, setFailed] = useState(false);
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
+    let active = true;
     const init = async () => {
-      await initDatabase(); // дождались создания таблиц
-      await initLanguage();
-      setReady(true); // можно рендерить Router
+      try {
+        await initDatabase();
+        await initLanguage();
+        await loadPreferences();
+        if (active) setReady(true);
+      } catch (error) {
+        console.error("Application initialization failed:", error);
+        if (active) setFailed(true);
+      }
     };
-    init();
+    void init();
+    return () => {
+      active = false;
+    };
+  }, [attempt]);
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") flushPreferences();
+    });
+    return () => subscription.remove();
   }, []);
   useEffect(() => {
-    if (!ready && Platform.OS === "android") SplashScreen.hide();
-  }, [ready]);
+    if ((ready || failed) && Platform.OS === "android") SplashScreen.hide();
+  }, [ready, failed]);
 
   return (
     <SafeAreaProvider>
-      <SystemBars style="light" />
+      <SystemBars style="dark" />
       <GestureHandlerRootView style={styles.flex}>
         <ImageBackground
           source={backgroundImage}
@@ -34,10 +67,37 @@ const App: FC = () => {
           resizeMode="cover"
         >
           <View style={styles.overlay} />
-          <Router
-            fallback={<View style={styles.flex} />}
-            linking={{ enabled: "auto", prefixes: ["freetune://"] }}
-          />
+          {failed && (
+            <View style={styles.status}>
+              <Text style={styles.statusText}>{t("ErrorStartingApp")}</Text>
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => {
+                  setFailed(false);
+                  setAttempt((value) => value + 1);
+                }}
+              >
+                <Text style={styles.statusText}>{t("Retry")}</Text>
+              </Pressable>
+            </View>
+          )}
+          {!ready && !failed && (
+            <ActivityIndicator
+              style={styles.status}
+              color={palette.colors.white}
+            />
+          )}
+          {ready && (
+            <Router
+              fallback={<View style={styles.flex} />}
+              linking={{ enabled: "auto", prefixes: ["freetune://"] }}
+            />
+          )}
+          {ready && saveError && (
+            <Pressable onPress={flushPreferences} style={styles.saveError}>
+              <Text style={styles.statusText}>{t("PreferencesSaveError")}</Text>
+            </Pressable>
+          )}
         </ImageBackground>
       </GestureHandlerRootView>
     </SafeAreaProvider>
@@ -45,6 +105,9 @@ const App: FC = () => {
 };
 
 const styles = StyleSheet.create({
+  saveError: { backgroundColor: palette.chromatic.panel },
+  status: { flex: 1, alignItems: "center", justifyContent: "center", gap: 16 },
+  statusText: { color: palette.colors.white, textAlign: "center", padding: 16 },
   flex: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,

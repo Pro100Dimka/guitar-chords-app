@@ -41,9 +41,18 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
   return (
     <>
       <Pressable onPress={() => setMenuVisible(true)} style={styles.menuButton}>
-        <Ionicons name="ellipsis-vertical" size={28} color="#FF6600" />
+        <Ionicons
+          name="ellipsis-vertical"
+          size={28}
+          color={palette.glass.ink}
+        />
       </Pressable>
-      <Modal visible={menuVisible} transparent animationType="fade">
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
         <Pressable
           style={styles.modalOverlay}
           onPress={() => setMenuVisible(false)}
@@ -75,7 +84,7 @@ const styles = StyleSheet.create({
     alignItems: "flex-end"
   },
   menu: {
-    backgroundColor: palette.colors.blackOpacity,
+    backgroundColor: palette.glass.header,
     marginTop: 80,
     marginRight: 16,
     borderRadius: 8,
@@ -83,7 +92,7 @@ const styles = StyleSheet.create({
     width: 150
   },
   menuItem: {
-    color: palette.colors.text,
+    color: palette.glass.ink,
     paddingVertical: 10,
     paddingHorizontal: 16,
     fontSize: 16

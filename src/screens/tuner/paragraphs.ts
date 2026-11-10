@@ -20,5 +20,5 @@ export const useParagraphBuilder = () => {
       .addText(text)
       .build();
 
-  return { centered };
+  return { centered, fonts };
 };

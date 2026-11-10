@@ -5,5 +5,5 @@ import initTables from "./initTables";
 export const db: WebsqlDatabase = SQLite.openDatabase("freetune.db");
 
 export const initDatabase = async () => {
-  await initTables();
+  await initTables(db);
 };

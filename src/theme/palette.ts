@@ -43,6 +43,48 @@ const TUNER = {
   centerTuple: [120, 255, 0]
 };
 const palette = {
+  glass: {
+    header: "rgba(250,247,242,0.82)",
+    surface: "rgba(250,247,242,0.72)",
+    edge: "rgba(250,247,242,0.72)",
+    surfaceEdge: "rgba(250,247,242,0.64)",
+    control: "rgba(250,247,242,0.42)",
+    selected: "rgba(125,87,52,0.14)",
+    accent: "#836348",
+    muted: "#48423B",
+    cell: "rgba(250,247,242,0.66)",
+    ink: "#302E2B",
+    card: "rgba(250,247,242,0.32)",
+    activeCard: "rgba(250,247,242,0.48)",
+    diagram: "rgba(250,247,242,0.52)",
+    play: "#61442F"
+  },
+  guitarDial: {
+    center: "#493320",
+    edge: "#20170F",
+    rim: "#B9955D",
+    engraving: "#CCB38B",
+    note: "#FFF4DE",
+    tuned: "#B5C9A0",
+    track: "rgba(204,179,139,0.38)",
+    highlight: "rgba(255,237,202,0.18)"
+  },
+  paper: {
+    background: "#FFF8ED",
+    translucent: "rgba(255,248,237,0.95)",
+    line: "#E5D6BD",
+    soft: "#F2E7D4",
+    green: "#456B4C"
+  },
+  chromatic: {
+    ink: "#382B1E",
+    muted: "#81715C",
+    brass: "#B9955D",
+    panel: "rgba(43,29,18,0.9)",
+    border: "rgba(229,201,154,0.5)",
+    selected: "#EED8AF",
+    secondary: "#D8C5A7"
+  },
   primary: PRIMARY,
   secondary: SECONDARY,
   error: ERROR,

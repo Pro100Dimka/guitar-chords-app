@@ -2,20 +2,31 @@ import AVFoundation
 import Accelerate
 // ios/MicrophoneStream.swift
 import Foundation
+import UIKit
 import React
 
 @objc(MicrophoneStream)
 class MicrophoneStream: RCTEventEmitter {
 
+    @objc func setKeepAwake(_ enabled: Bool) {
+        DispatchQueue.main.async {
+            UIApplication.shared.isIdleTimerDisabled = enabled
+        }
+    }
+
     static let BUF_PER_SEC = 15
-    private let sampleRate: Double = 44100.0
+    private var sampleRate: Double = 44100.0
 
     private var audioEngine: AVAudioEngine?
     private var inputNode: AVAudioInputNode?
     private var isRecording = false
 
     private var pitchHistory: [Float] = []
+    private var previousRms = 0.0
+    private var pendingPitch: Float = 0
+    private var missingFrames = 0
     private var targetNotes: [NoteSpec] = []
+    private let processingLock = NSLock()
 
     @objc
     class NoteSpec: NSObject {
@@ -69,30 +80,43 @@ class MicrophoneStream: RCTEventEmitter {
                     name: name, octave: octave, refFreq: refFreq,
                     thickness: thickness, baseColor: baseColor))
         }
+        processingLock.lock()
         targetNotes = list
+        processingLock.unlock()
     }
 
     @objc
     func startRecording() {
         if isRecording { return }
 
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("Audio session start error: \(error)")
+            return
+        }
+
         audioEngine = AVAudioEngine()
         inputNode = audioEngine?.inputNode
         guard let inputNode = inputNode else { return }
 
         let format = inputNode.outputFormat(forBus: 0)
+        sampleRate = format.sampleRate
         let bufferSize = AVAudioFrameCount(max(sampleRate / Double(Self.BUF_PER_SEC), 2048))
 
         inputNode.installTap(onBus: 0, bufferSize: bufferSize, format: format) {
             [weak self] buffer, _ in
             guard let self = self else { return }
-            let channelData = buffer.floatChannelData![0]
+            guard let channelData = buffer.floatChannelData?[0], buffer.frameLength > 0 else { return }
+            self.processingLock.lock()
+            defer { self.processingLock.unlock() }
             let floatData = Array(
                 UnsafeBufferPointer(start: channelData, count: Int(buffer.frameLength)))
 
             let rms = sqrt(floatData.map { $0 * $0 }.reduce(0, +) / Float(floatData.count))
-            if rms < 0.02 {
-                self.pitchHistory.removeAll()
+            if rms < 0.003 {
+                self.resetPitch()
                 self.sendEvent(
                     "onAudioBuffer",
                     body: [
@@ -107,7 +131,7 @@ class MicrophoneStream: RCTEventEmitter {
                 return
             }
 
-            let rawPitch = self.estimatePitchFFT(floatData, sampleRate: self.sampleRate)
+            let rawPitch = self.estimatePitch(floatData, sampleRate: buffer.format.sampleRate)
             let pitch = self.smoothPitch(rawPitch)
             var noteData = self.frequencyToNoteData(pitch)
             noteData["samples"] = floatData.map { Double($0) }
@@ -120,6 +144,7 @@ class MicrophoneStream: RCTEventEmitter {
             isRecording = true
         } catch {
             print("AudioEngine start error: \(error)")
+            stopRecording()
         }
     }
 
@@ -127,9 +152,17 @@ class MicrophoneStream: RCTEventEmitter {
     func stopRecording() {
         isRecording = false
         inputNode?.removeTap(onBus: 0)
+        inputNode = nil
         audioEngine?.stop()
         audioEngine = nil
-        pitchHistory.removeAll()
+        processingLock.lock()
+        resetPitch()
+        processingLock.unlock()
+        do {
+            try AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+        } catch {
+            print("Audio session stop error: \(error)")
+        }
     }
 
     @objc
@@ -144,20 +177,39 @@ class MicrophoneStream: RCTEventEmitter {
 
     // MARK: - Pitch и ноты
 
+    private func resetPitch() {
+        pitchHistory.removeAll()
+        previousRms = 0
+        pendingPitch = 0
+        missingFrames = 0
+    }
+
     private func smoothPitch(_ pitch: Float) -> Float {
-        let alpha: Float = 0.25
-        guard pitch > 0 else { return pitchHistory.first ?? 0 }
-
-        if pitchHistory.isEmpty {
-            pitchHistory.append(pitch)
-            return pitch
+        guard pitch.isFinite, pitch > 0 else {
+            pendingPitch = 0
+            missingFrames += 1
+            if missingFrames >= 3 { resetPitch() }
+            return 0
         }
-
-        let prev = pitchHistory[0]
-        pitchHistory[0] = prev * (1 - alpha) + pitch * alpha
-
-        return pitchHistory[0]
-
+        missingFrames = 0
+        let previous = pitchHistory.first
+        let cents = previous.map { 1200 * log2(pitch / $0) } ?? 0
+        if previous == nil || abs(cents) >= 100 {
+            let confirmed = pendingPitch > 0 && abs(1200 * log2(pitch / pendingPitch)) < 50
+            if !confirmed {
+                pendingPitch = pitch
+                return previous ?? 0
+            }
+        }
+        pendingPitch = 0
+        let smoothed: Float
+        if let previous = previous, abs(cents) < 100 {
+            smoothed = previous * pow(2, cents * 0.35 / 1200)
+        } else {
+            smoothed = pitch
+        }
+        pitchHistory = [smoothed]
+        return smoothed
     }
 
     private func frequencyToNoteData(_ freq: Float) -> [String: Any] {
@@ -168,17 +220,17 @@ class MicrophoneStream: RCTEventEmitter {
             map["refFreq"] = 0.0
             map["octave"] = 0
             map["direction"] = "="
-            pitchHistory.removeAll()
             return map
         }
 
         if let closest = targetNotes.min(by: {
-            abs(freq - Float($0.refFreq)) < abs(freq - Float($1.refFreq))
+            abs(log2(Double(freq) / $0.refFreq)) < abs(log2(Double(freq) / $1.refFreq))
         }) {
+            let cents = 1200 * log2(Double(freq) / closest.refFreq)
             let direction: String
-            if freq > Float(closest.refFreq) + 0.5 {
+            if cents > 5 {
                 direction = ">"
-            } else if freq < Float(closest.refFreq) - 0.5 {
+            } else if cents < -5 {
                 direction = "<"
             } else {
                 direction = "="
@@ -201,10 +253,11 @@ class MicrophoneStream: RCTEventEmitter {
         let note = noteNames[noteIndex]
         let octave = midi / 12 - 1
         let refFreq = 440.0 * pow(2.0, Double(midi - 69) / 12.0)
+        let cents = 1200 * log2(Double(freq) / refFreq)
         let direction: String
-        if Double(freq) > refFreq + 0.5 {
+        if cents > 5 {
             direction = ">"
-        } else if Double(freq) < refFreq - 0.5 {
+        } else if cents < -5 {
             direction = "<"
         } else {
             direction = "="
@@ -217,103 +270,72 @@ class MicrophoneStream: RCTEventEmitter {
         map["direction"] = direction
         return map
     }
-    // Новый метод pitch через FFT
-    private func estimatePitchFFT(_ buffer: [Float], sampleRate: Double) -> Float {
-        var n = buffer.count
-        guard n > 0 else { return 0 }
-
-        // --- Zero padding до степени 2 ---
-        let targetSize = 1 << Int(ceil(log2(Double(n))))
-        var padded = buffer
-        if targetSize > n {
-            padded.append(contentsOf: repeatElement(Float(0), count: targetSize - n))
-            n = targetSize
-        }
-
-        // --- Hann окно ---
-        var window = [Float](repeating: 0, count: n)
-        vDSP_hann_window(&window, vDSP_Length(n), Int32(vDSP_HANN_DENORM))
-        var windowed = [Float](repeating: 0, count: n)
-        vDSP_vmul(padded, 1, window, 1, &windowed, 1, vDSP_Length(n))
-
-        // --- FFT ---
-        let log2n = vDSP_Length(log2(Float(n)))
-        var realp = [Float](repeating: 0, count: n / 2)
-        var imagp = [Float](repeating: 0, count: n / 2)
-        var fftOutput = DSPSplitComplex(realp: &realp, imagp: &imagp)
-
-        windowed.withUnsafeBufferPointer { ptr in
-            ptr.baseAddress!.withMemoryRebound(to: DSPComplex.self, capacity: n) { complexPtr in
-                if let fftSetup = vDSP_create_fftsetup(log2n, Int32(kFFTRadix2)) {
-                    vDSP_ctoz(complexPtr, 2, &fftOutput, 1, vDSP_Length(n / 2))
-                    vDSP_fft_zrip(fftSetup, &fftOutput, 1, log2n, Int32(FFT_FORWARD))
-                    vDSP_destroy_fftsetup(fftSetup)
-                }
+    private func estimatePitch(_ buffer: [Float], sampleRate: Double) -> Float {
+        guard !buffer.isEmpty, sampleRate > 0, sampleRate.isFinite else { return 0 }
+        let mean = buffer.reduce(0.0) { $0 + Double($1) } / Double(buffer.count)
+        let norm = buffer.map { Double($0) - mean }
+        let rms = sqrt(norm.reduce(0.0) { $0 + $1 * $1 } / Double(norm.count))
+        guard rms >= 0.003 else { return 0 }
+        let sustaining = previousRms > 0 && rms <= previousRms * 1.2
+        previousRms = rms
+        let minLag = max(1, Int(sampleRate / 2000))
+        let maxLag = min(Int(sampleRate / 50), buffer.count / 2 - 1)
+        guard maxLag >= minLag else { return 0 }
+        var correlations = [Double](repeating: 0, count: maxLag + 2)
+        norm.withUnsafeBufferPointer { samples in
+            guard let start = samples.baseAddress else { return }
+            for lag in (minLag - 1)...(maxLag + 1) {
+                let count = vDSP_Length(norm.count - lag)
+                var correlation = 0.0
+                var leftEnergy = 0.0
+                var rightEnergy = 0.0
+                vDSP_dotprD(start, 1, start + lag, 1, &correlation, count)
+                vDSP_svesqD(start, 1, &leftEnergy, count)
+                vDSP_svesqD(start + lag, 1, &rightEnergy, count)
+                let energy = sqrt(leftEnergy * rightEnergy)
+                correlations[lag] = energy > 0 ? correlation / energy : 0
             }
         }
-
-        // --- Амплитуды спектра ---
-        var magnitudes = [Float](repeating: 0.0, count: n / 2)
-        vDSP_zvmags(&fftOutput, 1, &magnitudes, 1, vDSP_Length(n / 2))
-        for i in 0..<magnitudes.count { magnitudes[i] = log10(magnitudes[i] + 1e-6) }
-
-        // --- Weighted HPS (но не завышаем гармоники) ---
-        var hps = magnitudes
-        for i in 0..<(magnitudes.count / 4) {
-            let weighted =
-                magnitudes[i] + 0.5 * magnitudes[i * 2] + 0.3 * magnitudes[i * 3] + 0.2
-                * magnitudes[i * 4]
-            hps[i] = weighted
+        let bestCorrelation = correlations[minLag...maxLag].max() ?? 0
+        guard bestCorrelation >= 0.6 else { return 0 }
+        // Relax peak selection for noisy/inharmonic strings without accepting clean overtones.
+        let peakThreshold = max(0.9, min(0.99, 1 - 4 * (1 - bestCorrelation)))
+        let peaks = (minLag...maxLag).filter {
+            correlations[$0] >= correlations[$0 - 1] && correlations[$0] > correlations[$0 + 1]
         }
-
-        // --- Находим **первый пиковый максимум**, но ближе к низким частотам ---
-        var maxMag: Float = 0
-        var maxIndex: vDSP_Length = 0
-        for i in 1..<hps.count {
-            if hps[i] > maxMag {
-                maxMag = hps[i]
-                maxIndex = vDSP_Length(i)
+        guard let bestLag = peaks.first(where: { correlations[$0] >= bestCorrelation * peakThreshold }) else { return 0 }
+        func frequency(_ lag: Int) -> Double {
+            let left = correlations[lag - 1]
+            let right = correlations[lag + 1]
+            let curvature = left - 2 * correlations[lag] + right
+            let shift = curvature != 0 ? max(-0.5, min(0.5, 0.5 * (left - right) / curvature)) : 0
+            return sampleRate / (Double(lag) + shift)
+        }
+        let detected = frequency(bestLag)
+        guard let lastPitch = pitchHistory.first else { return Float(detected) }
+        let previous = Double(lastPitch)
+        let ratio = max(detected, previous) / min(detected, previous)
+        let harmonic = ratio.rounded()
+        guard sustaining, (2...6).contains(harmonic), abs(1200 * log2(ratio / harmonic)) <= 70 else { return Float(detected) }
+        guard let trackedLag = peaks.filter({
+            correlations[$0] >= max(0.45, bestCorrelation * 0.5) &&
+                abs(1200 * log2(frequency($0) / previous)) < 50
+        }).max(by: { correlations[$0] < correlations[$1] }) else { return Float(detected) }
+        let tracked = frequency(trackedLag)
+        func amplitude(_ frequency: Double) -> Double {
+            var real = 0.0
+            var imaginary = 0.0
+            for i in norm.indices {
+                let windowed = norm[i] * (0.5 - 0.5 * cos(2 * Double.pi * Double(i) / Double(norm.count - 1)))
+                let phase = 2 * Double.pi * frequency * Double(i) / sampleRate
+                real += windowed * cos(phase)
+                imaginary += windowed * sin(phase)
             }
+            return sqrt(real * real + imaginary * imaginary)
         }
-
-        // --- Интерполяция для точного пика ---
-        let i = Int(maxIndex)
-        var freq: Float = 0
-        if i > 0 && i < hps.count - 1 {
-            let alpha = hps[i - 1]
-            let beta = hps[i]
-            let gamma = hps[i + 1]
-            let p = 0.5 * (alpha - gamma) / (alpha - 2 * beta + gamma)
-            freq = (Float(i) + Float(p)) * Float(sampleRate) / Float(n)
-        } else {
-            freq = Float(maxIndex) * Float(sampleRate) / Float(n)
-        }
-
-        // --- Ограничение диапазона ---
-        if freq < 50 || freq > 5000 { return 0 }
-
-        // --- Проверка гармоник: если сильная гармоника выше основного то исправляем ---
-        if let prevFreq = pitchHistory.first, prevFreq > 0 {
-            let harmonics = [freq / 2, freq / 3, freq / 4]  // возможные нижние гармоники
-            for h in harmonics {
-                if abs(h - prevFreq) < 5.0 {
-                    freq = Float(prevFreq)
-                    break
-                }
-            }
-        }
-
-        // --- Фильтр скачков октав по полутоновым интервалам ---
-        if let prevFreq = pitchHistory.first, prevFreq > 0 {
-            let prevMidi = 69 + 12 * log2(Double(prevFreq) / 440.0)
-            let currMidi = 69 + 12 * log2(Double(freq) / 440.0)
-            if abs(currMidi - prevMidi) > 12 {  // больше октавы — игнорируем
-                freq = prevFreq
-            }
-        }
-
-        return freq
-
+        // Follow a measured peak, never substitute the previous frequency itself.
+        let requiredSupport = detected < tracked ? 1.25 : 0.08
+        return Float(amplitude(tracked) > amplitude(detected) * requiredSupport ? tracked : detected)
     }
 
     // MARK: - RCTEventEmitter

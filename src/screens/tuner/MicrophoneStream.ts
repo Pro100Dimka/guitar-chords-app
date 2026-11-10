@@ -1,6 +1,10 @@
 // /MicrophoneStream.ts
 import { IString } from "@/@interfaces";
-import { NativeEventEmitter, NativeModules } from "react-native";
+import {
+  EmitterSubscription,
+  NativeEventEmitter,
+  NativeModules
+} from "react-native";
 
 const { MicrophoneStream } = NativeModules;
 
@@ -25,8 +29,15 @@ export type AudioBufferEvent = {
 
 class MicrophoneStreamWrapper {
   private emitter: NativeEventEmitter;
-  // храним подписки вместо колбеков
-  private subscriptions: Map<string, { subscription: any }> = new Map();
+  private subscriptions = new Map<string, EmitterSubscription>();
+  private nextSubscriptionId = 0;
+  private awakeOwners = new Set<string>();
+
+  setKeepAwake(enabled: boolean, owner = "song") {
+    if (enabled) this.awakeOwners.add(owner);
+    else this.awakeOwners.delete(owner);
+    MicrophoneStream.setKeepAwake(this.awakeOwners.size > 0);
+  }
 
   constructor() {
     this.emitter = new NativeEventEmitter(MicrophoneStream);
@@ -60,21 +71,21 @@ class MicrophoneStreamWrapper {
   }
   addListener(callback: (data: AudioBufferEvent) => void) {
     const subscription = this.emitter.addListener("onAudioBuffer", callback);
-    const id = Date.now().toString();
-    this.subscriptions.set(id, { subscription });
+    const id = (++this.nextSubscriptionId).toString();
+    this.subscriptions.set(id, subscription);
     return id;
   }
 
   removeListener(id: string) {
     const sub = this.subscriptions.get(id);
     if (sub) {
-      sub.subscription.remove(); // вот так удаляем конкретного слушателя
+      sub.remove();
       this.subscriptions.delete(id);
     }
   }
 
   removeAllListeners() {
-    this.subscriptions.forEach(({ subscription }) => subscription.remove());
+    this.subscriptions.forEach((subscription) => subscription.remove());
     this.subscriptions.clear();
   }
 }

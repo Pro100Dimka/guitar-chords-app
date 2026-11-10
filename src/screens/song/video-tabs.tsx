@@ -1,59 +1,46 @@
-/* eslint-disable react-hooks/exhaustive-deps */
-// src/screens/song/video-tabs.tsx
-import { FC, useCallback, useRef, useState } from "react";
+import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  Dimensions,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View
-} from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import YoutubePlayer from "react-native-youtube-iframe";
 import extractYoutubeId from "../../components/utils/extract-youtube-id";
 import palette from "../../theme/palette";
-import { useFocusEffect } from "@react-navigation/native";
 import { ISong } from "@/@interfaces";
-
 const VideoTabs: FC<ISong> = (song) => {
   const { t } = useTranslation();
-  const playerRef = useRef(null);
-  const tabs = {
-    youtube_music: t("SongLink"),
-    youtobe_lesson: t("TrainingLink")
-  };
-  const [activeTab, setActiveTab] = useState(Object.keys(tabs)[0]);
-  const rawLink = song[activeTab as keyof ISong];
-  const videoId = typeof rawLink === "string" ? extractYoutubeId(rawLink) : "";
-  const { width } = Dimensions.get("window");
-  const [existTabs, setExistTabs] = useState<Array<[string, string]>>([]);
-  useFocusEffect(
-    useCallback(() => {
-      const filteredTabs = Object.entries(tabs).filter(
-        ([key]) => song[key as keyof ISong]
-      );
-      setExistTabs(filteredTabs);
-    }, [song])
-  );
+  const tabs = (
+    [
+      { key: "youtube_music", label: t("SongLink") },
+      { key: "youtobe_lesson", label: t("TrainingLink") }
+    ] as const
+  ).filter(({ key }) => song[key]);
+  const [activeTab, setActiveTab] = useState("youtube_music");
+  const [width, setWidth] = useState(0);
+  const selected = tabs.find(({ key }) => key === activeTab) ?? tabs[0];
+  if (!selected) return null;
+  const videoId = extractYoutubeId(song[selected.key] ?? "");
   return (
-    <View style={styles.container}>
+    <View
+      style={styles.container}
+      onLayout={({ nativeEvent }) => setWidth(nativeEvent.layout.width)}
+    >
       <View style={styles.tabContainer}>
-        {existTabs.map(([key, label]) => (
+        {tabs.map(({ key, label }) => (
           <TouchableOpacity
             key={key}
-            style={[styles.tabButton, activeTab === key && styles.activeTab]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: selected.key === key }}
+            style={[styles.tabButton, selected.key === key && styles.activeTab]}
             onPress={() => setActiveTab(key)}
           >
             <Text style={styles.tabText}>{label}</Text>
           </TouchableOpacity>
         ))}
       </View>
-      {videoId && (
-        <View style={styles.flex}>
+      {!!videoId && width > 0 && (
+        <View style={styles.player}>
           <YoutubePlayer
-            ref={playerRef}
             width={width}
-            height={225}
+            height={(width * 9) / 16}
             videoId={videoId}
           />
         </View>
@@ -62,27 +49,23 @@ const VideoTabs: FC<ISong> = (song) => {
   );
 };
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingBottom: 10 },
+  container: { paddingBottom: 10, gap: 12 },
   tabContainer: {
-    margin: 16,
     flexDirection: "row",
     borderRadius: 12,
     overflow: "hidden",
     borderWidth: 1,
-    borderColor: palette.colors.accent,
-    flex: 1
+    borderColor: palette.glass.edge
   },
   tabButton: {
     flex: 1,
+    minHeight: 44,
     paddingVertical: 13,
     alignItems: "center",
-    backgroundColor: palette.colors.blackOpacityTiny
+    backgroundColor: palette.glass.header
   },
-  activeTab: {
-    backgroundColor: palette.colors.accent
-  },
-  tabText: { color: palette.colors.text, fontWeight: "700" },
-  flex: { width: "100%", maxHeight: 225 }
+  activeTab: { backgroundColor: palette.glass.selected },
+  tabText: { color: palette.glass.ink, fontWeight: "600" },
+  player: { borderRadius: 16, overflow: "hidden" }
 });
-
 export default VideoTabs;

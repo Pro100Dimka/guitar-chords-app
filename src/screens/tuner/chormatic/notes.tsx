@@ -10,7 +10,7 @@ interface IMainNote {
 }
 const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 const Notes: FC<IMainNote> = (props) => {
-  const { centerX, centerY, maxRadius, center } = props;
+  const { centerX, centerY, maxRadius } = props;
   const fontNote = useFont(fontFamilies.Roboto[2], 18);
   if (!fontNote) return null;
   return (

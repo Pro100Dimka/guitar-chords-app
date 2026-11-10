@@ -7,7 +7,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   Linking,
-  Platform
+  Platform,
+  AppState
 } from "react-native";
 import palette from "@/theme/palette";
 import Tuner from "./tuner";
@@ -17,20 +18,40 @@ const RequireMicAccess: FC = () => {
   const { t } = useTranslation();
   const isFocused = useIsFocused();
   const [hasPermission, setHasPermission] = useState(false);
+  const [appState, setAppState] = useState(AppState.currentState ?? "active");
   const openAppSettings = async () =>
     Platform.OS === "ios"
       ? await Linking.openURL("app-settings:")
       : await Linking.openSettings();
   useEffect(() => {
-    checkMicPermission().then((hasPermission) => {
-      setHasPermission(hasPermission);
-      if (!hasPermission) {
-        console.warn("Микрофон запрещён");
+    let mounted = true;
+    let pending = false;
+    const refreshPermission = async (requestPermission: boolean) => {
+      if (pending) return;
+      pending = true;
+      try {
+        const granted = await checkMicPermission(requestPermission);
+        if (mounted) setHasPermission(granted);
+      } catch (error) {
+        console.error("Microphone permission check failed:", error);
+        if (mounted) setHasPermission(false);
+      } finally {
+        pending = false;
       }
+    };
+    void refreshPermission(true);
+    const subscription = AppState.addEventListener("change", (state) => {
+      setAppState(state);
+      if (state !== "active") setHasPermission(false);
+      if (state === "active") void refreshPermission(false);
     });
+    return () => {
+      mounted = false;
+      subscription.remove();
+    };
   }, []);
 
-  if (!isFocused) return null;
+  if (!isFocused || appState !== "active") return null;
   return !hasPermission ? (
     <View style={styles.container}>
       <Text style={styles.errorText}>{t`ErrorMicAccess`}</Text>
@@ -53,19 +74,19 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    backgroundColor: palette.colors.bgInactive
+    backgroundColor: palette.paper.background
   },
   errorText: {
     fontSize: 18,
-    color: palette.colors.secondary,
+    color: palette.chromatic.muted,
     textAlign: "center",
     marginBottom: 20
   },
   button: {
-    backgroundColor: palette.colors.bgActive,
+    backgroundColor: palette.chromatic.ink,
     paddingVertical: 10,
     paddingHorizontal: 20,
-    borderRadius: 5
+    borderRadius: 14
   },
   buttonText: {
     color: palette.colors.primary,

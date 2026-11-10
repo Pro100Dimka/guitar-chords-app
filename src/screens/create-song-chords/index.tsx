@@ -11,14 +11,15 @@ import onSubmit from "./formik/on-sabmit";
 import { validationSchema } from "./formik/validation-schema";
 import { useNavigation } from "@react-navigation/native";
 import { NavigationProp } from "@/router";
+import palette from "@/theme/palette";
 import { ISong } from "@/@interfaces";
 
 const COLORS = {
-  card: "rgba(20,20,20,0.55)",
-  border: "rgba(255,255,255,0.15)",
-  text: "#fff",
-  accent: "#FF6600",
-  gray: "#aaaaaa"
+  card: palette.glass.surface,
+  border: palette.glass.edge,
+  text: palette.glass.ink,
+  accent: palette.glass.play,
+  gray: palette.glass.muted
 };
 
 // интерфейс для формы
@@ -78,7 +79,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.title}>{t("NewSong")}</Text>
+          <Text style={styles.title}>{t(song ? "Edit" : "NewSong")}</Text>
           <Formik
             initialValues={initialValuesState}
             enableReinitialize
@@ -97,9 +98,8 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     tableName="bands"
                     name="fk_band"
                     formik={formik}
-                    style={{ container: { flex: 0.6 } }}
+                    style={{ container: { flex: 1 } }}
                   />
-                  <Text style={styles.minus}>-</Text>
                   <TextField
                     placeholder={t("SongTitle")}
                     formik={formik}
@@ -149,20 +149,19 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
 );
 
 const styles = StyleSheet.create({
-  row: { flexDirection: "row", gap: 5, alignItems: "flex-start" },
+  row: { gap: 4 },
   flex: { flex: 1, display: "flex", flexDirection: "column" },
   container: { padding: 10, paddingBottom: 40, flexGrow: 1 },
   card: {
     flex: 1,
     backgroundColor: COLORS.card,
     borderRadius: 20,
-    padding: 10,
+    padding: 18,
     borderWidth: 1,
     borderColor: COLORS.border
   },
   disabled: { opacity: 0.6 },
   titleLabel: { color: COLORS.gray, marginBottom: 10 },
-  minus: { color: COLORS.gray, marginTop: 10 },
   title: {
     fontSize: 22,
     fontWeight: "700",
@@ -176,6 +175,6 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     alignItems: "center"
   },
-  saveText: { color: COLORS.text, fontWeight: "700", fontSize: 16 }
+  saveText: { color: palette.colors.white, fontWeight: "700", fontSize: 16 }
 });
 export default CreateChordSong;

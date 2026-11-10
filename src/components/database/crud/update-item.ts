@@ -17,18 +17,7 @@ const updateItem = ({
       .join(", ");
     const values = Object.values(data);
     const sql = `UPDATE ${tableName} SET ${setClause} WHERE ${filters}`;
-    db.transaction((tx) => {
-      tx.executeSql(
-        sql,
-        values,
-        () => resolve(),
-        (_, err) => {
-          console.error(`Error updating table ${tableName}:`, err);
-          reject(err);
-          return false;
-        }
-      );
-    });
+    db.transaction((tx) => tx.executeSql(sql, values), reject, resolve);
   });
 };
 export default updateItem;

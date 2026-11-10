@@ -4,6 +4,7 @@
 
 @interface RCT_EXTERN_MODULE(MicrophoneStream, RCTEventEmitter)
 
+RCT_EXTERN_METHOD(setKeepAwake:(BOOL)enabled)
 RCT_EXTERN_METHOD(startRecording)
 RCT_EXTERN_METHOD(stopRecording)
 RCT_EXTERN_METHOD(setTargetNotes:(NSArray *)notes)

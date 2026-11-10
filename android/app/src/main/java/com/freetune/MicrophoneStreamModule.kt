@@ -8,6 +8,7 @@ import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import kotlin.concurrent.thread
 import android.util.Log
+import android.view.WindowManager
 
 class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
@@ -15,7 +16,8 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         const val BUF_PER_SEC = 15
     }
     private var audioRecord: AudioRecord? = null
-    private var isRecording = false
+    @Volatile private var isRecording = false
+    private var recordingThread: Thread? = null
     private val sampleRate = 44100
     private val bufferSize = maxOf(
         sampleRate / BUF_PER_SEC,
@@ -26,7 +28,10 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         )
     )
     private val pitchHistory = ArrayDeque<Float>() // история для сглаживания
-    private var targetNotes: List<NoteSpec> = emptyList() // список целевых нот
+    private var previousRms = 0.0
+    private var pendingPitch = 0f
+    private var missingFrames = 0
+    @Volatile private var targetNotes: List<NoteSpec> = emptyList()
     data class NoteSpec(
         val name: String,
         val octave: Int,
@@ -34,6 +39,14 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         val thickness: Double?,
         val baseColor: List<Double>?
     )
+    @ReactMethod
+    fun setKeepAwake(enabled: Boolean) {
+        reactContext.currentActivity?.runOnUiThread {
+            val window = reactContext.currentActivity?.window ?: return@runOnUiThread
+            if (enabled) window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+            else window.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
     override fun getName(): String = "MicrophoneStream"
     @ReactMethod
     fun setTargetNotes(notes: ReadableArray) {
@@ -60,12 +73,35 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         targetNotes = list
     }
 
+    private fun resetPitch() {
+        pitchHistory.clear()
+        previousRms = 0.0
+        pendingPitch = 0f
+        missingFrames = 0
+    }
+
     private fun smoothPitch(pitch: Float): Float {
-        if (pitch > 0) {
-            if (pitchHistory.size >= 5) pitchHistory.removeFirst()
-            pitchHistory.addLast(pitch)
+        if (!pitch.isFinite() || pitch <= 0) {
+            pendingPitch = 0f
+            if (++missingFrames >= 3) resetPitch()
+            return 0f
         }
-        return if (pitchHistory.isEmpty()) 0f else pitchHistory.average().toFloat()
+        missingFrames = 0
+        val previous = pitchHistory.firstOrNull()
+        val cents = if (previous != null) 1200 * kotlin.math.log2(pitch / previous) else 0f
+        if (previous == null || kotlin.math.abs(cents) >= 100) {
+            val confirmed = pendingPitch > 0 && kotlin.math.abs(1200 * kotlin.math.log2(pitch / pendingPitch)) < 50
+            if (!confirmed) {
+                pendingPitch = pitch
+                return previous ?: 0f
+            }
+        }
+        pendingPitch = 0f
+        val smoothed = if (previous == null || kotlin.math.abs(cents) >= 100) pitch
+            else (previous * Math.pow(2.0, cents * 0.35 / 1200)).toFloat()
+        pitchHistory.clear()
+        pitchHistory.addLast(smoothed)
+        return smoothed
     }
     private fun frequencyToNoteData(freq: Float): WritableMap {
         val map = Arguments.createMap()
@@ -75,18 +111,16 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
             map.putDouble("refFreq", 0.0)
             map.putInt("octave", 0)
             map.putString("direction", "=")
-            pitchHistory.clear()
             return map
         }
                 // если список нот задан — ищем ближайшую из него
-        val closest = if (targetNotes.isNotEmpty()) {
-            targetNotes.minByOrNull { Math.abs(freq - it.refFreq) }
-        } else null
+        val closest = targetNotes.minByOrNull { kotlin.math.abs(kotlin.math.log2(freq / it.refFreq)) }
 
         if (closest != null) {
+            val cents = 1200 * kotlin.math.log2(freq / closest.refFreq)
             val direction = when {
-                freq > closest.refFreq + 0.5 -> ">"
-                freq < closest.refFreq - 0.5 -> "<"
+                cents > 5 -> ">"
+                cents < -5 -> "<"
                 else -> "="
             }
             map.putString("note", closest.name)
@@ -111,9 +145,10 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         val note = noteNames[noteIndex]
         val octave = midi / 12 - 1
         val refFreq = 440.0 * Math.pow(2.0, (midi - 69) / 12.0)
+        val cents = 1200 * kotlin.math.log2(freq / refFreq)
         val direction = when {
-            freq > refFreq + 0.5 -> ">"   // выше эталона
-            freq < refFreq - 0.5 -> "<"   // ниже эталона
+            cents > 5 -> ">"   // выше эталона
+            cents < -5 -> "<"   // ниже эталона
             else -> "="                   // совпадает
         }
         map.putString("note", note)
@@ -125,119 +160,180 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
     }
 
     private fun estimatePitch(buffer: ShortArray, sampleRate: Int): Float {
-        val norm = DoubleArray(buffer.size) { buffer[it] / 32768.0 }
-        val rms = Math.sqrt(norm.map { it * it }.average()) // RMS для фильтрации тишины
-        if (rms < 0.01) return 0f
-        val minFreq = 80      // минимальная частота (Гц)
-        val maxFreq = 1000    // максимальная частота (Гц)
-        val minLag = sampleRate / maxFreq
-        val maxLag = sampleRate / minFreq
-        var bestLag = -1
-        var bestCorr = 0.0
-        for (lag in minLag..maxLag) {
+        if (buffer.isEmpty() || sampleRate <= 0) return 0f
+        val mean = buffer.average() / 32768.0
+        val norm = DoubleArray(buffer.size) { buffer[it] / 32768.0 - mean }
+        val rms = Math.sqrt(norm.sumOf { it * it } / norm.size)
+        if (rms < 0.003) return 0f
+        val sustaining = previousRms > 0 && rms <= previousRms * 1.2
+        previousRms = rms
+        val minFreq = 50
+        val maxFreq = 2000
+        val minLag = maxOf(1, sampleRate / maxFreq)
+        val maxLag = minOf(sampleRate / minFreq, buffer.size / 2 - 1)
+        if (maxLag < minLag) return 0f
+        val correlations = DoubleArray(maxLag + 2)
+        for (lag in (minLag - 1)..(maxLag + 1)) {
             var corr = 0.0
+            var leftEnergy = 0.0
+            var rightEnergy = 0.0
             for (i in 0 until buffer.size - lag) {
                 corr += norm[i] * norm[i + lag]
+                leftEnergy += norm[i] * norm[i]
+                rightEnergy += norm[i + lag] * norm[i + lag]
             }
-            if (corr > bestCorr) {
-                bestCorr = corr
-                bestLag = lag
-            }
+            val energy = Math.sqrt(leftEnergy * rightEnergy)
+            correlations[lag] = if (energy > 0) corr / energy else 0.0
         }
-        if (bestLag <= 0) return 0f
-        // Параболическая интерполяция для уточнения
-        val prev = if (bestLag > minLag) bestLag - 1 else bestLag
-        val next = if (bestLag < maxLag) bestLag + 1 else bestLag
-        val corrPrev = norm.indices.take(buffer.size - prev).sumOf { norm[it] * norm[it + prev] }
-        val corrNext = norm.indices.take(buffer.size - next).sumOf { norm[it] * norm[it + next] }
-        val shift = 0.5 * (corrPrev - corrNext) / (corrPrev - 2 * bestCorr + corrNext)
-        val refinedLag = bestLag + shift
-        return (sampleRate / refinedLag).toFloat()
+        val bestCorr = (minLag..maxLag).maxOf { correlations[it] }
+        if (bestCorr < 0.6) return 0f
+        // Relax peak selection for noisy/inharmonic strings without accepting clean overtones.
+        val peakThreshold = (1 - 4 * (1 - bestCorr)).coerceIn(0.9, 0.99)
+        val peaks = (minLag..maxLag).filter {
+            correlations[it] >= correlations[it - 1] &&
+                correlations[it] > correlations[it + 1]
+        }
+        val bestLag = peaks.firstOrNull { correlations[it] >= bestCorr * peakThreshold } ?: return 0f
+        fun frequency(lag: Int): Double {
+            val left = correlations[lag - 1]
+            val right = correlations[lag + 1]
+            val curvature = left - 2 * correlations[lag] + right
+            val shift = if (curvature != 0.0) (0.5 * (left - right) / curvature).coerceIn(-0.5, 0.5) else 0.0
+            return sampleRate / (lag + shift)
+        }
+        val detected = frequency(bestLag)
+        val previous = pitchHistory.firstOrNull()?.toDouble() ?: return detected.toFloat()
+        val ratio = maxOf(detected, previous) / minOf(detected, previous)
+        val harmonic = Math.round(ratio)
+        if (!sustaining || harmonic !in 2..6 || kotlin.math.abs(1200 * kotlin.math.log2(ratio / harmonic)) > 70) return detected.toFloat()
+        val trackedLag = peaks.filter {
+            correlations[it] >= maxOf(0.45, bestCorr * 0.5) &&
+                kotlin.math.abs(1200 * kotlin.math.log2(frequency(it) / previous)) < 50
+        }.maxByOrNull { correlations[it] } ?: return detected.toFloat()
+        val tracked = frequency(trackedLag)
+        fun amplitude(freq: Double): Double {
+            var real = 0.0
+            var imaginary = 0.0
+            for (i in norm.indices) {
+                val windowed = norm[i] * (0.5 - 0.5 * kotlin.math.cos(2 * Math.PI * i / (norm.size - 1)))
+                val phase = 2 * Math.PI * freq * i / sampleRate
+                real += windowed * kotlin.math.cos(phase)
+                imaginary += windowed * kotlin.math.sin(phase)
+            }
+            return Math.sqrt(real * real + imaginary * imaginary)
+        }
+        // Follow a measured peak, never substitute the previous frequency itself.
+        val requiredSupport = if (detected < tracked) 1.25 else 0.08
+        return if (amplitude(tracked) > amplitude(detected) * requiredSupport) tracked.toFloat() else detected.toFloat()
     }
     @ReactMethod
+    @Synchronized
     fun startRecording() {
-    if (isRecording) return
+        if (isRecording) return
+        stopRecording()
 
-    audioRecord = AudioRecord(
-        MediaRecorder.AudioSource.MIC,
-        sampleRate,
-        AudioFormat.CHANNEL_IN_MONO,
-        AudioFormat.ENCODING_PCM_16BIT,
-        bufferSize
-    )
+        val recorder = AudioRecord(
+            MediaRecorder.AudioSource.MIC,
+            sampleRate,
+            AudioFormat.CHANNEL_IN_MONO,
+            AudioFormat.ENCODING_PCM_16BIT,
+            bufferSize
+        )
 
-    isRecording = true
-    audioRecord?.startRecording()
+        try {
+            recorder.startRecording()
+        } catch (error: RuntimeException) {
+            recorder.release()
+            throw error
+        }
+        audioRecord = recorder
+        isRecording = true
 
-    thread {
-        val buffer = ShortArray(bufferSize)
-        var wasSilent = false // флаг, чтобы слать одно уведомление "тишина"
+        recordingThread = thread(start = false, name = "MicrophoneCapture") {
+            try {
+                val buffer = ShortArray(bufferSize)
+                var wasSilent = false // флаг, чтобы слать одно уведомление "тишина"
 
-        while (isRecording) {
-            val read = audioRecord?.read(buffer, 0, buffer.size) ?: 0
-            if (read <= 0) {
-                Thread.sleep(10)
-                continue
-            }
+                while (isRecording) {
+                    val read = recorder.read(buffer, 0, buffer.size)
+                    if (!isRecording) break
+                    if (read <= 0) {
+                        Log.e("MicrophoneStream", "Audio read failed: $read")
+                        break
+                    }
 
-            // вычисляем RMS
-            var sumSquares = 0.0
-            for (i in 0 until read) {
-                val normalized = buffer[i] / 32768.0
-                sumSquares += normalized * normalized
-            }
-            val rms = Math.sqrt(sumSquares / read)
+                    // вычисляем RMS
+                    var sumSquares = 0.0
+                    for (i in 0 until read) {
+                        val normalized = buffer[i] / 32768.0
+                        sumSquares += normalized * normalized
+                    }
+                    val rms = Math.sqrt(sumSquares / read)
 
-            if (rms < 0.003) {
-                // если был звук раньше, отправляем событие "Silence"
-                if (!wasSilent) {
-                    wasSilent = true
+                    if (rms < 0.003) {
+                        // если был звук раньше, отправляем событие "Silence"
+                        if (!wasSilent) {
+                            wasSilent = true
+                            val map = Arguments.createMap()
+                            map.putString("note", "Silence")
+                            map.putDouble("rms", rms)
+                            map.putDouble("pitch", 0.0)
+                            map.putDouble("refFreq", 0.0)
+                            map.putInt("octave", 0)
+                            map.putString("direction", "=")
+                            sendEvent("onAudioBuffer", map)
+                        }
+                        resetPitch()
+                        continue
+                    }
+
+                    // если есть звук, сбрасываем флаг
+                    wasSilent = false
+
+                    // формируем массив нормализованных сэмплов
+                    val array = Arguments.createArray()
+                    for (i in 0 until read) array.pushDouble(buffer[i] / 32768.0)
+
+                    // вычисляем pitch
+                    val rawPitch = estimatePitch(if (read == buffer.size) buffer else buffer.copyOf(read), sampleRate)
+                    val pitch = smoothPitch(rawPitch)
+                    val noteData = frequencyToNoteData(pitch)
+
+                    // формируем карту для отправки
                     val map = Arguments.createMap()
-                    map.putString("note", "Silence")
-                    map.putDouble("pitch", 0.0)
-                    map.putDouble("refFreq", 0.0)
-                    map.putInt("octave", 0)
-                    map.putString("direction", "=")
+                    map.putArray("samples", array)
+                    map.putDouble("rms", rms)
+                    map.merge(noteData)
+
                     sendEvent("onAudioBuffer", map)
                 }
-                pitchHistory.clear()
-                continue
+            } finally {
+                isRecording = false
             }
-
-            // если есть звук, сбрасываем флаг
-            wasSilent = false
-
-            // формируем массив нормализованных сэмплов
-            val array = Arguments.createArray()
-            for (i in 0 until read) array.pushDouble(buffer[i] / 32768.0)
-
-            // вычисляем pitch
-            val rawPitch = estimatePitch(buffer, sampleRate)
-            val pitch = smoothPitch(rawPitch)
-            val noteData = frequencyToNoteData(pitch)
-
-            // формируем карту для отправки
-            val map = Arguments.createMap()
-            map.putArray("samples", array)
-            map.putDouble("rms", rms)
-            map.merge(noteData)
-
-            sendEvent("onAudioBuffer", map)
         }
+        recordingThread?.start()
     }
-}
     @ReactMethod
+    @Synchronized
     fun stopRecording() {
         isRecording = false
-        audioRecord?.stop()
-        audioRecord?.release()
-        audioRecord = null
-        pitchHistory.clear()
+        try {
+            audioRecord?.stop()
+        } finally {
+            recordingThread?.join()
+            recordingThread = null
+            audioRecord?.release()
+            audioRecord = null
+            resetPitch()
+        }
     }
     @ReactMethod
     fun releaseRecorder() {
-        audioRecord?.release()
-        audioRecord = null
+        stopRecording()
+    }
+    override fun invalidate() {
+        stopRecording()
+        super.invalidate()
     }
     @ReactMethod
     fun getSampleRate(promise: Promise) {
@@ -261,4 +357,4 @@ fun addListener(eventName: String) {
 fun removeListeners(count: Int) {
     // required for NativeEventEmitter
 }
-} 
+}

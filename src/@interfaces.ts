@@ -91,9 +91,11 @@ export interface StringWithVibrationProps {
   thickness: number;
   baseColor: number[];
   active: boolean;
-  volume?: number;
+  volume: SharedValue<number>;
 }
 export interface IGetItems {
+  orderBy?: string;
+  parameters?: (string | number | null)[];
   tableName?: string;
   fields?: string;
   filters?: string;
@@ -116,6 +118,8 @@ export interface IDeleteItem {
   filters: string;
 }
 export interface ISong {
+  youtube_music?: string;
+  youtobe_lesson?: string;
   id: number;
   title: string;
   content: string;

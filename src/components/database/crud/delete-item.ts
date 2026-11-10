@@ -7,19 +7,7 @@ const deleteItem = ({ tableName, filters }: IDeleteItem): Promise<void> => {
     if (!tableName) return reject(new Error("tableName is required"));
     if (!filters) return reject(new Error("filters (WHERE) is required"));
     const sql = `DELETE FROM ${tableName} WHERE ${filters}`;
-    console.info("Executing SQL:", sql);
-    db.transaction((tx) => {
-      tx.executeSql(
-        sql,
-        [],
-        () => resolve(),
-        (_, err) => {
-          console.error(`Error deleting from ${tableName}:`, err);
-          reject(err);
-          return false;
-        }
-      );
-    });
+    db.transaction((tx) => tx.executeSql(sql, []), reject, resolve);
   });
 };
 

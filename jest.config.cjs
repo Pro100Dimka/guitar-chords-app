@@ -6,7 +6,10 @@ module.exports = {
     '^.+\\.(js|ts|tsx)$': 'babel-jest'
   },
   testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
-  setupFiles: ['<rootDir>/jest.setup.js'],
+  transformIgnorePatterns: [
+    'node_modules/(?!((jest-)?react-native|react-native-safe-area-context|@react-native(-community)?|@react-navigation)/)'
+  ],
+  setupFiles: ['<rootDir>/jest.setup.cjs'],
   testEnvironment: 'node',
   globals: {
     'ts-jest': {

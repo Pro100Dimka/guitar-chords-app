@@ -61,6 +61,9 @@ module.exports = {
     semi: 0
   },
   settings: {
+    "import/parsers": {
+      "hermes-eslint": [".js", ".jsx"]
+    },
     react: { version: "detect" }
   }
 };

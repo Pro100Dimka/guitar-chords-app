@@ -15,6 +15,8 @@ import palette from "../../theme/palette";
 import { useNavigation } from "@react-navigation/native";
 import { NavigationProp } from "../../router";
 import { getAllItems } from "@/components/database/crud";
+import { t } from "@/locales";
+import { ISong } from "@/@interfaces";
 
 interface ISearchBarProps {
   setFilters: React.Dispatch<React.SetStateAction<string>>;
@@ -22,7 +24,7 @@ interface ISearchBarProps {
 
 const SearchBar = ({ setFilters }: ISearchBarProps) => {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<any[]>([]);
+  const [results, setResults] = useState<ISong[]>([]);
   const inputRef = useRef<TextInput>(null);
   const navigation = useNavigation<NavigationProp>();
 
@@ -32,25 +34,35 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
       return;
     }
 
+    let active = true;
     const delay = setTimeout(async () => {
       const params = {
         tableName: "songs s",
-        join: "bands b ON s.band_id = b.id",
-        fields:
-          "b.search_text_lower band, s.search_text_lower title, b.name as band_name, s.id",
-        filters: ` LOWER(b.search_text_lower || ' ' || s.search_text_lower) LIKE '%${query.toLowerCase()}%' COLLATE NOCASE `,
+        joins: ["LEFT JOIN bands b ON s.band_id = b.id"],
+        fields: "b.search_text_lower band, s.title, b.name as band_name, s.id",
+        filters:
+          "LOWER(COALESCE(b.search_text_lower, '') || ' ' || s.search_text_lower) LIKE ? COLLATE NOCASE",
+        parameters: [`%${query.toLowerCase()}%`],
         page: 0,
         limit: 10
       };
-      const data = await getAllItems(params);
-      setResults(data);
+      try {
+        const data = await getAllItems<ISong>(params);
+        if (active) setResults(data);
+      } catch (error) {
+        if (active) setResults([]);
+        console.error("Error searching songs:", error);
+      }
     }, 300);
 
-    return () => clearTimeout(delay);
+    return () => {
+      active = false;
+      clearTimeout(delay);
+    };
   }, [query]);
 
-  const handleSelect = (item: any) => {
-    navigation.navigate("Song", { id: item.id });
+  const handleSelect = (item: ISong) => {
+    navigation.navigate("Song", { id: item.id.toString() });
     handleDismiss();
   };
 
@@ -65,9 +77,11 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
         <Pressable onPress={handleDismiss} style={styles.overlay} />
       )}
       <View style={styles.container}>
-        <Pressable onPress={(e) => e.stopPropagation()}>
+        <View>
           <View style={styles.searchRow}>
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t("createSong")}
               style={styles.button}
               onPress={() => navigation.navigate("createSong")}
             >
@@ -77,8 +91,8 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
               <TextInput
                 ref={inputRef}
                 style={styles.input}
-                placeholder="Search songs..."
-                placeholderTextColor={palette.colors.gray}
+                placeholder={t("SearchSongs")}
+                placeholderTextColor={palette.glass.muted}
                 value={query}
                 onChangeText={setQuery}
                 onPressIn={(e) => e.stopPropagation()}
@@ -97,15 +111,20 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
                   <Ionicons
                     name="close-circle"
                     size={20}
-                    color={palette.colors.gray}
+                    color={palette.glass.muted}
                   />
                 </TouchableOpacity>
               )}
             </View>
 
             <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel={t("SearchSongs")}
               style={styles.button}
-              onPress={() => setFilters(query)}
+              onPress={() => {
+                handleDismiss();
+                setFilters(query);
+              }}
             >
               <Ionicons name="search-outline" size={22} color="white" />
             </TouchableOpacity>
@@ -129,7 +148,7 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
               />
             </View>
           )}
-        </Pressable>
+        </View>
       </View>
     </>
   );
@@ -145,23 +164,24 @@ const styles = StyleSheet.create({
     right: "-50%",
     bottom: "-50%"
   },
-  searchRow: { flexDirection: "row", alignItems: "center" },
+  searchRow: { flexDirection: "row", alignItems: "center", gap: 8 },
   inputWrapper: {
     flex: 1,
+    minWidth: 0,
     position: "relative",
     justifyContent: "center"
   },
 
   input: {
-    flex: 1,
+    minHeight: 44,
     borderWidth: 1,
-    borderRadius: 8,
+    borderRadius: 14,
     paddingHorizontal: 12,
     paddingVertical: 12,
     paddingRight: 32, // ← место под крестик
-    backgroundColor: palette.colors.grayOpacity,
-    color: palette.colors.white,
-    borderColor: palette.colors.grayOpacityTiny
+    backgroundColor: palette.glass.surface,
+    color: palette.glass.ink,
+    borderColor: palette.glass.edge
   },
 
   clearIcon: {
@@ -172,17 +192,19 @@ const styles = StyleSheet.create({
     zIndex: 10
   },
   button: {
-    marginHorizontal: 8,
-    backgroundColor: palette.colors.accent,
-    padding: 10,
-    borderRadius: 8
+    width: 44,
+    height: 44,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: palette.glass.play,
+    borderRadius: 14
   },
   dropdown: {
     position: "absolute",
     top: 50,
     width: "100%",
-    backgroundColor: palette.colors.white,
-    borderRadius: 8,
+    backgroundColor: palette.glass.header,
+    borderRadius: 14,
     paddingVertical: 4,
     elevation: 5
   },
@@ -190,10 +212,10 @@ const styles = StyleSheet.create({
     gap: 6,
     padding: 12,
     borderBottomWidth: 1,
-    borderBottomColor: palette.colors.grayOpacityTiny
+    borderBottomColor: palette.glass.edge
   },
   resultTitle: { color: palette.colors.black, fontSize: 16, fontWeight: "600" },
-  resultBand: { color: palette.colors.accent, fontWeight: "600", fontSize: 14 }
+  resultBand: { color: palette.glass.muted, fontWeight: "600", fontSize: 14 }
 });
 
 export default SearchBar;

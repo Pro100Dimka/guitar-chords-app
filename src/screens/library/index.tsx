@@ -1,6 +1,6 @@
 // src/screens/library/index.tsx
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -9,71 +9,125 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-import { t } from "../../locales";
+import { useTranslation } from "react-i18next";
 import LibraryItem from "./library-item";
 import SearchBar from "./search";
 import palette from "../../theme/palette";
 import { ISong } from "@/@interfaces";
 import { getAllItems } from "@/components/database/crud";
+import { usePreferences } from "@/components/preferences";
+import { Action } from "../song/tools";
 import { NavigationProp } from "@/router";
 
 const PAGE_LIMIT = 10;
 
 const Library: React.FC = () => {
+  const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const [songs, setSongs] = useState<ISong[]>([]);
   const [loading, setLoading] = useState(true); // для первой загрузки
   const [loadingMore, setLoadingMore] = useState(false); // для подгрузки
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
+  const pagination = useRef({
+    page: 0,
+    hasMore: true,
+    pending: false,
+    requestId: 0
+  });
   const [filters, setFilters] = useState("");
+  const [collection, setCollection] = useState("AllSongs");
+  const saved = usePreferences((state) => state.songs);
+  const ids = Object.entries(saved)
+    .filter(([, song]) =>
+      collection === "Favorites" ? song.favorite : song.opened > 0
+    )
+    .sort((a, b) => b[1].opened - a[1].opened)
+    .map(([id]) => Number(id))
+    .filter(Number.isSafeInteger);
+  const selection = collection === "AllSongs" ? "" : ids.join(",");
   const loadSongs = useCallback(
     async (pageNumber: number = 0) => {
-      if (!hasMore && pageNumber > 0) return;
-      if (pageNumber === 0) setLoading(true);
-      else setLoadingMore(true);
+      if (
+        pageNumber > 0 &&
+        (!pagination.current.hasMore || pagination.current.pending)
+      )
+        return;
+      const requestId = ++pagination.current.requestId;
+      pagination.current.pending = true;
+      if (pageNumber === 0) {
+        pagination.current.page = 0;
+        pagination.current.hasMore = true;
+        setSongs([]);
+        setLoading(true);
+      } else setLoadingMore(true);
       try {
-        const data = await getAllItems({
+        const data = await getAllItems<ISong>({
           tableName: "songs s",
           joins: ["LEFT JOIN bands b ON s.band_id = b.id"],
           page: pageNumber,
           limit: PAGE_LIMIT,
-          filters:
+          filters: [
             filters &&
-            `LOWER(b.search_text_lower || ' ' || s.search_text_lower) LIKE '%${filters.toLowerCase()}%' COLLATE NOCASE `,
-          fields:
-            "b.search_text_lower band, s.search_text_lower title, b.name as band_name, s.id"
+              "LOWER(COALESCE(b.search_text_lower, '') || ' ' || s.search_text_lower) LIKE ? COLLATE NOCASE",
+            collection !== "AllSongs" && `s.id IN (${selection || "NULL"})`
+          ]
+            .filter(Boolean)
+            .join(" AND "),
+          orderBy:
+            collection === "RecentSongs" && selection
+              ? `CASE s.id ${selection
+                  .split(",")
+                  .map((id, index) => `WHEN ${id} THEN ${index}`)
+                  .join(" ")} END`
+              : "s.title COLLATE NOCASE, s.id",
+          parameters: filters ? [`%${filters.toLowerCase()}%`] : [],
+          fields: "b.search_text_lower band, s.title, b.name as band_name, s.id"
         });
 
+        if (requestId !== pagination.current.requestId) return;
         if (pageNumber === 0) setSongs(data);
         else setSongs((prev) => [...prev, ...data]);
-        setPage(pageNumber + 1);
-        setHasMore(data.length === PAGE_LIMIT);
+        pagination.current.page = pageNumber + 1;
+        pagination.current.hasMore = data.length === PAGE_LIMIT;
       } catch (error) {
         console.info("Error fetching songs:", error);
       } finally {
-        setLoading(false);
-        setLoadingMore(false);
+        if (requestId === pagination.current.requestId) {
+          pagination.current.pending = false;
+          setLoading(false);
+          setLoadingMore(false);
+        }
       }
     },
-    [hasMore, filters]
+    [filters, collection, selection]
   );
   useFocusEffect(
     useCallback(() => {
       loadSongs(0);
+      return () => {
+        pagination.current.requestId++;
+        pagination.current.pending = false;
+      };
     }, [loadSongs])
   );
-  useEffect(() => {
-    if (filters) loadSongs(0);
-  }, [filters, loadSongs]);
 
   return (
     <View style={styles.container}>
-      {songs.length > 0 && <SearchBar setFilters={setFilters} />}
+      <SearchBar setFilters={setFilters} />
+      <View style={styles.collections}>
+        {["AllSongs", "RecentSongs", "Favorites"].map((key) => (
+          <Action
+            glass
+            key={key}
+            label={t(key)}
+            selected={collection === key}
+            onPress={() => setCollection(key)}
+          />
+        ))}
+      </View>
       {loading && (
         <ActivityIndicator
           size="large"
-          color="#fff"
+          color={palette.colors.white}
           style={styles.activityIndicator}
         />
       )}
@@ -92,7 +146,9 @@ const Library: React.FC = () => {
         data={songs}
         keyExtractor={(item, i) => `${item.id}-${i}`}
         renderItem={({ item }) => <LibraryItem song={item} />}
-        onEndReached={() => loadSongs(page)}
+        onEndReached={() => {
+          if (!pagination.current.pending) loadSongs(pagination.current.page);
+        }}
         onEndReachedThreshold={0.5}
         ListFooterComponent={
           loadingMore ? (
@@ -105,48 +161,40 @@ const Library: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, paddingBottom: 40 },
+  container: { flex: 1, padding: 16 },
+  collections: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginVertical: 8,
+    padding: 8,
+    borderRadius: 18,
+    backgroundColor: palette.glass.surface
+  },
   activityIndicator: { marginTop: 20 },
   activityIndicatorFlat: { marginVertical: 12 },
-  loading: {
-    color: palette.colors.accent,
-    backgroundColor: palette.colors.blackOpacity,
-    flex: 1,
-    fontSize: 30,
-    textAlign: "center",
-    position: "absolute",
-    paddingTop: "80%",
-    width: "110%",
-    fontWeight: "700",
-    height: "110%"
-  },
   noSongsContainer: {
-    color: palette.colors.accent,
-    backgroundColor: palette.colors.blackOpacity,
+    color: palette.glass.ink,
+    backgroundColor: palette.glass.surface,
     flex: 1,
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
     justifyContent: "center",
     alignItems: "center"
   },
   noSongsText: {
-    color: palette.colors.accent,
+    color: palette.glass.ink,
     fontSize: 24,
     fontWeight: "700",
     marginBottom: 16
   },
   createButton: {
-    backgroundColor: palette.colors.accent,
+    backgroundColor: palette.glass.play,
     paddingVertical: 12,
     paddingHorizontal: 24,
     borderRadius: 8,
     zIndex: 999
   },
   createButtonText: {
-    color: "#fff",
+    color: palette.colors.white,
     fontSize: 16,
     fontWeight: "600"
   }

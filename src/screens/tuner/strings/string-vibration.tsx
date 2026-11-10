@@ -2,11 +2,12 @@ import {
   useSharedValue,
   withTiming,
   withRepeat,
-  cancelAnimation
+  cancelAnimation,
+  useDerivedValue,
+  Easing
 } from "react-native-reanimated";
 import {
   Circle,
-  Paint,
   Path,
   RadialGradient,
   Shader,
@@ -55,7 +56,7 @@ const getStringPath = (
   for (let i = 0; i <= steps; i++) {
     // отражаем Y
     const y = bottom - i * dy; // ← переворот строки
-    const damping = Math.exp(-i / steps);
+    const damping = Math.sin((i / steps) * Math.PI);
     let offset = amplitude * Math.sin(i * frequency * Math.PI * 2) * damping;
     if (harmonics) {
       offset +=
@@ -74,31 +75,38 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
   thickness,
   baseColor,
   active,
-  volume = 0
+  volume
 }) => {
   const progress = useSharedValue(0);
   const [path1, path2] = useMemo(
     () => [
-      getStringPath(x, top, bottom, 0),
-      getStringPath(x, top, bottom, Math.min(volume * 100, 15))
+      getStringPath(x, top, bottom, -15),
+      getStringPath(x, top, bottom, 15)
     ],
-    [x, top, bottom, volume]
+    [x, top, bottom]
   );
   useEffect(() => {
-    if (active && volume > 0) {
+    if (active) {
       progress.value = withRepeat(
-        withTiming(1, { duration: 180 }, () => {
-          // затухание с экспонентой
-          progress.value = withTiming(0, { duration: 1200 });
-        }),
-        1
+        withTiming(1, { duration: 180, easing: Easing.inOut(Easing.sin) }),
+        -1,
+        true
       );
     } else {
       cancelAnimation(progress);
       progress.value = 0;
     }
-  }, [active, volume, progress]);
-  const animatedPath = usePathInterpolation(progress, [0, 1], [path1, path2]);
+    return () => cancelAnimation(progress);
+  }, [active, progress]);
+  const amplitude = useDerivedValue(() =>
+    withTiming(active ? Math.min(Math.max(volume.value, 0) / 0.15, 1) : 0, {
+      duration: 100
+    })
+  );
+  const vibration = useDerivedValue(
+    () => 0.5 + (progress.value - 0.5) * amplitude.value
+  );
+  const animatedPath = usePathInterpolation(vibration, [0, 1], [path1, path2]);
   return (
     <>
       <Path path={animatedPath} style="stroke" strokeWidth={thickness}>
