@@ -3,7 +3,7 @@ package com.freetune
 import kotlin.math.*
 
 internal class RecordingPolish(rate: Int) {
-    private val equalizers = arrayOf(380.0 to -2.5, 3200.0 to -3.5).map { (frequency, db) ->
+    private val equalizers = arrayOf(380.0 to -1.5, 3200.0 to -1.0).map { (frequency, db) ->
         val a = 10.0.pow(db / 40)
         val w = 2 * PI * frequency / rate
         val alpha = sin(w) / 1.6
@@ -17,8 +17,8 @@ internal class RecordingPolish(rate: Int) {
     private val envelopeRate = exp(-1.0 / (.025 * rate))
     private val attack = exp(-1.0 / (.015 * rate))
     private val release = exp(-1.0 / (.25 * rate))
-    private val delays = doubleArrayOf(.0437, .0573, .0719, .0893, .1091, .1317).map { DoubleArray((it * rate).toInt()) }
-    private val diffusion = doubleArrayOf(.005, .0017).map { DoubleArray((it * rate).toInt()) }
+    private val delays = doubleArrayOf(.0437, .0573, .0719, .0893, .1091, .1317).map { DoubleArray((it * rate).toInt()) }.toTypedArray()
+    private val diffusion = doubleArrayOf(.005, .0017).map { DoubleArray((it * rate).toInt()) }.toTypedArray()
     private val diffusionPositions = IntArray(diffusion.size)
     private val positions = IntArray(delays.size)
     private val damping = DoubleArray(delays.size)
@@ -54,7 +54,8 @@ internal class RecordingPolish(rate: Int) {
             val delayed = diffusion[i][diffusionPositions[i]]
             val output = delayed - .55 * diffuse
             diffusion[i][diffusionPositions[i]] = diffuse + .55 * output
-            diffusionPositions[i] = (diffusionPositions[i] + 1) % diffusion[i].size
+            diffusionPositions[i]++
+            if (diffusionPositions[i] == diffusion[i].size) diffusionPositions[i] = 0
             diffuse = output
         }
         var room = 0.0
@@ -62,10 +63,11 @@ internal class RecordingPolish(rate: Int) {
             val delayed = delays[i][positions[i]]
             damping[i] = roomDamping * damping[i] + (1 - roomDamping) * delayed
             delays[i][positions[i]] = diffuse + .48 * damping[i]
-            positions[i] = (positions[i] + 1) % delays[i].size
+            positions[i]++
+            if (positions[i] == delays[i].size) positions[i] = 0
             room += delayed
         }
-        val mixed = dry + .12 * room / delays.size
+        val mixed = dry + .65 * room / delays.size
         val ceiling = min(1.0, .88 / max(abs(mixed), 1e-12))
         limiter = if (ceiling < limiter) ceiling else release * limiter + (1 - release) * ceiling
         return (mixed * limiter).coerceIn(-.88, .88)

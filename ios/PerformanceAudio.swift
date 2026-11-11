@@ -11,7 +11,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     private var lastTake: URL?
     private var startedAt: Date?
     private var processing = Set<String>()
-    private let worker = DispatchQueue(label: "recording.polish", qos: .utility)
+    private let worker = DispatchQueue(label: "recording.polish", qos: .userInitiated)
     private var observers: [NSObjectProtocol] = []
     private var directory: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("performances", isDirectory: true)
@@ -229,7 +229,7 @@ private struct RecordingPolish {
     var damping = [Double](repeating: 0, count: 6)
     var previous = 0.0, filtered = 0.0, power = 0.0, gain = 1.0, limiter = 1.0
     init(rate: Double) {
-        equalizers = [(380.0, -2.5), (3200.0, -3.5)].map { frequency, db in
+        equalizers = [(380.0, -1.5), (3200.0, -1.0)].map { frequency, db in
             let a = pow(10.0, db / 40)
             let w = 2 * Double.pi * frequency / rate
             let alpha = sin(w) / 1.6
@@ -270,7 +270,8 @@ private struct RecordingPolish {
             let delayed = diffusion[i][diffusionPositions[i]]
             let output = delayed - 0.55 * diffuse
             diffusion[i][diffusionPositions[i]] = diffuse + 0.55 * output
-            diffusionPositions[i] = (diffusionPositions[i] + 1) % diffusion[i].count
+            diffusionPositions[i] += 1
+            if diffusionPositions[i] == diffusion[i].count { diffusionPositions[i] = 0 }
             diffuse = output
         }
         var room = 0.0
@@ -278,10 +279,11 @@ private struct RecordingPolish {
             let delayed = delays[i][positions[i]]
             damping[i] = roomDamping * damping[i] + (1 - roomDamping) * delayed
             delays[i][positions[i]] = diffuse + 0.48 * damping[i]
-            positions[i] = (positions[i] + 1) % delays[i].count
+            positions[i] += 1
+            if positions[i] == delays[i].count { positions[i] = 0 }
             room += delayed
         }
-        let mixed = dry + 0.12 * room / Double(delays.count)
+        let mixed = dry + 0.65 * room / Double(delays.count)
         let ceiling = min(1, 0.88 / max(abs(mixed), 1e-12))
         limiter = ceiling < limiter ? ceiling : release * limiter + (1 - release) * ceiling
         return min(0.88, max(-0.88, mixed * limiter))

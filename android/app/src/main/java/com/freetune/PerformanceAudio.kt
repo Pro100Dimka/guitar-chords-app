@@ -191,6 +191,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             val output = File(directory, file.nameWithoutExtension + ".processing.m4a")
             var state = "saved"
             try {
+                runCatching { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_FOREGROUND) }
                 val date = file.lastModified()
                 renderPolished(file, output)
                 require(output.length() > 0)
@@ -279,6 +280,25 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                     if (end || offset >= (bytes?.size ?: 0)) break
                 }
             }
+            fun encodeBuffer(buffer: java.nio.ByteBuffer, size: Int) {
+                val end = buffer.position() + size
+                while (buffer.position() < end) {
+                    drain()
+                    guardProgress()
+                    val index = writer.dequeueInputBuffer(10000)
+                    if (index < 0) continue
+                    val target = writer.getInputBuffer(index)!!
+                    target.clear()
+                    val count = minOf(end - buffer.position(), target.remaining()) / 2 * 2
+                    val start = buffer.position()
+                    buffer.limit(start + count)
+                    target.put(buffer)
+                    buffer.limit(end)
+                    writer.queueInputBuffer(index, 0, count, samples * 1_000_000 / rate, 0)
+                    samples += count / 2
+                    lastProgress = System.nanoTime()
+                }
+            }
             var inputEnd = false
             var decodedEnd = false
             val info = MediaCodec.BufferInfo()
@@ -303,10 +323,18 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                     val buffer = reader.getOutputBuffer(index)!!.order(ByteOrder.LITTLE_ENDIAN)
                     buffer.position(info.offset)
                     buffer.limit(info.offset + info.size)
-                    val bytes = ByteArray(info.size)
-                    val result = java.nio.ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-                    while (buffer.remaining() >= 2) result.putShort((effect.process(buffer.short / 32768.0) * 32767).toInt().toShort())
-                    if (bytes.isNotEmpty()) encode(bytes)
+                    var sample = info.offset
+                    val end = info.offset + info.size - 1
+                    while (sample < end) {
+                        val input = buffer.getShort(sample) / 32768.0
+                        buffer.putShort(sample, (effect.process(input) * 32767).toInt().toShort())
+                        sample += 2
+                    }
+                    if (info.size > 0) {
+                        buffer.position(info.offset)
+                        buffer.limit(info.offset + info.size)
+                        encodeBuffer(buffer, info.size)
+                    }
                     decodedEnd = info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
                     reader.releaseOutputBuffer(index, false)
                     lastProgress = System.nanoTime()

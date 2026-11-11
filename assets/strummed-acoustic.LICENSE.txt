@@ -2,9 +2,11 @@ Private audition assets: Session Guitarist - Strummed Acoustic (Native Instrumen
 
 Contains 24 major/minor chords, three downstrokes and three upstrokes each,
 with recorded decay tails, plus single-note samples for exact voicings.
-Upper-string re-attack peaks are reduced selectively, preserving the original
-attack and decay rather than substituting a later tail. Retrigger fades use
-240 ms in rhythm playback.
+Re-attack peaks are reduced using each stroke's measured spectral envelope
+and attack-to-decay transition. The approved Am processing is retained.
+Original phase and tail timing are preserved; rhythm retrigger fades use
+240 ms. Processing details: Chord-decay-repair/processing.json in the local
+audition output directory.
 Source: locally installed library. Prepared for the owner's private listening
 and device evaluation. These assets are not openly licensed.
 
@@ -15,6 +17,6 @@ licensed for application embedding. Ownership of the instrument library does
 not by itself establish that permission.
 
 Audition source manifest: Strummed-Acoustic-24-long-tails/manifest.json.
-App encoding: stereo MP3, 96 kbps; native chord previews and single-note
+App encoding: mono MP3, 96 kbps; native chord previews and single-note
 fallbacks: mono PCM16, 22050 Hz. Original library rights remain with the
 respective rights holders.
