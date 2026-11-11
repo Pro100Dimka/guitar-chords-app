@@ -72,7 +72,9 @@ export function prepareGuitar(notes: number[], chord?: string) {
         mix[i + offset] +=
           (value *
             (0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, i / (rate * 0.012)))) *
-            Math.min(1, (length - i) / 900) *
+            (0.5 -
+              0.5 *
+                Math.cos(Math.PI * Math.min(1, (length - i) / (rate * 0.16)))) *
             0.7) /
           Math.sqrt(notes.length);
       }

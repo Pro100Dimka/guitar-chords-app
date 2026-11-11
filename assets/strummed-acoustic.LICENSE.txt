@@ -2,6 +2,9 @@ Private audition assets: Session Guitarist - Strummed Acoustic (Native Instrumen
 
 Contains 24 major/minor chords, three downstrokes and three upstrokes each,
 with recorded decay tails, plus single-note samples for exact voicings.
+Upper-string re-attack peaks are reduced selectively, preserving the original
+attack and decay rather than substituting a later tail. Retrigger fades use
+240 ms in rhythm playback.
 Source: locally installed library. Prepared for the owner's private listening
 and device evaluation. These assets are not openly licensed.
 

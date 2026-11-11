@@ -32,7 +32,6 @@ import {
   chordShapes,
   chordShapeOptions,
   easierPositions,
-  easiestShape,
   Frets,
   songChords,
   songChordSequence,
@@ -305,7 +304,7 @@ export function ChordSheet({
     () => options.slice(currentPage * 4, currentPage * 4 + 4),
     [options, currentPage]
   );
-  const defaultIndex = easiestShape(chord)?.index;
+  const defaultIndex = chordShapeOptions(chord)[0]?.index;
   useEffect(() => {
     visible.forEach(({ frets, index }) =>
       prepareGuitar(
@@ -736,9 +735,11 @@ function RhythmPlayer({
     const selected: Record<string, number> = JSON.parse(shapesKey);
     const names = progressionKey.split(" ");
     const entries = names.map((chord) => {
-      const easiest = easiestShape(chord);
-      const chosen = selected[chord] ?? easiest?.index;
-      return chosen === easiest?.index ? recordedChord(chord, capo) : undefined;
+      const standard = chordShapeOptions(chord)[0];
+      const chosen = selected[chord] ?? standard?.index;
+      return chosen === standard?.index
+        ? recordedChord(chord, capo)
+        : undefined;
     });
     return {
       bank: [...new Set(entries)].flatMap((entry) =>
@@ -747,7 +748,8 @@ function RhythmPlayer({
       chordBank: entries.map((entry) => entry?.name ?? null),
       frequencies: names.map((chord) => {
         const frets =
-          chordShapes(chord)[selected[chord]] ?? easiestShape(chord)?.frets;
+          chordShapes(chord)[selected[chord]] ??
+          chordShapeOptions(chord)[0]?.frets;
         return (
           frets?.flatMap((fret, string) =>
             fret === null
@@ -801,18 +803,20 @@ function RhythmPlayer({
         chordBuffers[item.name]={down,up};
       }));
       bus=audio.createGain();bus.gain.value=.8;
-      const compressor=audio.createDynamicsCompressor();compressor.threshold.value=-8;compressor.knee.value=6;compressor.ratio.value=3;compressor.attack.value=.005;compressor.release.value=.16;
-      bus.connect(compressor);compressor.connect(audio.destination);
+      bus.connect(audio.destination);
     }
     function damp(voice,when){
-      if(!voice||voice.stoppedAt<=when)return;
+      if(!voice||voice.stoppedAt<=when+.24)return;
       if(when<voice.when){voice.stoppedAt=when;voice.source.stop();return;}
       const gain=voice.gain.gain;
+      const elapsed=when-voice.when;
+      const level=voice.level*Math.min(1,elapsed/.006)*(voice.muted?Math.pow(.001/voice.level,Math.min(1,Math.max(0,elapsed-.006)/.064)):1);
       if(gain.cancelAndHoldAtTime)gain.cancelAndHoldAtTime(when);else{
-        const elapsed=when-voice.when,level=voice.level*Math.min(1,elapsed/.006)*(voice.muted?Math.exp(-Math.max(0,elapsed-.006)*85):1);
         gain.cancelScheduledValues(when);gain.setValueAtTime(level,when);
       }
-      gain.linearRampToValueAtTime(0,when+.045);voice.source.stop(when+.05);voice.stoppedAt=when+.05;
+      const duration=.24;
+      for(let i=1;i<=16;i++)gain.linearRampToValueAtTime(level*(.5+.5*Math.cos(Math.PI*i/16)),when+duration*i/16);
+      voice.source.stop(when+duration);voice.stoppedAt=when+duration;
     }
     function sound(buffer,rate,when,muted,volume,slot){
       damp(voices[slot],when);
@@ -831,7 +835,7 @@ function RhythmPlayer({
         if(practice&&next>=start+60)break;
         const position=step++,index=position%pattern.length,hit=pattern[index],chordIndex=Math.floor(position/(meter*2))%chords.length;
         if(hit!=='-'){
-          const dynamics=(index%(meter*2)===0?1:.91),name=chordBank[chordIndex],recorded=chordBuffers[name];
+          const dynamics=1,name=chordBank[chordIndex],recorded=chordBuffers[name];
           if(recorded){
             voices.forEach(voice=>damp(voice,next));
             const direction=hit==='U'?'up':'down',key=name+direction,variant=variants[key]??0;variants[key]=(variant+1)%3;
