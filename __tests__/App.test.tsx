@@ -7,8 +7,24 @@ import { initDatabase } from "../src/components/database";
 import { initLanguage } from "../src/locales";
 import SplashScreen from "react-native-splash-screen";
 import { Platform, Text } from "react-native";
+jest.mock("@shopify/react-native-skia", () => {
+  const fonts = {};
+  return { useFonts: () => fonts };
+});
+jest.mock("../assets/fonts", () => ({}));
 
-jest.mock("../src/router", () => () => null);
+let mockTunerReady: (() => void) | undefined;
+jest.mock("@react-navigation/native", () => ({
+  useNavigationContainerRef: () => ({
+    current: { getCurrentRoute: () => ({ name: "tuner" }) }
+  })
+}));
+jest.mock("../src/router", () => () => {
+  mockTunerReady = require("react").useContext(
+    require("../src/components/startup").TunerReadyContext
+  );
+  return null;
+});
 jest.mock("../src/components/support", () => () => null);
 jest.mock("../src/components/database", () => ({ initDatabase: jest.fn() }));
 jest.mock("../src/components/preferences", () => ({
@@ -35,6 +51,7 @@ test("renders correctly", async () => {
 });
 
 test("waits for database and language before mounting navigation and hiding splash", async () => {
+  jest.useFakeTimers();
   const originalOS = Platform.OS;
   Platform.OS = "android";
   let finishDatabase!: () => void;
@@ -63,10 +80,25 @@ test("waits for database and language before mounting navigation and hiding spla
     expect(screen!.root.findAllByType(Router)).toHaveLength(0);
     await ReactTestRenderer.act(async () => finishLanguage());
     expect(screen!.root.findAllByType(Router)).toHaveLength(1);
+    expect(SplashScreen.hide).not.toHaveBeenCalled();
+    await ReactTestRenderer.act(async () => {
+      const callbacks = new Set(
+        screen!.root
+          .findAll((node) => typeof node.props.onLoadEnd === "function")
+          .map((node) => node.props.onLoadEnd)
+      );
+      callbacks.forEach((callback) => callback());
+      screen!.root.findByType(Router).props.onReady();
+    });
+    await ReactTestRenderer.act(async () => jest.advanceTimersByTime(32));
+    expect(SplashScreen.hide).not.toHaveBeenCalled();
+    await ReactTestRenderer.act(async () => mockTunerReady?.());
+    await ReactTestRenderer.act(async () => jest.advanceTimersByTime(32));
     expect(SplashScreen.hide).toHaveBeenCalledTimes(1);
   } finally {
     if (screen) await ReactTestRenderer.act(() => screen!.unmount());
     Platform.OS = originalOS;
+    jest.useRealTimers();
   }
 });
 

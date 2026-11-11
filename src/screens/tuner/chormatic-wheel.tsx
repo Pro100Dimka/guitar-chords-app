@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Circle,
   Oval,
@@ -27,17 +27,26 @@ import fontFamilies from "../../../assets/fonts/index";
 
 const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 export function chromaticLayout(width: number, height: number) {
+  const landscape = width > height;
   const scale = Math.max(
     0.25,
-    Math.min(width / 410, height / 690, (height * 0.57 - 52) / 324, 1.4)
+    landscape
+      ? Math.min(height / 380, width / 800, 1.4)
+      : Math.min(width / 410, height / 690, (height * 0.57 - 52) / 324, 1.4)
   );
-  const centerY = height * 0.43;
-  const stripWidth = Math.min((width - 32) / scale, 320);
+  const centerY = height * (landscape ? 0.48 : 0.43);
+  const stripWidth = landscape
+    ? Math.min(240, width * 0.28) / scale
+    : Math.min((width - 32) / scale, 320);
+  const panelX = landscape ? (width * 0.33) / scale : 0;
+  const panelY = landscape ? (height * 0.55 - centerY) / scale - 246 : 0;
   const artworkScale = Math.max(scale * 0.82, width / 1024);
   return {
     scale,
     centerY,
     stripWidth,
+    panelX,
+    panelY,
     artworkScale,
     artwork: {
       width: 1024 * artworkScale,
@@ -45,8 +54,9 @@ export function chromaticLayout(width: number, height: number) {
       left: width / 2 - 518 * artworkScale,
       top: centerY - 1205 * artworkScale
     },
-    octaveTop: centerY + 324 * scale,
-    octaveWidth: stripWidth * scale - 20
+    octaveTop: centerY + (324 + panelY) * scale,
+    octaveWidth: stripWidth * scale - 20,
+    octaveLeft: width / 2 + panelX * scale - (stripWidth * scale - 20) / 2
   };
 }
 const { ink, muted } = palette.chromatic;
@@ -55,12 +65,14 @@ interface ChromaticWheelProps {
   note: SharedValue<INote | null>;
   width: number;
   height: number;
+  onReady?: () => void;
 }
 
 const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
   note,
   width,
-  height
+  height,
+  onReady
 }) => {
   const { t } = useTranslation();
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
@@ -69,10 +81,11 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
   const number = useFont(fontFamilies.Roboto[1], 18);
   const octaveFont = useFont(fontFamilies.Roboto[0], 25);
   const main = useFont(fontFamilies.Roboto[1], 80);
-  const { scale, centerY, stripWidth, artworkScale } = chromaticLayout(
-    width,
-    height
-  );
+  useEffect(() => {
+    if (small && label && number && octaveFont && main) onReady?.();
+  }, [small, label, number, octaveFont, main, onReady]);
+  const { scale, centerY, stripWidth, artworkScale, panelX, panelY } =
+    chromaticLayout(width, height);
   const spacing = (stripWidth - 16) / notes.length;
 
   useAnimatedReaction(
@@ -152,9 +165,6 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
   const frequency = currentNote
     ? `${currentNote.pitch.toFixed(2)} Hz`
     : t("TunerPlayNote");
-  const offset = currentNote
-    ? `${cents > 0 ? "+" : ""}${cents} ${t("TunerCents")}`
-    : t("TunerListening");
   const status = t(
     !currentNote
       ? "TunerListening"
@@ -175,7 +185,7 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
       <Group
         clip={{
           x: -width / scale,
-          y: (-205 * artworkScale) / scale,
+          y: (-221 * artworkScale) / scale,
           width: (2 * width) / scale,
           height: (500 * artworkScale) / scale
         }}
@@ -185,7 +195,7 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
           y={(-250 * artworkScale) / scale}
           width={(548 * artworkScale) / scale}
           height={(500 * artworkScale) / scale}
-          color="#080B0B"
+          color={palette.guitarDial.center}
         />
       </Group>
       <Circle cx={0} cy={3} r={148} color="#080C0E">
@@ -332,74 +342,85 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
       />
       <Text
         x={-label.getTextWidth(frequency) / 2}
-        y={56}
+        y={89}
         text={frequency}
         font={label}
         color={ink}
       />
-      <Text
-        x={-small.getTextWidth(offset) / 2}
-        y={89}
-        text={offset}
-        font={small}
-        color={inTune ? muted : "#FFCA3A"}
-      />
-      <RoundedRect
-        x={-stripWidth / 2}
-        y={246}
-        width={stripWidth}
-        height={78 + 52 / scale}
-        r={16}
-        color={palette.chromatic.panel}
-      />
-      <RoundedRect
-        x={-stripWidth / 2}
-        y={246}
-        width={stripWidth}
-        height={78 + 52 / scale}
-        r={16}
-        style="stroke"
-        strokeWidth={1}
-        color={palette.chromatic.border}
-      />
-      <Text
-        x={-small.getTextWidth(status) / 2}
-        y={270}
-        text={status}
-        font={small}
-        color={ink}
-      />
-      {notes.map((item, i) => {
-        const x = -stripWidth / 2 + 8 + spacing * i;
-        const active = currentNote?.name === item;
-        return (
-          <Group key={item}>
-            {active && (
-              <RoundedRect
-                x={x + 1}
-                y={282}
-                width={spacing - 2}
-                height={30}
-                r={7}
-                color={palette.chromatic.selected}
-              />
-            )}
-            <Text
-              x={x + (spacing - small.getTextWidth(item)) / 2}
-              y={302}
-              text={item}
-              font={small}
-              color={active ? palette.gold.ink : muted}
+      <Group transform={[{ translateX: panelX }, { translateY: panelY }]}>
+        {width > height && (
+          <RoundedRect
+            x={-stripWidth / 2}
+            y={250}
+            width={stripWidth}
+            height={68}
+            r={12}
+            color="rgba(8,11,11,0.85)"
+          />
+        )}
+        {width <= height && (
+          <>
+            <RoundedRect
+              x={-stripWidth / 2}
+              y={246}
+              width={stripWidth}
+              height={78 + 52 / scale}
+              r={16}
+              color={palette.chromatic.panel}
             />
-          </Group>
-        );
-      })}
-      <Line
-        p1={vec(-stripWidth / 2 + 20, 322)}
-        p2={vec(stripWidth / 2 - 20, 322)}
-        color={palette.glass.edge}
-        strokeWidth={1}
-      />
+            <RoundedRect
+              x={-stripWidth / 2}
+              y={246}
+              width={stripWidth}
+              height={78 + 52 / scale}
+              r={16}
+              style="stroke"
+              strokeWidth={1}
+              color={palette.chromatic.border}
+            />
+          </>
+        )}
+        <Text
+          x={-small.getTextWidth(status) / 2}
+          y={270}
+          text={status}
+          font={small}
+          color={ink}
+        />
+        {notes.map((item, i) => {
+          const x = -stripWidth / 2 + 8 + spacing * i;
+          const active = currentNote?.name === item;
+          return (
+            <Group key={item}>
+              {active && (
+                <RoundedRect
+                  x={x + 1}
+                  y={282}
+                  width={spacing - 2}
+                  height={30}
+                  r={7}
+                  color={palette.chromatic.selected}
+                />
+              )}
+              <Text
+                x={x + (spacing - small.getTextWidth(item)) / 2}
+                y={302}
+                text={item}
+                font={small}
+                color={active ? palette.gold.ink : muted}
+              />
+            </Group>
+          );
+        })}
+        {width <= height && (
+          <Line
+            p1={vec(-stripWidth / 2 + 20, 322)}
+            p2={vec(stripWidth / 2 - 20, 322)}
+            color={palette.glass.edge}
+            strokeWidth={1}
+          />
+        )}
+      </Group>
     </Group>
   );
 };

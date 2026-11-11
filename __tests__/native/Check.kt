@@ -1,4 +1,5 @@
 import com.freetune.MicrophoneStreamModule
+import com.freetune.RecordingPolish
 import com.facebook.react.bridge.ReactApplicationContext
 import android.media.AudioRecord
 import java.util.concurrent.TimeUnit
@@ -146,6 +147,34 @@ fun checkAccuracy(module: MicrophoneStreamModule, recordingsDirectory: File) {
     check(failures.isEmpty()) { "Pitch accuracy regression" }
 }
 fun main(args: Array<String>) {
+    for (rate in listOf(22050, 44100, 48000)) {
+        val silence = RecordingPolish(rate)
+        check((0 until rate).all { silence.process(0.0) == 0.0 })
+        fun rms(frequency: Double, level: Double): Double {
+            val effect = RecordingPolish(rate)
+            var energy = 0.0
+            for (i in 0 until rate * 2) {
+                val value = effect.process(level * sin(2 * PI * frequency * i / rate))
+                check(value.isFinite() && abs(value) <= .880001)
+                if (i >= rate) energy += value * value
+            }
+            return sqrt(energy / rate)
+        }
+        check(rms(20.0, .2) < rms(440.0, .2) * .4)
+        check(rms(440.0, .02) > .02 / sqrt(2.0) * .6)
+        println("Tone balance $rate: ${rms(380.0, .02)}, ${rms(1000.0, .02)}, ${rms(3200.0, .02)}")
+        check(rms(380.0, .02) < rms(1000.0, .02))
+        check(rms(3200.0, .02) < rms(1000.0, .02))
+        check(rms(440.0, 1.0) / rms(440.0, .1) < 8)
+        val impulse = RecordingPolish(rate)
+        impulse.process(1.0)
+        var tail = 0.0
+        repeat(rate / 4) { i -> val value = impulse.process(0.0); if (i > rate / 50) tail += value * value }
+        check(tail > .00001)
+        repeat(rate * 3) { impulse.process(0.0) }
+        check(abs(impulse.process(0.0)) < .00001)
+    }
+    println("Recording polish: silence, rumble, gain, compression, limiting and room decay passed at three sample rates.")
     val context = ReactApplicationContext()
     val module = MicrophoneStreamModule(context)
     try {

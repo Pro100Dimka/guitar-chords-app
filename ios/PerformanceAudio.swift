@@ -10,6 +10,8 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     private var cue: AVAudioPlayer?
     private var lastTake: URL?
     private var startedAt: Date?
+    private var processing = Set<String>()
+    private let worker = DispatchQueue(label: "recording.polish", qos: .utility)
     private var observers: [NSObjectProtocol] = []
     private var directory: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("performances", isDirectory: true)
@@ -70,7 +72,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         capture.stop()
         if duration >= 0.2 {
             lastTake = capture.url
-            emit("saved", uri: capture.url.path)
+            polish(capture.url)
         } else {
             try? FileManager.default.removeItem(at: capture.url)
             lastTake = nil
@@ -91,15 +93,15 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         do {
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
             let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey])
-            let rows: [[String: Any]] = try files.filter { $0.lastPathComponent.hasPrefix("song-\(songId)-") && $0.pathExtension == "m4a" && $0 != recorder?.url }.map { url in
+            let rows: [[String: Any]] = try files.filter { $0.lastPathComponent.hasPrefix("song-\(songId)-") && $0.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.m4a$", options: .regularExpression) != nil && $0 != recorder?.url }.map { url in
                 let values = try url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
-                return ["path": url.path, "date": (values.contentModificationDate ?? .distantPast).timeIntervalSince1970 * 1000, "bytes": values.fileSize ?? 0]
+                return ["path": url.path, "date": (values.contentModificationDate ?? .distantPast).timeIntervalSince1970 * 1000, "bytes": values.fileSize ?? 0, "processing": processing.contains(url.path)]
             }
             resolve(rows.sorted { ($0["date"] as? Double ?? 0) > ($1["date"] as? Double ?? 0) })
         } catch { reject("FILES_FAILED", "Could not load recordings", error) }
     }
     @objc func playTake(_ path: String, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
-        guard recorder == nil else { reject("RECORDING_BUSY", "Recording in progress", nil); return }
+        guard recorder == nil, !processing.contains(path) else { reject("RECORDING_BUSY", "Recording in progress", nil); return }
         stopPlayback()
         do {
             let session = AVAudioSession.sharedInstance()
@@ -120,7 +122,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         if wasPlaying { emit("stopped") }
     }
     @objc func deleteTake(_ path: String, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
-        guard recorder == nil else { reject("RECORDING_BUSY", "Recording in progress", nil); return }
+        guard recorder == nil, !processing.contains(path) else { reject("RECORDING_BUSY", "Recording in progress", nil); return }
         do { stopPlayback(); try FileManager.default.removeItem(at: localFile(path)); resolve(true) }
         catch { reject("DELETE_FAILED", "Could not delete recording", error) }
     }
@@ -133,6 +135,10 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     }
     @objc func playGuitar(_ wave: String) {
         guard recorder == nil, wave.count <= 400000, let data = Data(base64Encoded: wave) else { return }
+        let previous = cue
+        cue = nil
+        previous?.setVolume(0, fadeDuration: 0.016)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { previous?.stop() }
         stopPlayback()
         do {
             let session = AVAudioSession.sharedInstance()
@@ -145,6 +151,55 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             cue?.play()
         } catch { cue = nil }
     }
+    private func polish(_ url: URL) {
+        processing.insert(url.path)
+        emit("processing", uri: url.path)
+        worker.async { [self] in
+            let output = url.deletingPathExtension().appendingPathExtension("processing.m4a")
+            var state = "saved"
+            do {
+                let date = try url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
+                try autoreleasepool { try Self.renderPolished(url, output: output) }
+                _ = try FileManager.default.replaceItemAt(url, withItemAt: output)
+                if let date = date { try? FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: url.path) }
+            } catch { state = "processingFailed" }
+            try? FileManager.default.removeItem(at: output)
+            let completedState = state
+            DispatchQueue.main.async { [self] in
+                processing.remove(url.path)
+                emit(completedState, uri: url.path)
+            }
+        }
+    }
+    private static func renderPolished(_ input: URL, output: URL) throws {
+        let reader = try AVAudioFile(forReading: input, commonFormat: .pcmFormatFloat32, interleaved: false)
+        let format = reader.processingFormat
+        guard format.channelCount == 1, reader.length > 0,
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4096) else {
+            throw NSError(domain: "PerformanceAudio", code: 4)
+        }
+        let writer = try AVAudioFile(forWriting: output, settings: [
+            AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: format.sampleRate,
+            AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 160000
+        ], commonFormat: .pcmFormatFloat32, interleaved: false)
+        var effect = RecordingPolish(rate: format.sampleRate)
+        while reader.framePosition < reader.length {
+            try reader.read(into: buffer)
+            guard buffer.frameLength > 0, let samples = buffer.floatChannelData?[0] else {
+                throw NSError(domain: "PerformanceAudio", code: 5)
+            }
+            for index in 0..<Int(buffer.frameLength) { samples[index] = Float(effect.process(Double(samples[index]))) }
+            try writer.write(from: buffer)
+        }
+        var tail = Int(format.sampleRate)
+        while tail > 0 {
+            buffer.frameLength = AVAudioFrameCount(min(tail, Int(buffer.frameCapacity)))
+            guard let samples = buffer.floatChannelData?[0] else { break }
+            for index in 0..<Int(buffer.frameLength) { samples[index] = Float(effect.process(0) * min(1, Double(tail - index - 1) / (format.sampleRate * 0.08))) }
+            try writer.write(from: buffer)
+            tail -= Int(buffer.frameLength)
+        }
+    }
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         if player === self.player { stopPlayback() }
     }
@@ -156,5 +211,79 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     }
     func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
         if recorder === self.recorder { finishTake(); emit("error") }
+    }
+}
+
+private struct RecordingPolish {
+    let equalizers: [[Double]]
+    var eqState = [[Double]](repeating: [0, 0], count: 2)
+    let roomDamping: Double
+    let highPass: Double
+    let envelopeRate: Double
+    let attack: Double
+    let release: Double
+    var delays: [[Double]]
+    var diffusion: [[Double]]
+    var diffusionPositions = [Int](repeating: 0, count: 2)
+    var positions = [Int](repeating: 0, count: 6)
+    var damping = [Double](repeating: 0, count: 6)
+    var previous = 0.0, filtered = 0.0, power = 0.0, gain = 1.0, limiter = 1.0
+    init(rate: Double) {
+        equalizers = [(380.0, -2.5), (3200.0, -3.5)].map { frequency, db in
+            let a = pow(10.0, db / 40)
+            let w = 2 * Double.pi * frequency / rate
+            let alpha = sin(w) / 1.6
+            let divisor = 1 + alpha / a
+            return [(1 + alpha * a) / divisor, -2 * cos(w) / divisor,
+                    (1 - alpha * a) / divisor, -2 * cos(w) / divisor, (1 - alpha / a) / divisor]
+        }
+        roomDamping = exp(-2 * .pi * 2400 / rate)
+        highPass = exp(-2 * .pi * 75 / rate)
+        envelopeRate = exp(-1 / (0.025 * rate))
+        attack = exp(-1 / (0.015 * rate))
+        release = exp(-1 / (0.25 * rate))
+        diffusion = [0.005, 0.0017].map { [Double](repeating: 0, count: Int($0 * rate)) }
+        delays = [0.0437, 0.0573, 0.0719, 0.0893, 0.1091, 0.1317].map { [Double](repeating: 0, count: Int($0 * rate)) }
+    }
+    mutating func process(_ input: Double) -> Double {
+        let sample = input.isFinite ? input : 0
+        filtered = highPass * (filtered + sample - previous)
+        previous = sample
+        var tone = filtered
+        for i in equalizers.indices {
+            let c = equalizers[i]
+            let output = c[0] * tone + eqState[i][0]
+            eqState[i][0] = c[1] * tone - c[3] * output + eqState[i][1]
+            eqState[i][1] = c[2] * tone - c[4] * output
+            tone = output
+        }
+        power = envelopeRate * power + (1 - envelopeRate) * tone * tone
+        let level = sqrt(power)
+        let compression = level > 0.15 ? sqrt(0.15 / level) : 1
+        let quiet = 0.85 + 0.15 * min(1, max(0, level / 0.002))
+        let target = 1.05 * compression * quiet
+        let smoothing = target < gain ? attack : release
+        gain = smoothing * gain + (1 - smoothing) * target
+        let dry = tone * gain
+        var diffuse = dry
+        for i in diffusion.indices {
+            let delayed = diffusion[i][diffusionPositions[i]]
+            let output = delayed - 0.55 * diffuse
+            diffusion[i][diffusionPositions[i]] = diffuse + 0.55 * output
+            diffusionPositions[i] = (diffusionPositions[i] + 1) % diffusion[i].count
+            diffuse = output
+        }
+        var room = 0.0
+        for i in delays.indices {
+            let delayed = delays[i][positions[i]]
+            damping[i] = roomDamping * damping[i] + (1 - roomDamping) * delayed
+            delays[i][positions[i]] = diffuse + 0.48 * damping[i]
+            positions[i] = (positions[i] + 1) % delays[i].count
+            room += delayed
+        }
+        let mixed = dry + 0.12 * room / Double(delays.count)
+        let ceiling = min(1, 0.88 / max(abs(mixed), 1e-12))
+        limiter = ceiling < limiter ? ceiling : release * limiter + (1 - release) * ceiling
+        return min(0.88, max(-0.88, mixed * limiter))
     }
 }

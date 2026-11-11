@@ -1,4 +1,4 @@
-import React, { FC, useEffect, useState } from "react";
+import React, { FC, useContext, useEffect, useState } from "react";
 import checkMicPermission from "@/components/permissions";
 import { useTranslation } from "react-i18next";
 import { View, StyleSheet, Linking, Platform, AppState } from "react-native";
@@ -8,11 +8,13 @@ import Tuner from "./tuner";
 import { useIsFocused } from "@react-navigation/native";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Action } from "../song/tools";
+import { TunerReadyContext } from "../../components/startup";
 
 const RequireMicAccess: FC = () => {
   const { t } = useTranslation();
   const isFocused = useIsFocused();
-  const [hasPermission, setHasPermission] = useState(false);
+  const reportReady = useContext(TunerReadyContext);
+  const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [appState, setAppState] = useState(AppState.currentState ?? "active");
   const openAppSettings = async () =>
     Platform.OS === "ios"
@@ -30,6 +32,7 @@ const RequireMicAccess: FC = () => {
       } catch (error) {
         console.error("Microphone permission check failed:", error);
         if (mounted) setHasPermission(false);
+        if (mounted) setHasPermission(false);
       } finally {
         pending = false;
       }
@@ -37,7 +40,7 @@ const RequireMicAccess: FC = () => {
     void refreshPermission(true);
     const subscription = AppState.addEventListener("change", (state) => {
       setAppState(state);
-      if (state !== "active") setHasPermission(false);
+      if (state !== "active") setHasPermission(null);
       if (state === "active") void refreshPermission(false);
     });
     return () => {
@@ -46,9 +49,10 @@ const RequireMicAccess: FC = () => {
     };
   }, []);
 
-  if (!isFocused || appState !== "active") return null;
+  if (!isFocused || appState !== "active" || hasPermission === null)
+    return null;
   return !hasPermission ? (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={reportReady}>
       <MaterialCommunityIcons
         name="microphone-outline"
         size={64}

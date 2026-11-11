@@ -1,6 +1,7 @@
 const initialValues = {
   id: 0,
   title: "",
+  cover: "",
   content: "",
   youtube_music: "",
   youtobe_lesson: "",

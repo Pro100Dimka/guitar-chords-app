@@ -12,7 +12,7 @@ import Text from "../styled-text";
 
 interface IDropdownProps {
   value?: string;
-  options: { label: string; value: string }[];
+  options: { label: React.ReactNode; value: string }[];
   onSelect: (_: string) => void;
   style?: any;
 }
@@ -31,7 +31,7 @@ const Dropdown: React.FC<IDropdownProps> = ({
   style
 }) => {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(value ?? null);
   const [layout, setLayout] = useState({ x: 0, y: 0, width: 0, height: 0 });
   const ref = useRef<View>(null);
   useEffect(() => {

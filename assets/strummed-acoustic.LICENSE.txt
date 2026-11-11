@@ -1,0 +1,17 @@
+Private audition assets: Session Guitarist - Strummed Acoustic (Native Instruments).
+
+Contains 24 major/minor chords, three downstrokes and three upstrokes each,
+with recorded decay tails, plus single-note samples for exact voicings.
+Source: locally installed library. Prepared for the owner's private listening
+and device evaluation. These assets are not openly licensed.
+
+No permission to redistribute these samples inside an application has been
+established. Do not publish or distribute builds containing this bank until
+appropriate permission has been obtained, or replace the bank with assets
+licensed for application embedding. Ownership of the instrument library does
+not by itself establish that permission.
+
+Audition source manifest: Strummed-Acoustic-24-long-tails/manifest.json.
+App encoding: stereo MP3, 96 kbps; native chord previews and single-note
+fallbacks: mono PCM16, 22050 Hz. Original library rights remain with the
+respective rights holders.

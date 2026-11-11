@@ -1,0 +1,127 @@
+{
+  "build": 6,
+  "version": "1.0",
+  "status": "candidate_not_cleared_for_public_submission",
+  "design_changes": false,
+  "checks": {
+    "javascript": {
+      "suites": 10,
+      "tests": 71,
+      "status": "passed"
+    },
+    "typescript": "passed",
+    "eslint": "passed",
+    "sqlite": "passed: CRUD, parameterized search, transaction rollback, migration adoption and newer schema rejection",
+    "android_pitch": {
+      "synthetic_cases": 270,
+      "worst_error_cents": 0.353521,
+      "string_transitions": 180,
+      "decay_sequences": 12,
+      "capture_cycles": 200,
+      "status": "passed with deterministic hardware stubs"
+    },
+    "audio_bank": {
+      "takes": 144,
+      "peak": 0.759713,
+      "status": "decoded without clipping; not physical playback verification"
+    },
+    "dependency_audit": {
+      "critical": 0,
+      "high": 0,
+      "moderate": 0,
+      "low": 4,
+      "note": "Remaining warnings are React Native CLI/deepmerge build tooling; do not downgrade CLI to an incompatible major version to silence audit."
+    },
+    "android_bundle": "passed: signed upload certificate verified; ZIP integrity; 144 embedded strums; all 21 arm64 libraries have >=16KB ELF segment alignment. Google Play processing and actual 16KB device execution remain untested.",
+    "ios_javascript": "passed: production bundle created; native archive not built on Windows",
+    "ios_native": "not run: requires macOS/Xcode",
+    "device_tests": "owner to perform",
+    "store_billing": "requires store product and sandbox testers"
+  },
+  "privacy_forms_draft": [
+    {
+      "data": "Microphone and performance audio",
+      "flow": "Processed locally; tuner audio not retained; recordings kept in app storage. Export only on request.",
+      "declaration": "Local processing alone is not server collection. Review user-selected export destinations separately."
+    },
+    {
+      "data": "Songs, artist, cover, reading preferences",
+      "flow": "Local SQLite/preferences and user-exported JSON backups. No developer backend.",
+      "declaration": "No developer collection observed."
+    },
+    {
+      "data": "YouTube/GitHub player traffic",
+      "flow": "Embedded wrapper loads on opening a song with a video URL. Third parties receive network/device information; cookies may be processed.",
+      "declaration": "Unresolved: confirm current provider practices and platform definitions before completing privacy labels. Do not blanket-declare no data collected."
+    },
+    {
+      "data": "Purchases",
+      "flow": "App Store/Google Play handles payment. Client receives purchase identifiers/state to finish optional consumable support.",
+      "declaration": "Review platform payment exceptions and SDK disclosure with actual product configuration."
+    },
+    {
+      "data": "Support email",
+      "flow": "Only if a user contacts the developer; email and message used for correspondence.",
+      "declaration": "Document retention and deletion handling as in the privacy policy."
+    }
+  ],
+  "phone_checklist": [
+    "Tune every string with deliberate sharp/flat offsets, then let it decay. Check octave stability.",
+    "Run tuner for 10 minutes including sustained voice; switch guitar/chromatic and selected octaves.",
+    "Lock/unlock, background/return and interrupt audio. Check recovery and microphone release.",
+    "Listen to slow/fast rhythms, rapidly switch previews, verify up/down pattern and F/E chords without clicks.",
+    "Preview different fingerings and use capo/transposition; compare sounding pitches with diagrams.",
+    "Create/edit a song with cover, restart, verify favorites and reading/rhythm settings.",
+    "Export backup, preview/restore, verify covers and settings; cancellation must preserve existing data.",
+    "Record while auto-scrolling; replay/export/delete. Check loud and quiet performances. Recordings are not in library backup.",
+    "Deny microphone permission, then enable it in device settings. Test offline mode.",
+    "Check portrait/landscape, large text and keyboard on a small phone. No overlap or unreachable controls.",
+    "When accounts exist, verify purchases, cancellation, pending state and recovery through store sandbox."
+  ],
+  "outstanding": [
+    {
+      "item": "Audio embedding permission",
+      "action": "Obtain written permission covering this app sample bank, or replace it with suitable assets. Processing/WAV conversion does not establish permission.",
+      "source": "https://www.native-instruments.com/pages/end-user-license-agreement"
+    },
+    {
+      "item": "Public privacy/support URLs",
+      "action": "Publish docs/privacy.html at a stable public HTTPS URL controlled by the developer, provide a support page and enter both URLs in store metadata. No URL is invented."
+    },
+    {
+      "item": "Physical Android and iPhone testing",
+      "action": "Complete phone checklist; record model/OS/results."
+    },
+    {
+      "item": "iOS archive",
+      "action": "On macOS install pods, select signing team, build/archive, verify Privacy Report/SDK manifests and run test-ios-pitch.py plus microphone/recording tests."
+    },
+    {
+      "item": "Store configuration",
+      "action": "Register identifier com.freetune or change identifiers consistently if unavailable. Configure consumable freetune_support, taxes, pricing and tester access."
+    },
+    {
+      "item": "Store screenshots and forms",
+      "action": "Capture final device screens, review data-safety/age-rating/rights answers. Do not submit preview collages as genuine device screenshots."
+    }
+  ],
+  "signing": {
+    "upload_key": "E:/Releases/FreeTune/signing/freetune-upload.p12",
+    "alias": "freetune-upload",
+    "private_password_file": "E:/Releases/FreeTune/signing/upload-password.txt",
+    "certificate_sha256": "0D6D0E8E0CBA8606B059F6E144E36ACEB8321E8007CFF00819E07F583ADECB72",
+    "note": "Keep key/password backed up privately. Never upload the password file with store materials. RC5 sideload APK uses debug signing and cannot be updated directly with a differently signed build; export data before changing installation channel."
+  },
+  "sources": [
+    "https://support.google.com/googleplay/android-developer/answer/11926878?hl=en",
+    "https://developer.android.com/guide/practices/page-sizes",
+    "https://developer.apple.com/app-store/app-privacy-details/",
+    "https://developer.apple.com/app-store/review/guidelines/",
+    "https://www.native-instruments.com/pages/end-user-license-agreement"
+  ],
+  "artifacts": {
+    "aab": "E:/Releases/FreeTune/FreeTune-1.0-rc6.aab",
+    "aab_sha256": "dc8c2005ebe9a9c7f1de0065b6d182625673198d84103e8eeb17afffa365925d",
+    "version_code": 6
+  }
+}

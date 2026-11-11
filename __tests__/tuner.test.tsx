@@ -26,7 +26,9 @@ jest.mock("@shopify/react-native-skia", () => ({
   Group: "Group"
 }));
 jest.mock("react-native-reanimated", () => ({
-  useSharedValue: () => ({ value: 0 })
+  useSharedValue: (value: unknown) =>
+    require("react").useRef({ value }).current,
+  withTiming: (value: unknown) => value
 }));
 jest.mock("react-native-worklets", () => ({ runOnJS: (fn: unknown) => fn }));
 jest.mock("react-native-gesture-handler", () => ({
@@ -40,7 +42,11 @@ jest.mock("../src/screens/tuner/strings", () => ({
   default: () => null
 }));
 jest.mock("../src/screens/tuner/note-indicator", () => () => null);
-jest.mock("../src/screens/tuner/chormatic-wheel", () => () => null);
+jest.mock("../src/screens/tuner/chormatic-wheel", () => ({
+  __esModule: true,
+  default: () => null,
+  chromaticLayout: () => ({ octaveLeft: 0, octaveTop: 0, octaveWidth: 100 })
+}));
 jest.mock("../src/screens/tuner/chormatic", () => () => null);
 jest.mock("../src/screens/tuner/buttons", () => () => null);
 jest.mock("../src/screens/tuner/config", () => ({
@@ -60,6 +66,22 @@ afterEach(async () => {
   if (screen) await act(async () => screen.unmount());
   jest.restoreAllMocks();
   jest.clearAllMocks();
+  jest.useRealTimers();
+});
+
+test("a stalled microphone restarts after three seconds and stops recovery when unmounted", async () => {
+  jest.useFakeTimers();
+  await act(async () => {
+    screen = Renderer.create(<Tuner />);
+  });
+  expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(1);
+  await act(async () => jest.advanceTimersByTime(3000));
+  expect(MicrophoneStream.stopRecording).toHaveBeenCalledTimes(1);
+  expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(2);
+  await act(async () => screen.unmount());
+  const starts = jest.mocked(MicrophoneStream.startRecording).mock.calls.length;
+  await act(async () => jest.advanceTimersByTime(6000));
+  expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(starts);
 });
 
 test("manual mode releases guitar targets when switching to chromatic and restores them on return", async () => {

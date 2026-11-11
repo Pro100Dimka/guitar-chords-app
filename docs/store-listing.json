@@ -1,0 +1,43 @@
+{
+  "app_id": "com.freetune",
+  "version": "1.0",
+  "build": 6,
+  "category": "Music & Audio / Music",
+  "price": "Free",
+  "contact": {
+    "name": "Андреев Дмитрий",
+    "email": "pro100dimka.and@gmail.com"
+  },
+  "localizations": {
+    "ru": {
+      "title": "FreeTune: тюнер и аккорды",
+      "short_description": "Настраивайте гитару, храните песни, изучайте аккорды и записывайте исполнение.",
+      "description": "FreeTune помогает настроить гитару и играть любимые песни.\n\n• Гитарный и хроматический тюнер, готовые и собственные строи.\n• Личная библиотека песен: текст, аккорды, обложки и ссылки на видео.\n• Аппликатуры по грифу, транспонирование и каподастр.\n• Каталог боёв с прослушиванием и практика последовательности аккордов.\n• Автопрокрутка текста и запись исполнения на устройстве.\n• Импорт TXT и ChordPro, резервная копия библиотеки.\n\nОсновные функции работают без интернета. Для видео и добровольной поддержки через магазин нужно подключение. Реклама и обязательная регистрация отсутствуют.\n\nПесни добавляет пользователь. Аудиозаписи экспортируются отдельно от резервной копии библиотеки."
+    },
+    "uk": {
+      "title": "FreeTune: тюнер і акорди",
+      "short_description": "Налаштовуйте гітару, зберігайте пісні, вивчайте акорди й записуйте виконання.",
+      "description": "FreeTune допомагає налаштувати гітару та грати улюблені пісні.\n\n• Гітарний і хроматичний тюнер, готові й власні строї.\n• Особиста бібліотека: текст, акорди, обкладинки й відеопосилання.\n• Аплікатури по грифу, транспонування й каподастр.\n• Каталог боїв із прослуховуванням і практика акордів пісні.\n• Автопрокрутка тексту й запис виконання на пристрої.\n• Імпорт TXT та ChordPro, резервна копія бібліотеки.\n\nОсновні функції працюють без інтернету. Відео та добровільна підтримка через магазин потребують з’єднання. Без реклами й обов’язкової реєстрації.\n\nПісні додає користувач. Аудіозаписи експортуються окремо від резервної копії бібліотеки."
+    },
+    "en": {
+      "title": "FreeTune: Tuner & Chords",
+      "short_description": "Tune your guitar, organize songs, explore chords and record your performances.",
+      "description": "FreeTune helps you tune your guitar and play your favorite songs.\n\n• Guitar and chromatic tuners, preset and custom tunings.\n• Your song library with lyrics, chords, covers and video links.\n• Chord fingerings across the neck, transposition and capo settings.\n• Strumming patterns with playback and chord-sequence practice.\n• Auto-scrolling lyrics and local performance recording.\n• TXT and ChordPro import, plus library backup.\n\nCore features work offline. Videos and optional store-based developer support require an internet connection. No ads or mandatory account.\n\nUsers add their own songs. Export audio recordings separately from library backups."
+    }
+  },
+  "privacy_url": null,
+  "support_url": null,
+  "public_submission_ready": false,
+  "reviewer_notes": "No login is required. Allow microphone access for tuning or recording. Add a song with Am, C, G and Em on a chord line and original sample lyrics. Tap a chord to preview fingerings. Open song settings for rhythm playback and practice. Recording is local and starts only on user action. Library backups exclude recordings. The consumable freetune_support is optional and unlocks no features. Configure and test it in each store before review. Current Strummed Acoustic embedding rights remain unresolved; this candidate is not cleared for public submission.",
+  "screenshot_plan": [
+    "Guitar tuner with input",
+    "Chromatic tuner with input",
+    "Library with original demonstration songs",
+    "Song lyrics and controls",
+    "Distinct chord fingerings",
+    "Rhythm catalog",
+    "Practice",
+    "Local recording list"
+  ],
+  "screenshot_note": "Capture actual final builds on Android and iPhone. Existing collages are design previews, not verified store screenshots. Do not include commercial lyrics, performers or artwork without appropriate rights."
+}

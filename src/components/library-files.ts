@@ -3,9 +3,11 @@ import {
   isErrorWithCode,
   keepLocalCopy,
   pick,
+  types,
   saveDocuments
 } from "@react-native-documents/picker";
 import { Dirs, FileSystem } from "react-native-file-access";
+import ImageResizer from "@bam.tech/react-native-image-resizer";
 import { db } from "./database";
 import { getAllItems } from "./database/crud";
 import {
@@ -18,6 +20,55 @@ import {
 const maxBytes = 5 * 1024 * 1024;
 export const fileCanceled = (error: unknown) =>
   isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED;
+
+export async function readSongCover(uri?: string) {
+  let localUri: string | undefined;
+  let resizedUri: string | undefined;
+  try {
+    if (!uri) {
+      const [file] = await pick({
+        type: [types.images],
+        allowMultiSelection: false
+      });
+      if (file.size !== null && file.size > 20 * 1024 * 1024)
+        throw new Error("FileTooLarge");
+      const [copy] = await keepLocalCopy({
+        destination: "cachesDirectory",
+        files: [
+          {
+            uri: file.uri,
+            fileName: `cover-${Date.now()}.${file.name?.split(".").pop() ?? "jpg"}`
+          }
+        ]
+      });
+      if (copy.status !== "success") throw new Error("FileReadError");
+      localUri = copy.localUri;
+      if ((await FileSystem.stat(localUri)).size > 20 * 1024 * 1024)
+        throw new Error("FileTooLarge");
+    }
+    const resized = await ImageResizer.createResizedImage(
+      uri ?? localUri!,
+      384,
+      384,
+      "JPEG",
+      82,
+      uri ? 90 : 0,
+      undefined,
+      false,
+      { mode: "contain", onlyScaleDown: true }
+    );
+    resizedUri = resized.uri;
+    const cover = `data:image/jpeg;base64,${await FileSystem.readFile(resized.uri, "base64")}`;
+    if (cover.length > 300000) throw new Error("FileTooLarge");
+    return cover;
+  } finally {
+    await Promise.all(
+      [localUri, resizedUri]
+        .filter((path): path is string => !!path)
+        .map((path) => FileSystem.unlink(path).catch(() => undefined))
+    );
+  }
+}
 
 export async function readLibraryFile(kind: "song" | "backup") {
   const [file] = await pick({ allowMultiSelection: false });

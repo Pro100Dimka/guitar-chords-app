@@ -343,12 +343,19 @@ const SongDetail: React.FC = () => {
               { paddingBottom: Math.max(insets.bottom, 12) }
             ]}
           >
+            <SongRecorder
+              songId={songId}
+              active={focused && !tuner && !tools && !chord && !isEdit}
+              onStart={() => {
+                setVideos(false);
+                setPlaying(true);
+              }}
+            />
             <Action
               glass
               compact
-              primary
-              label={playing ? "Ⅱ" : t("ScrollLyrics")}
-              icon={playing ? "pause" : "play"}
+              label={t("ScrollLyrics")}
+              icon={playing ? "pause" : "chevron-double-down"}
               accessibilityLabel={playing ? t("Pause") : t("AutoScroll")}
               selected={playing}
               onPress={() => {
@@ -359,27 +366,10 @@ const SongDetail: React.FC = () => {
             <Action
               glass
               compact
-              label={t("Rhythm")}
-              icon="music-note-eighth"
-              onPress={() => {
-                setPlaying(false);
-                setTools("rhythm");
-              }}
-            />
-            <Action
-              glass
-              compact
               label="⚙"
-              icon="tune-variant"
+              icon="cog"
               accessibilityLabel={t("SongTools")}
               onPress={openTools}
-            />
-            <SongRecorder
-              songId={songId}
-              active={focused && !tuner && !tools && !chord && !isEdit}
-              onStart={() => {
-                setVideos(false);
-              }}
             />
           </View>
           {tools && (

@@ -1,0 +1,23 @@
+Subject: Permission request: Strummed Acoustic chord samples embedded in FreeTune
+
+Hello,
+
+I am preparing FreeTune, a free Android/iOS guitar tuner and song-practice app
+with optional developer tips. I would like written permission to embed audio
+derived from Session Guitarist - Strummed Acoustic as an offline playback bank.
+
+The bank contains 24 major/minor chords, three downstrokes and three upstrokes
+per chord, five-second decay tails, and individual notes for alternate voicings.
+The audio was extracted from the installed library, edited and processed, and
+encoded into PCM/MP3. Users can trigger chord previews and rhythmic sequences.
+This is reusable sample-based playback, not only a finished musical composition.
+
+Please confirm whether this use is permitted under section 3.7 of your EULA,
+or whether a separate embedding/redistribution license is required. If a separate
+license is possible, please provide the terms, attribution and technical requirements.
+No public release of this bank will be made pending clarification.
+
+Developer: Андреев Дмитрий
+Contact: pro100dimka.and@gmail.com
+
+Draft only. Not sent.

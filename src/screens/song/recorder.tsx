@@ -60,12 +60,20 @@ export default function SongRecorder({
     mounted.current = true;
     const listener = performanceAudio.listen((event) => {
       if (event.state === "stopped") setPlaying("");
-      if (["saved", "error"].includes(event.state)) {
+      if (["processing", "error"].includes(event.state)) {
         recordingRef.current = false;
         setRecording(false);
+      }
+      if (
+        ["processing", "saved", "error", "processingFailed"].includes(
+          event.state
+        )
+      ) {
         void load().catch(() => Alert.alert(t("RecordingError")));
         if (event.state === "error")
           Alert.alert(t("RecordingError"), t("RecordingErrorHint"));
+        if (event.state === "processingFailed")
+          Alert.alert(t("RecordingPolishFailed"));
       }
     });
     const background = AppState.addEventListener("change", (state) => {
@@ -136,7 +144,6 @@ export default function SongRecorder({
               return;
             }
             if (!mounted.current || AppState.currentState !== "active") return;
-            onStart();
             performanceAudio.stopPlayback();
             await performanceAudio.start(songId);
             recordingRef.current = true;
@@ -151,6 +158,7 @@ export default function SongRecorder({
             }
             setRecording(true);
             setVisible(false);
+            onStart();
           })
         }
       >
@@ -170,7 +178,7 @@ export default function SongRecorder({
         glass
         compact
         label={recording ? `■ ${time}` : t("RecordPerformance")}
-        icon={recording ? "stop" : "microphone-outline"}
+        icon={recording ? "stop" : "record-circle"}
         accessibilityLabel={t(
           recording ? "StopRecording" : "RecordPerformance"
         )}
@@ -207,6 +215,9 @@ export default function SongRecorder({
               <Text style={styles.title}>
                 {new Date(take.date).toLocaleString()}
               </Text>
+              {take.processing && (
+                <Text style={styles.hint}>{t("RecordingProcessing")}</Text>
+              )}
               <View style={styles.row}>
                 <Action
                   glass
@@ -216,7 +227,7 @@ export default function SongRecorder({
                     playing === take.path ? "StopPlayback" : "ListenTake"
                   )}
                   selected={playing === take.path}
-                  disabled={busy}
+                  disabled={busy || take.processing}
                   onPress={() =>
                     void run(async () => {
                       if (playing === take.path)
@@ -233,7 +244,7 @@ export default function SongRecorder({
                   label="↗"
                   icon="export-variant"
                   accessibilityLabel={t("SaveRecordingFile")}
-                  disabled={busy}
+                  disabled={busy || take.processing}
                   onPress={() =>
                     void run(async () => {
                       performanceAudio.stopPlayback();
@@ -253,7 +264,7 @@ export default function SongRecorder({
                   label="×"
                   icon="trash-can-outline"
                   accessibilityLabel={t("DeleteTake")}
-                  disabled={busy}
+                  disabled={busy || take.processing}
                   onPress={() =>
                     Alert.alert(t("DeleteTake"), t("DeleteTakeHint"), [
                       { text: t("Cancel"), style: "cancel" },

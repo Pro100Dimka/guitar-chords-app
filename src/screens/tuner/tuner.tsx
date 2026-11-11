@@ -1,7 +1,15 @@
 // src/tuner/Tuner.tsx
-import React, { FC, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  FC,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import MicrophoneStream, { AudioBufferEvent } from "./MicrophoneStream";
-import { Canvas, Group } from "@shopify/react-native-skia";
+import { Canvas, CanvasRef, Group } from "@shopify/react-native-skia";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import Strings, {
   NOTE_BOX_WIDTH,
@@ -26,14 +34,28 @@ import { usePreferences } from "@/components/preferences";
 import { performanceAudio } from "../../components/performance-audio";
 import TuningSheet from "./tuning-sheet";
 import { guitarTunings, noteNames, standardTuning } from "./tunings";
-import { playGuitar } from "../../components/guitar-audio";
+import { playGuitar, prepareGuitar } from "../../components/guitar-audio";
 import ChromaticWheel, { chromaticLayout } from "./chormatic-wheel";
 import { Action, Sheet } from "../song/tools";
 import { useTranslation } from "react-i18next";
 import palette from "../../theme/palette";
+import { TunerReadyContext } from "../../components/startup";
 
 const Tuner: FC = () => {
   const { t } = useTranslation();
+  const reportReady = useContext(TunerReadyContext);
+  const canvas = useRef<CanvasRef>(null);
+  const [backgroundReady, setBackgroundReady] = useState(false);
+  const [layoutReady, setLayoutReady] = useState(false);
+  const [stringsReady, setStringsReady] = useState(false);
+  const [dialReady, setDialReady] = useState(false);
+  const [chromaticReady, setChromaticReady] = useState(false);
+  const [painted, setPainted] = useState(false);
+  const [renderError, setRenderError] = useState(false);
+  const [renderAttempt, setRenderAttempt] = useState(0);
+  const markStringsReady = useCallback(() => setStringsReady(true), []);
+  const markDialReady = useCallback(() => setDialReady(true), []);
+  const markChromaticReady = useCallback(() => setChromaticReady(true), []);
   const chromaticOctave = usePreferences((state) => state.chromaticOctave);
   const [chooseOctave, setChooseOctave] = useState(false);
   const customTuning = usePreferences((state) => state.customTuning);
@@ -49,7 +71,6 @@ const Tuner: FC = () => {
     outsideSince: 0,
     ignoreUntil: 0
   });
-  const previewTimer = useRef<{ timer?: ReturnType<typeof setTimeout> }>({});
   const cueTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const [selectedString, setSelectedString] = useState(
     () => usePreferences.getState().stringIndex
@@ -65,11 +86,74 @@ const Tuner: FC = () => {
     autoDetect: usePreferences.getState().autoDetect
   }));
   const isChromatic = config.selectedInstrument === "chromatic";
-  const stageWidth = isChromatic
-    ? Math.min(layout.width, 520)
-    : Math.min(layout.width, (layout.height * 1024) / 1536);
+  const graphicsReady = isChromatic
+    ? chromaticReady
+    : stringsReady && dialReady;
+  useEffect(() => {
+    if (
+      painted ||
+      renderError ||
+      !backgroundReady ||
+      !layoutReady ||
+      !graphicsReady
+    )
+      return;
+    let active = true;
+    let frame = 0;
+    let attempts = 0;
+    const capture = async () => {
+      try {
+        if (!canvas.current) throw new Error("Tuner canvas unavailable");
+        const image = await canvas.current.makeImageSnapshotAsync();
+        let visible = false;
+        try {
+          const pixels = image.readPixels();
+          if (pixels)
+            for (let i = 3; i < pixels.length; i += 4) {
+              if (pixels[i] > 0) {
+                visible = true;
+                break;
+              }
+            }
+        } finally {
+          image.dispose();
+        }
+        if (!visible) throw new Error("Tuner frame is empty");
+        if (active) setPainted(true);
+      } catch {
+        if (!active) return;
+        if (++attempts < 3) frame = requestAnimationFrame(() => void capture());
+        else setRenderError(true);
+      }
+    };
+    frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => void capture());
+    });
+    return () => {
+      active = false;
+      cancelAnimationFrame(frame);
+    };
+  }, [
+    painted,
+    renderError,
+    backgroundReady,
+    layoutReady,
+    graphicsReady,
+    renderAttempt
+  ]);
+  useEffect(() => {
+    if (!painted) return;
+    let frame = requestAnimationFrame(() => {
+      frame = requestAnimationFrame(() => reportReady?.());
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [painted, reportReady]);
+  const landscape = layout.width > layout.height;
+  const stageWidth = layout.width;
   const stageHeight = isChromatic ? layout.height : (stageWidth * 2216) / 1024;
-  const imageTop = Math.min(0, layout.height - stageHeight);
+  const imageTop = landscape
+    ? layout.height * 0.55 - (stageWidth * 1205) / 1024
+    : Math.min(0, layout.height - stageHeight);
   const neckHeight = isChromatic
     ? 0
     : stageHeight * NECK_EXTENSION_RATIO + imageTop;
@@ -84,11 +168,9 @@ const Tuner: FC = () => {
     });
   }, [config.selectedInstrument, config.autoDetect, selectedString]);
   useEffect(() => {
-    const preview = previewTimer.current;
     MicrophoneStream.setKeepAwake(true, "tuner");
     return () => {
       MicrophoneStream.setKeepAwake(false, "tuner");
-      if (preview.timer !== undefined) clearTimeout(preview.timer);
       performanceAudio.stopPlayback();
     };
   }, []);
@@ -105,6 +187,11 @@ const Tuner: FC = () => {
       octave: Math.floor(selected[index] / 12) - 1
     }));
   }, [config.selectedInstrument, config.instruments, tuning, customTuning]);
+  useEffect(() => {
+    strings?.forEach((string) =>
+      prepareGuitar([(string.octave + 1) * 12 + noteNames.indexOf(string.name)])
+    );
+  }, [strings]);
   useEffect(() => {
     setStringNotes(
       config.autoDetect || !strings?.length
@@ -124,8 +211,9 @@ const Tuner: FC = () => {
     if (cueTimer.current !== undefined) clearTimeout(cueTimer.current);
   }, [strings, config.autoDetect, selectedString, fill, fillKey]);
   useEffect(() => {
-    if (!stringNotes) return;
-    MicrophoneStream.setTargetNotes(stringNotes);
+    MicrophoneStream.setTargetNotes(stringNotes ?? []);
+  }, [stringNotes]);
+  useEffect(() => {
     if (isChromatic) note.value = null;
     let lastBufferAt = Date.now();
     const id = MicrophoneStream.addListener((buffer: AudioBufferEvent) => {
@@ -208,20 +296,14 @@ const Tuner: FC = () => {
       MicrophoneStream.removeListener(id);
       MicrophoneStream.stopRecording();
     };
-  }, [stringNotes, note, rms, fill, fillKey, isChromatic, chromaticOctave]);
+  }, [note, rms, fill, fillKey, isChromatic, chromaticOctave]);
   const previewUntil = useRef(0);
   const selectString = (index: number) => {
     const string = strings?.[index];
     if (!string) return;
     previewUntil.current = Date.now() + 3100;
     if (cueTimer.current !== undefined) clearTimeout(cueTimer.current);
-    if (previewTimer.current.timer !== undefined)
-      clearTimeout(previewTimer.current.timer);
-    previewTimer.current.timer = setTimeout(
-      () =>
-        playGuitar([(string.octave + 1) * 12 + noteNames.indexOf(string.name)]),
-      160
-    );
+    playGuitar([(string.octave + 1) * 12 + noteNames.indexOf(string.name)]);
     setSelectedString(index);
     setConfig((previous) => ({ ...previous, autoDetect: false }));
   };
@@ -249,10 +331,21 @@ const Tuner: FC = () => {
   return (
     <View
       style={styles.container}
-      onLayout={({ nativeEvent }) => setLayout(nativeEvent.layout)}
+      onLayout={({ nativeEvent }) => {
+        setLayout(nativeEvent.layout);
+        setLayoutReady(
+          nativeEvent.layout.width > 0 && nativeEvent.layout.height > 0
+        );
+      }}
     >
-      <View style={[styles.flex, { width: stageWidth }]}>
+      <View
+        pointerEvents={painted ? "auto" : "none"}
+        style={[styles.flex, { width: stageWidth }, !painted && styles.hidden]}
+      >
         <ImageBackground
+          key={renderAttempt}
+          onLoad={() => setBackgroundReady(true)}
+          onError={() => setRenderError(true)}
           source={require("../../../assets/images/screen-background/tuner-back-extended.png")}
           style={[
             styles.artwork,
@@ -263,18 +356,21 @@ const Tuner: FC = () => {
           resizeMode="stretch"
         />
         <GestureDetector gesture={tapGesture}>
-          <Canvas style={styles.flex}>
+          <Canvas ref={canvas} style={styles.flex}>
             <Group transform={[{ translateY: neckHeight }]}>
               {config.selectedInstrument === "guitar" ? (
                 <>
                   <NoteIndicator
+                    onReady={markDialReady}
                     note={note}
                     fill={fill}
                     currString={currString}
                     width={stageWidth}
                     height={bodyHeight}
+                    availableHeight={landscape ? layout.height - 80 : undefined}
                   />
                   <Strings
+                    onReady={markStringsReady}
                     width={stageWidth}
                     height={bodyHeight}
                     neckHeight={neckHeight}
@@ -288,6 +384,7 @@ const Tuner: FC = () => {
                 </>
               ) : (
                 <ChromaticWheel
+                  onReady={markChromaticReady}
                   note={note}
                   width={stageWidth}
                   height={bodyHeight}
@@ -306,7 +403,7 @@ const Tuner: FC = () => {
               {
                 top: octaveLayout.octaveTop,
                 width: octaveLayout.octaveWidth,
-                left: (stageWidth - octaveLayout.octaveWidth) / 2
+                left: octaveLayout.octaveLeft
               }
             ]}
           >
@@ -317,9 +414,10 @@ const Tuner: FC = () => {
         )}
       </View>
       <View
-        pointerEvents="box-none"
+        pointerEvents={painted ? "box-none" : "none"}
         style={[
           styles.controls,
+          !painted && styles.hidden,
           !isChromatic && layout.height < 420 && styles.sideControls
         ]}
       >
@@ -356,10 +454,32 @@ const Tuner: FC = () => {
         </Sheet>
       )}
       {chooseTuning && <TuningSheet onClose={() => setChooseTuning(false)} />}
+      {renderError && (
+        <View style={styles.renderError} onLayout={reportReady}>
+          <Text style={styles.octaveHint}>{t("ErrorStartingApp")}</Text>
+          <Action
+            label={t("Retry")}
+            onPress={() => {
+              setBackgroundReady(false);
+              setRenderError(false);
+              setRenderAttempt((value) => value + 1);
+            }}
+          />
+        </View>
+      )}
     </View>
   );
 };
 const styles = StyleSheet.create({
+  hidden: { opacity: 0 },
+  renderError: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 24,
+    gap: 16,
+    backgroundColor: palette.glass.control
+  },
   octaveButton: {
     position: "absolute",
     minHeight: 44,

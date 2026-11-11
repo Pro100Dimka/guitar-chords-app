@@ -43,7 +43,7 @@ test("failed new filter retries page zero without mixing old results", async () 
   await act(async () =>
     screen.root.findByType(SearchBar).props.setFilters("new-filter")
   );
-  expect(screen.root.findByType(FlatList).props.data).toEqual([]);
+  expect(screen.root.findAllByType(FlatList)).toHaveLength(0);
   await act(async () =>
     screen.root
       .findAllByType(Action)

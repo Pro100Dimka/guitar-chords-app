@@ -1,9 +1,9 @@
 import React from "react";
-import { StyleSheet, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, TextInputProps, View } from "react-native";
 import Text from "../styled-text";
 import palette from "../../theme/palette";
 
-interface ITextFieldProps {
+interface ITextFieldProps extends Pick<TextInputProps, "onFocus" | "onBlur"> {
   label?: string;
   value?: string; // для обычного контролируемого поля
   onChangeText?: (_: string) => void;
@@ -22,6 +22,8 @@ const TextField: React.FC<ITextFieldProps> = ({
   label,
   value,
   onChangeText,
+  onFocus,
+  onBlur,
   placeholder,
   multiline = false,
   style = {},
@@ -53,6 +55,8 @@ const TextField: React.FC<ITextFieldProps> = ({
         placeholder={placeholder}
         placeholderTextColor={palette.glass.muted}
         multiline={multiline}
+        onFocus={onFocus}
+        onBlur={onBlur}
         textAlignVertical={multiline ? "top" : "center"}
         autoCorrect={false}
         autoCapitalize="none"

@@ -1,5 +1,5 @@
 // src/screens/tuner/components/strings/index.tsx
-import { FC, useState } from "react";
+import { FC, useEffect, useState } from "react";
 import {
   Group,
   RoundedRect,
@@ -38,6 +38,7 @@ const Strings: FC<{
   width: number;
   height: number;
   neckHeight?: number;
+  onReady?: () => void;
 }> = (props) => {
   const {
     note,
@@ -48,10 +49,14 @@ const Strings: FC<{
     currString,
     width,
     height,
-    neckHeight = 0
+    neckHeight = 0,
+    onReady
   } = props;
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
-  const { centered } = useParagraphBuilder();
+  const { centered, fonts } = useParagraphBuilder();
+  useEffect(() => {
+    if (fonts && stringNotes?.length) onReady?.();
+  }, [fonts, stringNotes, onReady]);
   useAnimatedReaction(
     () => note.value,
     (next, previous) => {

@@ -205,7 +205,7 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         val previous = pitchHistory.firstOrNull()?.toDouble() ?: return detected.toFloat()
         val ratio = maxOf(detected, previous) / minOf(detected, previous)
         val harmonic = Math.round(ratio)
-        if (!sustaining || harmonic !in 2..6 || kotlin.math.abs(1200 * kotlin.math.log2(ratio / harmonic)) > 70) return detected.toFloat()
+        if (!sustaining || harmonic !in 2..12 || kotlin.math.abs(1200 * kotlin.math.log2(ratio / harmonic)) > 70) return detected.toFloat()
         val trackedLag = peaks.filter {
             correlations[it] >= maxOf(0.45, bestCorr * 0.5) &&
                 kotlin.math.abs(1200 * kotlin.math.log2(frequency(it) / previous)) < 50

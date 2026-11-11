@@ -9,6 +9,7 @@ import { usePreferences } from "@/components/preferences";
 const LibraryItem: React.FC<{ song: ISong }> = ({ song }) => {
   const navigation = useNavigation<NavigationProp>();
   const favorite = usePreferences((state) => state.songs[song.id]?.favorite);
+  const cover = usePreferences((state) => state.songs[song.id]?.cover);
   return (
     <Pressable
       accessibilityRole="button"
@@ -17,11 +18,13 @@ const LibraryItem: React.FC<{ song: ISong }> = ({ song }) => {
     >
       <Image
         source={
-          [
-            require("../../../assets/images/screen-background/gold-splash.png"),
-            require("../../../assets/images/screen-background/song.jpg"),
-            require("../../../assets/images/screen-background/background.jpg")
-          ][song.id % 3]
+          cover
+            ? { uri: cover }
+            : [
+                require("../../../assets/images/screen-background/gold-splash.png"),
+                require("../../../assets/images/screen-background/song.jpg"),
+                require("../../../assets/images/screen-background/background.jpg")
+              ][song.id % 3]
         }
         style={styles.cover}
       />

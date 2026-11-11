@@ -241,19 +241,19 @@ const Settings: React.FC = () => {
           </Text>
           <Action
             glass
-            label="Isolated Guitar Chords · severyn-k"
+            label="Strummed Acoustic · Native Instruments"
             onPress={() => {
               void Linking.openURL(
-                "https://huggingface.co/datasets/severyn-k/isolated-guitar-chords"
+                "https://www.native-instruments.com/pages/end-user-license-agreement"
               ).catch(() => {});
             }}
           />
           <Action
             glass
-            label="CC BY 4.0"
+            label="Meta Steel Guitar · CC0"
             onPress={() => {
               void Linking.openURL(
-                "https://creativecommons.org/licenses/by/4.0/"
+                "https://github.com/facebookincubator/Meta-open-sound/tree/main/systems/instruments/meta-steel-guitar"
               ).catch(() => {});
             }}
           />

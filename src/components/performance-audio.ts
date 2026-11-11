@@ -4,9 +4,10 @@ export interface Take {
   path: string;
   date: number;
   bytes: number;
+  processing?: boolean;
 }
 export interface PerformanceEvent {
-  state: "saved" | "error" | "stopped";
+  state: "saved" | "error" | "stopped" | "processing" | "processingFailed";
   uri?: string;
 }
 const native = NativeModules.PerformanceAudio;

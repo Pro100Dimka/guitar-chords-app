@@ -117,13 +117,14 @@ offline policy. Keep the hosted and in-app texts synchronized. Complete store
 privacy/data-safety forms for the final binary, including embedded YouTube and
 store billing, rather than selecting "no data" without reviewing third parties.
 
-Before submission, confirm usage rights for recognizable characters and logos
-on the tuner backgrounds or replace only those stickers with original artwork.
-The current visual design and guitar assets are preserved.
+The tuner stickers use original musical illustrations. Review all final store
+artwork and the documented third-party audio licenses before submission.
 
-Release checks still require a signed Android App Bundle, an iOS archive, physical
-Android/iPhone microphone tests, audio interruptions, screen sizes, accessibility
-text scaling, offline storage and real sandbox billing. Register the developer
+Build 6 has a signed Android App Bundle with the preserved upload key, verified
+archive integrity and 16 KB ELF alignment for all 21 arm64 libraries. Remaining
+release checks require Google Play processing, an iOS archive, physical Android/
+iPhone microphone tests, audio interruptions, screen sizes, accessibility text
+scaling, offline storage and real sandbox billing. Register the developer
 accounts and complete any testing requirements shown by the store consoles.
 
 Dependency overrides update the Node-only SQLite adapter, Metro image parsing,
@@ -140,16 +141,40 @@ image-size 2, which no longer accepts file paths. The existing `postinstall`
 command applies this patch. Do not skip install scripts in release environments;
 check both production bundles with a clean Metro cache when updating image tools.
 
-Preparation checks: 36 JavaScript tests, TypeScript, ESLint, SQLite integration,
-Android DSP fixtures and an arm64 Android debug APK build passed. Production
-JavaScript bundles are checked for both platforms. No physical device is attached;
-iOS native compilation and store sandbox payments remain unverified.
+Release preparation (build 6): 71 JavaScript tests, SQLite integration and Android
+native regression checks pass. Type checking, lint and signed bundle verification
+are recorded with the release artifacts. Physical device testing, iOS native
+compilation and real store billing remain unverified. Store copy and submission
+notes are in `docs/store-listing.json` and `docs/release-readiness.json`.
+
+The current Android pitch regression suite passes 270 synthetic accuracy cases
+(maximum error 0.354 cents), 180 string transitions, 12 decay/drift sequences,
+ten guitar recordings and 200 capture start/stop cycles. These are software
+checks with deterministic device stubs, not physical microphone certification.
+The matching subharmonic tracking correction is also applied to the Swift source;
+the iOS native checks must still run on macOS.
+
+The current audition bank contains 24 major/minor chords, six distinct strums per
+chord and five-second decay tails from Strummed Acoustic. Directional recordings
+are used for standard voicings; alternate fingerings and extended chords use
+individual notes from the same library. Tuner reference strings use Meta Steel
+Guitar (CC0). The packaged MP3 bank passed decoding checks for all 144 takes with
+peak 0.760 or less and near-zero endings. Device playback still needs audition.
+Native Instruments EULA section 3.7 distinguishes music production from using
+samples as a library in another sample-based product. Embedding permission has
+not been established. Do not submit the current bank publicly without appropriate
+permission or a replacement licensed for app embedding. See the asset license
+files. File conversion and processing do not establish redistribution permission.
+
+Preferences tests cover save failures, reloads and backup preservation of covers,
+performer names, lyrics and selected chord shapes.
 
 Android release builds require `RELEASE_STORE_FILE` (absolute keystore path),
 `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD` in the
 build environment. Keep the keystore and passwords outside the repository.
-Release builds use this signing configuration exclusively; debug signing is
-reserved for debug builds. Preserve the release key for subsequent updates.
+Release builds use this signing configuration exclusively. Private RC APKs 4
+and 5 were signed with the debug key for device evaluation; they are not store
+artifacts. The store AAB uses the separate upload key. Preserve the release key for subsequent updates.
 
 Database upgrades use SQLite `user_version` in `src/components/database/initTables.ts`.
 Version 1 adopts existing tables without deleting their contents. Add future
@@ -215,9 +240,9 @@ To learn more about React Native, take a look at the following resources:
 - Settings > Library backup: save a portable JSON copy or preview a copy before restoring. Songs and their favorites, fingerings, rhythm and reading settings are included. Restore is transactional and only appends missing songs; matching title, content, artist and links are skipped with existing preferences preserved. Limits: 5 MB per file, 2,000 songs, 200,000 characters per song. Keep exported files somewhere safe; cloud storage, if selected in the system picker, is managed by its provider.
 - Song > Reading > Play more easily: compare fingerings for capo positions 0 through 7 while preserving the sounding key and original text. Suggestions assume standard guitar tuning and use a fingering-complexity estimate. The previous position can be restored while the panel remains open.
 - Song > Practice: play the entire chord sequence from the song, including repeated chords. Select a starting chord and tempo for a one-minute session, with one chord per bar. This is a timing guide, not microphone-based playing assessment. Backgrounding the app stops playback.
-- Rhythm previews play recorded steel-string acoustic guitar samples using the song's chords, selected fingerings and capo. The standalone catalog uses an example progression. Samples are from Meta Steel Guitar (CC0), with source and license in assets/guitar-samples.LICENSE.txt. String taps and fingering selection use the same sample bank.
+- Rhythm previews use the song's chords, selected fingerings and capo. The standalone catalog uses an example progression. The current Strummed Acoustic bank is for private evaluation pending embedding permission; reference strings use Meta Steel Guitar (CC0). Source notices are in assets/strummed-acoustic.LICENSE.txt and assets/guitar-samples.LICENSE.txt.
 - Fingerings include the curated shapes followed by generated alternatives across the neck, filtered for chord tones, bass and fretting reach. More shapes load on demand. Diagrams assume standard six-string tuning.
-- Song > Record: record voice and guitar locally as AAC/M4A while reading the song, then listen, export or delete takes. Recording stops on leaving the screen or backgrounding the app, and is limited to 30 minutes. Recordings are not included in the JSON library backup; export important takes separately. Uninstalling the app removes its local recordings.
+- Song > Record: record voice and guitar locally as AAC/M4A while reading the song, then listen, export or delete takes. After capture, local background processing reduces low rumble, gently compresses levels and adds a small room effect. Processing writes a temporary AAC file and replaces the take only on success; no separate original is retained. On failure the unprocessed take stays available. Playback, export and deletion are disabled while that take is processing. Native encoding and microphone quality still require Android and iOS device checks. Recording stops on leaving the screen or backgrounding the app, and is limited to 30 minutes. Recordings are not included in the JSON library backup; export important takes separately. Uninstalling the app removes its local recordings.
 - Guitar tuner: 33 preset tunings and editable six-string tuning. The note fills green after holding within 5 cents for 1.1 seconds, followed by an optional soft confirmation sound. The cue is excluded from pitch feedback briefly to avoid triggering itself. Very low tunings require suitable strings and instrument setup.
 
 The file picker and file access modules require a native rebuild, including CocoaPods installation on macOS for iOS. Before release, manually verify file selection, cancellation, export and restore on physical Android and iPhone devices, along with the existing live tuner checklist.

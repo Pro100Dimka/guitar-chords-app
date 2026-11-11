@@ -11,7 +11,9 @@ const NoteIndicator: FC<{
   currString: IString | null;
   width: number;
   height: number;
-}> = ({ note, fill, currString, width, height }) => {
+  availableHeight?: number;
+  onReady?: () => void;
+}> = ({ note, fill, currString, width, height, availableHeight, onReady }) => {
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
   useAnimatedReaction(
     () => note.value,
@@ -26,14 +28,22 @@ const NoteIndicator: FC<{
       }
     }
   );
-  if (!currentNote) return null;
   return (
     <Group>
       <CurrentNote
         fill={fill}
         width={width}
         height={height}
-        {...{ ...currentNote, name: currString?.name || currentNote.name }}
+        availableHeight={availableHeight}
+        onReady={onReady}
+        {...(currentNote ?? {
+          name: "",
+          pitch: 0,
+          refFreq: 0,
+          octave: 0,
+          direction: "="
+        })}
+        name={currString?.name || currentNote?.name || ""}
       />
     </Group>
   );

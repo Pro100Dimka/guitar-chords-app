@@ -1,10 +1,25 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { TextInput, TouchableOpacity, FlatList, Text } from "react-native";
+import {
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  Text,
+  AppState
+} from "react-native";
 import Select from "../src/components/fields/api-select";
 import Song from "../src/screens/song";
 import Editor from "../src/screens/create-song-chords";
 import Menu from "../src/screens/song/header-modal";
+import SongRecorder from "../src/screens/song/recorder";
+import { Action, SongTools, RhythmGrid } from "../src/screens/song/tools";
+import { defaultSongPreferences } from "../src/components/preferences";
+import { WebView } from "react-native-webview";
+import { rhythms } from "../src/screens/song/rhythms";
+import {
+  performanceAudio,
+  PerformanceEvent
+} from "../src/components/performance-audio";
 import * as crud from "../src/components/database/crud";
 jest.mock("../src/screens/tuner", () => () => null);
 jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
@@ -40,12 +55,262 @@ jest.mock(
       children
 );
 let screen: Renderer.ReactTestRenderer | undefined;
+beforeEach(() => {
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation(() => ({ remove: jest.fn() }));
+});
+
+test("starting a recording enables lyric scrolling and allows an independent pause", async () => {
+  jest.useFakeTimers();
+  jest
+    .mocked(crud.getAllItems)
+    .mockResolvedValue([{ id: 1, title: "Song", content: "Am\nWords" }]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  const recorder = screen!.root.findByType(SongRecorder);
+  expect(
+    screen!.root
+      .findAllByType(Action)
+      .some((node) => node.props.label === "Rhythm")
+  ).toBe(false);
+  await act(async () => recorder.props.onStart());
+  const scrollButton = () =>
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "ScrollLyrics")!;
+  expect(scrollButton().props.selected).toBe(true);
+  await act(async () => scrollButton().props.onPress());
+  expect(scrollButton().props.selected).toBe(false);
+  expect(screen!.root.findByType(SongRecorder).props.active).toBe(true);
+});
 afterEach(async () => {
   if (screen) await act(async () => screen!.unmount());
   screen = undefined;
   jest.resetAllMocks();
   jest.restoreAllMocks();
   jest.useRealTimers();
+});
+test("each rhythm can be selected once through its full pattern and applied", async () => {
+  const change = jest.fn();
+  const injectJavaScript = jest.fn();
+
+  await act(async () => {
+    screen = Renderer.create(
+      <SongTools
+        initialTab="rhythm"
+        content="E\nWords"
+        value={defaultSongPreferences}
+        onChange={change}
+        onClose={() => {}}
+      />,
+      { createNodeMock: () => ({ injectJavaScript }) }
+    );
+  });
+  const activatePreview = async () => {
+    const calls = jest.mocked(AppState.addEventListener).mock.calls;
+    await act(async () => calls[calls.length - 1][1]("active"));
+  };
+  const cards = () =>
+    screen!.root.findAll(
+      (node) =>
+        typeof node.props.onPress === "function" &&
+        rhythms.some((item) => item.title === node.props.accessibilityLabel) &&
+        node.props.accessibilityState?.selected !== undefined
+    );
+  const previews = () =>
+    screen!.root
+      .findAllByType(Action)
+      .filter(
+        (node) => node.props.icon === "play" || node.props.icon === "pause"
+      );
+  expect(previews()).toHaveLength(rhythms.length);
+  for (let index = 0; index < rhythms.length; index++) {
+    await act(async () => previews()[index].props.onPress());
+    await activatePreview();
+    await act(async () =>
+      screen!.root
+        .findByType(WebView)
+        .props.onMessage({ nativeEvent: { data: "ready" } })
+    );
+    expect(change).not.toHaveBeenCalled();
+    const configuration = injectJavaScript.mock.calls.at(-1)![0];
+    expect(configuration).toContain(
+      `"pattern":${JSON.stringify(rhythms[index].pattern.padEnd(Math.ceil(rhythms[index].pattern.length / (rhythms[index].meter * 2)) * rhythms[index].meter * 2, "-"))}`
+    );
+    expect(configuration).toContain('"requested":true');
+    expect(
+      previews().filter((node) => node.props.icon === "pause")
+    ).toHaveLength(1);
+  }
+  for (let index = 0; index < rhythms.length; index++) {
+    expect(cards()[index].findAllByType(RhythmGrid)).toHaveLength(1);
+    await act(async () => cards()[index].props.onPress());
+    expect(change).toHaveBeenLastCalledWith({
+      strum: rhythms[index].pattern,
+      strumMeter: rhythms[index].meter,
+      strumPreset: rhythms[index].id
+    });
+  }
+  expect(
+    screen!.root
+      .findAllByType(Action)
+      .some((node) => node.props.label === "UseRhythm")
+  ).toBe(false);
+  expect(change).toHaveBeenCalledWith({
+    strum: rhythms[7].pattern,
+    strumMeter: rhythms[7].meter,
+    strumPreset: rhythms[7].id
+  });
+  const html = screen!.root.findByType(WebView).props.source.html;
+  const source = html.match(/<script>([\s\S]*?)<\/script>/)[1];
+  const sources: any[] = [];
+  let clock = 0;
+  const parameter = () => ({
+    value: 0,
+    setValueAtTime: jest.fn(),
+    linearRampToValueAtTime: jest.fn(),
+    exponentialRampToValueAtTime: jest.fn(),
+    cancelAndHoldAtTime: jest.fn()
+  });
+  const connect = () => ({ connect() {}, disconnect() {} });
+  const decoded: object[] = [];
+  const AudioContext = jest.fn(() => ({
+    get currentTime() {
+      return clock;
+    },
+    destination: {},
+    resume: () => Promise.resolve(),
+    createBuffer: (_channels: number, length: number) => ({
+      getChannelData: () => new Float32Array(length)
+    }),
+    decodeAudioData: () => {
+      const buffer = {};
+      decoded.push(buffer);
+      return Promise.resolve(buffer);
+    },
+    createGain: () => ({ ...connect(), gain: parameter() }),
+    createDynamicsCompressor: () => ({
+      ...connect(),
+      ...Object.fromEntries(
+        ["threshold", "knee", "ratio", "attack", "release"].map((key) => [
+          key,
+          parameter()
+        ])
+      )
+    }),
+    createBufferSource: () => {
+      const voice = {
+        ...connect(),
+        buffer: null,
+        playbackRate: { value: 1 },
+        start: jest.fn(),
+        stop: jest.fn()
+      };
+      sources.push(voice);
+      return voice;
+    }
+  }));
+  let schedule = () => {};
+  const window: any = {
+    AudioContext,
+    ReactNativeWebView: { postMessage: jest.fn() },
+    addEventListener() {}
+  };
+  require("node:vm").runInNewContext(source, {
+    window,
+    document: {
+      hidden: false,
+      getElementById: () => ({ setAttribute() {} }),
+      addEventListener() {}
+    },
+    atob: (value: string) =>
+      require("node:buffer").Buffer.from(value, "base64").toString("binary"),
+    setTimeout: (callback: () => void) => {
+      schedule = callback;
+    },
+    clearTimeout() {}
+  });
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+  expect(window.ReactNativeWebView.postMessage).toHaveBeenCalledWith("ready");
+  window.configurePlayer({
+    pattern: "DU",
+    meter: 4,
+    tempo: 120,
+    requested: true,
+    practice: false
+  });
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+  clock = 1;
+  schedule();
+  expect(sources.slice(0, 4).map((voice) => voice.buffer)).toEqual([
+    decoded[0],
+    decoded[3],
+    decoded[1],
+    decoded[4]
+  ]);
+  const previous = sources.slice();
+  window.configurePlayer({
+    pattern: "U-D-",
+    meter: 4,
+    tempo: 80,
+    requested: true,
+    practice: false
+  });
+  for (let i = 0; i < 10; i++) await Promise.resolve();
+  expect(AudioContext).toHaveBeenCalledTimes(1);
+  expect(decoded).toHaveLength(6);
+  expect(previous.every((voice) => voice.stop.mock.calls.length)).toBe(true);
+  expect(sources[previous.length].buffer).toBe(decoded[3]);
+  window.configurePlayer({
+    pattern: "U-D-",
+    meter: 4,
+    tempo: 80,
+    requested: false,
+    practice: false
+  });
+});
+test("processing recordings cannot be played or exported until the saved event", async () => {
+  let listener!: (event: PerformanceEvent) => void;
+  const subscription = performanceAudio.listen(() => {});
+  jest.spyOn(performanceAudio, "listen").mockImplementation((callback) => {
+    listener = callback;
+    return subscription;
+  });
+  const take = {
+    path: "/performances/song-1-123.m4a",
+    date: 123,
+    bytes: 1000,
+    processing: true
+  };
+  jest.mocked(performanceAudio.list).mockResolvedValue([take]);
+  await act(async () => {
+    screen = Renderer.create(
+      <SongRecorder songId={1} active onStart={() => {}} />
+    );
+  });
+  await act(async () =>
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "RecordPerformance")!
+      .props.onPress()
+  );
+  const controls = () =>
+    screen!.root
+      .findAllByType(Action)
+      .filter((node) =>
+        ["ListenTake", "SaveRecordingFile", "DeleteTake"].includes(
+          node.props.accessibilityLabel
+        )
+      );
+  expect(controls()).toHaveLength(3);
+  expect(controls().every((node) => node.props.disabled)).toBe(true);
+  jest
+    .mocked(performanceAudio.list)
+    .mockResolvedValue([{ ...take, processing: false }]);
+  await act(async () => listener({ state: "saved", uri: take.path }));
+  expect(controls().every((node) => !node.props.disabled)).toBe(true);
 });
 async function openSelect(onSelect: jest.Mock) {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });

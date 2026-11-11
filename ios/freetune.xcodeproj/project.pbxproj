@@ -343,7 +343,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = freetune/Info.plist;
@@ -379,7 +379,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = freetune/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";

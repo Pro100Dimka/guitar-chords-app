@@ -314,7 +314,7 @@ class MicrophoneStream: RCTEventEmitter {
         let previous = Double(lastPitch)
         let ratio = max(detected, previous) / min(detected, previous)
         let harmonic = ratio.rounded()
-        guard sustaining, (2...6).contains(harmonic), abs(1200 * log2(ratio / harmonic)) <= 70 else { return Float(detected) }
+        guard sustaining, (2...12).contains(harmonic), abs(1200 * log2(ratio / harmonic)) <= 70 else { return Float(detected) }
         guard let trackedLag = peaks.filter({
             correlations[$0] >= max(0.45, bestCorrelation * 0.5) &&
                 abs(1200 * log2(frequency($0) / previous)) < 50

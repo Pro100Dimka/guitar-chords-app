@@ -4,6 +4,7 @@ import { db } from "./database";
 import { getAllItems } from "./database/crud";
 
 export interface SongPreferences {
+  cover?: string;
   fontSize: number;
   transpose: number;
   capo: number;
@@ -155,6 +156,12 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
         shapes[chord] = index;
     });
   return {
+    cover:
+      typeof song.cover === "string" &&
+      song.cover.startsWith("data:image/jpeg;base64,") &&
+      song.cover.length <= 300000
+        ? song.cover
+        : "",
     fontSize: number(song.fontSize, 20, 16, 32),
     transpose: Math.round(number(song.transpose, 0, -11, 11)),
     capo: Math.round(number(song.capo, 0, 0, 12)),

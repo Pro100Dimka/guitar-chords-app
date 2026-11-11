@@ -43,6 +43,7 @@ const TUNER = {
   centerTuple: [120, 255, 0]
 };
 const palette = {
+  splash: { background: "#080D12", shade: "rgba(4,10,16,0.24)" },
   typography: { body: "Manrope-Regular", strong: "Manrope-SemiBold" },
   finish: {
     dot: "#655536",
@@ -88,8 +89,8 @@ const palette = {
     play: "#FFD04A"
   },
   guitarDial: {
-    center: "#493320",
-    edge: "#20170F",
+    center: "#080B0B",
+    edge: "#080B0B",
     rim: "#B9955D",
     engraving: "#CCB38B",
     note: "#FFF4DE",
