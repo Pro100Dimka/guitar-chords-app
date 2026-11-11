@@ -120,7 +120,6 @@ class MicrophoneStream: RCTEventEmitter {
                 self.sendEvent(
                     "onAudioBuffer",
                     body: [
-                        "samples": floatData.map { Double($0) },
                         "rms": Double(rms),
                         "note": "Silence",
                         "pitch": 0.0,
@@ -134,7 +133,6 @@ class MicrophoneStream: RCTEventEmitter {
             let rawPitch = self.estimatePitch(floatData, sampleRate: buffer.format.sampleRate)
             let pitch = self.smoothPitch(rawPitch)
             var noteData = self.frequencyToNoteData(pitch)
-            noteData["samples"] = floatData.map { Double($0) }
             noteData["rms"] = Double(rms)
             self.sendEvent("onAudioBuffer", body: noteData)
         }
@@ -279,7 +277,7 @@ class MicrophoneStream: RCTEventEmitter {
         let sustaining = previousRms > 0 && rms <= previousRms * 1.2
         previousRms = rms
         let minLag = max(1, Int(sampleRate / 2000))
-        let maxLag = min(Int(sampleRate / 50), buffer.count / 2 - 1)
+        let maxLag = min(Int(sampleRate / 40), buffer.count / 2 - 1)
         guard maxLag >= minLag else { return 0 }
         var correlations = [Double](repeating: 0, count: maxLag + 2)
         norm.withUnsafeBufferPointer { samples in

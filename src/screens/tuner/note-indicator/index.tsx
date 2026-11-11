@@ -7,10 +7,11 @@ import { INote, IString } from "@/@interfaces";
 
 const NoteIndicator: FC<{
   note: SharedValue<INote | null>;
+  fill: SharedValue<number>;
   currString: IString | null;
   width: number;
   height: number;
-}> = ({ note, currString, width, height }) => {
+}> = ({ note, fill, currString, width, height }) => {
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
   useAnimatedReaction(
     () => note.value,
@@ -29,6 +30,7 @@ const NoteIndicator: FC<{
   return (
     <Group>
       <CurrentNote
+        fill={fill}
         width={width}
         height={height}
         {...{ ...currentNote, name: currString?.name || currentNote.name }}

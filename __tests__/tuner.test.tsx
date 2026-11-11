@@ -6,8 +6,12 @@ import RequireMicAccess from "../src/screens/tuner";
 import Buttons from "../src/screens/tuner/buttons";
 import MicrophoneStream from "../src/screens/tuner/MicrophoneStream";
 import checkMicPermission from "../src/components/permissions";
+jest.mock("../src/components/database", () => ({
+  db: { transaction: jest.fn() }
+}));
 
 jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
+  setKeepAwake: jest.fn(),
   setTargetNotes: jest.fn(),
   addListener: jest.fn(),
   removeListener: jest.fn(),
@@ -17,7 +21,10 @@ jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
 jest.mock("../src/components/permissions", () => jest.fn());
 jest.mock("@react-navigation/native", () => ({ useIsFocused: () => true }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
-jest.mock("@shopify/react-native-skia", () => ({ Canvas: "Canvas" }));
+jest.mock("@shopify/react-native-skia", () => ({
+  Canvas: "Canvas",
+  Group: "Group"
+}));
 jest.mock("react-native-reanimated", () => ({
   useSharedValue: () => ({ value: 0 })
 }));
@@ -28,6 +35,8 @@ jest.mock("react-native-gesture-handler", () => ({
 }));
 jest.mock("../src/screens/tuner/strings", () => ({
   __esModule: true,
+  NECK_EXTENSION_RATIO: 680 / 2216,
+  BRIDGE_Y_RATIO: 0.92,
   default: () => null
 }));
 jest.mock("../src/screens/tuner/note-indicator", () => () => null);

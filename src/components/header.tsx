@@ -2,8 +2,9 @@
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import { Pressable, StyleSheet, Text, View, Image } from "react-native";
-import logo from "../../assets/images/icon.png";
+import LinearGradient from "react-native-linear-gradient";
+import { Pressable, StyleSheet, View } from "react-native";
+import Text from "./styled-text";
 import palette from "../theme/palette";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { t } from "@/locales";
@@ -30,9 +31,15 @@ const Header: React.FC<HeaderProps> = ({
       style={[
         styles.container,
         glass && styles.glass,
-        { paddingTop: insets.top + 8 }
+        { marginTop: insets.top + 8 }
       ]}
     >
+      <LinearGradient
+        pointerEvents="none"
+        colors={palette.finish.surfaceColors}
+        locations={palette.finish.locations}
+        style={styles.sheen}
+      />
       <View style={styles.left}>
         {showBack && (
           <Pressable
@@ -48,7 +55,6 @@ const Header: React.FC<HeaderProps> = ({
             />
           </Pressable>
         )}
-        <Image source={logo} style={styles.viewIco} />
       </View>
       <Text
         numberOfLines={2}
@@ -71,8 +77,9 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
+  sheen: { ...StyleSheet.absoluteFillObject, borderRadius: 18 },
   glass: {
-    backgroundColor: palette.glass.header,
+    backgroundColor: palette.glass.control,
     borderColor: palette.glass.edge
   },
   glassTitle: { color: palette.glass.ink },
@@ -82,16 +89,20 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
+    paddingHorizontal: 6,
+    gap: 4,
+    marginHorizontal: 12,
+    marginBottom: 8,
+    borderRadius: 18,
+    paddingVertical: 4,
+    borderWidth: 1,
     borderColor: palette.paper.line
   },
   left: { flexDirection: "row", alignItems: "center" },
   backButton: { minWidth: 44, minHeight: 44, justifyContent: "center" },
   title: {
     flex: 1,
-    marginHorizontal: 12,
+    marginHorizontal: 2,
     fontSize: 17,
     fontWeight: "600",
     color: palette.chromatic.ink

@@ -1,14 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="vertical"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
-    android:background="@color/white">
+    android:background="#080D12">
 
     <ImageView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:src="@drawable/screen"
-        android:scaleType="fitXY"/>
-</LinearLayout>
+        android:src="@drawable/splash_dawn"
+        android:contentDescription="@null"
+        android:scaleType="centerCrop"/>
+    <View android:layout_width="match_parent" android:layout_height="match_parent" android:background="#3D040A10"/>
+    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_gravity="center" android:gravity="center" android:orientation="vertical" android:padding="24dp">
+        <ImageView android:layout_width="152dp" android:layout_height="152dp" android:src="@drawable/splash_mark" android:scaleType="fitCenter" android:contentDescription="@null"/>
+        <ImageView android:layout_width="224dp" android:layout_height="64dp" android:layout_marginTop="8dp" android:src="@drawable/splash_wordmark" android:scaleType="fitCenter" android:contentDescription="FreeTune"/>
+    </LinearLayout>
+</FrameLayout>

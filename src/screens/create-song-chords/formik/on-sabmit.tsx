@@ -18,7 +18,7 @@ const onSabmit = async (
         tableName: "songs",
         data: {
           ...values,
-          band_id: fk_band?.id,
+          band_id: fk_band?.id || null,
           search_text_lower: (values?.title || "")?.toLowerCase()
         },
         filters: `id = ${id}`
@@ -32,7 +32,7 @@ const onSabmit = async (
       data: {
         ...values,
         search_text_lower: (values?.title || "").toLowerCase(),
-        band_id: fk_band?.id
+        band_id: fk_band?.id || null
       }
     });
     Alert.alert(t`ElementAdded`);

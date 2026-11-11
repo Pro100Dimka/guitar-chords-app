@@ -7,7 +7,7 @@ react {
     autolinkLibrariesWithApp()
 }
 
-def enableProguardInReleaseBuilds = false
+def enableProguardInReleaseBuilds = true
 
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'
 
@@ -46,29 +46,29 @@ android {
         release {
             signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
-            // shrinkResources true
-            proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
+            shrinkResources true
+            proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
     }
-    // splits {
-    //     abi {
-    //         enable true
-    //         reset()
-    //         include "armeabi-v7a", "arm64-v8a", "x86", "x86_64"
-    //         universalApk false
-    //     }
-    // }
+    splits {
+        abi {
+            enable project.hasProperty("splitApks")
+            reset()
+            include "armeabi-v7a", "arm64-v8a"
+            universalApk false
+        }
+    }
     
 }
 
 dependencies {
     implementation("com.facebook.react:react-android")
     implementation project(':react-native-splash-screen')
-    implementation 'com.github.wendykierp:JTransforms:3.1'
     if (hermesEnabled.toBoolean()) {
         implementation("com.facebook.react:hermes-android")
     } else {
         implementation jscFlavor
     }
 }
+project.ext.vectoricons = [iconFontNames: ["MaterialCommunityIcons.ttf", "Ionicons.ttf"]]
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"

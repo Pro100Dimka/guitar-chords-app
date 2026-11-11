@@ -7,6 +7,7 @@ open class ReactContextBaseJavaModule(context: ReactApplicationContext) {
     open fun invalidate() {}
 }
 class ReactApplicationContext {
+    val currentActivity: android.view.Activity? = android.view.Activity()
     val events = LinkedBlockingQueue<WritableMap>()
     private val emitter = object : DeviceEventManagerModule.RCTDeviceEventEmitter {
         override fun emit(name: String, params: WritableMap?) { if (params != null) events.add(params) }

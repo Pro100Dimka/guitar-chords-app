@@ -167,7 +167,7 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         if (rms < 0.003) return 0f
         val sustaining = previousRms > 0 && rms <= previousRms * 1.2
         previousRms = rms
-        val minFreq = 50
+        val minFreq = 40
         val maxFreq = 2000
         val minLag = maxOf(1, sampleRate / maxFreq)
         val maxLag = minOf(sampleRate / minFreq, buffer.size / 2 - 1)
@@ -232,19 +232,23 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         if (isRecording) return
         stopRecording()
 
-        val recorder = AudioRecord(
+        val recorder = try { AudioRecord(
             MediaRecorder.AudioSource.MIC,
             sampleRate,
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT,
             bufferSize
-        )
+        ) } catch (error: RuntimeException) {
+            Log.e("MicrophoneStream", "Could not create microphone", error)
+            return
+        }
 
         try {
             recorder.startRecording()
         } catch (error: RuntimeException) {
             recorder.release()
-            throw error
+            Log.e("MicrophoneStream", "Could not start microphone", error)
+            return
         }
         audioRecord = recorder
         isRecording = true
@@ -252,7 +256,6 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         recordingThread = thread(start = false, name = "MicrophoneCapture") {
             try {
                 val buffer = ShortArray(bufferSize)
-                var wasSilent = false // флаг, чтобы слать одно уведомление "тишина"
 
                 while (isRecording) {
                     val read = recorder.read(buffer, 0, buffer.size)
@@ -271,28 +274,17 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
                     val rms = Math.sqrt(sumSquares / read)
 
                     if (rms < 0.003) {
-                        // если был звук раньше, отправляем событие "Silence"
-                        if (!wasSilent) {
-                            wasSilent = true
-                            val map = Arguments.createMap()
-                            map.putString("note", "Silence")
-                            map.putDouble("rms", rms)
-                            map.putDouble("pitch", 0.0)
-                            map.putDouble("refFreq", 0.0)
-                            map.putInt("octave", 0)
-                            map.putString("direction", "=")
-                            sendEvent("onAudioBuffer", map)
-                        }
+                        val map = Arguments.createMap()
+                        map.putString("note", "Silence")
+                        map.putDouble("rms", rms)
+                        map.putDouble("pitch", 0.0)
+                        map.putDouble("refFreq", 0.0)
+                        map.putInt("octave", 0)
+                        map.putString("direction", "=")
+                        sendEvent("onAudioBuffer", map)
                         resetPitch()
                         continue
                     }
-
-                    // если есть звук, сбрасываем флаг
-                    wasSilent = false
-
-                    // формируем массив нормализованных сэмплов
-                    val array = Arguments.createArray()
-                    for (i in 0 until read) array.pushDouble(buffer[i] / 32768.0)
 
                     // вычисляем pitch
                     val rawPitch = estimatePitch(if (read == buffer.size) buffer else buffer.copyOf(read), sampleRate)
@@ -301,12 +293,13 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
 
                     // формируем карту для отправки
                     val map = Arguments.createMap()
-                    map.putArray("samples", array)
                     map.putDouble("rms", rms)
                     map.merge(noteData)
 
                     sendEvent("onAudioBuffer", map)
                 }
+            } catch (error: RuntimeException) {
+                Log.e("MicrophoneStream", "Microphone capture stopped", error)
             } finally {
                 isRecording = false
             }
@@ -319,6 +312,8 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         isRecording = false
         try {
             audioRecord?.stop()
+        } catch (error: IllegalStateException) {
+            Log.w("MicrophoneStream", "Microphone was already stopped", error)
         } finally {
             recordingThread?.join()
             recordingThread = null

@@ -14,22 +14,22 @@
   },
   "dependencies": {
     "@babel/runtime": "^7.28.6",
-    "@react-native/new-app-screen": "0.84.1",
+    "@react-native-documents/picker": "12.0.3",
     "@react-navigation/bottom-tabs": "^7.15.5",
     "@react-navigation/native": "^7.1.33",
     "@react-navigation/native-stack": "^7.14.4",
     "@shopify/react-native-skia": "^2.5.1",
+    "base64-js": "1.5.1",
     "formik": "^2.4.9",
-    "install": "^0.13.0",
-    "npm": "^11.11.0",
     "react": "19.2.3",
     "react-i18next": "^16.5.6",
     "react-native": "0.84.1",
     "react-native-edge-to-edge": "^1.8.1",
+    "react-native-file-access": "4.0.4",
     "react-native-gesture-handler": "^2.30.0",
+    "react-native-iap": "14.7.20",
     "react-native-linear-gradient": "^2.8.3",
     "react-native-logs": "^5.6.0",
-    "react-native-make": "^1.0.1",
     "react-native-nitro-modules": "^0.35.0",
     "react-native-permissions": "^5.5.1",
     "react-native-reanimated": "^4.2.2",
@@ -61,7 +61,7 @@
     "@types/react-native-sqlite-storage": "^6.0.5",
     "@types/react-native-vector-icons": "^6.4.18",
     "@types/react-test-renderer": "^19.1.0",
-    "babel-plugin-module-resolver": "^5.0.2",
+    "babel-plugin-module-resolver": "5.0.0",
     "eslint": "^9.14.0",
     "eslint-plugin-import": "^2.32.0",
     "eslint-plugin-prettier": "^5.5.5",
@@ -80,5 +80,26 @@
   },
   "engines": {
     "node": ">= 20.19.5"
+  },
+  "overrides": {
+    "jest-config": {
+      "glob": "14.0.2"
+    },
+    "jest-runtime": {
+      "glob": "14.0.2"
+    },
+    "@jest/reporters": {
+      "glob": "14.0.2"
+    },
+    "minimatch@>=7 <11.0.1": "11.0.1",
+    "test-exclude@>=7": {
+      "glob": "14.0.2"
+    },
+    "metro": {
+      "image-size": "2.1.0"
+    },
+    "websql": {
+      "sqlite3": "6.0.1"
+    }
   }
 }

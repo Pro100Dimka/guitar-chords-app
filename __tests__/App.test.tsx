@@ -9,7 +9,14 @@ import SplashScreen from "react-native-splash-screen";
 import { Platform, Text } from "react-native";
 
 jest.mock("../src/router", () => () => null);
+jest.mock("../src/components/support", () => () => null);
 jest.mock("../src/components/database", () => ({ initDatabase: jest.fn() }));
+jest.mock("../src/components/preferences", () => ({
+  loadPreferences: jest.fn().mockResolvedValue(undefined),
+  flushPreferences: jest.fn(),
+  usePreferences: (selector: (state: { saveError: boolean }) => unknown) =>
+    selector({ saveError: false })
+}));
 jest.mock("../src/locales", () => ({ initLanguage: jest.fn(), t: String }));
 jest.mock("react-native-splash-screen", () => ({ hide: jest.fn() }));
 jest.mock("react-native-edge-to-edge", () => ({ SystemBars: () => null }));

@@ -1,0 +1,36 @@
+diff --git a/node_modules/metro/src/Assets.js b/node_modules/metro/src/Assets.js
+index ac3302c..88352b4 100644
+--- a/node_modules/metro/src/Assets.js
++++ b/node_modules/metro/src/Assets.js
+@@ -171,10 +171,9 @@ async function getAssetData(
+   assetUrlPath = (0, _pathUtils.normalizePathSeparatorsToPosix)(assetUrlPath);
+   const isImage = isAssetTypeAnImage(_path.default.extname(assetPath).slice(1));
+   const assetInfo = await getAbsoluteAssetInfo(assetPath, platform ?? null);
+-  const isImageInput = assetInfo.files[0].includes(".zip/")
+-    ? _fs.default.readFileSync(assetInfo.files[0])
+-    : assetInfo.files[0];
+-  const dimensions = isImage ? (0, _imageSize.default)(isImageInput) : null;
++  const dimensions = isImage
++    ? (0, _imageSize.default)(await _fs.default.promises.readFile(assetInfo.files[0]))
++    : null;
+   const scale = assetInfo.scales[0];
+   const assetData = {
+     __packager_asset: true,
+diff --git a/node_modules/metro/src/Assets.js.flow b/node_modules/metro/src/Assets.js.flow
+index b2759ad..904d1f1 100644
+--- a/node_modules/metro/src/Assets.js.flow
++++ b/node_modules/metro/src/Assets.js.flow
+@@ -218,10 +218,9 @@ export async function getAssetData(
+   const isImage = isAssetTypeAnImage(path.extname(assetPath).slice(1));
+   const assetInfo = await getAbsoluteAssetInfo(assetPath, platform ?? null);
+ 
+-  const isImageInput = assetInfo.files[0].includes('.zip/')
+-    ? fs.readFileSync(assetInfo.files[0])
+-    : assetInfo.files[0];
+-  const dimensions = isImage ? getImageSize(isImageInput) : null;
++  const dimensions = isImage
++    ? getImageSize(await fs.promises.readFile(assetInfo.files[0]))
++    : null;
+   const scale = assetInfo.scales[0];
+ 
+   const assetData = {

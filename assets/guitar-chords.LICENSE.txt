@@ -1,0 +1,56 @@
+Isolated Guitar Chords Dataset
+Author: severyn-k
+Source: https://huggingface.co/datasets/severyn-k/isolated-guitar-chords
+License: Creative Commons Attribution 4.0 International
+https://creativecommons.org/licenses/by/4.0/
+Selected Fender FA-series recordings only.
+Changes: onset trimming, mild noise reduction and equalization, level matching, tail fades, resampling to 22050 Hz and MP3 compression.
+
+A# down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/A%23/A%23_acoustic_guitar_fender_fa_series_1.wav SHA256 ba06c5153cc7eb89a1f69e4bbad2b0e43c2a206a3462bbe9a3af6e270ede98e3
+A# up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/A%23/A%23_acoustic_guitar_fender_fa_series_2.wav SHA256 975508b2fff5f73b8faa06814632e147de7c45555310bac8a54720d516e39916
+A#m down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/A%23m/A%23m_acoustic_guitar_fender_fa_series_test_1.wav SHA256 a490644d79b00b3924ccb56628cfeacd5337071456a2dcdc60fbe72e5af7dc6b
+A#m up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/A%23m/A%23m_acoustic_guitar_fender_fa_series_test_2.wav SHA256 5f4d3f6a52d1443ecbf6f56790c6232979d5f5773b361a47ab7b6367db6ba3fc
+A down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/A/A_acoustic_guitar_fender_fa_series_1.wav SHA256 19149bfdab4679e16b4cb26d7664c9191c0822fb24aaea4d058286d8512d9e94
+A up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/A/A_acoustic_guitar_fender_fa_series_2.wav SHA256 93457c86016bc6bcc35359a781b3d9b65d376b4536f380300efc63470a99bbe1
+Am down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Am/Am_acoustic_guitar_fender_fa_series_1.wav SHA256 3d19a350c4af9aa363f8f2470205389259b1cbf1c22c99ad77344744763f79a0
+Am up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Am/Am_acoustic_guitar_fender_fa_series_2.wav SHA256 7846db398e4bcd23be7231fe0093e501174b21e208a59c396dbcb96c4afb0553
+B down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/B/B_acoustic_guitar_fender_fa_series_1.wav SHA256 93d47d7bed05ed3cfcee63d45dd6fbba2c2723629d59d0a1c894e4c5f2830c86
+B up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/B/B_acoustic_guitar_fender_fa_series_2.wav SHA256 418f86074700349f8aaf00a04dcdc85fcbfd8d44dace240c7fa6187cc69a1c13
+Bm down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Bm/Hm_acoustic_guitar_fender_fa_series_1.wav SHA256 df28efc26067b41f92d46e6f518e542b80c74af8663ed9702c2365faa050a021
+Bm up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Bm/Hm_acoustic_guitar_fender_fa_series_2.wav SHA256 760cf33fb3155ea017b66c00549bee8a88033c370e57a53af5107573888f2463
+C# down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/C%23/C%23_acoustic_guitar_fender_fa_series_1.wav SHA256 8a27e38606fddef3cc91c74438932e5c343ff8bdbb9ba6721ae1c9fdd192388b
+C# up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/C%23/C%23_acoustic_guitar_fender_fa_series_2.wav SHA256 265dadd71fc1609613caaaeda7f8d405cb3beadf105b267c2d8446cf56130582
+C#m down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/C%23m/C%23m_acoustic_guitar_fender_fa_series_1.wav SHA256 2d7c9e28278b732e45d3e78ae1c2ee1b4e975940c38ec9afd07428d771c14d88
+C#m up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/C%23m/C%23m_acoustic_guitar_fender_fa_series_2.wav SHA256 8a009d252b3799b611a3403dd85706775b8e29170c539ff274d0ce0c57738ece
+C down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/C/C_acoustic_guitar_fender_fa_series_1.wav SHA256 bed2551c95425648c32be5b38e2e79e1e37feec7c89d8bdd80c77d86ddea2ac4
+C up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/C/C_acoustic_guitar_fender_fa_series_2.wav SHA256 6adb80f1bf93193ea19fe8c869372389f7b92a4b05ecdb905fdd8a36f1f2007a
+Cm down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Cm/Cm_acoustic_guitar_fender_fa_series_1.wav SHA256 fa14180b0f18aa0ccf3b21d52f9c115b2cf2a4bb721ed12b78ca42bf9d02325f
+Cm up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Cm/Cm_acoustic_guitar_fender_fa_series_2.wav SHA256 1c770633c3c4b518824a76ece860f3ad27e6b0b5c5646c270b25b5b8ec16c8a3
+D# down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/D%23/D%23_acoustic_guitar_fender_fa_series_1.wav SHA256 253c13a62f7563038e7bc8f2f9052ab9d793a8ab6614d44ff5af5208f7b3e841
+D# up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/D%23/D%23_acoustic_guitar_fender_fa_series_2.wav SHA256 bea82dc0c4919bfc5786f7024886ae2a627da05633c9fb18a353500cdac67981
+D#m down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/D%23m/D%23m_acoustic_guitar_fender_fa_series_1.wav SHA256 3c235450194fd12c1f1fbd2e65b01e4e644dc94ac876aed9d263085d5bbf5e49
+D#m up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/D%23m/D%23m_acoustic_guitar_fender_fa_series_2.wav SHA256 62c9601e1306996b905699754f6206a873c68663e07c5a79f4fd770ea2b071e2
+D down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/D/D_acoustic_guitar_fender_f%20a_series_1.wav SHA256 03e308ad95f432db9455be3081328d2863aeec8e7ff97c647ca0a6bd2b5a00b9
+D up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/D/D_acoustic_guitar_fender_f%20a_series_2.wav SHA256 850b991dacccc9e5c25f3a143e8bc8cb11f5c83fd93ebb3e929152e3ef3c949b
+Dm down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Dm/Dm_acoustic_guitar_fender_fa_series_1.wav SHA256 97ec50c8ac57dc9eeb6e17e95bf2e209dfafbd3a8c931d5ba0c528dfe78ef03b
+Dm up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Dm/Dm_acoustic_guitar_fender_fa_series_2.wav SHA256 e26cc857169fdec3c7da33147b870546e1923af3f75784eb16d94aaf6f1975ed
+E down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/E/E_acoustic_guitar_fender_fa_series_1.wav SHA256 609c29df7d3a912793a37e8bbcd7e52b2606d3adb742ac461bfc7c7e79def426
+E up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/E/E_acoustic_guitar_fender_fa_series_2.wav SHA256 345e532be33106a71d9d555dbdb614154259dcf9385cb006686ce8eb0cd9ba82
+Em down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Em/Em_acoustic_guitar_fender_fa_series_1.wav SHA256 7975386c3e2649f1c9b04f3b4441e42df3d7e959300e35e9e59b9b4b7bbd6679
+Em up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Em/Em_acoustic_guitar_fender_fa_series_2.wav SHA256 4e1286621489c9ca6e6d6285082c11cb9607b8639bac7bfd8643ef2dc7ec6ca0
+F# down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/F%23/F%23_acoustic_guitar_fender_f%20a_series_1.wav SHA256 a3e06f62d265cae4991a09f96463915e3afa79371f1bbbee78b7b911e7eb90f8
+F# up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/F%23/F%23_acoustic_guitar_fender_f%20a_series_2.wav SHA256 105da3430ebafd38e6d994a08b8c16899ea39f12b90cb6bc3b8398ac4d64cee8
+F#m down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/F%23m/F%23m_acoustic_guitar_fender_fa_series_1.wav SHA256 38c097cf201351430a69e8c23eafb301d644d2ee1e054ef6cf737648442ef73c
+F#m up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/F%23m/F%23m_acoustic_guitar_fender_fa_series_2.wav SHA256 6b4000561f1c03f777b3303f26bac2c3f6348035650823f81366ea2f9e1616cf
+F down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/F/F_acoustic_guitar_fender_%20fa_series_1.wav SHA256 65600beabf872d68dbfdf993504ceed22b7d6b68b403d51ea3d0dedf38d9bf6e
+F up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/F/F_acoustic_guitar_fender_%20fa_series_2.wav SHA256 e7615fc92a21eca77968c94314aac8e5a17721fe114f6f29b2eadcd356b4bc2d
+Fm down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Fm/Fm_acoustic_guitar_fender_fa_series_1.wav SHA256 de7072b54ea201d58b7805913a1e2e6c27dcf89c4b4f0e2c4708c64c471c8320
+Fm up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Fm/Fm_acoustic_guitar_fender_fa_series_2.wav SHA256 da59a7eea81a33aae9a4b4df19d267aeef9fc81f591cee43e9b31f2668545de3
+G# down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/G%23/G%23_acoustic_guitar_fender_f%20a_series_1.wav SHA256 ab88fd7b76a72107cf6fc5af9e721ddc96f0acef2cd00ad8e71a6916496d00a6
+G# up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/G%23/G%23_acoustic_guitar_fender_f%20a_series_2.wav SHA256 424dd15b60cb063648197e88ad97601e7532767a58fbfd7c4a85349a936ed446
+G#m down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/G%23m/G%23m_acoustic_guitar_fender_fa_series_1.wav SHA256 03274646a3fb0445f97b614efeae7b9b3c459c434c34ce09939e2eaaaf1a42f6
+G#m up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/G%23m/G%23m_acoustic_guitar_fender_fa_series_2.wav SHA256 6c6abc54b9f3daeb2cc88951b7460d19e40afca7b1b348294ef76aa717a5b1e1
+G down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/G/G_acoustic_guitar_fender_%20fa_series_1.wav SHA256 d1c8c79e327814cc7d84150c49c020fc6a86d02b7ab04c7fc7c595e951fc0efe
+G up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/G/G_acoustic_guitar_fender_%20fa_series_2.wav SHA256 b7b520d4ef974da86018f85050bcfb0936f2e25301c9fd1ba023a1cd0d492c63
+Gm down https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Gm/Gm_acoustic_guitar_fender_fa_series_1.wav SHA256 e5d605e48aa012cd78e469f567619d4c0d22c0676bb7e3f23d7c2111c9b938ae
+Gm up https://huggingface.co/datasets/severyn-k/isolated-guitar-chords/resolve/main/data/Train/Gm/Gm_acoustic_guitar_fender_fa_series_2.wav SHA256 fea33389af4944df3219e35596dfa0752e7b58c1e8db3973e0f9ff13505f7d6d

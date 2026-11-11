@@ -1,6 +1,7 @@
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, StyleSheet, View } from "react-native";
+import Text from "../../components/styled-text";
 import palette from "../../theme/palette";
 import { NavigationProp } from "@/router";
 import { ISong } from "@/@interfaces";
@@ -14,6 +15,16 @@ const LibraryItem: React.FC<{ song: ISong }> = ({ song }) => {
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={() => navigation.navigate("Song", { id: song.id.toString() })}
     >
+      <Image
+        source={
+          [
+            require("../../../assets/images/screen-background/gold-splash.png"),
+            require("../../../assets/images/screen-background/song.jpg"),
+            require("../../../assets/images/screen-background/background.jpg")
+          ][song.id % 3]
+        }
+        style={styles.cover}
+      />
       <View style={styles.words}>
         <Text numberOfLines={2} style={styles.title}>
           {song.title}
@@ -27,6 +38,13 @@ const LibraryItem: React.FC<{ song: ISong }> = ({ song }) => {
   );
 };
 const styles = StyleSheet.create({
+  cover: {
+    width: 56,
+    height: 56,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: palette.glass.edge
+  },
   pressed: { opacity: 0.75 },
   words: { flex: 1, gap: 6 },
   artist: { color: palette.glass.muted, fontSize: 14 },
@@ -35,13 +53,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    backgroundColor: palette.glass.surface,
-    borderRadius: 20,
-    padding: 18,
-    marginVertical: 6,
-    borderWidth: 1,
-    borderColor: palette.glass.edge
+    backgroundColor: palette.colors.transparent,
+    borderRadius: 0,
+    paddingVertical: 16,
+    marginVertical: 0,
+    borderBottomWidth: 1,
+    borderColor: palette.glass.surfaceEdge
   },
-  title: { color: palette.glass.ink, fontSize: 17, fontWeight: "600" }
+  title: {
+    color: palette.glass.ink,
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: "600"
+  }
 });
 export default LibraryItem;

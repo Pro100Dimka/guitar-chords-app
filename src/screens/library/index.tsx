@@ -3,12 +3,14 @@ import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   FlatList,
+  ScrollView,
   StyleSheet,
-  Text,
-  TouchableOpacity,
+  useWindowDimensions,
   View
 } from "react-native";
+import Text from "../../components/styled-text";
 import { useTranslation } from "react-i18next";
 import LibraryItem from "./library-item";
 import SearchBar from "./search";
@@ -23,10 +25,12 @@ const PAGE_LIMIT = 10;
 
 const Library: React.FC = () => {
   const { t } = useTranslation();
+  const { height } = useWindowDimensions();
   const navigation = useNavigation<NavigationProp>();
   const [songs, setSongs] = useState<ISong[]>([]);
   const [loading, setLoading] = useState(true); // для первой загрузки
   const [loadingMore, setLoadingMore] = useState(false); // для подгрузки
+  const [loadError, setLoadError] = useState(false);
   const pagination = useRef({
     page: 0,
     hasMore: true,
@@ -53,6 +57,7 @@ const Library: React.FC = () => {
         return;
       const requestId = ++pagination.current.requestId;
       pagination.current.pending = true;
+      setLoadError(false);
       if (pageNumber === 0) {
         pagination.current.page = 0;
         pagination.current.hasMore = true;
@@ -90,6 +95,7 @@ const Library: React.FC = () => {
         pagination.current.hasMore = data.length === PAGE_LIMIT;
       } catch (error) {
         console.info("Error fetching songs:", error);
+        if (requestId === pagination.current.requestId) setLoadError(true);
       } finally {
         if (requestId === pagination.current.requestId) {
           pagination.current.pending = false;
@@ -112,11 +118,15 @@ const Library: React.FC = () => {
 
   return (
     <View style={styles.container}>
+      <Text accessibilityRole="header" style={styles.heading}>
+        {t("library")}
+      </Text>
       <SearchBar setFilters={setFilters} />
       <View style={styles.collections}>
         {["AllSongs", "RecentSongs", "Favorites"].map((key) => (
           <Action
             glass
+            compact
             key={key}
             label={t(key)}
             selected={collection === key}
@@ -131,72 +141,116 @@ const Library: React.FC = () => {
           style={styles.activityIndicator}
         />
       )}
-      {!loading && songs.length === 0 && (
-        <View style={styles.noSongsContainer}>
-          <Text style={styles.noSongsText}>{t("NoSongs")}</Text>
-          <TouchableOpacity
-            style={styles.createButton}
-            onPress={() => navigation.navigate("createSong")}
-          >
-            <Text style={styles.createButtonText}>{t`createSong`}</Text>
-          </TouchableOpacity>
+      {!loading && loadError && (
+        <View style={styles.collections}>
+          <Text style={styles.errorText}>{t("LibraryLoadError")}</Text>
+          <Action
+            glass
+            label={t("Retry")}
+            onPress={() => void loadSongs(pagination.current.page)}
+          />
         </View>
       )}
-      <FlatList
-        data={songs}
-        keyExtractor={(item, i) => `${item.id}-${i}`}
-        renderItem={({ item }) => <LibraryItem song={item} />}
-        onEndReached={() => {
-          if (!pagination.current.pending) loadSongs(pagination.current.page);
-        }}
-        onEndReachedThreshold={0.5}
-        ListFooterComponent={
-          loadingMore ? (
-            <ActivityIndicator style={styles.activityIndicatorFlat} />
-          ) : null
-        }
-      />
+      {!loading && !loadError && songs.length === 0 && (
+        <ScrollView contentContainerStyle={styles.noSongsContainer}>
+          <Image
+            source={require("../../../assets/images/gold-folder.png")}
+            style={[styles.glow, height < 650 && styles.compactGlow]}
+          />
+          <Text style={styles.noSongsText}>{t("NoSongs")}</Text>
+          {!filters && collection === "AllSongs" && (
+            <>
+              <Text style={styles.errorText}>{t("EmptyLibraryHint")}</Text>
+              <Action
+                glass
+                label={t("TryExample")}
+                onPress={() =>
+                  navigation.navigate("createSong", { example: true })
+                }
+              />
+            </>
+          )}
+          <Action
+            primary
+            label={`+ ${t("createSong")}`}
+            onPress={() => navigation.navigate("createSong")}
+          />
+        </ScrollView>
+      )}
+      {songs.length > 0 && (
+        <FlatList
+          data={songs}
+          keyExtractor={(item, i) => `${item.id}-${i}`}
+          renderItem={({ item }) => <LibraryItem song={item} />}
+          onEndReached={() => {
+            if (!loadError && !pagination.current.pending)
+              loadSongs(pagination.current.page);
+          }}
+          onEndReachedThreshold={0.5}
+          contentContainerStyle={styles.listContent}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator style={styles.activityIndicatorFlat} />
+            ) : null
+          }
+        />
+      )}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16 },
+  glow: {
+    width: 132,
+    height: 132
+  },
+  compactGlow: { width: 64, height: 64 },
+  container: {
+    flex: 1,
+    padding: 20,
+    width: "100%",
+    maxWidth: 760,
+    alignSelf: "center"
+  },
+  heading: {
+    color: palette.glass.ink,
+    fontSize: 28,
+    fontWeight: "600",
+    marginBottom: 20
+  },
+  listContent: { paddingBottom: 24 },
+  errorText: {
+    color: palette.glass.muted,
+    flexShrink: 1,
+    fontSize: 15,
+    lineHeight: 23,
+    textAlign: "center"
+  },
   collections: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 8,
     marginVertical: 8,
-    padding: 8,
+    paddingVertical: 4,
     borderRadius: 18,
-    backgroundColor: palette.glass.surface
+    backgroundColor: palette.colors.transparent
   },
   activityIndicator: { marginTop: 20 },
   activityIndicatorFlat: { marginVertical: 12 },
   noSongsContainer: {
-    color: palette.glass.ink,
-    backgroundColor: palette.glass.surface,
-    flex: 1,
+    padding: 8,
+    borderRadius: 24,
+    gap: 10,
+    backgroundColor: palette.colors.transparent,
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center"
   },
   noSongsText: {
     color: palette.glass.ink,
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "700",
-    marginBottom: 16
-  },
-  createButton: {
-    backgroundColor: palette.glass.play,
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 8,
-    zIndex: 999
-  },
-  createButtonText: {
-    color: palette.colors.white,
-    fontSize: 16,
-    fontWeight: "600"
+    marginBottom: 0
   }
 });
 

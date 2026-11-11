@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        AAB100000000000000000001 /* PerformanceAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB100000000000000000002; };
+        AAB100000000000000000003 /* tuner_success.wav in Resources */ = {isa = PBXBuildFile; fileRef = AAB100000000000000000004; };
 		1175EDDC4BD4E922B2B48DC1 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
 		5BD81FA42F61EB5E00227B71 /* MicrophoneStreamModule.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5BD81FA32F61EB5E00227B71 /* MicrophoneStreamModule.swift */; };
@@ -14,9 +16,14 @@
 		761780ED2CA45674006654EE /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 761780EC2CA45674006654EE /* AppDelegate.swift */; };
 		81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */; };
 		E8150F1D3188B57C862CD8A3 /* libPods-freetune.a in Frameworks */ = {isa = PBXBuildFile; fileRef = BD01E36BBDA6828B64FDB240 /* libPods-freetune.a */; };
+AAB200000000000000000002 /* Manrope-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AAB200000000000000000001; };
+AAB200000000000000000004 /* Manrope-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AAB200000000000000000003; };
+AAB200000000000000000006 /* Manrope license in Resources */ = {isa = PBXBuildFile; fileRef = AAB200000000000000000005; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        AAB100000000000000000002 /* PerformanceAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceAudio.swift; sourceTree = "<group>"; };
+        AAB100000000000000000004 /* tuner_success.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = tuner_success.wav; path = freetune/tuner_success.wav; sourceTree = "<group>"; };
 		0DD4C93C15DB4BA98D7D5FF6 /* EvilIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = EvilIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/EvilIcons.ttf"; sourceTree = "<group>"; };
 		13B07F961A680F5B00A75B9A /* freetune.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = freetune.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = freetune/Images.xcassets; sourceTree = "<group>"; };
@@ -49,6 +56,9 @@
 		F10E5B0961944C1C99713943 /* SimpleLineIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = SimpleLineIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/SimpleLineIcons.ttf"; sourceTree = "<group>"; };
 		F9196EF997654BC2B9FD3CFD /* MaterialIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = MaterialIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/MaterialIcons.ttf"; sourceTree = "<group>"; };
 		F96106DC96864D378E01874E /* FontAwesome6_Regular.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = FontAwesome6_Regular.ttf; path = "../node_modules/react-native-vector-icons/Fonts/FontAwesome6_Regular.ttf"; sourceTree = "<group>"; };
+AAB200000000000000000001 /* Manrope-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Manrope-Regular.ttf"; path = "../assets/fonts/Manrope/Manrope-Regular.ttf"; sourceTree = "<group>"; };
+AAB200000000000000000003 /* Manrope-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Manrope-SemiBold.ttf"; path = "../assets/fonts/Manrope/Manrope-SemiBold.ttf"; sourceTree = "<group>"; };
+AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKnownFileType = text; name = "Manrope-OFL.txt"; path = "../assets/fonts/Manrope/OFL.txt"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -69,7 +79,12 @@
 				5BD81FAA2F61EFBB00227B71 /* MicrophoneStreamModule.m */,
 				5BD81FA92F61EF4D00227B71 /* freetune-Bridging-Header.h */,
 				5BD81FA32F61EB5E00227B71 /* MicrophoneStreamModule.swift */,
-				13B07FB51A68108700A75B9A /* Images.xcassets */,
+                AAB100000000000000000002 /* PerformanceAudio.swift */,
+                AAB100000000000000000004 /* tuner_success.wav */,
+				AAB200000000000000000001 /* Manrope-Regular.ttf */,
+                AAB200000000000000000003 /* Manrope-SemiBold.ttf */,
+                AAB200000000000000000005 /* Manrope license */,
+                13B07FB51A68108700A75B9A /* Images.xcassets */,
 				761780EC2CA45674006654EE /* AppDelegate.swift */,
 				13B07FB61A68108700A75B9A /* Info.plist */,
 				81AB9BB72411601600AC10FF /* LaunchScreen.storyboard */,
@@ -213,7 +228,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				81AB9BB82411601600AC10FF /* LaunchScreen.storyboard in Resources */,
-				13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
+                AAB100000000000000000003 /* tuner_success.wav in Resources */,
+				AAB200000000000000000002 /* Manrope-Regular.ttf in Resources */,
+                AAB200000000000000000004 /* Manrope-SemiBold.ttf in Resources */,
+                AAB200000000000000000006 /* Manrope license in Resources */,
+                13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				1175EDDC4BD4E922B2B48DC1 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -311,6 +330,7 @@
 				761780ED2CA45674006654EE /* AppDelegate.swift in Sources */,
 				5BD81FAB2F61EFBB00227B71 /* MicrophoneStreamModule.m in Sources */,
 				5BD81FA42F61EB5E00227B71 /* MicrophoneStreamModule.swift in Sources */,
+                AAB100000000000000000001 /* PerformanceAudio.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -324,7 +344,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = UDM787462L;
+				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = freetune/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
@@ -339,7 +359,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.freetune";
 				PRODUCT_NAME = freetune;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;
@@ -360,7 +380,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 2;
-				DEVELOPMENT_TEAM = UDM787462L;
+				DEVELOPMENT_TEAM = "";
 				INFOPLIST_FILE = freetune/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -374,7 +394,7 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "org.reactjs.native.example.$(PRODUCT_NAME:rfc1034identifier)";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.freetune";
 				PRODUCT_NAME = freetune;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
 				SUPPORTS_MACCATALYST = NO;

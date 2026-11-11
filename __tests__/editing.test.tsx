@@ -6,6 +6,13 @@ import Song from "../src/screens/song";
 import Editor from "../src/screens/create-song-chords";
 import Menu from "../src/screens/song/header-modal";
 import * as crud from "../src/components/database/crud";
+jest.mock("../src/screens/tuner", () => () => null);
+jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
+  setKeepAwake: jest.fn()
+}));
+jest.mock("../src/components/database", () => ({
+  db: { transaction: jest.fn() }
+}));
 jest.mock("../src/components/database/crud", () => ({
   getAllItems: jest.fn(),
   createItem: jest.fn(),
@@ -14,9 +21,14 @@ jest.mock("../src/components/database/crud", () => ({
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
 jest.mock("../src/locales", () => ({ t: String }));
 jest.mock("@react-navigation/native", () => ({
+  useIsFocused: () => true,
   useRoute: () => ({ params: { id: "1" } }),
   useFocusEffect: (callback: () => void) =>
     require("react").useEffect(callback, [callback])
+}));
+jest.mock("react-native-safe-area-context", () => ({
+  SafeAreaView: require("react-native").View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }));
 jest.mock("../src/screens/create-song-chords", () => () => null);
 jest.mock("../src/screens/song/header-modal", () => () => null);
@@ -36,7 +48,7 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 async function openSelect(onSelect: jest.Mock) {
-  jest.useFakeTimers();
+  jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   await act(async () => {
     screen = Renderer.create(
       React.createElement(Select, {
@@ -137,6 +149,9 @@ test("closing the song editor reloads the persisted content", async () => {
   expect(
     screen!.root
       .findAllByType(Text)
-      .some((node) => node.props.children === "New content")
+      .some(
+        (node) =>
+          React.Children.toArray(node.props.children).join("") === "New content"
+      )
   ).toBe(true);
 });

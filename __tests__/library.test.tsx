@@ -3,6 +3,7 @@ import Renderer, { act } from "react-test-renderer";
 import { FlatList, TextInput } from "react-native";
 import Library from "../src/screens/library";
 import SearchBar from "../src/screens/library/search";
+import { Action } from "../src/screens/song/tools";
 import { getAllItems } from "../src/components/database/crud";
 
 jest.mock("../src/components/database/crud", () => ({
@@ -43,7 +44,12 @@ test("failed new filter retries page zero without mixing old results", async () 
     screen.root.findByType(SearchBar).props.setFilters("new-filter")
   );
   expect(screen.root.findByType(FlatList).props.data).toEqual([]);
-  await act(async () => screen.root.findByType(FlatList).props.onEndReached());
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Retry")!
+      .props.onPress()
+  );
   expect(getAllItems).toHaveBeenLastCalledWith(
     expect.objectContaining({ page: 0, parameters: ["%new-filter%"] })
   );

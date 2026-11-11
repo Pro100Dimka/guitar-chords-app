@@ -5,10 +5,10 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View
 } from "react-native";
+import Text from "../styled-text";
 
 interface IDropdownProps {
   value?: string;

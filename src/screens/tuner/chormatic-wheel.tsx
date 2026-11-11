@@ -1,10 +1,13 @@
 import React, { useState } from "react";
 import {
   Circle,
+  Oval,
+  BlurMask,
+  RoundedRect,
   Text,
   Group,
   Line,
-  RoundedRect,
+  SweepGradient,
   LinearGradient,
   Shadow,
   useFont,
@@ -23,7 +26,30 @@ import palette from "@/theme/palette";
 import fontFamilies from "../../../assets/fonts/index";
 
 const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
-const { ink, muted, brass } = palette.chromatic;
+export function chromaticLayout(width: number, height: number) {
+  const scale = Math.max(
+    0.25,
+    Math.min(width / 410, height / 690, (height * 0.57 - 52) / 324, 1.4)
+  );
+  const centerY = height * 0.43;
+  const stripWidth = Math.min((width - 32) / scale, 320);
+  const artworkScale = Math.max(scale * 0.82, width / 1024);
+  return {
+    scale,
+    centerY,
+    stripWidth,
+    artworkScale,
+    artwork: {
+      width: 1024 * artworkScale,
+      height: 2216 * artworkScale,
+      left: width / 2 - 518 * artworkScale,
+      top: centerY - 1205 * artworkScale
+    },
+    octaveTop: centerY + 324 * scale,
+    octaveWidth: stripWidth * scale - 20
+  };
+}
+const { ink, muted } = palette.chromatic;
 
 interface ChromaticWheelProps {
   note: SharedValue<INote | null>;
@@ -38,13 +64,16 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
 }) => {
   const { t } = useTranslation();
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
-  const small = useFont(fontFamilies.Roboto[1], 10);
-  const label = useFont(fontFamilies.Roboto[0], 13);
-  const number = useFont(fontFamilies.Roboto[1], 17);
+  const small = useFont(fontFamilies.Roboto[1], 13);
+  const label = useFont(fontFamilies.Roboto[0], 21);
+  const number = useFont(fontFamilies.Roboto[1], 18);
   const octaveFont = useFont(fontFamilies.Roboto[0], 25);
   const main = useFont(fontFamilies.Roboto[1], 80);
-  const scale = Math.max(0.25, Math.min(width / 420, height / 668, 1.3));
-  const centerY = height * 0.365;
+  const { scale, centerY, stripWidth, artworkScale } = chromaticLayout(
+    width,
+    height
+  );
+  const spacing = (stripWidth - 16) / notes.length;
 
   useAnimatedReaction(
     () => {
@@ -85,10 +114,16 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
       { duration: 110 }
     )
   );
-  const indicatorX = useDerivedValue(() => Math.cos(angle.value) * 119);
-  const indicatorY = useDerivedValue(() => Math.sin(angle.value) * 119);
+  const needleStart = useDerivedValue(() =>
+    vec(Math.cos(angle.value) * 78, Math.sin(angle.value) * 78)
+  );
+  const needleEnd = useDerivedValue(() =>
+    vec(Math.cos(angle.value) * 148, Math.sin(angle.value) * 148)
+  );
+  const haloX = useDerivedValue(() => Math.cos(angle.value) * 141);
+  const haloY = useDerivedValue(() => Math.sin(angle.value) * 141);
   const indicatorColor = useDerivedValue(() =>
-    Math.abs(deviation.value) <= 5 ? "#537C60" : "#A66C36"
+    Math.abs(deviation.value) <= 5 ? "#9DFF29" : "#FFBE25"
   );
   const indicatorOpacity = useDerivedValue(() =>
     withTiming(
@@ -114,24 +149,21 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
           octaveFont.getTextWidth(accidental)
         ) + 5
       : 0);
-  const state = !currentNote
-    ? "TunerListening"
-    : inTune
-      ? "TunerInTune"
-      : cents < 0
-        ? "TunerTuneUp"
-        : "TunerTuneDown";
-  const status = t(state);
-  const title = t("TunerChromatic").toUpperCase();
   const frequency = currentNote
-    ? `${currentNote.pitch.toFixed(1)} Hz`
+    ? `${currentNote.pitch.toFixed(2)} Hz`
     : t("TunerPlayNote");
   const offset = currentNote
     ? `${cents > 0 ? "+" : ""}${cents} ${t("TunerCents")}`
-    : "";
-  const stripWidth = Math.min((width - 32) / scale, 380);
-  const spacing = (stripWidth - 16) / notes.length;
-
+    : t("TunerListening");
+  const status = t(
+    !currentNote
+      ? "TunerListening"
+      : inTune
+        ? "TunerInTune"
+        : cents < 0
+          ? "TunerTuneUp"
+          : "TunerTuneDown"
+  );
   return (
     <Group
       transform={[
@@ -140,141 +172,202 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
         { scale }
       ]}
     >
-      <Circle cx={0} cy={4} r={150} color="#382615">
-        <Shadow dx={0} dy={8} blur={12} color="rgba(28,16,8,0.42)" />
+      <Group
+        clip={{
+          x: -width / scale,
+          y: (-205 * artworkScale) / scale,
+          width: (2 * width) / scale,
+          height: (500 * artworkScale) / scale
+        }}
+      >
+        <Oval
+          x={(-274 * artworkScale) / scale}
+          y={(-250 * artworkScale) / scale}
+          width={(548 * artworkScale) / scale}
+          height={(500 * artworkScale) / scale}
+          color="#080B0B"
+        />
+      </Group>
+      <Circle cx={0} cy={3} r={148} color="#080C0E">
+        <Shadow dx={0} dy={4} blur={9} color="rgba(255,157,0,0.25)" />
       </Circle>
-      <Circle cx={0} cy={0} r={148}>
+      <Circle
+        cx={0}
+        cy={0}
+        r={145}
+        style="stroke"
+        strokeWidth={1}
+        color="#5F4B0D"
+      />
+      <Circle cx={0} cy={0} r={141} style="stroke" strokeWidth={4}>
+        <SweepGradient
+          c={vec(0, 0)}
+          colors={[
+            "#FF3106",
+            "#9D4903",
+            "#6B4807",
+            "#FFC913",
+            "#E5E71C",
+            "#8EFF05",
+            "#FFC01B",
+            "#FF3106"
+          ]}
+          positions={[0, 0.16, 0.35, 0.5, 0.65, 0.75, 0.86, 1]}
+        />
+      </Circle>
+      <Circle cx={0} cy={0} r={136}>
         <LinearGradient
-          start={vec(-110, -145)}
-          end={vec(100, 145)}
-          colors={["#F0DFC0", "#B89560", "#715233", "#DCC299"]}
-          positions={[0, 0.35, 0.7, 1]}
+          start={vec(0, -136)}
+          end={vec(0, 136)}
+          colors={["#0B1518", "#010304"]}
         />
       </Circle>
       <Circle
         cx={0}
         cy={0}
-        r={143}
+        r={134}
         style="stroke"
         strokeWidth={1}
-        color="#F8E7C9"
+        color="#604408"
       />
-      <Circle cx={0} cy={0} r={139}>
-        <LinearGradient
-          start={vec(0, -139)}
-          end={vec(0, 139)}
-          colors={["#FFF9ED", "#F0E5D0"]}
-        />
-      </Circle>
-      <Circle
-        cx={0}
-        cy={0}
-        r={136}
-        style="stroke"
-        strokeWidth={1}
-        color="#D9C8AA"
-      />
+      {Array.from({ length: 61 }, (_, i) => {
+        const a = -Math.PI / 6 + ((i / 60) * Math.PI * 4) / 3;
+        return (
+          <Line
+            key={`lower-${i}`}
+            p1={vec(
+              Math.cos(a) * (i % 5 === 0 ? 114 : 122),
+              Math.sin(a) * (i % 5 === 0 ? 114 : 122)
+            )}
+            p2={vec(Math.cos(a) * 130, Math.sin(a) * 130)}
+            color={i < 15 ? "#CA3D06" : "#A47E12"}
+            strokeWidth={1}
+          />
+        );
+      })}
       {Array.from({ length: 41 }, (_, i) => {
         const a = (-Math.PI * 5) / 6 + ((i / 40) * Math.PI * 2) / 3;
-        const major = i % 5 === 0;
-        const inner = major ? 106 : 113;
+        const inner = i % 5 === 0 ? 112 : 120;
         return (
           <Line
             key={i}
             p1={vec(Math.cos(a) * inner, Math.sin(a) * inner)}
-            p2={vec(Math.cos(a) * 122, Math.sin(a) * 122)}
-            color={i === 20 ? "#537C60" : major ? muted : "#CAB999"}
-            strokeWidth={i === 20 ? 2.5 : 1}
+            p2={vec(Math.cos(a) * 130, Math.sin(a) * 130)}
+            color={
+              Math.abs(i - 20) <= 7 ? "#9DFF29" : i > 27 ? "#FF640A" : "#EFCF15"
+            }
+            strokeWidth={i === 20 ? 2 : 1}
           />
         );
       })}
-      {[
-        [-50, -94, -46],
-        [0, 0, -88],
-        [50, 94, -46]
-      ].map(([value, x, y]) => (
-        <Text
-          key={value}
-          x={
-            x - small.getTextWidth(value > 0 ? `+${value}` : String(value)) / 2
-          }
-          y={y}
-          text={value > 0 ? `+${value}` : String(value)}
-          font={small}
-          color={muted}
-        />
-      ))}
+      {[-50, -25, 0, 25, 50].map((value) => {
+        const a = ((value / 50) * Math.PI) / 3 - Math.PI / 2;
+        const text = value > 0 ? `+${value}` : String(value);
+        const radius = value === 0 ? 155 : 170;
+        return (
+          <Text
+            key={value}
+            x={Math.cos(a) * radius - number.getTextWidth(text) / 2}
+            y={Math.sin(a) * radius + 5}
+            text={text}
+            font={number}
+            color={ink}
+          />
+        );
+      })}
       <Group opacity={indicatorOpacity}>
-        <Circle cx={indicatorX} cy={indicatorY} r={7} color="#FFF9ED" />
-        <Circle cx={indicatorX} cy={indicatorY} r={4} color={indicatorColor} />
+        <Line
+          p1={needleStart}
+          p2={needleEnd}
+          color={indicatorColor}
+          strokeWidth={14}
+          opacity={0.65}
+        >
+          <BlurMask blur={12} style="normal" />
+        </Line>
+        <Circle
+          cx={haloX}
+          cy={haloY}
+          r={10}
+          color={indicatorColor}
+          opacity={0.85}
+        >
+          <BlurMask blur={8} style="normal" />
+        </Circle>
+        <Line
+          p1={needleStart}
+          p2={needleEnd}
+          color={indicatorColor}
+          strokeWidth={7}
+        >
+          <BlurMask blur={3} style="normal" />
+        </Line>
+        <Line
+          p1={needleStart}
+          p2={needleEnd}
+          color={indicatorColor}
+          strokeWidth={4}
+        />
+        <Line
+          p1={needleStart}
+          p2={needleEnd}
+          color="#F5FFE9"
+          strokeWidth={1.7}
+        />
       </Group>
-      <Text
-        x={-small.getTextWidth(title) / 2}
-        y={-61}
-        text={title}
-        font={small}
-        color={muted}
-      />
-      <Text x={-noteWidth / 2} y={25} text={name} font={main} color={ink} />
+      <Text x={-noteWidth / 2} y={18} text={name} font={main} color={ink} />
       <Text
         x={-noteWidth / 2 + main.getTextWidth(name) + 5}
-        y={-20}
+        y={-24}
         text={accidental}
         font={octaveFont}
         color={ink}
       />
       <Text
         x={-noteWidth / 2 + main.getTextWidth(name) + 5}
-        y={22}
+        y={16}
         text={octave}
         font={octaveFont}
-        color={muted}
-      />
-      <Text
-        x={-number.getTextWidth(offset) / 2}
-        y={55}
-        text={offset}
-        font={number}
-        color={inTune ? "#537C60" : "#A66C36"}
-      />
-      <Line
-        p1={vec(-38, 72)}
-        p2={vec(38, 72)}
-        color="#D3B98F"
-        strokeWidth={1}
+        color={ink}
       />
       <Text
         x={-label.getTextWidth(frequency) / 2}
-        y={95}
+        y={56}
         text={frequency}
         font={label}
-        color={muted}
+        color={ink}
       />
-      <Circle cx={0} cy={116} r={2} color={brass} />
+      <Text
+        x={-small.getTextWidth(offset) / 2}
+        y={89}
+        text={offset}
+        font={small}
+        color={inTune ? muted : "#FFCA3A"}
+      />
       <RoundedRect
         x={-stripWidth / 2}
-        y={174}
+        y={246}
         width={stripWidth}
-        height={116}
-        r={18}
+        height={78 + 52 / scale}
+        r={16}
         color={palette.chromatic.panel}
       />
       <RoundedRect
         x={-stripWidth / 2}
-        y={174}
+        y={246}
         width={stripWidth}
-        height={116}
-        r={18}
+        height={78 + 52 / scale}
+        r={16}
         style="stroke"
         strokeWidth={1}
         color={palette.chromatic.border}
       />
       <Text
-        x={-label.getTextWidth(status) / 2}
-        y={199}
+        x={-small.getTextWidth(status) / 2}
+        y={270}
         text={status}
-        font={label}
-        color="#F2E2C7"
+        font={small}
+        color={ink}
       />
       {notes.map((item, i) => {
         const x = -stripWidth / 2 + 8 + spacing * i;
@@ -284,7 +377,7 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
             {active && (
               <RoundedRect
                 x={x + 1}
-                y={211}
+                y={282}
                 width={spacing - 2}
                 height={30}
                 r={7}
@@ -293,26 +386,19 @@ const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
             )}
             <Text
               x={x + (spacing - small.getTextWidth(item)) / 2}
-              y={231}
+              y={302}
               text={item}
               font={small}
-              color={active ? ink : "#D8C5A7"}
+              color={active ? palette.gold.ink : muted}
             />
           </Group>
         );
       })}
       <Line
-        p1={vec(-stripWidth / 2 + 20, 252)}
-        p2={vec(stripWidth / 2 - 20, 252)}
-        color="rgba(229,201,154,0.25)"
+        p1={vec(-stripWidth / 2 + 20, 322)}
+        p2={vec(stripWidth / 2 - 20, 322)}
+        color={palette.glass.edge}
         strokeWidth={1}
-      />
-      <Text
-        x={-small.getTextWidth("A4 = 440 Hz") / 2}
-        y={274}
-        text="A4 = 440 Hz"
-        font={small}
-        color="#CCB58F"
       />
     </Group>
   );

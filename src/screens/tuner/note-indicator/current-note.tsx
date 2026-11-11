@@ -1,3 +1,4 @@
+import { SharedValue, useDerivedValue } from "react-native-reanimated";
 import React, { FC } from "react";
 import {
   Oval,
@@ -13,14 +14,9 @@ import { useParagraphBuilder } from "../paragraphs";
 import { INote } from "@/@interfaces";
 import NotePitch from "./note-pitch";
 
-const CurrentNote: FC<INote & { width: number; height: number }> = ({
-  name,
-  pitch,
-  refFreq,
-  octave,
-  width,
-  height
-}) => {
+const CurrentNote: FC<
+  INote & { width: number; height: number; fill: SharedValue<number> }
+> = ({ fill, name, pitch, refFreq, octave, width, height }) => {
   const { centered, fonts } = useParagraphBuilder();
   const colors = palette.guitarDial;
   // Inner rim measured in the 1024 x 1536 artwork; the fretboard covers its top.
@@ -52,6 +48,12 @@ const CurrentNote: FC<INote & { width: number; height: number }> = ({
       .pushStyle({ fontSize: 23 * scale, color: Skia.Color(colors.engraving) })
       .addText(voiced ? String(octave) : "")
       .build();
+  const greenClip = useDerivedValue(() => ({
+    x: hole.x,
+    y: Math.max((height * 304) / 1536, hole.y + hole.height * (1 - fill.value)),
+    width: hole.width,
+    height: hole.height * fill.value
+  }));
   return (
     <Group>
       <Group clip={{ x: 0, y: (height * 304) / 1536, width, height }}>
@@ -74,6 +76,9 @@ const CurrentNote: FC<INote & { width: number; height: number }> = ({
           colors.engraving
         )}
       />
+      <Group clip={greenClip}>
+        <Oval {...hole} color={colors.tuned} opacity={0.24} />
+      </Group>
       <Paragraph
         x={hole.x}
         y={hole.y + hole.height * 0.25}

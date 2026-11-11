@@ -6,18 +6,19 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View
 } from "react-native";
+import Text from "./components/styled-text";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SystemBars } from "react-native-edge-to-edge";
 import Router from "./router";
-import backgroundImage from "../assets/images/screen-background/background.jpg";
+import backgroundImage from "../assets/images/gold-background.png";
 import palette from "./theme/palette";
 import { initLanguage, t } from "./locales";
 import { initDatabase } from "./components/database";
 import SplashScreen from "react-native-splash-screen";
+import Support from "./components/support";
 import {
   flushPreferences,
   loadPreferences,
@@ -59,12 +60,12 @@ const App: FC = () => {
 
   return (
     <SafeAreaProvider>
-      <SystemBars style="dark" />
+      <SystemBars style="light" />
       <GestureHandlerRootView style={styles.flex}>
         <ImageBackground
           source={backgroundImage}
           style={styles.flex}
-          resizeMode="cover"
+          resizeMode="stretch"
         >
           <View style={styles.overlay} />
           {failed && (
@@ -87,6 +88,7 @@ const App: FC = () => {
               color={palette.colors.white}
             />
           )}
+          {ready && <Support />}
           {ready && (
             <Router
               fallback={<View style={styles.flex} />}
@@ -111,7 +113,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: palette.colors.blackOpacityTiny
+    backgroundColor: palette.colors.transparent
   }
 });
 

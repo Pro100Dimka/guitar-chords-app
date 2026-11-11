@@ -7,10 +7,10 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View
 } from "react-native";
+import Text from "../../components/styled-text";
 import palette from "../../theme/palette";
 import { useNavigation } from "@react-navigation/native";
 import { NavigationProp } from "../../router";
@@ -40,7 +40,12 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
   ];
   return (
     <>
-      <Pressable onPress={() => setMenuVisible(true)} style={styles.menuButton}>
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={t("SongTools")}
+        onPress={() => setMenuVisible(true)}
+        style={styles.menuButton}
+      >
         <Ionicons
           name="ellipsis-vertical"
           size={28}
@@ -76,10 +81,15 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
   );
 };
 const styles = StyleSheet.create({
-  menuButton: { marginLeft: 8 },
+  menuButton: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center"
+  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: palette.colors.blackOpacityTiny,
+    backgroundColor: palette.finish.scrim,
     justifyContent: "flex-start",
     alignItems: "flex-end"
   },
@@ -87,13 +97,16 @@ const styles = StyleSheet.create({
     backgroundColor: palette.glass.header,
     marginTop: 80,
     marginRight: 16,
-    borderRadius: 8,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: palette.glass.edge,
     paddingVertical: 8,
-    width: 150
+    width: 220
   },
   menuItem: {
     color: palette.glass.ink,
-    paddingVertical: 10,
+    minHeight: 48,
+    paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16
   }

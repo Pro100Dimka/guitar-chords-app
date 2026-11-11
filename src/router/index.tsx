@@ -14,7 +14,7 @@ import Header from "@/components/header";
 export type RootStackParamList = {
   Tabs: { screen: string; id?: string };
   Song: { id: string } | undefined;
-  createSong: undefined;
+  createSong: { example?: boolean } | undefined;
 };
 export type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,

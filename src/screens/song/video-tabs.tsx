@@ -1,6 +1,7 @@
 import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
+import Text from "../../components/styled-text";
 import YoutubePlayer from "react-native-youtube-iframe";
 import extractYoutubeId from "../../components/utils/extract-youtube-id";
 import palette from "../../theme/palette";
@@ -32,7 +33,14 @@ const VideoTabs: FC<ISong> = (song) => {
             style={[styles.tabButton, selected.key === key && styles.activeTab]}
             onPress={() => setActiveTab(key)}
           >
-            <Text style={styles.tabText}>{label}</Text>
+            <Text
+              style={[
+                styles.tabText,
+                selected.key === key && styles.activeText
+              ]}
+            >
+              {label}
+            </Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -65,6 +73,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.glass.header
   },
   activeTab: { backgroundColor: palette.glass.selected },
+  activeText: { color: palette.gold.ink },
   tabText: { color: palette.glass.ink, fontWeight: "600" },
   player: { borderRadius: 16, overflow: "hidden" }
 });

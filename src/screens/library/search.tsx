@@ -1,16 +1,17 @@
 // src/screens/library/search.tsx
 import Ionicons from "react-native-vector-icons/Ionicons";
+import LinearGradient from "react-native-linear-gradient";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlatList,
   Keyboard,
   Pressable,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View
 } from "react-native";
+import Text from "../../components/styled-text";
 import palette from "../../theme/palette";
 import { useNavigation } from "@react-navigation/native";
 import { NavigationProp } from "../../router";
@@ -85,10 +86,22 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
               style={styles.button}
               onPress={() => navigation.navigate("createSong")}
             >
-              <Ionicons name="add" size={22} color="white" />
+              <LinearGradient
+                pointerEvents="none"
+                colors={palette.finish.goldColors}
+                locations={palette.finish.locations}
+                style={styles.buttonGradient}
+              />
+              <Ionicons name="add" size={22} color={palette.gold.ink} />
             </TouchableOpacity>
             <View style={styles.inputWrapper}>
               <TextInput
+                accessibilityLabel={t("SearchSongs")}
+                returnKeyType="search"
+                onSubmitEditing={() => {
+                  handleDismiss();
+                  setFilters(query);
+                }}
                 ref={inputRef}
                 style={styles.input}
                 placeholder={t("SearchSongs")}
@@ -100,6 +113,8 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
 
               {query.length > 0 && (
                 <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityLabel={t("ClearSearch")}
                   style={styles.clearIcon}
                   onPress={() => {
                     handleDismiss();
@@ -126,7 +141,17 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
                 setFilters(query);
               }}
             >
-              <Ionicons name="search-outline" size={22} color="white" />
+              <LinearGradient
+                pointerEvents="none"
+                colors={palette.finish.surfaceColors}
+                locations={palette.finish.locations}
+                style={styles.buttonGradient}
+              />
+              <Ionicons
+                name="search-outline"
+                size={22}
+                color={palette.gold.top}
+              />
             </TouchableOpacity>
           </View>
 
@@ -155,6 +180,7 @@ const SearchBar = ({ setFilters }: ISearchBarProps) => {
 };
 
 const styles = StyleSheet.create({
+  buttonGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 14 },
   container: { position: "relative", zIndex: 20, marginBottom: 8 },
   overlay: {
     position: "absolute",
@@ -173,7 +199,9 @@ const styles = StyleSheet.create({
   },
 
   input: {
-    minHeight: 44,
+    fontFamily: palette.typography.body,
+    minHeight: 48,
+    fontSize: 15,
     borderWidth: 1,
     borderRadius: 14,
     paddingHorizontal: 12,
@@ -186,18 +214,23 @@ const styles = StyleSheet.create({
 
   clearIcon: {
     position: "absolute",
-    right: 10,
-    top: "50%",
-    transform: [{ translateY: -10 }],
+    right: 0,
+    top: 0,
+    bottom: 0,
+    width: 44,
+    alignItems: "center",
+    justifyContent: "center",
     zIndex: 10
   },
   button: {
-    width: 44,
-    height: 44,
+    width: 48,
+    height: 48,
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: palette.glass.play,
-    borderRadius: 14
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: palette.glass.edge
   },
   dropdown: {
     position: "absolute",
@@ -214,7 +247,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: palette.glass.edge
   },
-  resultTitle: { color: palette.colors.black, fontSize: 16, fontWeight: "600" },
+  resultTitle: { color: palette.glass.ink, fontSize: 16, fontWeight: "600" },
   resultBand: { color: palette.glass.muted, fontWeight: "600", fontSize: 14 }
 });
 

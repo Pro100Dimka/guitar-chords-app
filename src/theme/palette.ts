@@ -43,21 +43,49 @@ const TUNER = {
   centerTuple: [120, 255, 0]
 };
 const palette = {
+  typography: { body: "Manrope-Regular", strong: "Manrope-SemiBold" },
+  finish: {
+    dot: "#655536",
+    edge: "#73644B",
+    silver: "#6F7778",
+    highlight: "#FFE59C",
+    glow: "#FF9D00",
+    scrim: "rgba(0,0,0,0.76)",
+    surfaceColors: [
+      "rgba(107,119,123,0.92)",
+      "rgba(44,57,63,0.92)",
+      "rgba(23,33,38,0.94)",
+      "rgba(10,17,22,0.94)",
+      "rgba(38,49,54,0.92)"
+    ],
+    goldColors: ["#FFF8D9", "#FFE8A2", "#F6CC59", "#D49A21", "#F8D46D"],
+    locations: [0, 0.12, 0.47, 0.53, 1]
+  },
+  recorder: { body: "#0B1014", rim: "#879297", coreEdge: "#FFB49E" },
+  gold: {
+    rimLight: "#FFF9DE",
+    rimShade: "#A27422",
+    top: "#FFE89B",
+    center: "#FFC21C",
+    bottom: "#DD8B00",
+    ink: "#191103",
+    glow: "#FFB000"
+  },
   glass: {
-    header: "rgba(250,247,242,0.82)",
-    surface: "rgba(250,247,242,0.72)",
-    edge: "rgba(250,247,242,0.72)",
-    surfaceEdge: "rgba(250,247,242,0.64)",
-    control: "rgba(250,247,242,0.42)",
-    selected: "rgba(125,87,52,0.14)",
-    accent: "#836348",
-    muted: "#48423B",
-    cell: "rgba(250,247,242,0.66)",
-    ink: "#302E2B",
-    card: "rgba(250,247,242,0.32)",
-    activeCard: "rgba(250,247,242,0.48)",
-    diagram: "rgba(250,247,242,0.52)",
-    play: "#61442F"
+    header: "rgba(8,14,17,0.94)",
+    surface: "rgba(6,11,14,0.82)",
+    edge: "rgba(218,177,97,0.30)",
+    surfaceEdge: "rgba(218,177,97,0.20)",
+    control: "#0B1012",
+    selected: "#FFC21C",
+    accent: "#FFD04A",
+    muted: "#BCC0BD",
+    cell: "rgba(255,202,67,0.09)",
+    ink: "#F5F3E9",
+    card: "rgba(10,17,21,0.72)",
+    activeCard: "rgba(255,186,24,0.035)",
+    diagram: "rgba(7,12,15,0.92)",
+    play: "#FFD04A"
   },
   guitarDial: {
     center: "#493320",
@@ -70,19 +98,19 @@ const palette = {
     highlight: "rgba(255,237,202,0.18)"
   },
   paper: {
-    background: "#FFF8ED",
-    translucent: "rgba(255,248,237,0.95)",
-    line: "#E5D6BD",
-    soft: "#F2E7D4",
+    background: "#05090C",
+    translucent: "rgba(9,15,19,0.95)",
+    line: "#665435",
+    soft: "#10191D",
     green: "#456B4C"
   },
   chromatic: {
-    ink: "#382B1E",
-    muted: "#81715C",
-    brass: "#B9955D",
-    panel: "rgba(43,29,18,0.9)",
+    ink: "#F4F3E9",
+    muted: "#C0C3BE",
+    brass: "#FFC52E",
+    panel: "rgba(5,10,13,0.94)",
     border: "rgba(229,201,154,0.5)",
-    selected: "#EED8AF",
+    selected: "#FFD04A",
     secondary: "#D8C5A7"
   },
   primary: PRIMARY,

@@ -1,11 +1,12 @@
+import React from "react";
 import {
-  Dimensions,
+  useWindowDimensions,
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View
 } from "react-native";
+import Text from "../../components/styled-text";
 import { Dispatch, SetStateAction, useMemo } from "react";
 import { useTranslation } from "react-i18next";
 import palette from "@/theme/palette";
@@ -14,17 +15,19 @@ import { ITunerConfig } from "@/@interfaces";
 const Buttons = ({
   config,
   setConfig,
-  onOpenTuning
+  onOpenTuning,
+  compact = false
 }: {
   config: ITunerConfig;
   setConfig: Dispatch<SetStateAction<ITunerConfig>>;
   onOpenTuning: () => void;
+  compact?: boolean;
 }) => {
   const { instruments, selectedInstrument, autoDetect } = config;
-  const { height } = Dimensions.get("window");
+  const { height } = useWindowDimensions();
   const { t } = useTranslation();
   const fontHeight = height / 68;
-  const fontSize = Math.max(12, fontHeight / 1.3);
+  const fontSize = Math.min(16, Math.max(12, fontHeight / 1.3));
   const instrOptions: any[] = useMemo(() => {
     const subactions = (
       Object.entries(instruments) as [
@@ -42,7 +45,7 @@ const Buttons = ({
 
   if (selectedInstrument === "guitar")
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, compact && styles.compact]}>
         <View style={styles.sight}>
           <Dropdown
             options={instrOptions}
@@ -98,37 +101,23 @@ const Buttons = ({
       </View>
     );
   return (
-    <View style={styles.instrumentBar}>
-      {["guitar", "chromatic"].map((instrument) => (
+    <>
+      <View style={styles.instrumentBar}>
         <Pressable
-          key={instrument}
           accessibilityRole="button"
-          accessibilityState={{
-            selected: config.selectedInstrument === instrument
-          }}
           onPress={() =>
             setConfig((previous) => ({
               ...previous,
-              selectedInstrument: instrument
+              selectedInstrument: "guitar"
             }))
           }
-          style={({ pressed }) => [
-            styles.instrumentButton,
-            config.selectedInstrument === instrument && styles.selected,
-            pressed && styles.pressed
-          ]}
+          style={styles.backToGuitar}
         >
-          <Text
-            style={[
-              styles.label,
-              config.selectedInstrument === instrument && styles.selectedLabel
-            ]}
-          >
-            {t(instrument)}
-          </Text>
+          <Text style={styles.label}>‹ {t("guitar")}</Text>
         </Pressable>
-      ))}
-    </View>
+        <Text style={styles.modeTitle}>{t("TunerChromatic")}</Text>
+      </View>
+    </>
   );
 };
 const styles = StyleSheet.create({
@@ -145,6 +134,13 @@ const styles = StyleSheet.create({
     minHeight: 44,
     backgroundColor: palette.colors.blackOpacity
   },
+  compact: {
+    top: 12,
+    right: 0,
+    flexDirection: "column",
+    alignItems: "center",
+    gap: 8
+  },
   sight: { paddingHorizontal: 5, gap: 10 },
   detect: {
     borderRadius: 10,
@@ -157,31 +153,20 @@ const styles = StyleSheet.create({
   detectAuto: { textAlign: "center", fontWeight: 600 },
   instrumentBar: {
     position: "absolute",
-    top: 16,
-    left: 20,
-    right: 20,
+    top: 12,
+    left: 16,
+    right: 16,
     flexDirection: "row",
-    padding: 4,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: palette.chromatic.border,
-    backgroundColor: palette.chromatic.panel
-  },
-  instrumentButton: {
-    flex: 1,
-    minHeight: 44,
-    justifyContent: "center",
     alignItems: "center",
-    borderRadius: 11,
-    paddingHorizontal: 8
+    gap: 16
   },
-  selected: { backgroundColor: palette.chromatic.selected },
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: palette.chromatic.secondary
+  backToGuitar: { minHeight: 44, justifyContent: "center" },
+  modeTitle: {
+    flex: 1,
+    fontSize: 16,
+    textAlign: "right",
+    color: palette.glass.ink
   },
-  selectedLabel: { color: palette.chromatic.ink },
-  pressed: { opacity: 0.75 }
+  label: { fontSize: 16, color: palette.glass.muted }
 });
 export default Buttons;

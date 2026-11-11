@@ -86,6 +86,65 @@ You've successfully run and modified your React Native App. :partying_face:
 
 ## Release signing and database upgrades
 
+### Store preparation
+
+The current build is a release candidate, not an approved store release.
+Developer contact: Андреев Дмитрий, pro100dimka.and@gmail.com.
+Android and iOS use `com.freetune`. Register this identifier in both developer
+accounts before the first submission, or change it in both native projects if
+unavailable. Select your own Apple signing team in Xcode; no team is preselected.
+
+Settings includes voluntary developer support through the native stores. Create
+`freetune_support` as a consumable in App Store Connect and a one-time product
+in Google Play Console. Activate its purchase option, set pricing and regional
+availability, and complete payment/tax agreements. Prices come from the store;
+there is no subscription or digital entitlement. Without a configured product,
+the app shows an unavailable message and never invents a price or payment link.
+Transactions are consumed only after the store reports `purchased`. Pending
+transactions are recovered at launch; duplicate callbacks are ignored. No server
+entitlement is granted. Adding paid features later requires a separately designed
+receipt verification and entitlement system.
+
+On macOS, run `bundle exec pod install` from `ios` to integrate NitroIap, then
+build/archive in Xcode and test StoreKit sandbox purchases, cancellation, pending
+approval and relaunch recovery. Test the same paths through Google Play internal
+testing and license testers. Unit tests use store mocks and do not prove real
+payments. No production payment is configured until the store accounts exist.
+
+Publish `docs/privacy.html` to a permanent, public HTTPS address, add that address
+to both store listings and expose the hosted link from Settings alongside the
+offline policy. Keep the hosted and in-app texts synchronized. Complete store
+privacy/data-safety forms for the final binary, including embedded YouTube and
+store billing, rather than selecting "no data" without reviewing third parties.
+
+Before submission, confirm usage rights for recognizable characters and logos
+on the tuner backgrounds or replace only those stickers with original artwork.
+The current visual design and guitar assets are preserved.
+
+Release checks still require a signed Android App Bundle, an iOS archive, physical
+Android/iPhone microphone tests, audio interruptions, screen sizes, accessibility
+text scaling, offline storage and real sandbox billing. Register the developer
+accounts and complete any testing requirements shown by the store consoles.
+
+Dependency overrides update the Node-only SQLite adapter, Metro image parsing,
+and modern glob/minimatch consumers to patched versions. Legacy glob 7/8 consumers
+retain their callback API. The Babel module resolver is pinned to 5.0.0 because
+its default glob import is incompatible with newer glob exports. The remaining dependency audit warnings concern
+deepmerge 4 in the React Native CLI and Jest configuration, not Formik's separate
+deepmerge 2 dependency. Only build trusted project configurations; reassess the
+overrides when upgrading these tools. A dependency audit is not a complete
+security review or proof that the application has no vulnerabilities.
+
+The Metro patch in `patches/metro+0.83.5.patch` reads image bytes before calling
+image-size 2, which no longer accepts file paths. The existing `postinstall`
+command applies this patch. Do not skip install scripts in release environments;
+check both production bundles with a clean Metro cache when updating image tools.
+
+Preparation checks: 36 JavaScript tests, TypeScript, ESLint, SQLite integration,
+Android DSP fixtures and an arm64 Android debug APK build passed. Production
+JavaScript bundles are checked for both platforms. No physical device is attached;
+iOS native compilation and store sandbox payments remain unverified.
+
 Android release builds require `RELEASE_STORE_FILE` (absolute keystore path),
 `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS`, and `RELEASE_KEY_PASSWORD` in the
 build environment. Keep the keystore and passwords outside the repository.
@@ -147,3 +206,18 @@ To learn more about React Native, take a look at the following resources:
 - [Learn the Basics](https://reactnative.dev/docs/getting-started) - a **guided tour** of the React Native **basics**.
 - [Blog](https://reactnative.dev/blog) - read the latest official React Native **Blog** posts.
 - [`@facebook/react-native`](https://github.com/facebook/react-native) - the Open Source; GitHub **repository** for React Native.
+
+
+## Song library and practice
+
+- Library: create a song with only a title and lyrics, or open the original practice example from the empty library. Artist and video links are optional.
+- Import: choose a UTF-8 TXT, PRO, CHO or ChordPro file through the system file picker. The title directive is extracted, bracketed chords are rendered, and other directives remain visible for review. Import does not silently change the capo or sounding key. Existing drafts require confirmation before replacement.
+- Settings > Library backup: save a portable JSON copy or preview a copy before restoring. Songs and their favorites, fingerings, rhythm and reading settings are included. Restore is transactional and only appends missing songs; matching title, content, artist and links are skipped with existing preferences preserved. Limits: 5 MB per file, 2,000 songs, 200,000 characters per song. Keep exported files somewhere safe; cloud storage, if selected in the system picker, is managed by its provider.
+- Song > Reading > Play more easily: compare fingerings for capo positions 0 through 7 while preserving the sounding key and original text. Suggestions assume standard guitar tuning and use a fingering-complexity estimate. The previous position can be restored while the panel remains open.
+- Song > Practice: play the entire chord sequence from the song, including repeated chords. Select a starting chord and tempo for a one-minute session, with one chord per bar. This is a timing guide, not microphone-based playing assessment. Backgrounding the app stops playback.
+- Rhythm previews play recorded steel-string acoustic guitar samples using the song's chords, selected fingerings and capo. The standalone catalog uses an example progression. Samples are from Meta Steel Guitar (CC0), with source and license in assets/guitar-samples.LICENSE.txt. String taps and fingering selection use the same sample bank.
+- Fingerings include the curated shapes followed by generated alternatives across the neck, filtered for chord tones, bass and fretting reach. More shapes load on demand. Diagrams assume standard six-string tuning.
+- Song > Record: record voice and guitar locally as AAC/M4A while reading the song, then listen, export or delete takes. Recording stops on leaving the screen or backgrounding the app, and is limited to 30 minutes. Recordings are not included in the JSON library backup; export important takes separately. Uninstalling the app removes its local recordings.
+- Guitar tuner: 33 preset tunings and editable six-string tuning. The note fills green after holding within 5 cents for 1.1 seconds, followed by an optional soft confirmation sound. The cue is excluded from pitch feedback briefly to avoid triggering itself. Very low tunings require suitable strings and instrument setup.
+
+The file picker and file access modules require a native rebuild, including CocoaPods installation on macOS for iOS. Before release, manually verify file selection, cancellation, export and restore on physical Android and iPhone devices, along with the existing live tuner checklist.

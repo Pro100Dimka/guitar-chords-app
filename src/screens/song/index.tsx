@@ -16,16 +16,18 @@ import {
 import {
   useFocusEffect,
   useIsFocused,
-  useRoute
+  useRoute,
+  RouteProp
 } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
-import guitarBgSong from "../../../assets/images/screen-background/song.jpg";
+import guitarBgSong from "../../../assets/images/gold-background.png";
 import CreateChordSong from "../create-song-chords";
+import SongRecorder from "./recorder";
 import SongModal from "./header-modal";
 import VideoTabs from "./video-tabs";
 import Header from "../../components/header";
 import palette from "../../theme/palette";
-import { ScreenRouteProp } from "../../router";
+import { RootStackParamList } from "../../router";
 import { ISong } from "../../@interfaces";
 import { getAllItems } from "@/components/database/crud";
 import {
@@ -39,7 +41,7 @@ import { chordPattern, isChordLine, transposeChord } from "./chords";
 import { Action, ChordSheet, SongTools } from "./tools";
 
 const SongDetail: React.FC = () => {
-  const route = useRoute<ScreenRouteProp>();
+  const route = useRoute<RouteProp<RootStackParamList, "Song">>();
   const songId = Number(route?.params?.id);
   const { t } = useTranslation();
   const focused = useIsFocused();
@@ -245,9 +247,29 @@ const SongDetail: React.FC = () => {
     <ImageBackground
       source={guitarBgSong}
       style={styles.background}
-      resizeMode="cover"
+      resizeMode="stretch"
     >
       <Header glass title={song?.title ?? t("SongTitle")} showBack>
+        <Action
+          glass
+          label={preferences.favorite ? "★" : "☆"}
+          accessibilityLabel={t(
+            preferences.favorite ? "FavoritesRemove" : "FavoritesAdd"
+          )}
+          selected={preferences.favorite}
+          onPress={() => change({ favorite: !preferences.favorite })}
+        />
+        <Action
+          glass
+          compact
+          label={t("tuner")}
+          onPress={() => {
+            setPlaying(false);
+            setVideos(false);
+            savePosition();
+            setTuner(true);
+          }}
+        />
         <SongModal
           setIsEdit={(edit) => {
             setPlaying(false);
@@ -266,30 +288,6 @@ const SongDetail: React.FC = () => {
         <CreateChordSong song={song} setIsEdit={setIsEdit} />
       ) : (
         <>
-          <View style={styles.topline}>
-            <Text numberOfLines={1} style={styles.artist}>
-              {song.band_name}
-            </Text>
-            <Action
-              glass
-              label={preferences.favorite ? "★" : "☆"}
-              accessibilityLabel={t(
-                preferences.favorite ? "FavoritesRemove" : "FavoritesAdd"
-              )}
-              selected={preferences.favorite}
-              onPress={() => change({ favorite: !preferences.favorite })}
-            />
-            <Action
-              glass
-              label={t("tuner")}
-              onPress={() => {
-                setPlaying(false);
-                setVideos(false);
-                savePosition();
-                setTuner(true);
-              }}
-            />
-          </View>
           <ScrollView
             ref={scroll}
             onLayout={({ nativeEvent }) => {
@@ -319,6 +317,10 @@ const SongDetail: React.FC = () => {
                   {preferences.transpose} · {t("Capo")}: {preferences.capo}
                 </Text>
               )}
+              {!!song.band_name && (
+                <Text style={styles.metadata}>{song.band_name}</Text>
+              )}
+              <Text style={styles.metadata}>{t("TapChordHint")}</Text>
               {song.content.split(/\r?\n/).map(renderLine)}
             </View>
             {(song.youtube_music || song.youtobe_lesson) && (
@@ -343,7 +345,11 @@ const SongDetail: React.FC = () => {
           >
             <Action
               glass
-              label={playing ? t("Pause") : t("AutoScroll")}
+              compact
+              primary
+              label={playing ? "Ⅱ" : t("ScrollLyrics")}
+              icon={playing ? "pause" : "play"}
+              accessibilityLabel={playing ? t("Pause") : t("AutoScroll")}
               selected={playing}
               onPress={() => {
                 if (playing) savePosition();
@@ -352,17 +358,34 @@ const SongDetail: React.FC = () => {
             />
             <Action
               glass
+              compact
               label={t("Rhythm")}
+              icon="music-note-eighth"
               onPress={() => {
                 setPlaying(false);
                 setTools("rhythm");
               }}
             />
-            <Action glass label={t("SongTools")} onPress={openTools} />
+            <Action
+              glass
+              compact
+              label="⚙"
+              icon="tune-variant"
+              accessibilityLabel={t("SongTools")}
+              onPress={openTools}
+            />
+            <SongRecorder
+              songId={songId}
+              active={focused && !tuner && !tools && !chord && !isEdit}
+              onStart={() => {
+                setVideos(false);
+              }}
+            />
           </View>
           {tools && (
             <SongTools
               initialTab={tools}
+              content={song.content}
               value={preferences}
               onChange={change}
               onClose={() => setTools(false)}
@@ -372,6 +395,7 @@ const SongDetail: React.FC = () => {
             <ChordSheet
               chord={chord}
               value={preferences.shapes[chord]}
+              capo={preferences.capo}
               onChange={(index) =>
                 change({ shapes: { ...preferences.shapes, [chord]: index } })
               }
@@ -400,39 +424,41 @@ const styles = StyleSheet.create({
   background: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
   status: {
+    fontFamily: palette.typography.body,
     color: palette.glass.ink,
     backgroundColor: palette.glass.header,
     padding: 20,
     borderRadius: 16
   },
-  topline: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    padding: 12,
-    backgroundColor: palette.glass.surface
-  },
-  artist: { flex: 1, color: palette.glass.muted, fontSize: 14 },
-  scroll: { padding: 14, gap: 16, paddingBottom: 28 },
+  scroll: { padding: 20, gap: 16, paddingBottom: 28 },
   paper: {
     borderRadius: 20,
-    padding: 18,
-    backgroundColor: palette.glass.surface,
-    borderWidth: 1,
-    borderColor: palette.glass.edge
+    paddingVertical: 12,
+    backgroundColor: palette.colors.transparent
   },
   content: {
     color: palette.glass.ink,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace"
   },
-  chord: { color: palette.glass.play, fontWeight: "700" },
-  metadata: { color: palette.glass.muted, fontSize: 13, marginBottom: 18 },
+  chord: {
+    color: palette.glass.play,
+    fontWeight: "800",
+    textDecorationLine: "none"
+  },
+  metadata: {
+    fontFamily: palette.typography.body,
+    color: palette.glass.muted,
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 20
+  },
   toolbar: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-    gap: 6,
-    padding: 8,
+    justifyContent: "space-evenly",
+    alignItems: "center",
+    gap: 8,
+    padding: 12,
     borderTopWidth: 1,
     borderColor: palette.glass.edge,
     backgroundColor: palette.glass.header

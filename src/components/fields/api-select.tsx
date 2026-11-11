@@ -1,4 +1,4 @@
-import backgroundImage from "../../../assets/images/screen-background/background.jpg";
+import backgroundImage from "../../../assets/images/gold-background.png";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -7,11 +7,11 @@ import {
   Modal,
   ImageBackground,
   StyleSheet,
-  Text,
   TextInput,
   TouchableOpacity,
   View
 } from "react-native";
+import Text from "../styled-text";
 import palette from "../../theme/palette";
 import { createItem, getAllItems } from "../database/crud";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -201,10 +201,11 @@ function SearchableSelect<T extends Record<string, unknown>>({
         <ImageBackground
           source={backgroundImage}
           style={styles.background}
-          resizeMode="cover"
+          resizeMode="stretch"
         >
           <SafeAreaView style={styles.modalContainer}>
             <TextInput
+              keyboardAppearance="dark"
               placeholder={placeholder}
               value={query}
               onChangeText={setQuery}
@@ -223,7 +224,9 @@ function SearchableSelect<T extends Record<string, unknown>>({
                     closeModal();
                   }}
                 >
-                  <Text>{String(item[labelKey] ?? "")}</Text>
+                  <Text style={styles.text}>
+                    {String(item[labelKey] ?? "")}
+                  </Text>
                 </TouchableOpacity>
               )}
               onEndReached={() => {
@@ -238,7 +241,7 @@ function SearchableSelect<T extends Record<string, unknown>>({
             {requestError && <Text style={styles.error}>{requestError}</Text>}
             {requestError && (
               <TouchableOpacity onPress={() => loadItems(0)}>
-                <Text>{t("Retry")}</Text>
+                <Text style={styles.text}>{t("Retry")}</Text>
               </TouchableOpacity>
             )}
 
@@ -248,14 +251,14 @@ function SearchableSelect<T extends Record<string, unknown>>({
               data.length === 0 &&
               hasCreateBtn && (
                 <TouchableOpacity style={styles.create} onPress={handleCreate}>
-                  <Text style={{ color: palette.colors.white }}>
+                  <Text style={{ color: palette.gold.ink }}>
                     {t("Create")}: {query}
                   </Text>
                 </TouchableOpacity>
               )}
 
             <TouchableOpacity style={styles.closeButton} onPress={closeModal}>
-              <Text>{t("Close")}</Text>
+              <Text style={styles.text}>{t("Close")}</Text>
             </TouchableOpacity>
           </SafeAreaView>
         </ImageBackground>
@@ -267,13 +270,18 @@ function SearchableSelect<T extends Record<string, unknown>>({
 export default SearchableSelect;
 
 const styles = StyleSheet.create({
+  text: { color: palette.glass.ink, fontSize: 16 },
   background: { flex: 1 },
   container: { marginBottom: 16, width: "100%" },
 
   input: {
+    fontFamily: palette.typography.body,
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: palette.glass.edge,
     backgroundColor: palette.glass.control,
-    borderRadius: 12,
-    padding: 12,
+    borderRadius: 14,
+    padding: 14,
     color: palette.glass.ink,
     fontSize: 16,
     width: "100%"
@@ -288,9 +296,13 @@ const styles = StyleSheet.create({
   },
 
   searchInput: {
+    fontFamily: palette.typography.body,
+    minHeight: 48,
+    fontSize: 16,
+    color: palette.glass.ink,
     borderWidth: 1,
     borderColor: palette.glass.edge,
-    borderRadius: 10,
+    borderRadius: 14,
     padding: 12,
     marginBottom: 10
   },
@@ -298,18 +310,20 @@ const styles = StyleSheet.create({
   item: {
     padding: 15,
     borderBottomWidth: 1,
-    borderColor: palette.colors.background
+    borderColor: palette.glass.edge
   },
 
   create: {
     marginTop: 10,
-    backgroundColor: palette.glass.ink,
+    backgroundColor: palette.glass.accent,
     padding: 12,
     borderRadius: 8,
     alignItems: "center"
   },
 
   closeButton: {
+    minHeight: 48,
+    justifyContent: "center",
     marginTop: 15,
     alignItems: "center"
   },

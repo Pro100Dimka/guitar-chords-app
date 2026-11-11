@@ -1,5 +1,6 @@
 import React from "react";
-import { StyleSheet, Text, TextInput, View } from "react-native";
+import { StyleSheet, TextInput, View } from "react-native";
+import Text from "../styled-text";
 import palette from "../../theme/palette";
 
 interface ITextFieldProps {
@@ -38,6 +39,9 @@ const TextField: React.FC<ITextFieldProps> = ({
     <View style={[styles.container, style?.container]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
+        accessibilityLabel={label ?? placeholder}
+        selectionColor={palette.glass.accent}
+        keyboardAppearance="dark"
         style={[
           styles.input,
           multiline && styles.multiline,
@@ -64,11 +68,13 @@ const styles = StyleSheet.create({
   container: { marginBottom: 16 },
   label: { color: palette.glass.muted, marginBottom: 6, fontSize: 14 },
   input: {
+    fontFamily: palette.typography.body,
+    minHeight: 48,
     backgroundColor: palette.glass.control,
-    borderRadius: 12,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: palette.glass.edge,
-    padding: 10,
+    padding: 14,
     color: palette.glass.ink,
     fontSize: 16,
 

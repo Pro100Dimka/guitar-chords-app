@@ -1,18 +1,13 @@
 import React, { FC, useEffect, useState } from "react";
 import checkMicPermission from "@/components/permissions";
 import { useTranslation } from "react-i18next";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  Linking,
-  Platform,
-  AppState
-} from "react-native";
+import { View, StyleSheet, Linking, Platform, AppState } from "react-native";
+import Text from "../../components/styled-text";
 import palette from "@/theme/palette";
 import Tuner from "./tuner";
 import { useIsFocused } from "@react-navigation/native";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { Action } from "../song/tools";
 
 const RequireMicAccess: FC = () => {
   const { t } = useTranslation();
@@ -54,14 +49,17 @@ const RequireMicAccess: FC = () => {
   if (!isFocused || appState !== "active") return null;
   return !hasPermission ? (
     <View style={styles.container}>
+      <MaterialCommunityIcons
+        name="microphone-outline"
+        size={64}
+        color={palette.glass.accent}
+      />
       <Text style={styles.errorText}>{t`ErrorMicAccess`}</Text>
-      <TouchableOpacity
-        style={styles.button}
-        activeOpacity={0.8}
+      <Action
+        primary
+        label={t("ConfigurePermissions")}
         onPress={openAppSettings}
-      >
-        <Text style={styles.buttonText}>{t`ConfigurePermissions`}</Text>
-      </TouchableOpacity>
+      />
     </View>
   ) : (
     <Tuner />
@@ -74,24 +72,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 20,
-    backgroundColor: palette.paper.background
+    gap: 24,
+    backgroundColor: palette.colors.transparent
   },
   errorText: {
     fontSize: 18,
     color: palette.chromatic.muted,
     textAlign: "center",
-    marginBottom: 20
-  },
-  button: {
-    backgroundColor: palette.chromatic.ink,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 14
-  },
-  buttonText: {
-    color: palette.colors.primary,
-    fontSize: 16,
-    fontWeight: "bold"
+    lineHeight: 27,
+    maxWidth: 360
   }
 });
 

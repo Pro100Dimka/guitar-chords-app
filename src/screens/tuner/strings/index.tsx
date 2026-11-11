@@ -8,7 +8,11 @@ import {
 } from "@shopify/react-native-skia";
 import palette from "../../../theme/palette";
 import StringWithVibration from "./string-vibration";
-import { SharedValue, useAnimatedReaction } from "react-native-reanimated";
+import {
+  SharedValue,
+  useAnimatedReaction,
+  useDerivedValue
+} from "react-native-reanimated";
 import { runOnJS } from "react-native-worklets";
 import { useParagraphBuilder } from "../paragraphs";
 import { INote, IString } from "@/@interfaces";
@@ -27,6 +31,8 @@ export const NECK_EXTENSION_RATIO = 680 / 2216;
 const Strings: FC<{
   rms: SharedValue<number>;
   note: SharedValue<INote | null>;
+  fill: SharedValue<number>;
+  fillKey: SharedValue<string>;
   stringNotes: IString[] | null;
   currString: IString | null;
   width: number;
@@ -35,6 +41,8 @@ const Strings: FC<{
 }> = (props) => {
   const {
     note,
+    fill,
+    fillKey,
     rms,
     stringNotes,
     currString,
@@ -110,6 +118,14 @@ const Strings: FC<{
                 active ? palette.chromatic.brass : palette.chromatic.border
               }
             />
+            <StringFill
+              x={x - boxWidth / 2}
+              y={boxTop}
+              width={boxWidth}
+              noteKey={`${s.name}${s.octave}`}
+              fill={fill}
+              fillKey={fillKey}
+            />
             <Paragraph
               x={x - boxWidth / 2}
               y={boxTop + 5}
@@ -135,4 +151,37 @@ const Strings: FC<{
   );
 };
 
+function StringFill({
+  x,
+  y,
+  width,
+  noteKey,
+  fill,
+  fillKey
+}: {
+  x: number;
+  y: number;
+  width: number;
+  noteKey: string;
+  fill: SharedValue<number>;
+  fillKey: SharedValue<string>;
+}) {
+  const clip = useDerivedValue(() => {
+    const progress = fillKey.value === noteKey ? fill.value : 0;
+    return { x, y: y + 50 * (1 - progress), width, height: 50 * progress };
+  });
+  return (
+    <Group clip={clip}>
+      <RoundedRect
+        x={x}
+        y={y}
+        width={width}
+        height={50}
+        r={10}
+        color={palette.guitarDial.tuned}
+        opacity={0.78}
+      />
+    </Group>
+  );
+}
 export default Strings;
