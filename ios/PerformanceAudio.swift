@@ -175,7 +175,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         let reader = try AVAudioFile(forReading: input, commonFormat: .pcmFormatFloat32, interleaved: false)
         let format = reader.processingFormat
         guard format.channelCount == 1, reader.length > 0,
-              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4096) else {
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16384) else {
             throw NSError(domain: "PerformanceAudio", code: 4)
         }
         let writer = try AVAudioFile(forWriting: output, settings: [
