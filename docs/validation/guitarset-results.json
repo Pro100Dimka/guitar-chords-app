@@ -1,0 +1,363 @@
+{
+  "dataset": "GuitarSet v1.1.0 (10 instrumental excerpts; not full sung songs)",
+  "source": "https://zenodo.org/records/3371780",
+  "license": "CC-BY-4.0",
+  "annotations": "Performed chord annotations; corpus metadata describes semi-automatic transcription with manual verification. No new human verification was performed.",
+  "selection": "Two players 00,04 \u00d7 first lexicographic comp excerpt in BN,Funk,Jazz,Rock,SS; known timing-error files excluded.",
+  "environment": {
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "threads": 2,
+    "physicalAndroid": false,
+    "model": "small"
+  },
+  "measurement": "Subprocess wall time includes model imports; RSS sampled every 0.2s including descendant FFmpeg. Shared Linux host, concurrently developing/building app. Not a phone benchmark.",
+  "metricDefinitions": {
+    "exact": "Equal root pitch class, full pitch-class bitmap (extended chords reduced) and bass; enharmonic spellings/root inversion labels normalized using mir_eval0.8.2. Not raw string equality.",
+    "triad": "Equal root pitch class and interval bitmap through augmented fifth, ignoring bass and upper extensions (mir_eval triads convention).",
+    "boundaries": "One-to-one nearest chord change matching within0.5seconds; errors describe matched changes only."
+  },
+  "items": [
+    {
+      "name": "00_BN1-129-Eb_comp",
+      "sha256": "59e1e3c9bebdabd48afe28050a2c031e6cf36e5697268301cdf2e74bc66b71f1",
+      "status": "completed",
+      "durationSeconds": 22.32439909297052,
+      "wallSeconds": 15.87,
+      "peakRssMiB": 1176.24,
+      "chordIntervals": 10,
+      "exact": {
+        "matchedSeconds": 3.1179069767441856,
+        "scoredSeconds": 22.32439909297052,
+        "agreement": 0.1396636462087774
+      },
+      "triad": {
+        "matchedSeconds": 6.215116279069768,
+        "scoredSeconds": 22.32439909297052,
+        "agreement": 0.27840015998579676
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 5,
+        "referenceChanges": 5,
+        "predictedChanges": 9,
+        "precision": 0.5555555555555556,
+        "recall": 1.0,
+        "f1": 0.7142857142857143,
+        "matchedMeanAbsoluteErrorSeconds": 0.1844186046511629
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    },
+    {
+      "name": "00_Funk1-114-Ab_comp",
+      "sha256": "15eb54c1249e69e75c69d6611bd332c51735199c8ced22a35b87d662a81e5ba9",
+      "status": "completed",
+      "durationSeconds": 25.258412698412698,
+      "wallSeconds": 11.489,
+      "peakRssMiB": 1223.46,
+      "chordIntervals": 8,
+      "exact": {
+        "matchedSeconds": 11.688421052631579,
+        "scoredSeconds": 25.25840000000005,
+        "agreement": 0.46275381863584214
+      },
+      "triad": {
+        "matchedSeconds": 18.755768421052682,
+        "scoredSeconds": 25.25840000000005,
+        "agreement": 0.7425556813199824
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 2,
+        "referenceChanges": 5,
+        "predictedChanges": 7,
+        "precision": 0.2857142857142857,
+        "recall": 0.4,
+        "f1": 0.3333333333333333,
+        "matchedMeanAbsoluteErrorSeconds": 0.11973684210526159
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    },
+    {
+      "name": "00_Jazz1-130-D_comp",
+      "sha256": "b686a47b0a0a58dbdd818d2ebc9c31da87e4bed1af889dd62b1ffd1d1496f827",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 11.198,
+      "peakRssMiB": 1225.23,
+      "chordIntervals": 9,
+      "exact": {
+        "matchedSeconds": 12.15104615384615,
+        "scoredSeconds": 22.147199999999998,
+        "agreement": 0.5486493170173272
+      },
+      "triad": {
+        "matchedSeconds": 17.51258461538461,
+        "scoredSeconds": 22.147199999999998,
+        "agreement": 0.7907358318606692
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 5,
+        "referenceChanges": 5,
+        "predictedChanges": 8,
+        "precision": 0.625,
+        "recall": 1.0,
+        "f1": 0.7692307692307693,
+        "matchedMeanAbsoluteErrorSeconds": 0.17492307692307704
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    },
+    {
+      "name": "00_Rock1-130-A_comp",
+      "sha256": "deb5aa62bc4ba99e394574a44bbfb95c22c789f8a4c4b4d8d5eccc0aa5e8392d",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 17.858,
+      "peakRssMiB": 991.56,
+      "chordIntervals": 7,
+      "exact": {
+        "matchedSeconds": 12.78923076923077,
+        "scoredSeconds": 22.1472,
+        "agreement": 0.5774649061385082
+      },
+      "triad": {
+        "matchedSeconds": 20.05027692307692,
+        "scoredSeconds": 22.1472,
+        "agreement": 0.9053188178675824
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 5,
+        "referenceChanges": 5,
+        "predictedChanges": 6,
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "f1": 0.9090909090909091,
+        "matchedMeanAbsoluteErrorSeconds": 0.11738461538461528
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    },
+    {
+      "name": "00_SS1-100-C#_comp",
+      "sha256": "4180689b2d372b7588253f3bf6782e904af04feef4d80726160965387d443662",
+      "status": "completed",
+      "durationSeconds": 28.8,
+      "wallSeconds": 16.227,
+      "peakRssMiB": 1224.48,
+      "chordIntervals": 7,
+      "exact": {
+        "matchedSeconds": 7.190000000000001,
+        "scoredSeconds": 28.8,
+        "agreement": 0.2496527777777778
+      },
+      "triad": {
+        "matchedSeconds": 26.290000000000003,
+        "scoredSeconds": 28.8,
+        "agreement": 0.9128472222222223
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 5,
+        "referenceChanges": 5,
+        "predictedChanges": 6,
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "f1": 0.9090909090909091,
+        "matchedMeanAbsoluteErrorSeconds": 0.019999999999999574
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    },
+    {
+      "name": "04_BN1-129-Eb_comp",
+      "sha256": "ca4b487760400edabb87ed478a523ad0587c020b8463f97429af4009789f4ebd",
+      "status": "completed",
+      "durationSeconds": 22.32439909297052,
+      "wallSeconds": 13.088,
+      "peakRssMiB": 1225.63,
+      "chordIntervals": 7,
+      "exact": {
+        "matchedSeconds": 12.843953488372092,
+        "scoredSeconds": 22.32439909297052,
+        "agreement": 0.5753325513884215
+      },
+      "triad": {
+        "matchedSeconds": 21.867189790644932,
+        "scoredSeconds": 22.32439909297052,
+        "agreement": 0.9795197487546461
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 5,
+        "referenceChanges": 5,
+        "predictedChanges": 6,
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "f1": 0.9090909090909091,
+        "matchedMeanAbsoluteErrorSeconds": 0.08744186046511722
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    },
+    {
+      "name": "04_Funk1-114-Ab_comp",
+      "sha256": "6e2a6fc4fdce9b250ab11a090a8f5c4efcc12f83a60b17c8ca206ffeda07a8f0",
+      "status": "completed",
+      "durationSeconds": 25.258412698412698,
+      "wallSeconds": 13.814,
+      "peakRssMiB": 1224.16,
+      "chordIntervals": 6,
+      "exact": {
+        "matchedSeconds": 15.670526315789473,
+        "scoredSeconds": 25.25840000000005,
+        "agreement": 0.6204085102694328
+      },
+      "triad": {
+        "matchedSeconds": 15.670526315789473,
+        "scoredSeconds": 25.25840000000005,
+        "agreement": 0.6204085102694328
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 2,
+        "referenceChanges": 5,
+        "predictedChanges": 5,
+        "precision": 0.4,
+        "recall": 0.4,
+        "f1": 0.4000000000000001,
+        "matchedMeanAbsoluteErrorSeconds": 0.04868421052631611
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    },
+    {
+      "name": "04_Jazz1-130-D_comp",
+      "sha256": "69a9b13b9b4206c7b05ababa7dc4f63027212596aa9d255cac9301487099c899",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 22.043,
+      "peakRssMiB": 1569.36,
+      "chordIntervals": 8,
+      "exact": {
+        "matchedSeconds": 1.6207692307692305,
+        "scoredSeconds": 22.147199999999998,
+        "agreement": 0.07318167672523979
+      },
+      "triad": {
+        "matchedSeconds": 3.466923076923077,
+        "scoredSeconds": 22.147199999999998,
+        "agreement": 0.15654001756082384
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 5,
+        "referenceChanges": 5,
+        "predictedChanges": 7,
+        "precision": 0.7142857142857143,
+        "recall": 1.0,
+        "f1": 0.8333333333333333,
+        "matchedMeanAbsoluteErrorSeconds": 0.2161538461538468
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    },
+    {
+      "name": "04_Rock1-130-A_comp",
+      "sha256": "139d6293709a89d256105fc65850129754de98b8d076e4eb1da8f706af80a26a",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 13.943,
+      "peakRssMiB": 1218.22,
+      "chordIntervals": 7,
+      "exact": {
+        "matchedSeconds": 0.0,
+        "scoredSeconds": 22.1472,
+        "agreement": 0.0
+      },
+      "triad": {
+        "matchedSeconds": 0.0,
+        "scoredSeconds": 22.1472,
+        "agreement": 0.0
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 5,
+        "referenceChanges": 5,
+        "predictedChanges": 6,
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "f1": 0.9090909090909091,
+        "matchedMeanAbsoluteErrorSeconds": 0.0966153846153837
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    },
+    {
+      "name": "04_SS1-100-C#_comp",
+      "sha256": "39b592e5ab79e457a7901e865b4320e04014903465acdebd64235b4f44416650",
+      "status": "completed",
+      "durationSeconds": 28.8,
+      "wallSeconds": 22.7,
+      "peakRssMiB": 1560.96,
+      "chordIntervals": 7,
+      "exact": {
+        "matchedSeconds": 28.040000000000003,
+        "scoredSeconds": 28.8,
+        "agreement": 0.9736111111111112
+      },
+      "triad": {
+        "matchedSeconds": 28.040000000000003,
+        "scoredSeconds": 28.8,
+        "agreement": 0.9736111111111112
+      },
+      "boundaries": {
+        "toleranceSeconds": 0.5,
+        "matches": 4,
+        "referenceChanges": 5,
+        "predictedChanges": 6,
+        "precision": 0.6666666666666666,
+        "recall": 0.8,
+        "f1": 0.7272727272727272,
+        "matchedMeanAbsoluteErrorSeconds": 0.01750000000000007
+      },
+      "unwantedLyricLines": 0,
+      "unwantedLexicalWords": 0,
+      "warnings": [
+        "no_lyrics"
+      ]
+    }
+  ],
+  "exactWeightedAgreement": 0.43550834282458184,
+  "triadWeightedAgreement": 0.6540936755596993
+}

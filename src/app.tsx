@@ -20,6 +20,7 @@ import backgroundImage from "../assets/images/gold-background.png";
 import palette from "./theme/palette";
 import { initLanguage, t } from "./locales";
 import { initDatabase } from "./components/database";
+import { initializeSongAnalysis } from "./components/song-analysis/startup";
 import SplashScreen from "react-native-splash-screen";
 import Support from "./components/support";
 import {
@@ -54,6 +55,7 @@ const App: FC = () => {
     const init = async () => {
       try {
         await initDatabase();
+        await initializeSongAnalysis();
         await initLanguage();
         await loadPreferences();
         if (active) setReady(true);

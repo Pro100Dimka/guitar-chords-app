@@ -175,6 +175,7 @@ const Settings: React.FC = () => {
             style={[styles.hero, height < 500 && styles.compactHero]}
           />
           <Text style={styles.heroBody}>{t("BackupHint")}</Text>
+          <Text style={styles.body}>{t("AudioBackupPolicy")}</Text>
           {pending ? (
             <>
               <Text style={styles.title}>
@@ -261,6 +262,7 @@ const Settings: React.FC = () => {
             style={styles.privacyIcon}
           />
           <View style={styles.privacyPaper}>
+            <Text style={styles.privacyText}>{t("AnalysisPrivacy")}</Text>
             {t("PrivacyText")
               .split("\n\n")
               .map((paragraph, index) => (

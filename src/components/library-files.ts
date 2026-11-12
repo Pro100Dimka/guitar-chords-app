@@ -11,6 +11,12 @@ import ImageResizer from "@bam.tech/react-native-image-resizer";
 import { db } from "./database";
 import { getAllItems } from "./database/crud";
 import {
+  AudioSong,
+  audioBackupFootprint,
+  listAudioSongs
+} from "./database/audio-analysis";
+import { validateSongAnalysis } from "./song-analysis/types";
+import {
   normalizeSongPreferences,
   SongPreferences,
   suspendPreferenceSaving,
@@ -18,6 +24,7 @@ import {
 } from "./preferences";
 
 const maxBytes = 5 * 1024 * 1024;
+const maxBackupBytes = 50 * 1024 * 1024;
 export const fileCanceled = (error: unknown) =>
   isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED;
 
@@ -79,8 +86,8 @@ export async function readLibraryFile(kind: "song" | "backup") {
     ).includes(extension)
   )
     throw new Error("FileFormatError");
-  if (file.size !== null && file.size > maxBytes)
-    throw new Error("FileTooLarge");
+  const limit = kind === "backup" ? maxBackupBytes : maxBytes;
+  if (file.size !== null && file.size > limit) throw new Error("FileTooLarge");
   const [copy] = await keepLocalCopy({
     destination: "cachesDirectory",
     files: [{ uri: file.uri, fileName: `freetune-import-${Date.now()}.txt` }]
@@ -88,7 +95,7 @@ export async function readLibraryFile(kind: "song" | "backup") {
   if (copy.status !== "success") throw new Error("FileReadError");
   try {
     const stat = await FileSystem.stat(copy.localUri);
-    if (stat.size > maxBytes) throw new Error("FileTooLarge");
+    if (stat.size > limit) throw new Error("FileTooLarge");
     const text = (await FileSystem.readFile(copy.localUri, "utf8"))
       .replace(/^\uFEFF/, "")
       .replace(/\r\n?/g, "\n");
@@ -111,17 +118,83 @@ export function importedSong(text: string, name: string) {
   return { title, content };
 }
 
-interface BackupSong {
+export type BackupAudio = Omit<AudioSong, "songId" | "fileName" | "updatedAt">;
+export interface BackupSong {
   title: string;
   content: string;
   band_name: string;
   youtube_music: string;
   youtobe_lesson: string;
   preferences: SongPreferences;
+  audio?: BackupAudio;
 }
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+
+function parseBackupAudio(value: unknown): BackupAudio {
+  if (
+    !record(value) ||
+    typeof value.sha256 !== "string" ||
+    !/^[a-f0-9]{64}$/.test(value.sha256) ||
+    typeof value.originalName !== "string" ||
+    !value.originalName.trim() ||
+    value.originalName.length > 1024 ||
+    typeof value.mimeType !== "string" ||
+    ![
+      "audio/mpeg",
+      "audio/mp3",
+      "audio/wav",
+      "audio/x-wav",
+      "audio/mp4",
+      "audio/m4a",
+      "audio/x-m4a"
+    ].includes(value.mimeType) ||
+    typeof value.bytes !== "number" ||
+    !Number.isSafeInteger(value.bytes) ||
+    value.bytes <= 0 ||
+    value.bytes > 256 * 1024 * 1024 ||
+    typeof value.duration !== "number" ||
+    !Number.isFinite(value.duration) ||
+    value.duration <= 0 ||
+    value.duration > 7200 ||
+    typeof value.revision !== "number" ||
+    !Number.isSafeInteger(value.revision) ||
+    value.revision < 0 ||
+    typeof value.manuallyEdited !== "boolean"
+  )
+    throw new Error("BackupInvalid");
+  try {
+    const analysis =
+      value.analysis === null ? null : validateSongAnalysis(value.analysis);
+    const generatedAnalysis =
+      value.generatedAnalysis === null
+        ? null
+        : validateSongAnalysis(value.generatedAnalysis);
+    if (
+      [analysis, generatedAnalysis].some(
+        (item) =>
+          item && Math.abs(item.duration - (value.duration as number)) > 0.5
+      )
+    )
+      throw new Error("BackupInvalid");
+    return {
+      sha256: value.sha256,
+      originalName: value.originalName,
+      mimeType: value.mimeType,
+      bytes: value.bytes,
+      duration: value.duration,
+      revision: value.revision,
+      manuallyEdited: value.manuallyEdited,
+      analysis,
+      generatedAnalysis
+    };
+  } catch {
+    throw new Error("BackupInvalid");
+  }
+}
+
 export function parseLibraryBackup(text: string): BackupSong[] {
+  if (text.length > maxBackupBytes) throw new Error("FileTooLarge");
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -131,7 +204,10 @@ export function parseLibraryBackup(text: string): BackupSong[] {
   if (
     !record(data) ||
     data.format !== "freetune-library" ||
-    data.version !== 1 ||
+    ![1, 2].includes(data.version as number) ||
+    (data.version === 2 &&
+      (data.audioIncluded !== false ||
+        data.audioPolicy !== "relink-original-by-sha256")) ||
     !Array.isArray(data.songs) ||
     data.songs.length > 2000
   )
@@ -151,7 +227,11 @@ export function parseLibraryBackup(text: string): BackupSong[] {
         throw new Error("BackupInvalid");
       strings[key] = value;
     }
-    if (!strings.title.trim() || !strings.content.trim())
+    const audio =
+      data.version === 2 && song.audio !== undefined
+        ? parseBackupAudio(song.audio)
+        : undefined;
+    if (!strings.title.trim() || (!strings.content.trim() && !audio))
       throw new Error("BackupInvalid");
     return {
       title: strings.title,
@@ -159,7 +239,8 @@ export function parseLibraryBackup(text: string): BackupSong[] {
       band_name: strings.band_name,
       youtube_music: strings.youtube_music,
       youtobe_lesson: strings.youtobe_lesson,
-      preferences: normalizeSongPreferences(song.preferences)
+      preferences: normalizeSongPreferences(song.preferences),
+      ...(audio ? { audio } : {})
     };
   });
 }
@@ -175,23 +256,50 @@ export async function exportLibrary() {
     songs.reduce(
       (size, song) => size + song.content.length + song.title.length,
       0
-    ) > maxBytes
+    ) > maxBackupBytes
   )
     throw new Error("FileTooLarge");
   const preferences = usePreferences.getState().songs;
+  if ((await audioBackupFootprint()) > maxBackupBytes)
+    throw new Error("FileTooLarge");
+  const audio = new Map(
+    (await listAudioSongs()).map((song) => [song.songId, song])
+  );
   const text = JSON.stringify(
     {
       format: "freetune-library",
-      version: 1,
+      version: 2,
+      // JSON preserves notation and edits. Recordings stay on this device.
+      // Restoring elsewhere requires selecting the exact original file by hash.
+      audioIncluded: false,
+      audioPolicy: "relink-original-by-sha256",
       createdAt: new Date().toISOString(),
-      songs: songs.map((song) => ({
-        title: song.title,
-        content: song.content,
-        band_name: song.band_name,
-        youtube_music: song.youtube_music ?? "",
-        youtobe_lesson: song.youtobe_lesson ?? "",
-        preferences: normalizeSongPreferences(preferences[song.id])
-      }))
+      songs: songs.map((song) => {
+        const stored = audio.get(song.id);
+        return {
+          title: song.title,
+          content: song.content,
+          band_name: song.band_name,
+          youtube_music: song.youtube_music ?? "",
+          youtobe_lesson: song.youtobe_lesson ?? "",
+          preferences: normalizeSongPreferences(preferences[song.id]),
+          ...(stored
+            ? {
+                audio: {
+                  sha256: stored.sha256,
+                  originalName: stored.originalName,
+                  mimeType: stored.mimeType,
+                  bytes: stored.bytes,
+                  duration: stored.duration,
+                  analysis: stored.analysis,
+                  generatedAnalysis: stored.generatedAnalysis,
+                  revision: stored.revision,
+                  manuallyEdited: stored.manuallyEdited
+                }
+              }
+            : {})
+        };
+      })
     },
     null,
     2
@@ -202,7 +310,7 @@ export async function exportLibrary() {
   const path = `${Dirs.CacheDir}/${name}`;
   try {
     await FileSystem.writeFile(path, text, "utf8");
-    if ((await FileSystem.stat(path)).size > maxBytes)
+    if ((await FileSystem.stat(path)).size > maxBackupBytes)
       throw new Error("FileTooLarge");
     const results = await saveDocuments({
       sourceUris: [encodeURI(`file://${path}`)],
@@ -261,8 +369,12 @@ export async function restoreLibrary(songs: BackupSong[]) {
             const { title, content, band_name, youtube_music, youtobe_lesson } =
               song;
             tx.executeSql(
-              "SELECT songs.id FROM songs LEFT JOIN bands ON bands.id = songs.band_id WHERE title = ? AND content = ? AND COALESCE(bands.name, '') = ? AND COALESCE(youtube_music, '') = ? AND COALESCE(youtobe_lesson, '') = ? LIMIT 1",
-              [title, content, band_name, youtube_music, youtobe_lesson],
+              song.audio
+                ? "SELECT song_id AS id FROM song_audio WHERE sha256 = ? LIMIT 1"
+                : "SELECT songs.id FROM songs LEFT JOIN bands ON bands.id = songs.band_id LEFT JOIN song_audio ON song_audio.song_id = songs.id WHERE song_audio.song_id IS NULL AND title = ? AND content = ? AND COALESCE(bands.name, '') = ? AND COALESCE(youtube_music, '') = ? AND COALESCE(youtobe_lesson, '') = ? LIMIT 1",
+              song.audio
+                ? [song.audio.sha256]
+                : [title, content, band_name, youtube_music, youtobe_lesson],
               (_, existing) => {
                 if (existing.rows.length) {
                   insertNext(index + 1);
@@ -280,6 +392,29 @@ export async function restoreLibrary(songs: BackupSong[]) {
                       title.toLowerCase()
                     ],
                     (_tx, result) => {
+                      if (song.audio) {
+                        const audio = song.audio;
+                        tx.executeSql(
+                          "INSERT INTO song_audio (song_id, sha256, file_name, original_name, mime_type, byte_size, duration, analysis_json, generated_json, revision, manually_edited, updated_at) VALUES (?, ?, NULL, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                          [
+                            result.insertId,
+                            audio.sha256,
+                            audio.originalName,
+                            audio.mimeType,
+                            audio.bytes,
+                            audio.duration,
+                            audio.analysis
+                              ? JSON.stringify(audio.analysis)
+                              : null,
+                            audio.generatedAnalysis
+                              ? JSON.stringify(audio.generatedAnalysis)
+                              : null,
+                            audio.revision,
+                            audio.manuallyEdited ? 1 : 0,
+                            Date.now()
+                          ]
+                        );
+                      }
                       addedPreferences[result.insertId] = song.preferences;
                       added++;
                       insertNext(index + 1);

@@ -9,7 +9,7 @@ import com.facebook.react.uimanager.ViewManager
 class MicrophoneStreamPackage : ReactPackage {
 
     override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> {
-        return listOf(MicrophoneStreamModule(reactContext), PerformanceAudio(reactContext))
+        return listOf(MicrophoneStreamModule(reactContext), PerformanceAudio(reactContext), SongAudio(reactContext))
     }
 
     override fun createViewManagers(

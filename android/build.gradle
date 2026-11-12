@@ -21,6 +21,20 @@ buildscript {
 apply plugin: "com.facebook.react.rootproject"
 
 allprojects {
+    // Optional bounded native compilation for CI and low-memory build machines.
+    // Gradle's --max-workers does not by itself limit Ninja's C++ compile pool.
+    if (rootProject.hasProperty("nativeWorkers")) {
+        def nativeWorkers = rootProject.property("nativeWorkers").toString()
+        ["com.android.application", "com.android.library"].each { androidPlugin ->
+            plugins.withId(androidPlugin) {
+                extensions.getByName("android").defaultConfig.externalNativeBuild.cmake.arguments.addAll([
+                    "-DCMAKE_JOB_POOLS=freetune_compile=${nativeWorkers};freetune_link=1".toString(),
+                    "-DCMAKE_JOB_POOL_COMPILE=freetune_compile",
+                    "-DCMAKE_JOB_POOL_LINK=freetune_link"
+                ])
+            }
+        }
+    }
     repositories {
         maven {
             // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm

@@ -21,6 +21,10 @@ import {
   PerformanceEvent
 } from "../src/components/performance-audio";
 import * as crud from "../src/components/database/crud";
+import { getAudioSong } from "../src/components/database/audio-analysis";
+jest.mock("../src/components/database/audio-analysis", () => ({
+  getAudioSong: jest.fn().mockResolvedValue(null)
+}));
 jest.mock("../src/screens/tuner", () => () => null);
 jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
   setKeepAwake: jest.fn()
@@ -56,6 +60,7 @@ jest.mock(
 );
 let screen: Renderer.ReactTestRenderer | undefined;
 beforeEach(() => {
+  jest.mocked(getAudioSong).mockResolvedValue(null);
   jest
     .spyOn(AppState, "addEventListener")
     .mockImplementation(() => ({ remove: jest.fn() }));

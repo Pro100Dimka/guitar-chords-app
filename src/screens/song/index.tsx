@@ -39,6 +39,11 @@ import RequireMicAccess from "../tuner";
 import MicrophoneStream from "../tuner/MicrophoneStream";
 import { chordPattern, isChordLine, transposeChord } from "./chords";
 import { Action, ChordSheet, SongTools } from "./tools";
+import {
+  AudioSong,
+  getAudioSong
+} from "../../components/database/audio-analysis";
+import AudioSongScreen from "./audio-song";
 
 const SongDetail: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, "Song">>();
@@ -47,6 +52,7 @@ const SongDetail: React.FC = () => {
   const focused = useIsFocused();
   const insets = useSafeAreaInsets();
   const [song, setSong] = useState<ISong>();
+  const [audioSong, setAudioSong] = useState<AudioSong | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEdit, setIsEdit] = useState(false);
   const [playing, setPlaying] = useState(false);
@@ -86,9 +92,11 @@ const SongDetail: React.FC = () => {
         joins: ["LEFT JOIN bands fk_band ON songs.band_id = fk_band.id"],
         limit: 1
       })
-        .then(([found]) => {
+        .then(async ([found]) => {
+          const audio = found ? await getAudioSong(songId) : null;
           if (active) {
             setSong(found);
+            setAudioSong(audio);
             if (found) updateSong(songId, { opened: Date.now() });
           }
         })
@@ -249,163 +257,171 @@ const SongDetail: React.FC = () => {
       style={styles.background}
       resizeMode="stretch"
     >
-      <Header glass title={song?.title ?? t("SongTitle")} showBack>
-        <Action
-          glass
-          label={preferences.favorite ? "★" : "☆"}
-          accessibilityLabel={t(
-            preferences.favorite ? "FavoritesRemove" : "FavoritesAdd"
-          )}
-          selected={preferences.favorite}
-          onPress={() => change({ favorite: !preferences.favorite })}
-        />
-        <Action
-          glass
-          compact
-          label={t("tuner")}
-          onPress={() => {
-            setPlaying(false);
-            setVideos(false);
-            savePosition();
-            setTuner(true);
-          }}
-        />
-        <SongModal
-          setIsEdit={(edit) => {
-            setPlaying(false);
-            setIsEdit(edit);
-          }}
-          songId={songId}
-        />
-      </Header>
-      {loading || !song ? (
-        <View style={styles.center}>
-          <Text style={styles.status}>
-            {t(loading ? "LoadingSong" : "SongNotFound")}
-          </Text>
-        </View>
-      ) : isEdit ? (
-        <CreateChordSong song={song} setIsEdit={setIsEdit} />
+      {!loading && song && audioSong ? (
+        <AudioSongScreen song={song} initialAudio={audioSong} />
       ) : (
         <>
-          <ScrollView
-            ref={scroll}
-            onLayout={({ nativeEvent }) => {
-              metrics.current.viewport = nativeEvent.layout.height;
-              restorePosition();
-            }}
-            onContentSizeChange={(_, height) => {
-              metrics.current.content = height;
-              restorePosition();
-            }}
-            scrollEventThrottle={32}
-            onScroll={({ nativeEvent }) => {
-              metrics.current.position = Math.max(
-                0,
-                nativeEvent.contentOffset.y
-              );
-            }}
-            onScrollBeginDrag={() => setPlaying(false)}
-            onScrollEndDrag={savePosition}
-            onMomentumScrollEnd={savePosition}
-            contentContainerStyle={styles.scroll}
-          >
-            <View style={styles.paper}>
-              {(preferences.transpose !== 0 || preferences.capo !== 0) && (
-                <Text style={styles.metadata}>
-                  {t("Transpose")}: {preferences.transpose > 0 ? "+" : ""}
-                  {preferences.transpose} · {t("Capo")}: {preferences.capo}
-                </Text>
+          <Header glass title={song?.title ?? t("SongTitle")} showBack>
+            <Action
+              glass
+              label={preferences.favorite ? "★" : "☆"}
+              accessibilityLabel={t(
+                preferences.favorite ? "FavoritesRemove" : "FavoritesAdd"
               )}
-              {!!song.band_name && (
-                <Text style={styles.metadata}>{song.band_name}</Text>
-              )}
-              <Text style={styles.metadata}>{t("TapChordHint")}</Text>
-              {song.content.split(/\r?\n/).map(renderLine)}
-            </View>
-            {(song.youtube_music || song.youtobe_lesson) && (
-              <Action
-                glass
-                label={t(videos ? "HideVideos" : "ShowVideos")}
-                onPress={() => {
-                  setPlaying(false);
-                  setVideos(!videos);
-                }}
-              />
-            )}
-            {videos && focused && !tuner && !tools && !chord && (
-              <VideoTabs {...song} />
-            )}
-          </ScrollView>
-          <View
-            style={[
-              styles.toolbar,
-              { paddingBottom: Math.max(insets.bottom, 12) }
-            ]}
-          >
-            <SongRecorder
-              songId={songId}
-              active={focused && !tuner && !tools && !chord && !isEdit}
-              onStart={() => {
-                setVideos(false);
-                setPlaying(true);
-              }}
+              selected={preferences.favorite}
+              onPress={() => change({ favorite: !preferences.favorite })}
             />
             <Action
               glass
               compact
-              label={t("ScrollLyrics")}
-              icon={playing ? "pause" : "chevron-double-down"}
-              accessibilityLabel={playing ? t("Pause") : t("AutoScroll")}
-              selected={playing}
+              label={t("tuner")}
               onPress={() => {
-                if (playing) savePosition();
-                setPlaying(!playing);
+                setPlaying(false);
+                setVideos(false);
+                savePosition();
+                setTuner(true);
               }}
             />
-            <Action
-              glass
-              compact
-              label="⚙"
-              icon="cog"
-              accessibilityLabel={t("SongTools")}
-              onPress={openTools}
+            <SongModal
+              setIsEdit={(edit) => {
+                setPlaying(false);
+                setIsEdit(edit);
+              }}
+              songId={songId}
             />
-          </View>
-          {tools && (
-            <SongTools
-              initialTab={tools}
-              content={song.content}
-              value={preferences}
-              onChange={change}
-              onClose={() => setTools(false)}
-            />
+          </Header>
+          {loading || !song ? (
+            <View style={styles.center}>
+              <Text style={styles.status}>
+                {t(loading ? "LoadingSong" : "SongNotFound")}
+              </Text>
+            </View>
+          ) : isEdit ? (
+            <CreateChordSong song={song} setIsEdit={setIsEdit} />
+          ) : (
+            <>
+              <ScrollView
+                ref={scroll}
+                onLayout={({ nativeEvent }) => {
+                  metrics.current.viewport = nativeEvent.layout.height;
+                  restorePosition();
+                }}
+                onContentSizeChange={(_, height) => {
+                  metrics.current.content = height;
+                  restorePosition();
+                }}
+                scrollEventThrottle={32}
+                onScroll={({ nativeEvent }) => {
+                  metrics.current.position = Math.max(
+                    0,
+                    nativeEvent.contentOffset.y
+                  );
+                }}
+                onScrollBeginDrag={() => setPlaying(false)}
+                onScrollEndDrag={savePosition}
+                onMomentumScrollEnd={savePosition}
+                contentContainerStyle={styles.scroll}
+              >
+                <View style={styles.paper}>
+                  {(preferences.transpose !== 0 || preferences.capo !== 0) && (
+                    <Text style={styles.metadata}>
+                      {t("Transpose")}: {preferences.transpose > 0 ? "+" : ""}
+                      {preferences.transpose} · {t("Capo")}: {preferences.capo}
+                    </Text>
+                  )}
+                  {!!song.band_name && (
+                    <Text style={styles.metadata}>{song.band_name}</Text>
+                  )}
+                  <Text style={styles.metadata}>{t("TapChordHint")}</Text>
+                  {song.content.split(/\r?\n/).map(renderLine)}
+                </View>
+                {(song.youtube_music || song.youtobe_lesson) && (
+                  <Action
+                    glass
+                    label={t(videos ? "HideVideos" : "ShowVideos")}
+                    onPress={() => {
+                      setPlaying(false);
+                      setVideos(!videos);
+                    }}
+                  />
+                )}
+                {videos && focused && !tuner && !tools && !chord && (
+                  <VideoTabs {...song} />
+                )}
+              </ScrollView>
+              <View
+                style={[
+                  styles.toolbar,
+                  { paddingBottom: Math.max(insets.bottom, 12) }
+                ]}
+              >
+                <SongRecorder
+                  songId={songId}
+                  active={focused && !tuner && !tools && !chord && !isEdit}
+                  onStart={() => {
+                    setVideos(false);
+                    setPlaying(true);
+                  }}
+                />
+                <Action
+                  glass
+                  compact
+                  label={t("ScrollLyrics")}
+                  icon={playing ? "pause" : "chevron-double-down"}
+                  accessibilityLabel={playing ? t("Pause") : t("AutoScroll")}
+                  selected={playing}
+                  onPress={() => {
+                    if (playing) savePosition();
+                    setPlaying(!playing);
+                  }}
+                />
+                <Action
+                  glass
+                  compact
+                  label="⚙"
+                  icon="cog"
+                  accessibilityLabel={t("SongTools")}
+                  onPress={openTools}
+                />
+              </View>
+              {tools && (
+                <SongTools
+                  initialTab={tools}
+                  content={song.content}
+                  value={preferences}
+                  onChange={change}
+                  onClose={() => setTools(false)}
+                />
+              )}
+              {!!chord && (
+                <ChordSheet
+                  chord={chord}
+                  value={preferences.shapes[chord]}
+                  capo={preferences.capo}
+                  onChange={(index) =>
+                    change({
+                      shapes: { ...preferences.shapes, [chord]: index }
+                    })
+                  }
+                  onClose={() => setChord("")}
+                />
+              )}
+            </>
           )}
-          {!!chord && (
-            <ChordSheet
-              chord={chord}
-              value={preferences.shapes[chord]}
-              capo={preferences.capo}
-              onChange={(index) =>
-                change({ shapes: { ...preferences.shapes, [chord]: index } })
-              }
-              onClose={() => setChord("")}
-            />
+          {tuner && (
+            <Modal animationType="slide" onRequestClose={() => setTuner(false)}>
+              <SafeAreaView style={styles.tuner}>
+                <View style={styles.returnBar}>
+                  <Action
+                    label={t("ReturnToSong")}
+                    onPress={() => setTuner(false)}
+                  />
+                </View>
+                <RequireMicAccess />
+              </SafeAreaView>
+            </Modal>
           )}
         </>
-      )}
-      {tuner && (
-        <Modal animationType="slide" onRequestClose={() => setTuner(false)}>
-          <SafeAreaView style={styles.tuner}>
-            <View style={styles.returnBar}>
-              <Action
-                label={t("ReturnToSong")}
-                onPress={() => setTuner(false)}
-              />
-            </View>
-            <RequireMicAccess />
-          </SafeAreaView>
-        </Modal>
       )}
     </ImageBackground>
   );

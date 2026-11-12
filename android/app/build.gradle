@@ -5,6 +5,9 @@ apply plugin: "com.facebook.react"
 
 react {
     autolinkLibrariesWithApp()
+    if (project.hasProperty("bundleWorkers")) {
+        extraPackagerArgs = ["--max-workers", project.property("bundleWorkers").toString()]
+    }
 }
 
 def enableProguardInReleaseBuilds = true
@@ -49,6 +52,17 @@ android {
             shrinkResources true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
         }
+        // A standalone test APK with bundled JS. Installs beside the store app,
+        // keeping the existing library and production signing identity untouched.
+        analysisDemo {
+            initWith release
+            signingConfig signingConfigs.debug
+            applicationIdSuffix ".analysisdemo"
+            versionNameSuffix "-analysis-demo"
+            minifyEnabled false
+            shrinkResources false
+            matchingFallbacks = ["release"]
+        }
     }
     splits {
         abi {
@@ -62,6 +76,7 @@ android {
 }
 
 dependencies {
+    testImplementation("junit:junit:4.13.2")
     implementation("com.facebook.react:react-android")
     implementation project(':react-native-splash-screen')
     if (hermesEnabled.toBoolean()) {

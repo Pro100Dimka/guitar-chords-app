@@ -1,0 +1,45 @@
+name: Audio analysis Android
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: audio-analysis-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  standalone-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Install packages
+        run: npm ci
+      - name: Typecheck
+        run: npx tsc --noEmit
+      - name: Unit tests
+        run: npm test -- --runInBand
+      - name: SQLite migration and preservation checks
+        run: npm run test:sqlite
+      - name: Build standalone arm64 APK
+        working-directory: android
+        run: bash gradlew testAnalysisDemoUnitTest assembleAnalysisDemo -PreactNativeArchitectures=arm64-v8a -PbundleWorkers=2 -PnativeWorkers=2 --no-daemon --max-workers=2
+      - uses: actions/upload-artifact@v4
+        with:
+          name: FreeTune-audio-analysis-arm64
+          path: android/app/build/outputs/apk/analysisDemo/*.apk
+          if-no-files-found: error
+          retention-days: 30

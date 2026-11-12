@@ -27,6 +27,9 @@ jest.mock("../src/router", () => () => {
 });
 jest.mock("../src/components/support", () => () => null);
 jest.mock("../src/components/database", () => ({ initDatabase: jest.fn() }));
+jest.mock("../src/components/song-analysis/startup", () => ({
+  initializeSongAnalysis: jest.fn().mockResolvedValue(undefined)
+}));
 jest.mock("../src/components/preferences", () => ({
   loadPreferences: jest.fn().mockResolvedValue(undefined),
   flushPreferences: jest.fn(),

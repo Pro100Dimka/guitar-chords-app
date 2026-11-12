@@ -1,3 +1,12 @@
+## Audio song analysis (Android)
+
+Import MP3/WAV/M4A into the library, recognize actual singing and chords using the free self-hosted backend, and practice with the original audio and editable timestamps.
+
+- [Setup and user guide (Russian)](docs/audio-song-analysis.md)
+- [Backend setup, models and HTTP contract](backend/README.md)
+- [Model code/weight licenses](backend/MODEL_LICENSES.md)
+- [Measured validation and limitations](docs/validation/README.md)
+
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
 # Getting Started
@@ -237,7 +246,7 @@ To learn more about React Native, take a look at the following resources:
 
 - Library: create a song with only a title and lyrics, or open the original practice example from the empty library. Artist and video links are optional.
 - Import: choose a UTF-8 TXT, PRO, CHO or ChordPro file through the system file picker. The title directive is extracted, bracketed chords are rendered, and other directives remain visible for review. Import does not silently change the capo or sounding key. Existing drafts require confirmation before replacement.
-- Settings > Library backup: save a portable JSON copy or preview a copy before restoring. Songs and their favorites, fingerings, rhythm and reading settings are included. Restore is transactional and only appends missing songs; matching title, content, artist and links are skipped with existing preferences preserved. Limits: 5 MB per file, 2,000 songs, 200,000 characters per song. Keep exported files somewhere safe; cloud storage, if selected in the system picker, is managed by its provider.
+- Settings > Library backup: save a portable JSON copy or preview a copy before restoring. Songs and their favorites, fingerings, rhythm and reading settings are included. Restore is transactional and only appends missing songs; matching title, content, artist and links are skipped with existing preferences preserved. Limits: 50 MB per library backup, 5 MB per text import, 2,000 songs, 200,000 characters per song. Audio-song annotations and edits are included in version 2 backups; original MP3/WAV/M4A recordings are kept separately and must be relinked by SHA-256 after restore. Version 1 backups remain supported. Keep exported files somewhere safe; cloud storage, if selected in the system picker, is managed by its provider.
 - Song > Reading > Play more easily: compare fingerings for capo positions 0 through 7 while preserving the sounding key and original text. Suggestions assume standard guitar tuning and use a fingering-complexity estimate. The previous position can be restored while the panel remains open.
 - Song > Practice: play the entire chord sequence from the song, including repeated chords. Select a starting chord and tempo for a one-minute session, with one chord per bar. This is a timing guide, not microphone-based playing assessment. Backgrounding the app stops playback.
 - Rhythm previews use the song's chords, selected fingerings and capo. The standalone catalog uses an example progression. The current Strummed Acoustic bank is for private evaluation pending embedding permission; reference strings use Meta Steel Guitar (CC0). Source notices are in assets/strummed-acoustic.LICENSE.txt and assets/guitar-samples.LICENSE.txt.

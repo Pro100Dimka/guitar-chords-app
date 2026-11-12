@@ -1,0 +1,2 @@
+# Extra scoring dependency only; install backend/requirements.txt first.
+mir_eval==0.8.2

@@ -20,6 +20,7 @@ import { getAllItems } from "@/components/database/crud";
 import { usePreferences } from "@/components/preferences";
 import { Action } from "../song/tools";
 import { NavigationProp } from "@/router";
+import AudioImport from "./audio-import";
 
 const PAGE_LIMIT = 10;
 
@@ -122,6 +123,11 @@ const Library: React.FC = () => {
         {t("library")}
       </Text>
       <SearchBar setFilters={setFilters} />
+      <View style={styles.collections}>
+        <AudioImport
+          onImported={(id) => navigation.navigate("Song", { id: String(id) })}
+        />
+      </View>
       <View style={styles.collections}>
         {["AllSongs", "RecentSongs", "Favorites"].map((key) => (
           <Action

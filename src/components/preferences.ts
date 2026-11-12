@@ -10,6 +10,7 @@ export interface SongPreferences {
   capo: number;
   speed: number;
   position: number;
+  audioPosition?: number;
   favorite: boolean;
   opened: number;
   shapes: Record<string, number>;
@@ -167,6 +168,7 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
     capo: Math.round(number(song.capo, 0, 0, 12)),
     speed: number(song.speed, 18, 4, 60),
     position: number(song.position, 0, 0, 1000000),
+    audioPosition: number(song.audioPosition, 0, 0, 7200),
     favorite: song.favorite === true,
     opened: number(song.opened, 0, 0, Number.MAX_SAFE_INTEGER),
     shapes,
