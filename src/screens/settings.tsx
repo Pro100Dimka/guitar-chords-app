@@ -241,15 +241,6 @@ const Settings: React.FC = () => {
           </Text>
           <Action
             glass
-            label="Strummed Acoustic · Native Instruments"
-            onPress={() => {
-              void Linking.openURL(
-                "https://www.native-instruments.com/pages/end-user-license-agreement"
-              ).catch(() => {});
-            }}
-          />
-          <Action
-            glass
             label="Meta Steel Guitar · CC0"
             onPress={() => {
               void Linking.openURL(

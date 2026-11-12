@@ -186,11 +186,12 @@ test("each rhythm can be selected once through its full pattern and applied", as
       getChannelData: () => new Float32Array(length)
     }),
     decodeAudioData: () => {
-      const buffer = {};
+      const buffer = { duration: 4, id: decoded.length };
       decoded.push(buffer);
       return Promise.resolve(buffer);
     },
     createGain: () => ({ ...connect(), gain: parameter() }),
+    createConvolver: () => ({ ...connect(), normalize: true, buffer: null }),
     createDynamicsCompressor: () => ({
       ...connect(),
       ...Object.fromEntries(
@@ -235,6 +236,8 @@ test("each rhythm can be selected once through its full pattern and applied", as
   for (let i = 0; i < 20; i++) await Promise.resolve();
   expect(window.ReactNativeWebView.postMessage).toHaveBeenCalledWith("ready");
   window.configurePlayer({
+    stroke: null,
+    activeFingering: 0,
     pattern: "DU",
     meter: 4,
     tempo: 120,
@@ -244,14 +247,30 @@ test("each rhythm can be selected once through its full pattern and applied", as
   for (let i = 0; i < 10; i++) await Promise.resolve();
   clock = 1;
   schedule();
-  expect(sources.slice(0, 4).map((voice) => voice.buffer)).toEqual([
-    decoded[0],
-    decoded[3],
-    decoded[1],
-    decoded[4]
-  ]);
+  const sampleCount = (decoded.length - 1) / 2;
+  expect(sampleCount).toBeGreaterThanOrEqual(4);
+  const down = sources.slice(0, sampleCount);
+  const up = sources.slice(sampleCount, sampleCount + 3);
+  expect(down.map((voice) => voice.buffer)).toEqual(
+    decoded.slice(1 + sampleCount)
+  );
+  expect(up.map((voice) => voice.buffer)).toEqual(
+    decoded
+      .slice(1, 1 + sampleCount)
+      .reverse()
+      .slice(0, 3)
+  );
+  for (const stroke of [down, up]) {
+    const times = stroke.map((voice) => voice.start.mock.calls[0][0]);
+    expect(times.every(Number.isFinite)).toBe(true);
+    expect(times).toEqual([...times].sort((a, b) => a - b));
+    expect(times.at(-1) - times[0]).toBeLessThan(0.09);
+  }
+  const decodeCount = decoded.length;
   const previous = sources.slice();
   window.configurePlayer({
+    stroke: null,
+    activeFingering: 0,
     pattern: "U-D-",
     meter: 4,
     tempo: 80,
@@ -260,10 +279,12 @@ test("each rhythm can be selected once through its full pattern and applied", as
   });
   for (let i = 0; i < 10; i++) await Promise.resolve();
   expect(AudioContext).toHaveBeenCalledTimes(1);
-  expect(decoded).toHaveLength(6);
+  expect(decoded).toHaveLength(decodeCount);
   expect(previous.every((voice) => voice.stop.mock.calls.length)).toBe(true);
-  expect(sources[previous.length].buffer).toBe(decoded[3]);
+  expect(sources[previous.length].buffer).toBe(decoded[sampleCount]);
   window.configurePlayer({
+    stroke: null,
+    activeFingering: 0,
     pattern: "U-D-",
     meter: 4,
     tempo: 80,

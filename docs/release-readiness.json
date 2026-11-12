@@ -1,42 +1,39 @@
 {
-  "build": 6,
+  "build": 7,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
   "checks": {
     "javascript": {
       "suites": 10,
-      "tests": 71,
-      "status": "passed"
+      "tests": 46,
+      "status": "passed; includes new string playback order and rhythm switching regression"
     },
     "typescript": "passed",
     "eslint": "passed",
-    "sqlite": "passed: CRUD, parameterized search, transaction rollback, migration adoption and newer schema rejection",
+    "sqlite": "passed: CRUD, bound search, rollback, legacy adoption, repeat migration and newer schema rejection",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
       "string_transitions": 180,
       "decay_sequences": 12,
       "capture_cycles": 200,
-      "status": "passed with deterministic hardware stubs"
+      "status": "passed with deterministic hardware stubs",
+      "permission_denial": "passed: denied microphone permission returns without capture; normal capture works after permission is restored"
     },
     "audio_bank": {
-      "takes": 144,
-      "peak": 0.759713,
-      "status": "decoded without clipping; not physical playback verification"
+      "source": "Meta Steel Guitar",
+      "license": "CC0-1.0",
+      "positions": 125,
+      "recordings": 250,
+      "status": "250 recordings and room impulse decoded successfully; physical playback pending"
     },
-    "dependency_audit": {
-      "critical": 0,
-      "high": 0,
-      "moderate": 0,
-      "low": 4,
-      "note": "Remaining warnings are React Native CLI/deepmerge build tooling; do not downgrade CLI to an incompatible major version to silence audit."
-    },
-    "android_bundle": "passed: signed upload certificate verified; ZIP integrity; 144 embedded strums; all 21 arm64 libraries have >=16KB ELF segment alignment. Google Play processing and actual 16KB device execution remain untested.",
-    "ios_javascript": "passed: production bundle created; native archive not built on Windows",
+    "android_bundle": "passed: release AAB and both APK architectures built; Android lint 0 errors, 28 warnings; ZIP integrity; new 250 samples included, old bank absent; 21 arm64 libraries have >=16 KB ELF alignment; APK ZIP alignment verified. Physical-device and Google Play processing checks remain pending.",
+    "ios_javascript": "passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "not run: requires macOS/Xcode",
     "device_tests": "owner to perform",
-    "store_billing": "requires store product and sandbox testers"
+    "store_billing": "store product configuration and sandbox tests not verified",
+    "recording_polish": "passed: silence, rumble, gain, compression, limiting and room decay at 22050, 44100 and 48000 Hz; actual codec/device verification pending"
   },
   "privacy_forms_draft": [
     {
@@ -80,11 +77,6 @@
   ],
   "outstanding": [
     {
-      "item": "Audio embedding permission",
-      "action": "Obtain written permission covering this app sample bank, or replace it with suitable assets. Processing/WAV conversion does not establish permission.",
-      "source": "https://www.native-instruments.com/pages/end-user-license-agreement"
-    },
-    {
       "item": "Public privacy/support URLs",
       "action": "Publish docs/privacy.html at a stable public HTTPS URL controlled by the developer, provide a support page and enter both URLs in store metadata. No URL is invented."
     },
@@ -110,18 +102,31 @@
     "alias": "freetune-upload",
     "private_password_file": "E:/Releases/FreeTune/signing/upload-password.txt",
     "certificate_sha256": "0D6D0E8E0CBA8606B059F6E144E36ACEB8321E8007CFF00819E07F583ADECB72",
-    "note": "Keep key/password backed up privately. Never upload the password file with store materials. RC5 sideload APK uses debug signing and cannot be updated directly with a differently signed build; export data before changing installation channel."
+    "note": "Sideload APK uses the existing debug certificate to preserve compatibility with previous test installations. Store AAB uses the upload certificate. Back up library and export recordings before changing installation channel."
   },
   "sources": [
     "https://support.google.com/googleplay/android-developer/answer/11926878?hl=en",
     "https://developer.android.com/guide/practices/page-sizes",
     "https://developer.apple.com/app-store/app-privacy-details/",
     "https://developer.apple.com/app-store/review/guidelines/",
-    "https://www.native-instruments.com/pages/end-user-license-agreement"
+    "https://github.com/facebookincubator/Meta-open-sound/tree/main/systems/instruments/meta-steel-guitar"
   ],
   "artifacts": {
-    "aab": "E:/Releases/FreeTune/FreeTune-1.0-rc6.aab",
-    "aab_sha256": "dc8c2005ebe9a9c7f1de0065b6d182625673198d84103e8eeb17afffa365925d",
-    "version_code": 6
+    "aab": {
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc7.aab",
+      "bytes": 97296005,
+      "sha256": "24a55050e0a248391ba0a9c440e0d9e19038851e10c15628b68d54e59cdbb5dd"
+    },
+    "apk_arm64": {
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc7-arm64-v8a.apk",
+      "bytes": 95647453,
+      "sha256": "002efd43a0073d75531ce1cb3f1aec93e1e9501a80a1bb4a44e7b5bd28c45c40"
+    },
+    "apk_arm32": {
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc7-armeabi-v7a.apk",
+      "bytes": 84928263,
+      "sha256": "415adae5008e813970df9a8c762a57e147a0ee463d5357194a26cee42e8cae67"
+    },
+    "version_code": 7
   }
 }

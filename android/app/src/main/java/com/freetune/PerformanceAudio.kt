@@ -220,6 +220,8 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             val format = extractor.getTrackFormat(track)
             val rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
             require(format.getInteger(MediaFormat.KEY_CHANNEL_COUNT) == 1)
+            val outputChannels = 2
+            val pcmFrameBytes = outputChannels * 2
             val effect = RecordingPolish(rate)
             val reader = MediaCodec.createDecoderByType(format.getString(MediaFormat.KEY_MIME)!!)
             decoder = reader
@@ -227,9 +229,9 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             reader.start()
             val writer = MediaCodec.createEncoderByType("audio/mp4a-latm")
             encoder = writer
-            writer.configure(MediaFormat.createAudioFormat("audio/mp4a-latm", rate, 1).apply {
+            writer.configure(MediaFormat.createAudioFormat("audio/mp4a-latm", rate, outputChannels).apply {
                 setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
-                setInteger(MediaFormat.KEY_BIT_RATE, 160000)
+                setInteger(MediaFormat.KEY_BIT_RATE, 192000)
                 setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 16384)
             }, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE)
             writer.start()
@@ -262,7 +264,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                 }
             }
             var samples = 0L
-            fun encode(bytes: ByteArray?, end: Boolean = false) {
+            fun encode(bytes: ByteArray?, size: Int = bytes?.size ?: 0, end: Boolean = false) {
                 var offset = 0
                 while (true) {
                     drain()
@@ -271,36 +273,18 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                     if (index < 0) continue
                     val buffer = writer.getInputBuffer(index)!!
                     buffer.clear()
-                    val count = minOf(bytes?.size?.minus(offset) ?: 0, buffer.remaining() / 2 * 2)
+                    val count = minOf(size - offset, buffer.remaining() / pcmFrameBytes * pcmFrameBytes)
                     if (bytes != null) buffer.put(bytes, offset, count)
                     writer.queueInputBuffer(index, 0, count, samples * 1_000_000 / rate, if (end) MediaCodec.BUFFER_FLAG_END_OF_STREAM else 0)
-                    samples += count / 2
+                    samples += count / pcmFrameBytes
                     offset += count
                     lastProgress = System.nanoTime()
-                    if (end || offset >= (bytes?.size ?: 0)) break
-                }
-            }
-            fun encodeBuffer(buffer: java.nio.ByteBuffer, size: Int) {
-                val end = buffer.position() + size
-                while (buffer.position() < end) {
-                    drain()
-                    guardProgress()
-                    val index = writer.dequeueInputBuffer(10000)
-                    if (index < 0) continue
-                    val target = writer.getInputBuffer(index)!!
-                    target.clear()
-                    val count = minOf(end - buffer.position(), target.remaining()) / 2 * 2
-                    val start = buffer.position()
-                    buffer.limit(start + count)
-                    target.put(buffer)
-                    buffer.limit(end)
-                    writer.queueInputBuffer(index, 0, count, samples * 1_000_000 / rate, 0)
-                    samples += count / 2
-                    lastProgress = System.nanoTime()
+                    if (end || offset >= size) break
                 }
             }
             var inputEnd = false
             var decodedEnd = false
+            var outputPcm = ByteArray(0)
             val info = MediaCodec.BufferInfo()
             while (!decodedEnd) {
                 guardProgress()
@@ -323,18 +307,22 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                     val buffer = reader.getOutputBuffer(index)!!.order(ByteOrder.LITTLE_ENDIAN)
                     buffer.position(info.offset)
                     buffer.limit(info.offset + info.size)
+                    val requiredSize = info.size * outputChannels
+                    if (outputPcm.size < requiredSize) outputPcm = ByteArray(requiredSize)
                     var sample = info.offset
-                    val end = info.offset + info.size - 1
-                    while (sample < end) {
-                        val input = buffer.getShort(sample) / 32768.0
-                        buffer.putShort(sample, (effect.process(input) * 32767).toInt().toShort())
+                    val end = info.offset + info.size
+                    var output = 0
+                    while (sample + 1 < end) {
+                        val stereo = effect.processStereo(buffer.getShort(sample) / 32768.0)
+                        val left = (stereo shr 16).toInt().toShort().toInt()
+                        val right = stereo.toShort().toInt()
+                        outputPcm[output++] = left.toByte()
+                        outputPcm[output++] = (left shr 8).toByte()
+                        outputPcm[output++] = right.toByte()
+                        outputPcm[output++] = (right shr 8).toByte()
                         sample += 2
                     }
-                    if (info.size > 0) {
-                        buffer.position(info.offset)
-                        buffer.limit(info.offset + info.size)
-                        encodeBuffer(buffer, info.size)
-                    }
+                    if (output > 0) encode(outputPcm, output)
                     decodedEnd = info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
                     reader.releaseOutputBuffer(index, false)
                     lastProgress = System.nanoTime()
@@ -342,14 +330,20 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                 drain()
             }
             var tail = rate
+            val tailBytes = java.nio.ByteBuffer.allocate(4096 * pcmFrameBytes).order(ByteOrder.LITTLE_ENDIAN)
             while (tail > 0) {
                 val frames = minOf(tail, 4096)
-                val bytes = java.nio.ByteBuffer.allocate(frames * 2).order(ByteOrder.LITTLE_ENDIAN)
-                repeat(frames) { index -> bytes.putShort((effect.process(0.0) * minOf(1.0, (tail - index - 1) / (rate * .08)) * 32767).toInt().toShort()) }
-                encode(bytes.array())
+                tailBytes.clear()
+                repeat(frames) { index ->
+                    val stereo = effect.processStereo(0.0)
+                    val fade = minOf(1.0, (tail - index - 1) / (rate * .08))
+                    tailBytes.putShort(((stereo shr 16).toInt().toShort() * fade).toInt().toShort())
+                    tailBytes.putShort((stereo.toShort() * fade).toInt().toShort())
+                }
+                encode(tailBytes.array(), frames * pcmFrameBytes)
                 tail -= frames
             }
-            encode(null, true)
+            encode(null, end = true)
             while (!encodedEnd) { drain(); guardProgress(); Thread.sleep(2) }
             check(samples > 0 && muxing)
             container.stop()

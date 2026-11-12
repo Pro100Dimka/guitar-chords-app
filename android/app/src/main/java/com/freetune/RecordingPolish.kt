@@ -19,6 +19,7 @@ internal class RecordingPolish(rate: Int) {
     private val release = exp(-1.0 / (.25 * rate))
     private val delays = doubleArrayOf(.0437, .0573, .0719, .0893, .1091, .1317).map { DoubleArray((it * rate).toInt()) }.toTypedArray()
     private val diffusion = doubleArrayOf(.005, .0017).map { DoubleArray((it * rate).toInt()) }.toTypedArray()
+    private val roomGain = .65 / (delays.size / 2)
     private val diffusionPositions = IntArray(diffusion.size)
     private val positions = IntArray(delays.size)
     private val damping = DoubleArray(delays.size)
@@ -29,6 +30,13 @@ internal class RecordingPolish(rate: Int) {
     private var limiter = 1.0
 
     fun process(input: Double): Double {
+        val stereo = processStereo(input)
+        val left = (stereo shr 16).toShort().toDouble() / 32767
+        val right = stereo.toShort().toDouble() / 32767
+        return (left + right) * .5
+    }
+
+    fun processStereo(input: Double): Long {
         val sample = if (input.isFinite()) input else 0.0
         filtered = highPass * (filtered + sample - previous)
         previous = sample
@@ -58,18 +66,23 @@ internal class RecordingPolish(rate: Int) {
             if (diffusionPositions[i] == diffusion[i].size) diffusionPositions[i] = 0
             diffuse = output
         }
-        var room = 0.0
+        var roomLeft = 0.0
+        var roomRight = 0.0
         for (i in delays.indices) {
             val delayed = delays[i][positions[i]]
             damping[i] = roomDamping * damping[i] + (1 - roomDamping) * delayed
             delays[i][positions[i]] = diffuse + .48 * damping[i]
             positions[i]++
             if (positions[i] == delays[i].size) positions[i] = 0
-            room += delayed
+            if ((i and 1) == 0) roomLeft += delayed else roomRight += delayed
         }
-        val mixed = dry + .65 * room / delays.size
-        val ceiling = min(1.0, .88 / max(abs(mixed), 1e-12))
+        val mixedLeft = dry + roomGain * roomLeft
+        val mixedRight = dry + roomGain * roomRight
+        val peak = max(abs(mixedLeft), abs(mixedRight))
+        val ceiling = min(1.0, .88 / max(peak, 1e-12))
         limiter = if (ceiling < limiter) ceiling else release * limiter + (1 - release) * ceiling
-        return (mixed * limiter).coerceIn(-.88, .88)
+        val left = (mixedLeft * limiter).coerceIn(-.88, .88).times(32767).toInt().toShort().toLong() and 0xffff
+        val right = (mixedRight * limiter).coerceIn(-.88, .88).times(32767).toInt().toShort().toLong() and 0xffff
+        return (left shl 16) or right
     }
 }

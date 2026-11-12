@@ -233,7 +233,7 @@
   "OctaveHint": "Manual mode shows only notes in the selected octave. Auto removes the restriction. Your choice is saved.",
   "ClearSearch": "Clear search",
   "AudioCredits": "Sound credits",
-  "ChordRecordingCredits": "Chords and fingerings: Session Guitarist - Strummed Acoustic, Native Instruments. Strum variants and decay tails prepared for private audition. Permission to redistribute this bank inside the app has not been established. Individual tuner strings: Meta Steel Guitar, CC0.",
+  "ChordRecordingCredits": "Guitar sounds: Meta Steel Guitar, Meta Creative Audio. Licensed under CC0 1.0. Chords and strumming use recordings of individual strings with attack, sustain and room processing.",
   "ChangeSongCover": "Change cover",
   "RotateCover": "Rotate",
   "ResetCover": "Reset",

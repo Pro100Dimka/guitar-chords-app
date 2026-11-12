@@ -238,7 +238,10 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
             AudioFormat.CHANNEL_IN_MONO,
             AudioFormat.ENCODING_PCM_16BIT,
             bufferSize
-        ) } catch (error: RuntimeException) {
+        ) } catch (error: SecurityException) {
+            Log.e("MicrophoneStream", "Microphone permission is unavailable", error)
+            return
+        } catch (error: RuntimeException) {
             Log.e("MicrophoneStream", "Could not create microphone", error)
             return
         }

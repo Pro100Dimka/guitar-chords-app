@@ -28,7 +28,7 @@
   "privacy_url": null,
   "support_url": null,
   "public_submission_ready": false,
-  "reviewer_notes": "No login is required. Allow microphone access for tuning or recording. Add a song with Am, C, G and Em on a chord line and original sample lyrics. Tap a chord to preview fingerings. Open song settings for rhythm playback and practice. Recording is local and starts only on user action. Library backups exclude recordings. The consumable freetune_support is optional and unlocks no features. Configure and test it in each store before review. Current Strummed Acoustic embedding rights remain unresolved; this candidate is not cleared for public submission.",
+  "reviewer_notes": "No login is required. Allow microphone access for tuning or recording. Add a song with Am, C, G and Em on a chord line and original sample lyrics. Tap a chord to preview fingerings. Open song settings for rhythm playback and practice. Recording is local and starts only on user action. Library backups exclude recordings. The consumable freetune_support is optional and unlocks no features. Configure and test it in each store before review. Guitar playback uses Meta Steel Guitar recordings under CC0; attribution is available in the app. Physical-device and store purchase verification remain pending.",
   "screenshot_plan": [
     "Guitar tuner with input",
     "Chromatic tuner with input",

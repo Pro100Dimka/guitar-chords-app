@@ -178,6 +178,11 @@ fun main(args: Array<String>) {
     val context = ReactApplicationContext()
     val module = MicrophoneStreamModule(context)
     try {
+    AudioRecord.permissionGranted = false
+    module.startRecording()
+    check(context.events.isEmpty())
+    check(AudioRecord.readers.get() == 0)
+    AudioRecord.permissionGranted = true
     repeat(200) {
         module.startRecording()
         module.startRecording()
@@ -191,6 +196,7 @@ fun main(args: Array<String>) {
     module.invalidate()
     check(AudioRecord.released.get() == 200)
     for (frequency in listOf(82.41, 110.0, 146.83, 196.0, 246.94, 329.63, 440.0)) {
+        context.events.clear()
         AudioRecord.frequency = frequency
         module.startRecording()
         var event = context.events.poll(2, TimeUnit.SECONDS) ?: error("No tone event")

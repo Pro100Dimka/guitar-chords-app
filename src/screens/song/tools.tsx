@@ -20,12 +20,7 @@ import Svg, { Circle, Line, Text as SvgText } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 import { SongPreferences } from "@/components/preferences";
 import palette from "@/theme/palette";
-import {
-  playGuitar,
-  prepareGuitar,
-  chordNotes,
-  recordedChord
-} from "../../components/guitar-audio";
+import { acousticBank, acousticEngine } from "../../components/acoustic-player";
 import { performanceAudio } from "../../components/performance-audio";
 import guitarBackground from "../../../assets/images/gold-background.png";
 import {
@@ -304,19 +299,30 @@ export function ChordSheet({
     () => options.slice(currentPage * 4, currentPage * 4 + 4),
     [options, currentPage]
   );
-  const defaultIndex = chordShapeOptions(chord)[0]?.index;
-  useEffect(() => {
-    visible.forEach(({ frets, index }) =>
-      prepareGuitar(
-        frets.flatMap((fret, string) =>
-          fret === null ? [] : [guitarMidi[string] + fret + capo]
-        ),
-        index === defaultIndex ? transposeChord(chord, capo) : undefined
-      )
-    );
-  }, [chord, capo, visible, defaultIndex]);
+  const [audition, setAudition] = useState({
+    index: selectedIndex,
+    request: 0
+  });
   return (
     <Sheet title={chord} onClose={onClose} musical>
+      <RhythmPlayer
+        autoplay
+        autoStart={
+          audition.request > 0 &&
+          visible.some((option) => option.index === audition.index)
+        }
+        stroke={audition.request}
+        chords={[chord]}
+        capo={capo}
+        fingerings={visible.map((option) => option.frets)}
+        activeFingering={Math.max(
+          0,
+          visible.findIndex((option) => option.index === audition.index)
+        )}
+        pattern="D-------"
+        meter={4}
+        tempo={68}
+      />
       {options.length === 0 && (
         <Text style={styles.description}>{t("NoFingering")}</Text>
       )}
@@ -329,12 +335,10 @@ export function ChordSheet({
             accessibilityState={{ selected: selectedIndex === index }}
             onPress={() => {
               onChange(index);
-              playGuitar(
-                frets.flatMap((fret, string) =>
-                  fret === null ? [] : [guitarMidi[string] + fret + capo]
-                ),
-                index === defaultIndex ? transposeChord(chord, capo) : undefined
-              );
+              setAudition((previous) => ({
+                index,
+                request: previous.request + 1
+              }));
             }}
             style={[
               styles.shape,
@@ -702,9 +706,15 @@ function RhythmPlayer({
   practice,
   chords = ["Am", "C", "G", "Em"],
   capo = 0,
-  shapes = {}
+  shapes = {},
+  fingerings,
+  activeFingering = 0,
+  stroke
 }: {
   autoplay?: boolean;
+  stroke?: number;
+  fingerings?: Frets[];
+  activeFingering?: number;
   autoStart?: boolean;
   onStopped?: () => void;
   practice?: string[];
@@ -731,41 +741,35 @@ function RhythmPlayer({
   const progression = chords.length ? chords : ["C"];
   const progressionKey = progression.join(" ");
   const shapesKey = JSON.stringify(shapes);
-  const { frequencies, bank, chordBank } = useMemo(() => {
+  const fingeringsKey = JSON.stringify(fingerings ?? null);
+  const frequencies = useMemo(() => {
     const selected: Record<string, number> = JSON.parse(shapesKey);
-    const names = progressionKey.split(" ");
-    const entries = names.map((chord) => {
-      const standard = chordShapeOptions(chord)[0];
-      const chosen = selected[chord] ?? standard?.index;
-      return chosen === standard?.index
-        ? recordedChord(chord, capo)
-        : undefined;
-    });
-    return {
-      bank: [...new Set(entries)].flatMap((entry) =>
-        entry ? [{ name: entry.name, down: entry.down, up: entry.up }] : []
-      ),
-      chordBank: entries.map((entry) => entry?.name ?? null),
-      frequencies: names.map((chord) => {
-        const frets =
-          chordShapes(chord)[selected[chord]] ??
-          chordShapeOptions(chord)[0]?.frets;
-        return (
-          frets?.flatMap((fret, string) =>
-            fret === null
-              ? []
-              : [
-                  {
-                    frequency:
-                      440 * 2 ** ((guitarMidi[string] + fret + capo - 69) / 12),
-                    string
-                  }
-                ]
-          ) ?? []
+    const positions: (Frets | undefined)[] =
+      JSON.parse(fingeringsKey) ??
+      progressionKey
+        .split(" ")
+        .map(
+          (chord) =>
+            chordShapes(chord)[selected[chord]] ??
+            chordShapeOptions(chord)[0]?.frets
         );
-      })
-    };
-  }, [progressionKey, shapesKey, capo]);
+    return positions.map((frets) => {
+      return (
+        frets?.flatMap((fret, string) =>
+          fret === null
+            ? []
+            : [
+                {
+                  frequency:
+                    440 * 2 ** ((guitarMidi[string] + fret + capo - 69) / 12),
+                  string
+                }
+              ]
+        ) ?? []
+      );
+    });
+  }, [progressionKey, shapesKey, fingeringsKey, capo]);
+  const bank = useMemo(() => acousticBank(frequencies.flat()), [frequencies]);
   const labels = JSON.stringify({
     play: t(practice ? "StartPractice" : "ListenRhythm"),
     stop: t("Pause"),
@@ -778,77 +782,31 @@ function RhythmPlayer({
     meter,
     tempo,
     practice: !!practice,
+    stroke: stroke ?? null,
+    activeFingering,
     requested: autoplay ? autoStart : null
   });
   const preview = useMemo(
     () => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{background:transparent}body{margin:0;background:transparent;font-family:system-ui;color:${palette.glass.ink}}button{width:100%;height:48px;border:1px solid ${palette.glass.edge};border-radius:14px;background:${palette.glass.play};color:${palette.gold.ink};box-shadow:0 0 12px #ffb00077,inset 0 1px 1px #fff9c9;border-color:#ffe59b;background:linear-gradient(#fff2a6,#ffd65a 16%,#ffbc08 48%,#ffaa00 52%,#ffd34a);font:600 19px system-ui}#count{height:28px;line-height:28px;text-align:center;font-size:13px}${compact ? "button{width:44px;height:44px;border-radius:50%;margin:2px;box-shadow:0 0 2px #ffb00077,inset 0 1px 1px #fff9c9}#count{display:none}" : ""}</style></head><body><button id="play"></button><div id="count"></div><script>
-    let context,timer,playing=false,step=0,next=0,start=0,bus,voices=[],sounding=new Set(),preparing,playToken=0;
+    let context,engine,timer,playing=false,step=0,next=0,start=0,preparing,playToken=0,lastChord=-1,singleStroke=false,activeFingering=0;
     let pattern='D-D-D-D-',tempo=80,meter=4,practice=false;
-    const chords=${JSON.stringify(progressionKey.split(" "))},frequencies=${JSON.stringify(frequencies)},chordBank=${JSON.stringify(chordBank)};
+    const chords=${JSON.stringify(progressionKey.split(" "))},frequencies=${JSON.stringify(frequencies)};
     const labels=${labels};
     const button=document.getElementById('play'), count=document.getElementById('count');button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);
-    function stop(){playToken++;playing=false;clearTimeout(timer);if(context)sounding.forEach(voice=>damp(voice,context.currentTime));voices=[];button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);count.textContent='';}
-    const samples=${JSON.stringify(chordNotes)},recordings=${JSON.stringify(bank)};
-    let buffers=[],chordBuffers={},variants={};
-    async function prepare(){
-      const audio=context;
-      buffers=samples.map(sample=>{
-        const raw=atob(sample.pcm),buffer=audio.createBuffer(1,raw.length/2,22050),data=buffer.getChannelData(0);
-        for(let i=0;i<data.length;i++){let value=raw.charCodeAt(i*2)|(raw.charCodeAt(i*2+1)<<8);if(value>=32768)value-=65536;data[i]=value/32768;}
-        return {frequency:sample.frequency,buffer};
-      });
-      await Promise.all(recordings.map(async item=>{
-        const decode=encoded=>{const raw=atob(encoded),bytes=new Uint8Array(raw.length);for(let i=0;i<raw.length;i++)bytes[i]=raw.charCodeAt(i);return audio.decodeAudioData(bytes.buffer);};
-        const [down,up]=await Promise.all([Promise.all(item.down.map(decode)),Promise.all(item.up.map(decode))]);
-        chordBuffers[item.name]={down,up};
-      }));
-      bus=audio.createGain();bus.gain.value=.8;
-      bus.connect(audio.destination);
-    }
-    function damp(voice,when){
-      if(!voice||voice.stoppedAt<=when+.24)return;
-      if(when<voice.when){voice.stoppedAt=when;voice.source.stop();return;}
-      const gain=voice.gain.gain;
-      const elapsed=when-voice.when;
-      const level=voice.level*Math.min(1,elapsed/.006)*(voice.muted?Math.pow(.001/voice.level,Math.min(1,Math.max(0,elapsed-.006)/.064)):1);
-      if(gain.cancelAndHoldAtTime)gain.cancelAndHoldAtTime(when);else{
-        gain.cancelScheduledValues(when);gain.setValueAtTime(level,when);
-      }
-      const duration=.24;
-      for(let i=1;i<=16;i++)gain.linearRampToValueAtTime(level*(.5+.5*Math.cos(Math.PI*i/16)),when+duration*i/16);
-      voice.source.stop(when+duration);voice.stoppedAt=when+duration;
-    }
-    function sound(buffer,rate,when,muted,volume,slot){
-      damp(voices[slot],when);
-      const source=context.createBufferSource(),gain=context.createGain();source.buffer=buffer;source.playbackRate.value=rate;
-      gain.gain.setValueAtTime(0,when);gain.gain.linearRampToValueAtTime(volume,when+.006);
-      if(muted)gain.gain.exponentialRampToValueAtTime(.001,when+.07);
-      source.connect(gain);gain.connect(bus);source.start(when);if(muted)source.stop(when+.09);
-      const voice={source,gain,when,level:volume,muted,stoppedAt:muted?when+.09:Infinity};voices[slot]=voice;sounding.add(voice);
-      source.onended=()=>{sounding.delete(voice);source.disconnect();gain.disconnect();if(voices[slot]===voice)voices[slot]=null;};
-    }
+    function stop(){playToken++;playing=false;clearTimeout(timer);engine?.stop();button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);count.textContent='';}
+    const createAcousticPlayer=${acousticEngine};
+    const audioBank=${JSON.stringify(bank)};
     function tick(){
       if(!playing)return;const now=context.currentTime;
       if(practice&&now-start>=60){stop();count.textContent=labels.done;return;}
       if(next<now){const delay=now+.025-next;start+=delay;next+=delay;}
       while(next<now+.5){
         if(practice&&next>=start+60)break;
-        const position=step++,index=position%pattern.length,hit=pattern[index],chordIndex=Math.floor(position/(meter*2))%chords.length;
+        const position=step++,index=position%pattern.length,hit=pattern[index],chordIndex=singleStroke?activeFingering:Math.floor(position/(meter*2))%chords.length;
         if(hit!=='-'){
-          const dynamics=1,name=chordBank[chordIndex],recorded=chordBuffers[name];
-          if(recorded){
-            voices.forEach(voice=>damp(voice,next));
-            const direction=hit==='U'?'up':'down',key=name+direction,variant=variants[key]??0;variants[key]=(variant+1)%3;
-            sound(recorded[direction][variant],1,next,hit==='X',dynamics,6);
-          }else{
-            damp(voices[6],next);
-            const notes=frequencies[chordIndex],ordered=hit==='U'?[...notes].reverse().slice(0,4):notes;
-            const strings=new Set(ordered.map(note=>note.string));voices.forEach((voice,slot)=>{if(!strings.has(slot))damp(voice,next);});
-            ordered.forEach(({frequency,string},i)=>{
-              const sample=buffers.reduce((best,item)=>Math.abs(Math.log2(item.frequency/frequency))<Math.abs(Math.log2(best.frequency/frequency))?item:best);
-              sound(sample.buffer,frequency/sample.frequency,next+i*(hit==='U'?.007:.010),hit==='X',.5*dynamics*(hit==='U'?.72:1)/Math.sqrt(Math.max(1,ordered.length)),string);
-            });
-          }
+          const end=engine.stroke(frequencies[chordIndex],hit,next,index,lastChord!==-1&&lastChord!==chordIndex,pattern);
+          lastChord=chordIndex;
+          if(singleStroke){timer=setTimeout(()=>{stop();},Math.max(0,(end||next+1)-context.currentTime)*1000);return;}
         }
         next+=30/tempo;
       }
@@ -857,20 +815,20 @@ function RhythmPlayer({
       count.textContent=chords[chordIndex]+' · '+beat+(practice?' · '+Math.max(0,60-Math.floor(elapsed))+' '+labels.seconds:'');
       timer=setTimeout(tick,20);
     }
-    function prepareAudio(){if(!context){context=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});preparing=prepare();}return preparing;}
+    function prepareAudio(){if(!context){context=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});engine=createAcousticPlayer(context,audioBank);preparing=engine.ready;}return preparing;}
     async function play(){
       const token=++playToken;button.disabled=true;
       try{
         const prepared=prepareAudio();await context.resume();await prepared;
         if(token!==playToken||document.hidden)return;
-        step=0;variants={};start=context.currentTime+.035;next=start;playing=true;
+        step=0;lastChord=-1;start=context.currentTime+.035;next=start;playing=true;
         button.textContent=${compact ? JSON.stringify("❚❚") : "labels.stop"};button.setAttribute('aria-label',labels.stop);tick();
       }catch(e){stop();window.ReactNativeWebView?.postMessage('stopped');button.textContent=${compact ? JSON.stringify("!") : "labels.error"};button.setAttribute('aria-label',labels.error);}
       finally{if(token===playToken||!playing)button.disabled=false;}
     }
     window.configurePlayer=config=>{
       const resume=config.requested===null?playing:config.requested;
-      stop();pattern=config.pattern;tempo=config.tempo;meter=config.meter;practice=config.practice;
+      stop();pattern=config.pattern;tempo=config.tempo;meter=config.meter;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
       if(resume)play();
     };
     button.onclick=()=>{if(playing){stop();return;}play();};
@@ -878,7 +836,7 @@ function RhythmPlayer({
     document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();window.ReactNativeWebView?.postMessage('stopped');}});
     window.addEventListener('pagehide',()=>{stop();context?.close().catch(()=>{});});
   </script></body></html>`,
-    [bank, chordBank, frequencies, progressionKey, labels, compact]
+    [bank, frequencies, progressionKey, labels, compact]
   );
   useEffect(() => {
     ready.current = false;
@@ -894,7 +852,7 @@ function RhythmPlayer({
       {active && (
         <WebView
           ref={web}
-          key={`${capo}-${progressionKey}-${shapesKey}`}
+          key={`${capo}-${progressionKey}-${shapesKey}-${fingeringsKey}`}
           onLoadStart={() => {
             ready.current = false;
           }}

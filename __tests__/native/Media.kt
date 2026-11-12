@@ -10,8 +10,10 @@ class AudioRecord(source: Int, rate: Int, channel: Int, encoding: Int, size: Int
         val readers = AtomicInteger()
         val released = AtomicInteger()
         var frequency = 0.0
+        var permissionGranted = true
         fun getMinBufferSize(rate: Int, channel: Int, encoding: Int) = 2940
     }
+    init { if (!permissionGranted) throw SecurityException("Microphone denied") }
     fun startRecording() {}
     fun read(buffer: ShortArray, offset: Int, size: Int): Int {
         check(readers.incrementAndGet() == 1) { "Overlapping capture threads" }
