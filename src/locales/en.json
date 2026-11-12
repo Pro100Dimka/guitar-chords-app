@@ -378,5 +378,6 @@
   "AnalysisLineTimingTitle": "Change line timing?",
   "AnalysisLineTimingHint": "Some word timings fall outside the new line interval. Save the new line start and end and remove its word timings? The text and chord timings are kept.",
   "AnalysisDropWordTiming": "Save line timing",
-  "AnalysisNoFingering": "No verified guitar fingering is available for this harmony."
+  "AnalysisNoFingering": "No verified guitar fingering is available for this harmony.",
+  "AnalysisWarning_non_lyric_caption_omitted": "A caption such as “music” was omitted from the lyrics. If that passage contains singing, add its words manually."
 }

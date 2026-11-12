@@ -157,6 +157,15 @@ def main():
         "date": datetime.now(timezone.utc).date().isoformat(), "sources": items,
     }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(manifest)
+    benchmark = args.output_dir / "manifest.json"
+    benchmark.write_text(json.dumps({
+        "corpus": {"name": "Wikimedia Slavic language smoke", "humanGroundTruth": False},
+        "recordings": [{
+            "id": item["id"], "audio": item["wavFile"], "language": item["language"],
+            "reference": None, "source": item["sourcePage"], "license": item["license"],
+        } for item in items],
+    }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    print(benchmark)
 
 
 if __name__ == "__main__":

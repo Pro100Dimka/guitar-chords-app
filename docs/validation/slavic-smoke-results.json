@@ -1,0 +1,126 @@
+{
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "cpuCount": 9,
+  "physicalAndroid": false,
+  "corpus": {
+    "name": "Wikimedia Slavic language smoke",
+    "date": "2026-11-12",
+    "humanGroundTruth": false
+  },
+  "measurements": [
+    {
+      "id": "uk_lysenko_dnieper",
+      "language": "uk",
+      "status": "completed",
+      "durationSeconds": 125.24,
+      "wallSeconds": 32.759,
+      "detectedLanguage": "uk",
+      "lyricLines": 6,
+      "chordIntervals": 54,
+      "humanReferenceAvailable": false,
+      "warnings": [
+        "lyrics_unreliable"
+      ],
+      "error": null,
+      "elapsedSeconds": 30.849,
+      "peakRssMb": 1309.04,
+      "device": "cpu/Linux/x86_64",
+      "referenceWords": 0,
+      "predictedWords": 43,
+      "wordErrors": null,
+      "wer": null,
+      "uncertainWords": 7,
+      "alignmentReferenceWords": 0,
+      "alignedExactWords": 0,
+      "matchedWordStartMaeSeconds": null,
+      "matchedWordEndMaeSeconds": null,
+      "chordAccuracy": null,
+      "audioSha256": "18e587ddd9d5615e5eeb09c3ec38cf92641c88340ad27b3bf1d75459018f3ddd",
+      "source": "https://commons.wikimedia.org/wiki/File:Mykola_Lysenko_-_The_Dnieper_River_Rages.flac",
+      "recordingLicense": "CC-BY-SA-4.0",
+      "referenceScope": "Published poem/lyrics exist, but no verified performance transcript, timing or chord annotations. No quality score claimed."
+    },
+    {
+      "id": "ru_kalinka_1910",
+      "language": "ru",
+      "status": "completed",
+      "durationSeconds": 123.52544217687075,
+      "wallSeconds": 66.687,
+      "detectedLanguage": "ru",
+      "lyricLines": 2,
+      "chordIntervals": 6,
+      "humanReferenceAvailable": false,
+      "warnings": [
+        "non_lyric_caption_omitted"
+      ],
+      "error": null,
+      "elapsedSeconds": 64.66,
+      "peakRssMb": 1803.22,
+      "device": "cpu/Linux/x86_64",
+      "referenceWords": 0,
+      "predictedWords": 15,
+      "wordErrors": null,
+      "wer": null,
+      "uncertainWords": 0,
+      "alignmentReferenceWords": 0,
+      "alignedExactWords": 0,
+      "matchedWordStartMaeSeconds": null,
+      "matchedWordEndMaeSeconds": null,
+      "chordAccuracy": null,
+      "audioSha256": "71aa1dafafb052fe30376f9c35c79f75d3d6d47c2d3cbf73ac6b558207a192e0",
+      "source": "https://commons.wikimedia.org/wiki/File:%D0%9A%D0%B0%D0%BB%D0%B8%D0%BD%D0%BA%D0%B0._%D0%90%D0%BB%D1%8C%D0%B1%D0%B5%D1%80%D1%82_%D0%AF%D0%BD%D0%BF%D0%BE%D0%BB%D1%8C%D1%81%D0%BA%D0%B8%D0%B9_%28IA_78_kalinka_albert-janpolski_gbia0420126a%29.flac",
+      "recordingLicense": "PD-US-record-expired (Commons declaration)",
+      "referenceScope": "Published poem/lyrics exist, but no verified performance transcript, timing or chord annotations. No quality score claimed."
+    }
+  ],
+  "limitations": [
+    "No physical Android hardware was measured.",
+    "Chord accuracy requires a separate human chord reference.",
+    "Word MAE is computed only on exact text matches; see matched coverage.",
+    "Ellipsis uncertainty markers count as incorrect words in WER.",
+    "Only one Ukrainian and one Russian recording were processed; this is language execution smoke, not accuracy validation.",
+    "The Ukrainian classical vocal and Russian historical noisy performance contain visibly incorrect or missing recognized words. Manual review is necessary."
+  ],
+  "models": {
+    "lyrics": {
+      "name": "Systran/faster-whisper-small",
+      "ready": true
+    },
+    "chords": {
+      "name": "lv-chordia-1.1.0",
+      "ready": true
+    },
+    "decoder": {
+      "name": "ffmpeg",
+      "ready": true
+    }
+  },
+  "summary": {
+    "recordings": 2,
+    "languages": [
+      "ru",
+      "uk"
+    ],
+    "completed": 2,
+    "partial": 0,
+    "failed": 0,
+    "scoredLyricsRecordings": 0,
+    "wer": null,
+    "totalAudioSeconds": 248.76544217687075,
+    "totalWallSeconds": 99.446,
+    "maximumPeakRssMb": 1803.22
+  },
+  "captionFix": {
+    "warningCode": "non_lyric_caption_omitted",
+    "beforeJobId": "186f3f5c09f74862ae2a409ead1e385f",
+    "afterJobId": "829b55e8bbe24b7991b6769e6eff8119",
+    "beforeOmittedCaptionLines": 1,
+    "afterCaptionLinesRemaining": 0,
+    "otherLyricsAndTimingsExactlyPreserved": true,
+    "beforeWallSeconds": 62.197,
+    "afterWallSeconds": 66.687,
+    "englishSavedResultsUnchanged": 20,
+    "audioListeningConfirmed": false,
+    "scope": "Recognizable service-caption formatting cleanup. The runtime cannot listen to audio; instrumental/vocal status of the interval is not human-verified."
+  }
+}

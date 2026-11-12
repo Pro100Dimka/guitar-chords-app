@@ -1,0 +1,73 @@
+{
+  "recording": "Cortéz — Feel (Stripped)",
+  "source": "https://www.jamendo.com/track/1481500/feel-stripped",
+  "audioSha256": "beefa48e4520bb290e739faa7c0a91e4e7296fb239577966b2129934ccf86b31",
+  "environment": "Shared Linux x86-64 CPU, 4 inference threads, INT8. Not a phone benchmark.",
+  "scope": "One paired recording; no aggregate turbo or RU/UK quality claim. Matching-word subsets differ.",
+  "installedModelBytes": {
+    "small": 486214945,
+    "turbo": 1621668118
+  },
+  "small": {
+    "id": "Cortez_-_Feel__Stripped_",
+    "language": "en",
+    "status": "completed",
+    "durationSeconds": 240.56163265306122,
+    "wallSeconds": 49.242,
+    "detectedLanguage": "en",
+    "lyricLines": 46,
+    "chordIntervals": 78,
+    "humanReferenceAvailable": true,
+    "warnings": [
+      "lyrics_unreliable",
+      "word_timing_unreliable"
+    ],
+    "error": null,
+    "elapsedSeconds": 47.593,
+    "peakRssMb": 1803.95,
+    "device": "cpu/Linux/x86_64",
+    "referenceWords": 356,
+    "predictedWords": 331,
+    "wordErrors": 64,
+    "wer": 0.1797752808988764,
+    "uncertainWords": 19,
+    "alignmentReferenceWords": 355,
+    "alignedExactWords": 295,
+    "matchedWordStartMaeSeconds": 0.23742296199627075,
+    "matchedWordEndMaeSeconds": 0.1725780763806778,
+    "chordAccuracy": null,
+    "audioSha256": "beefa48e4520bb290e739faa7c0a91e4e7296fb239577966b2129934ccf86b31",
+    "source": "https://www.jamendo.com/track/1481500/feel-stripped",
+    "recordingLicense": "BY"
+  },
+  "turbo": {
+    "id": "Cortez_-_Feel__Stripped_",
+    "language": "en",
+    "status": "completed",
+    "durationSeconds": 240.56163265306122,
+    "wallSeconds": 96.949,
+    "detectedLanguage": "en",
+    "lyricLines": 48,
+    "chordIntervals": 78,
+    "humanReferenceAvailable": true,
+    "warnings": [
+      "lyrics_unreliable",
+      "word_timing_unreliable"
+    ],
+    "error": null,
+    "elapsedSeconds": 94.715,
+    "peakRssMb": 2500.66,
+    "device": "cpu/Linux/x86_64",
+    "referenceWords": 356,
+    "predictedWords": 325,
+    "wordErrors": 49,
+    "wer": 0.13764044943820225,
+    "uncertainWords": 7,
+    "alignmentReferenceWords": 355,
+    "alignedExactWords": 310,
+    "matchedWordStartMaeSeconds": 0.5053065126499989,
+    "matchedWordEndMaeSeconds": 0.4280635289864508,
+    "chordAccuracy": null
+  },
+  "failedRuns": "An earlier turbo run died under concurrent Android build memory pressure and has no measured recognition quality. It is excluded from this comparison."
+}

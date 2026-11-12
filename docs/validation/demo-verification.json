@@ -1,0 +1,45 @@
+{
+  "mediaProbe": {
+    "programs": [],
+    "stream_groups": [],
+    "streams": [
+      {
+        "index": 0,
+        "codec_name": "h264",
+        "codec_type": "video",
+        "width": 960,
+        "height": 540,
+        "avg_frame_rate": "8/1",
+        "start_time": "0.000000",
+        "duration": "75.000000",
+        "nb_frames": "600"
+      },
+      {
+        "index": 1,
+        "codec_name": "aac",
+        "codec_type": "audio",
+        "avg_frame_rate": "0/0",
+        "start_time": "0.000000",
+        "duration": "75.000000",
+        "nb_frames": "3231"
+      }
+    ],
+    "format": {
+      "duration": "75.000000",
+      "size": "2172240"
+    }
+  },
+  "audioVerification": {
+    "decodedSampleRate": 8000,
+    "originalSamples": 600000,
+    "videoSamples": 600000,
+    "zeroLagNormalizedCorrelation": 0.9994497758550613,
+    "method": "Compare decoded 75-second mono excerpts at identical positions; AAC encoding is lossy"
+  },
+  "physicalAndroidTests": 0,
+  "androidScreenRecording": false,
+  "mp4Sha256": "da460ccf4739163df5e05e3795582016a1ee64b8e90127a6fc4dc1e47e6bcee1",
+  "originalAudioSha256": "beefa48e4520bb290e739faa7c0a91e4e7296fb239577966b2129934ccf86b31",
+  "source": "https://www.jamendo.com/track/1481500/feel-stripped",
+  "license": "CC BY 3.0 (embedded MP3 copyright tag)"
+}

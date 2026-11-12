@@ -18,7 +18,8 @@ import psutil
 
 from freetune_analysis.app import create_app
 from freetune_analysis.config import Settings
-from freetune_analysis.pipeline import (AnalysisError, analyze, chord_label, decode_audio, disjoint_lyrics)
+from freetune_analysis.pipeline import (AnalysisError, analyze, chord_label, decode_audio, disjoint_lyrics,
+                                       remove_non_lyric_captions)
 from freetune_analysis.store import JobStore, ConflictError
 from freetune_analysis.supervisor import Supervisor
 
@@ -179,6 +180,22 @@ def test_invalid_word_alignment_is_not_repaired_by_squeezing():
     assert unreliable and clean[0]["words"] == []
     assert clean[0]["start"] == 2 and clean[0]["end"] == 5
     assert clean[0]["text"] == "long word"
+
+
+@pytest.mark.parametrize("caption", ["СПОКОЙНАЯ МЕЛОДИЯ", "[МУЗИКА]", "[Music]", "♪ ♫"])
+def test_service_captions_are_not_sung_lyrics(caption):
+    lines = [{"start": 23.94, "end": 26.74, "text": caption, "words": []},
+             {"start": 34.14, "end": 41.26, "text": "Красавица! Душа девица!", "words": []}]
+    filtered, omitted = remove_non_lyric_captions(lines)
+    assert omitted == 1 and filtered == lines[1:]
+    assert filtered[0]["start"] == 34.14 and filtered[0]["end"] == 41.26
+
+
+def test_caption_filter_preserves_real_words_music_and_uppercase_lyrics():
+    lines = [{"text": text} for text in ["Спокойная мелодия", "МУЗЫКА МОЕЙ ДУШИ",
+                                        "♪ let the music play ♪", "[Remember me]", "I LOVE YOU"]]
+    filtered, omitted = remove_non_lyric_captions(lines)
+    assert filtered == lines and omitted == 0
 
 
 def test_one_failed_analyzer_preserves_other_result(tmp_path, monkeypatch):

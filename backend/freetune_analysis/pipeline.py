@@ -206,6 +206,31 @@ def disjoint_lyrics(lines):
     return result, unreliable
 
 
+NON_LYRIC_CAPTIONS = {
+    "MUSIC", "INSTRUMENTAL", "INSTRUMENTAL MUSIC", "SOFT MUSIC", "CALM MUSIC",
+    "МУЗЫКА", "СПОКОЙНАЯ МУЗЫКА", "СПОКОЙНАЯ МЕЛОДИЯ", "ИНСТРУМЕНТАЛЬНАЯ МУЗЫКА",
+    "МУЗИКА", "СПОКІЙНА МУЗИКА", "СПОКІЙНА МЕЛОДІЯ", "ІНСТРУМЕНТАЛЬНА МУЗИКА",
+}
+
+
+def remove_non_lyric_captions(lines):
+    """Omit recognizable ASR subtitle labels, not lyrics containing 'music'.
+
+    This is a conservative formatting rule, not a vocal/instrumental classifier.
+    It operates on the final line structure so saved evaluations can be audited.
+    """
+    kept = []
+    for line in lines:
+        text = line["text"].strip()
+        label = " ".join(re.sub(r"[\[\]()♪♫]", " ", text).split())
+        wrapped = bool(re.fullmatch(r"\[[\s\S]*\]|\([\s\S]*\)|[♪♫][\s\S]*[♪♫]", text))
+        musical_marks_only = bool(text) and not label and any(mark in text for mark in "♪♫")
+        caption = label.upper() in NON_LYRIC_CAPTIONS and (wrapped or label.isupper())
+        if not caption and not musical_marks_only:
+            kept.append(line)
+    return kept, len(lines) - len(kept)
+
+
 def recognize_lyrics(audio: Path, duration: float, language: str, settings: Settings, progress):
     if not availability(settings)["models"]["lyrics"]["ready"]:
         raise AnalysisError("lyrics_model_not_installed")
@@ -261,6 +286,9 @@ def recognize_lyrics(audio: Path, duration: float, language: str, settings: Sett
             if uncertain:
                 warnings.append("lyrics_unreliable")
     lines, unreliable = disjoint_lyrics(lines)
+    lines, omitted = remove_non_lyric_captions(lines)
+    if omitted:
+        warnings.append("non_lyric_caption_omitted")
     if unreliable:
         warnings.append("word_timing_unreliable")
     if not lines:
@@ -312,9 +340,11 @@ def analyze(source: Path, directory: Path, language: str, settings: Settings, em
         report("lyrics", 0.45)
         def lyric_progress(value, lines, detected, warnings):
             partial, unreliable = disjoint_lyrics(lines)
+            partial, omitted = remove_non_lyric_captions(partial)
             result.update(lyrics=partial, language=detected)
             result["warnings"] = sorted(set(result["warnings"] + warnings +
-                                            (["word_timing_unreliable"] if unreliable else [])))
+                                            (["word_timing_unreliable"] if unreliable else []) +
+                                            (["non_lyric_caption_omitted"] if omitted else [])))
             report("lyrics", value)
         try:
             lyrics, detected, warnings = recognize_lyrics(

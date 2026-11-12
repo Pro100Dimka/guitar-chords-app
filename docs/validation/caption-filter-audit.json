@@ -1,0 +1,176 @@
+{
+  "method": "Exact known uppercase or formatted non-lyric labels, applied to final saved line structure. No timing shift or inferred replacement text.",
+  "english": {
+    "recordings": 20,
+    "omittedLines": 0,
+    "unchangedRecordings": 20,
+    "recordingsAudit": [
+      {
+        "id": "Avercage_-_Embers",
+        "jobId": "65149730826644618f54d28513e9475c",
+        "inputLines": 30,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Color_Out_-_Falling_Star",
+        "jobId": "34420c47989a43f2886cae68d1cf3044",
+        "inputLines": 30,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Cortez_-_Feel__Stripped_",
+        "jobId": "5a40dd2db54542eb81a0c4f2d15f3c30",
+        "inputLines": 46,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Explosive_Ear_Candy_-_Like_The_Sun",
+        "jobId": "14b021a0d0be429489fe259518cf68c4",
+        "inputLines": 37,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "HILA_-_Give_Me_the_Same",
+        "jobId": "2627c9303d504b5d97553a20e042a48e",
+        "inputLines": 36,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "JASON_MILLER_-_CROWD_PLEASER",
+        "jobId": "dc9535f4785549d2b36f7b55ffc963c0",
+        "inputLines": 57,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Kinematic_-_Peyote",
+        "jobId": "8e66b595f73f47b588bcd50232dd6822",
+        "inputLines": 14,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "LUNABLIND_-_Vision__Radio_Edit_",
+        "jobId": "5a55073f15af492c881231368d00c399",
+        "inputLines": 33,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Lower_Loveday_-_Is_It_Right_",
+        "jobId": "3828c70a390643a8a74654471b186ad2",
+        "inputLines": 30,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Moon_I_Mean_-_Wrong_Concept",
+        "jobId": "1b030e2e9ccb4e19b9da94dcf8690d71",
+        "inputLines": 39,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Pure_Mids_-_The_Leader",
+        "jobId": "445ce87114a840819b74530f5d3bde31",
+        "inputLines": 19,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Quentin_Hannappe_-_Keep_On",
+        "jobId": "4752f52ee85c421a920f7da531baecff",
+        "inputLines": 25,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Ridgway_-_Fire_Inside",
+        "jobId": "2cf7fbefb91348feb640c8f602686444",
+        "inputLines": 32,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Rxbyn_-_Bad_Side",
+        "jobId": "07e65b2d4c5245d9820af95c22deda51",
+        "inputLines": 48,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Slingshot_Miracle_-_Whistler",
+        "jobId": "bc9b947ef055495f8698541ce0c0a596",
+        "inputLines": 29,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Songwriterz_-_Back_In_Time",
+        "jobId": "7aee382fde56476cb3772154a40f76c4",
+        "inputLines": 50,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "The.madpix.project_-_One_Way_Street",
+        "jobId": "051247f8d52a44bc88e0b03aee570dea",
+        "inputLines": 26,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "The_Rinn_-_Voices__2017_Version_",
+        "jobId": "b297cce5bf8942ad834723da5a6d2cd8",
+        "inputLines": 33,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Tom_Orlando_-_The_One__feat._Tina_G_",
+        "jobId": "425104ec3b384b6b9cd37b35d219f978",
+        "inputLines": 47,
+        "omittedLines": 0,
+        "unchanged": true
+      },
+      {
+        "id": "Wordsmith_-_The_Statement",
+        "jobId": "379899f03f4f4955baed7c2210d34b85",
+        "inputLines": 29,
+        "omittedLines": 0,
+        "unchanged": true
+      }
+    ]
+  },
+  "russianBeforeFix": {
+    "jobId": "186f3f5c09f74862ae2a409ead1e385f",
+    "omittedLines": 1,
+    "omittedIntervals": [
+      {
+        "start": 23.94,
+        "end": 26.74,
+        "text": "СПОКОЙНАЯ МЕЛОДИЯ"
+      }
+    ]
+  },
+  "audioListeningConfirmed": false,
+  "limitation": "The runtime cannot accept audio input, so no claim of human listening confirmation. This fixes a recognizable ASR caption, not all possible hallucinations.",
+  "russianAfterFix": {
+    "warningCode": "non_lyric_caption_omitted",
+    "beforeJobId": "186f3f5c09f74862ae2a409ead1e385f",
+    "afterJobId": "829b55e8bbe24b7991b6769e6eff8119",
+    "beforeOmittedCaptionLines": 1,
+    "afterCaptionLinesRemaining": 0,
+    "otherLyricsAndTimingsExactlyPreserved": true,
+    "beforeWallSeconds": 62.197,
+    "afterWallSeconds": 66.687,
+    "englishSavedResultsUnchanged": 20,
+    "audioListeningConfirmed": false,
+    "scope": "Recognizable service-caption formatting cleanup. The runtime cannot listen to audio; instrumental/vocal status of the interval is not human-verified."
+  }
+}

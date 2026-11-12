@@ -97,6 +97,50 @@ memory footprint. The real quality/performance measurements and remaining
 coverage gaps are recorded with the delivered validation results. Speech
 benchmarks from model authors are not Android or singing measurements.
 
+### Measured model comparison
+
+The same 240.562-second **Cortéz — Feel (Stripped)** recording was uploaded to the
+actual HTTP service with each model, using CPU INT8 and four inference threads
+on the shared Linux x86-64 workspace. The native build was stopped for these
+two runs. Reference text was human-revised Jam-ALT, used only after inference.
+
+| Model | Upload-to-result wall time | Peak worker + descendants RSS | Word error rate | Exact words aligned to timing reference | Start / end MAE on those matched words |
+|---|---:|---:|---:|---:|---:|
+| Small (default) | 49.242 s | 1803.95 MiB | 17.98% (64 / 356) | 295 / 355 | 0.237 / 0.173 s |
+| Large-v3-turbo | 96.949 s | 2500.66 MiB | 13.76% (49 / 356) | 310 / 355 | 0.505 / 0.428 s |
+
+The timed-word subsets differ, so their MAEs are not a paired comparison on
+identical words. The larger model reduced text errors on this recording while
+taking almost twice as long and using more memory. Small remains the CPU
+default; turbo is an explicit alternative. One song does not establish a
+general quality ranking or Ukrainian/Russian accuracy. Installed top-level
+model files measured 486,214,945 bytes for small and 1,621,668,118 bytes for turbo.
+
+The full small-model run completed **20 English songs**, totaling 4333.043 seconds
+of audio in 1266.881 seconds of observed wall time. Aggregate WER was **36.19%**
+(2257 errors / 6237 reference words). Start/end MAE was 0.380/0.351 seconds over
+3853 exact word matches, covering 67.68% of the separate timing reference. These
+errors require substantial manual correction on some songs. The maximum
+observed RSS was 1810.87 MiB. Early corpus runs shared CPU/memory with other
+project work; these are observed server measurements, not controlled Android
+benchmarks. The app's actual result validator accepted all 20 stored results,
+with original/decoded duration differences no larger than 0.053 seconds.
+
+Two additional real recordings exercised Ukrainian and Russian execution. The
+125.24-second Ukrainian classical vocal completed in 32.759 seconds, with six
+lyric lines and 54 chord intervals. The 123.525-second historical Russian
+recording completed in 66.687 seconds after the targeted caption correction,
+with two lyric lines and six chord intervals. Both passed the actual client
+result validator. Their recognized text contains substantial errors or
+omissions; they have no verified performance transcript, word timing, or chord
+reference, so **no Ukrainian/Russian accuracy score is claimed**. A known ASR
+caption was removed from the Russian result; the remaining lyrics and their
+times exactly matched the preceding run. This was a formatting correction,
+without human listening confirmation of that audio interval.
+
+The [validation report](../docs/validation/README.md) records raw measurements,
+the separate GuitarSet chord evaluation, and the remaining validation gaps.
+
 **Automatic lyrics and chord labels require review.** Singing is substantially
 harder than ordinary speech. Distorted vocals, backing vocals, rap, unusual
 pronunciation, and long held vowels can yield wrong or missing words and
@@ -105,6 +149,13 @@ flags. Silence/no-speech checks reduce hallucinations but cannot guarantee their
 absence on every instrumental arrangement. No ground-truth lyrics are supplied
 to inference. A pure instrumental track may legitimately have an empty lyric
 list and a `no_lyrics` warning.
+
+Recognizable non-lyric ASR captions such as uppercase `СПОКОЙНАЯ МЕЛОДИЯ` or
+bracketed `[MUSIC]` are omitted with `non_lyric_caption_omitted`. This narrow
+formatting rule does not remove ordinary lyrics containing “music” or arbitrary
+uppercase lyrics. It is not an instrumental/vocal classifier and cannot
+guarantee the absence of other hallucinations. The recorded English corpus was
+audited against this final-line filter: it changes none of its 20 results.
 
 No words are redistributed evenly over a line. Invalid overlapping word spans
 are discarded while the text and coarse line interval are preserved and marked
@@ -172,7 +223,7 @@ Statuses: `queued`, `running`, `completed`, `partial`, `failed`, `cancelled`,
 `null` if automatic language detection finds an unsupported language.
 
 Useful warnings/errors include `no_lyrics`, `lyrics_unreliable`,
-`word_timing_unreliable`, `lyrics_model_not_installed`, `chord_model_not_installed`,
+`word_timing_unreliable`, `non_lyric_caption_omitted`, `lyrics_model_not_installed`, `chord_model_not_installed`,
 `lyrics_failed`, `chords_failed`, `invalid_audio`, `audio_too_long`,
 `audio_hash_mismatch`, `memory_limit_exceeded`, `analysis_timeout`, `worker_failed`,
 `server_restarted`. If one engine fails, the other's actual result is retained
@@ -239,3 +290,10 @@ Restricted CC-NC/ND recordings and their full transcripts are kept in ignored
 local evaluation data, not shipped with the product. `--only-cc-by` selects the
 two English CC-BY tracks for a redistributable demonstration. Keep attribution
 and the applicable recording license with any demo you share.
+
+The delivered example uses **Cortéz — Feel (Stripped)**, from *Stripped - EP*
+(2017), under [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/), as recorded
+in the original MP3's embedded copyright notice. Its source is
+https://www.jamendo.com/track/1481500/feel-stripped . Demo excerpts and audio
+conversions are identified in their accompanying credits; model output remains
+an uncorrected automatic analysis.

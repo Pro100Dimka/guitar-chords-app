@@ -71,7 +71,11 @@ LICENSE explicitly explains. Sources:
 The download manifest retains individual licenses and original track URLs.
 Evaluation data are not product assets. CC-NC/ND recordings and their full
 transcripts are not included in the repository's shipped validation report.
-The CC-BY example **Cortez — Feel (Stripped)** is sourced from
-https://www.jamendo.com/track/1481500/feel-stripped . Redistributed demo assets must
-credit the artist, retain the license/source, and describe any excerpting or
-audio conversion. Recognized model output is not a human-corrected transcript.
+The **Cortéz — Feel (Stripped)** example is sourced from
+https://www.jamendo.com/track/1481500/feel-stripped . The original downloaded MP3's
+ID3 `copyright` field specifies **CC BY 3.0**:
+https://creativecommons.org/licenses/by/3.0/ . Its artist tag is `Cortéz`, album
+`Stripped - EP`, date `2017`. This embedded notice supplies the precise version
+that the dataset abbreviates as CC BY. Redistributed demo assets must credit the
+artist, retain the license/source, and describe any excerpting or audio
+conversion. Recognized model output is not a human-corrected transcript.
