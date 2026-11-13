@@ -1,8 +1,8 @@
 import { lookupLyrics, matchingIdentity } from "../src/components/song-autofill/lyrics";
 
 describe("lyrics-only fallback", () => {
-  const originalFetch = global.fetch;
-  afterEach(() => { global.fetch = originalFetch; jest.restoreAllMocks(); });
+  const originalFetch = globalThis.fetch;
+  afterEach(() => { globalThis.fetch = originalFetch; jest.restoreAllMocks(); });
 
   it("compares artist and title independently", () => {
     expect(matchingIdentity("Океан Ельзи", "ОКЕАН-ЕЛЬЗИ")).toBe(true);
@@ -10,7 +10,7 @@ describe("lyrics-only fallback", () => {
   });
 
   it("rejects different performers and preserves exact lyrics line breaks", async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true, status: 200,
       json: async () => [
         { id: 1, trackName: "Весна", artistName: "Другой", plainLyrics: "Неверно" },
@@ -25,11 +25,11 @@ describe("lyrics-only fallback", () => {
   });
 
   it("returns no result if no verified match exists", async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => [] }) as typeof fetch;
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => [] }) as typeof fetch;
     await expect(lookupLyrics("Весна", "Скрябін")).resolves.toEqual([]);
   });
   it("reports rate limits without returning dummy results", async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 429 }) as typeof fetch;
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: false, status: 429 }) as typeof fetch;
     await expect(lookupLyrics("Весна", "Скрябін")).rejects.toThrow("RateLimited");
   });
 
