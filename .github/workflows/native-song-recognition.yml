@@ -27,6 +27,8 @@ jobs:
         run: |
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
           rustup show
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;27.1.12297006"
           cargo install cargo-ndk --locked
       - name: Native host fingerprint compilation
         run: cargo test --manifest-path android/song-fingerprint/Cargo.toml
