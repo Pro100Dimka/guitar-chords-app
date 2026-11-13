@@ -24,13 +24,14 @@ describe("lyrics-only fallback", () => {
     expect(options[0].content).not.toContain("[Am]");
   });
 
+  it("returns no result if no verified match exists", async () => {
+    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => [] }) as typeof fetch;
+    await expect(lookupLyrics("Весна", "Скрябін")).resolves.toEqual([]);
+  });
   it("reports rate limits without returning dummy results", async () => {
     global.fetch = jest.fn().mockResolvedValue({ ok: false, status: 429 }) as typeof fetch;
     await expect(lookupLyrics("Весна", "Скрябін")).rejects.toThrow("RateLimited");
   });
 
-  it("returns no result if no verified match exists", async () => {
-    global.fetch = jest.fn().mockResolvedValue({ ok: true, json: async () => [] }) as typeof fetch;
-    await expect(lookupLyrics("Весна", "Скрябін")).resolves.toEqual([]);
-  });
+
 });
