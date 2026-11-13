@@ -62,6 +62,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const [coverBusy, setCoverBusy] = useState(false);
     const [lyricsBusy, setLyricsBusy] = useState(false);
     const [lyricsMessage, setLyricsMessage] = useState("");
+    const [lyricsPreview, setLyricsPreview] = useState<number | null>(null);
     const [lyricsOptions, setLyricsOptions] = useState<Awaited<ReturnType<typeof lookupLyrics>>>([]);
     const lyricsController = useRef<AbortController | null>(null);
     const currentForm = useRef<FormikProps<FormValues>>(null);
@@ -98,6 +99,9 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       useState<FormValues>(initialValues);
     useFocusEffect(
       useCallback(() => {
+        cancelLyrics();
+        setLyricsOptions([]);
+        setLyricsPreview(null);
         if (song && song.id) {
           const { band_name, band_id, ...songProps } = song;
           setInitialValuesState({
@@ -348,45 +352,46 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     />
                   </View>
                   <View style={styles.importButton}>
-                    <Action glass label={lyricsBusy ? "Отменить поиск" : "Найти текст (LRCLIB)"}
+                    <Action glass label={lyricsBusy ? t("AutofillCancelSearch") : t("AutofillFindLyrics")}
                       disabled={importing || isSubmitting}
                       onPress={async () => {
                         if (lyricsBusy) {
                           cancelLyrics();
-                          setLyricsMessage("Поиск отменён");
+                          setLyricsMessage(t("AutofillSearchCancelled"));
                           return;
                         }
                         const title = formik.values.title.trim();
                         const artist = formik.values.fk_band.name.trim();
                         if (!title || !artist) {
-                          Alert.alert("Укажи название и исполнителя");
+                          Alert.alert(t("AutofillIdentityRequired"));
                           return;
                         }
                         cancelLyrics();
                         const controller = new AbortController();
                         lyricsController.current = controller;
                         const generation = ++lyricsGeneration.current;
+                        setLyricsPreview(null);
                         const oldValues = JSON.stringify(formik.values);
                         lyricsSnapshot.current = oldValues;
                         setLyricsBusy(true);
                         setLyricsOptions([]);
-                        setLyricsMessage("Ищу текст…");
+                        setLyricsMessage(t("AutofillSearching"));
                         try {
                           const results = await lookupLyrics(title, artist, controller.signal);
                           if (generation !== lyricsGeneration.current) return;
                           if (oldValues !== JSON.stringify(currentForm.current?.values)) {
-                            setLyricsMessage("Поля изменились. Запусти поиск заново.");
+                            setLyricsMessage(t("AutofillFormChanged"));
                             return;
                           }
                           setLyricsOptions(results);
                           setLyricsMessage(results.length
-                            ? "LRCLIB: найден только текст без аккордов. Выбери вариант."
-                            : "Совпадений не найдено.");
+                            ? t("AutofillLyricsOnly")
+                            : t("AutofillNoMatch"));
                         } catch (error) {
                           if (generation === lyricsGeneration.current)
                             setLyricsMessage(error instanceof Error && error.message === "RateLimited"
-                              ? "Лимит запросов LRCLIB. Повтори позже."
-                              : "Не удалось найти текст.");
+                              ? t("AutofillRateLimited")
+                              : t("AutofillUnavailable"));
                         } finally {
                           if (generation === lyricsGeneration.current) {
                             setLyricsBusy(false);
@@ -396,12 +401,14 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       }} />
                     {!!lyricsMessage && <Text style={styles.lyricsMessage}>{lyricsMessage}</Text>}
                     {lyricsOptions.map((option) => (
-                      <Action key={option.id} glass
+                      <View key={option.id} style={styles.lyricsCandidate}>
+                      <Text style={styles.lyricsMessage}>{t("AutofillAlbum")}: {option.album || t("AutofillUnknownAlbum")} · {t("AutofillDuration")}: {option.duration === null ? "—" : `${Math.floor(option.duration / 60)}:${String(Math.floor(option.duration % 60)).padStart(2, "0")}`}</Text>
+                      <Action glass
                         label={option.title + " · " + option.artist + " · LRCLIB"}
                         onPress={() => {
                           const apply = () => {
                             if (JSON.stringify(currentForm.current?.values) !== lyricsSnapshot.current) {
-                              Alert.alert("Форма изменилась", "Повтори поиск, чтобы не потерять правки.");
+                              Alert.alert(t("AutofillFormChanged"));
                               setLyricsOptions([]);
                               return;
                             }
@@ -409,12 +416,16 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                             setLyricsOptions([]);
                           };
                           if (formik.values.content.trim()) {
-                            Alert.alert("Заменить текст?", "Существующие аккорды также будут заменены.", [
+                            Alert.alert(t("AutofillReplaceTitle"), t("AutofillReplaceHint"), [
                               { text: t("Cancel"), style: "cancel" },
-                              { text: "Заменить", onPress: apply }
+                              { text: t("AutofillReplace"), onPress: apply }
                             ]);
                           } else apply();
                         }} />
+                      <Action glass compact label={lyricsPreview === option.id ? t("AutofillHidePreview") : t("AutofillPreview")}
+                        onPress={() => setLyricsPreview(lyricsPreview === option.id ? null : option.id)} />
+                      {lyricsPreview === option.id && <Text style={styles.lyricsPreview}>{option.content}</Text>}
+                      </View>
                     ))}
                   </View>
                   <TextField
@@ -494,6 +505,8 @@ const styles = StyleSheet.create({
   },
   importButton: { marginBottom: 16, gap: 8 },
   lyricsMessage: { color: palette.glass.muted, fontSize: 13 },
+  lyricsCandidate: { gap: 6, marginVertical: 6 },
+  lyricsPreview: { color: palette.glass.ink, fontSize: 14, lineHeight: 21 },
   details: {
     marginBottom: 16,
     backgroundColor: palette.glass.surface,
