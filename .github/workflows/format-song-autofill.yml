@@ -31,3 +31,5 @@ jobs:
             git rebase origin/feature/song-autofill
             git push origin HEAD:feature/song-autofill
           fi
+
+# Final format pass after Android recognition integration.
