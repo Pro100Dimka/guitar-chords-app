@@ -1,4 +1,7 @@
 name: native-song-recognition
+concurrency:
+  group: native-song-recognition-${{ github.ref }}
+  cancel-in-progress: true
 on:
   push:
     branches: [feature/song-autofill]
