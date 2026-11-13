@@ -19,12 +19,12 @@ jobs:
           node-version: '22'
       - run: git fetch origin feature/song-autofill && git checkout -B feature/song-autofill origin/feature/song-autofill
       - run: npm ci
-      - run: npx prettier --write src/components/song-autofill/lyrics.ts src/screens/create-song-chords/index.tsx
+      - run: npx prettier --write src/components/song-autofill/*.ts src/screens/create-song-chords/index.tsx src/screens/library/index.tsx src/router/index.tsx
       - name: Commit formatting
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add src/components/song-autofill/lyrics.ts src/screens/create-song-chords/index.tsx
+          git add src/components/song-autofill/*.ts src/screens/create-song-chords/index.tsx src/screens/library/index.tsx src/router/index.tsx
           if ! git diff --cached --quiet; then
             git commit -m "style: format song autofill sources"
             git push origin HEAD:feature/song-autofill
