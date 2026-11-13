@@ -121,6 +121,9 @@ const Library: React.FC = () => {
       <Text accessibilityRole="header" style={styles.heading}>
         {t("library")}
       </Text>
+      <View style={styles.collections}>
+        <Action glass label={t("AutofillRecognize")} onPress={() => navigation.navigate("createSong", { recognize: "mic" })} />
+      </View>
       <SearchBar setFilters={setFilters} />
       <View style={styles.collections}>
         {["AllSongs", "RecentSongs", "Favorites"].map((key) => (
