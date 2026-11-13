@@ -1,0 +1,22 @@
+name: song-autofill-checks
+on:
+  push:
+    branches: [feature/song-autofill]
+  workflow_dispatch:
+jobs:
+  validation:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Jest
+        run: npm test -- --runInBand
+      - name: TypeScript
+        run: npx tsc --noEmit
+      - name: ESLint
+        run: npm run lint -- --max-warnings 0
