@@ -72,3 +72,10 @@ dependencies {
 }
 project.ext.vectoricons = [iconFontNames: ["MaterialCommunityIcons.ttf", "Ionicons.ttf"]]
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
+
+tasks.register("buildSongFingerprintNative", Exec) {
+    workingDir file("../song-fingerprint")
+    commandLine "cargo", "ndk", "-t", "arm64-v8a", "-t", "armeabi-v7a",
+        "-o", file("src/main/jniLibs").absolutePath, "build", "--release"
+}
+tasks.named("preBuild").configure { dependsOn("buildSongFingerprintNative") }
