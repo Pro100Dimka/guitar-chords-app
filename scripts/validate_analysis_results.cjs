@@ -32,9 +32,15 @@ const targets = [];
 const missing = [];
 const manifestPath = option("--manifest");
 const resultsPath = option("--results");
+if (!!manifestPath !== !!resultsPath)
+  throw new Error("--manifest and --results must be supplied together");
 if (manifestPath && resultsPath) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  if (!Array.isArray(manifest.recordings) || !manifest.recordings.length)
+    throw new Error("Manifest must contain recordings");
   for (const entry of manifest.recordings) {
+    if (typeof entry.id !== "string" || path.basename(entry.id) !== entry.id)
+      throw new Error("Invalid recording ID");
     const resultFile = path.resolve(resultsPath, entry.id + ".analysis.json");
     if (!fs.existsSync(resultFile)) {
       missing.push(entry.id);
@@ -44,12 +50,15 @@ if (manifestPath && resultsPath) {
       dataset: manifest.corpus?.name || "manifest",
       id: entry.id,
       resultFile,
-      audioFile: path.resolve(path.dirname(manifestPath), entry.audio)
+      audioFile: path.resolve(path.dirname(manifestPath), entry.audio),
+      expectedSha: entry.audioSha256 || entry.sha256
     });
   }
 }
 const guitarResults = option("--guitarset-results");
 const guitarFixtures = option("--guitarset-fixtures");
+if (!!guitarResults !== !!guitarFixtures)
+  throw new Error("--guitarset-results and --guitarset-fixtures must be supplied together");
 if (guitarResults && guitarFixtures) {
   for (const id of fs.readdirSync(guitarResults).sort()) {
     const resultFile = path.join(guitarResults, id, "state.json");
@@ -98,6 +107,8 @@ for (const item of targets) {
     if (delta > 0.5)
       throw new Error("Original duration mismatch: " + delta + "s");
     const actualSha = sha(fs.readFileSync(item.audioFile));
+    if (item.expectedSha && item.expectedSha !== actualSha)
+      throw new Error("Manifest source checksum mismatch");
     const expectedSha = job.audio_sha256 || item.expectedSha;
     if (!expectedSha || expectedSha !== actualSha)
       throw new Error("Original file checksum mismatch/missing");
@@ -175,4 +186,5 @@ console.log(
     2
   )
 );
-if (report.summary.failed) process.exitCode = 1;
+// An absent corpus/result cannot be reported as a successful zero-test validation.
+if (report.summary.failed || missing.length || !checks.length) process.exitCode = 1;
