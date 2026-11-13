@@ -12,11 +12,16 @@ export interface LyricsOption {
   source: "LRCLIB";
 }
 const normalize = (value: string) =>
-  value.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+  value
+    .normalize("NFKC")
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
 export const matchingIdentity = (expected: string, actual: string) =>
   !!normalize(expected) && normalize(expected) === normalize(actual);
 
-const client = "FreeTune/0.0.1 (https://github.com/Pro100Dimka/guitar-chords-app)";
+const client =
+  "FreeTune/0.0.1 (https://github.com/Pro100Dimka/guitar-chords-app)";
 type LrcResult = {
   id?: unknown;
   trackName?: unknown;
@@ -51,8 +56,11 @@ export async function lookupLyrics(
     });
     if (response.status === 429) {
       const seconds = Number(response.headers?.get("Retry-After"));
-      retryAfter = Date.now() + (Number.isFinite(seconds) && seconds > 0
-        ? Math.min(seconds, 3600) * 1000 : 30000);
+      retryAfter =
+        Date.now() +
+        (Number.isFinite(seconds) && seconds > 0
+          ? Math.min(seconds, 3600) * 1000
+          : 30000);
       throw new Error("RateLimited");
     }
     if (!response.ok) throw new Error("LyricsServiceUnavailable");
@@ -61,13 +69,15 @@ export async function lookupLyrics(
     if (!Array.isArray(payload)) throw new Error("InvalidLyricsResponse");
     return payload.slice(0, 20).flatMap((item: LrcResult) => {
       if (
-        !item || item.instrumental ||
+        !item ||
+        item.instrumental ||
         typeof item.id !== "number" ||
         typeof item.trackName !== "string" ||
         typeof item.artistName !== "string" ||
         !matchingIdentity(title, item.trackName) ||
         !matchingIdentity(artist, item.artistName)
-      ) return [];
+      )
+        return [];
       const content =
         typeof item.plainLyrics === "string" && item.plainLyrics.trim()
           ? item.plainLyrics
@@ -75,15 +85,22 @@ export async function lookupLyrics(
             ? item.syncedLyrics.replace(/^\[[0-9:.]+\][ \t]*/gm, "")
             : "";
       if (!content.trim() || content.length > 200000) return [];
-      return [{
-        album: typeof item.albumName === "string" ? item.albumName : "",
-        duration: typeof item.duration === "number" && Number.isFinite(item.duration) && item.duration >= 0 ? item.duration : null,
-        id: item.id,
-        title: item.trackName,
-        artist: item.artistName,
-        content: content.replace(/\r\n?/g, "\n").trim(),
-        source: "LRCLIB" as const
-      }];
+      return [
+        {
+          album: typeof item.albumName === "string" ? item.albumName : "",
+          duration:
+            typeof item.duration === "number" &&
+            Number.isFinite(item.duration) &&
+            item.duration >= 0
+              ? item.duration
+              : null,
+          id: item.id,
+          title: item.trackName,
+          artist: item.artistName,
+          content: content.replace(/\r\n?/g, "\n").trim(),
+          source: "LRCLIB" as const
+        }
+      ];
     });
   } finally {
     clearTimeout(timer);

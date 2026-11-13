@@ -63,7 +63,9 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const [lyricsBusy, setLyricsBusy] = useState(false);
     const [lyricsMessage, setLyricsMessage] = useState("");
     const [lyricsPreview, setLyricsPreview] = useState<number | null>(null);
-    const [lyricsOptions, setLyricsOptions] = useState<Awaited<ReturnType<typeof lookupLyrics>>>([]);
+    const [lyricsOptions, setLyricsOptions] = useState<
+      Awaited<ReturnType<typeof lookupLyrics>>
+    >([]);
     const lyricsController = useRef<AbortController | null>(null);
     const currentForm = useRef<FormikProps<FormValues>>(null);
     const lyricsSnapshot = useRef("");
@@ -74,10 +76,13 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       lyricsController.current = null;
       setLyricsBusy(false);
     };
-    useEffect(() => () => {
-      lyricsGeneration.current++;
-      lyricsController.current?.abort();
-    }, []);
+    useEffect(
+      () => () => {
+        lyricsGeneration.current++;
+        lyricsController.current?.abort();
+      },
+      []
+    );
     const { width } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const form = useRef<View>(null);
@@ -352,7 +357,13 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     />
                   </View>
                   <View style={styles.importButton}>
-                    <Action glass label={lyricsBusy ? t("AutofillCancelSearch") : t("AutofillFindLyrics")}
+                    <Action
+                      glass
+                      label={
+                        lyricsBusy
+                          ? t("AutofillCancelSearch")
+                          : t("AutofillFindLyrics")
+                      }
                       disabled={importing || isSubmitting}
                       onPress={async () => {
                         if (lyricsBusy) {
@@ -377,54 +388,106 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         setLyricsOptions([]);
                         setLyricsMessage(t("AutofillSearching"));
                         try {
-                          const results = await lookupLyrics(title, artist, controller.signal);
+                          const results = await lookupLyrics(
+                            title,
+                            artist,
+                            controller.signal
+                          );
                           if (generation !== lyricsGeneration.current) return;
-                          if (oldValues !== JSON.stringify(currentForm.current?.values)) {
+                          if (
+                            oldValues !==
+                            JSON.stringify(currentForm.current?.values)
+                          ) {
                             setLyricsMessage(t("AutofillFormChanged"));
                             return;
                           }
                           setLyricsOptions(results);
-                          setLyricsMessage(results.length
-                            ? t("AutofillLyricsOnly")
-                            : t("AutofillNoMatch"));
+                          setLyricsMessage(
+                            results.length
+                              ? t("AutofillLyricsOnly")
+                              : t("AutofillNoMatch")
+                          );
                         } catch (error) {
                           if (generation === lyricsGeneration.current)
-                            setLyricsMessage(error instanceof Error && error.message === "RateLimited"
-                              ? t("AutofillRateLimited")
-                              : t("AutofillUnavailable"));
+                            setLyricsMessage(
+                              error instanceof Error &&
+                                error.message === "RateLimited"
+                                ? t("AutofillRateLimited")
+                                : t("AutofillUnavailable")
+                            );
                         } finally {
                           if (generation === lyricsGeneration.current) {
                             setLyricsBusy(false);
                             lyricsController.current = null;
                           }
                         }
-                      }} />
-                    {!!lyricsMessage && <Text style={styles.lyricsMessage}>{lyricsMessage}</Text>}
+                      }}
+                    />
+                    {!!lyricsMessage && (
+                      <Text style={styles.lyricsMessage}>{lyricsMessage}</Text>
+                    )}
                     {lyricsOptions.map((option) => (
                       <View key={option.id} style={styles.lyricsCandidate}>
-                      <Text style={styles.lyricsMessage}>{t("AutofillAlbum")}: {option.album || t("AutofillUnknownAlbum")} · {t("AutofillDuration")}: {option.duration === null ? "—" : `${Math.floor(option.duration / 60)}:${String(Math.floor(option.duration % 60)).padStart(2, "0")}`}</Text>
-                      <Action glass
-                        label={option.title + " · " + option.artist + " · LRCLIB"}
-                        onPress={() => {
-                          const apply = () => {
-                            if (JSON.stringify(currentForm.current?.values) !== lyricsSnapshot.current) {
-                              Alert.alert(t("AutofillFormChanged"));
+                        <Text style={styles.lyricsMessage}>
+                          {t("AutofillAlbum")}:{" "}
+                          {option.album || t("AutofillUnknownAlbum")} ·{" "}
+                          {t("AutofillDuration")}:{" "}
+                          {option.duration === null
+                            ? "—"
+                            : `${Math.floor(option.duration / 60)}:${String(Math.floor(option.duration % 60)).padStart(2, "0")}`}
+                        </Text>
+                        <Action
+                          glass
+                          label={
+                            option.title + " · " + option.artist + " · LRCLIB"
+                          }
+                          onPress={() => {
+                            const apply = () => {
+                              if (
+                                JSON.stringify(currentForm.current?.values) !==
+                                lyricsSnapshot.current
+                              ) {
+                                Alert.alert(t("AutofillFormChanged"));
+                                setLyricsOptions([]);
+                                return;
+                              }
+                              void formik.setFieldValue(
+                                "content",
+                                option.content
+                              );
                               setLyricsOptions([]);
-                              return;
-                            }
-                            void formik.setFieldValue("content", option.content);
-                            setLyricsOptions([]);
-                          };
-                          if (formik.values.content.trim()) {
-                            Alert.alert(t("AutofillReplaceTitle"), t("AutofillReplaceHint"), [
-                              { text: t("Cancel"), style: "cancel" },
-                              { text: t("AutofillReplace"), onPress: apply }
-                            ]);
-                          } else apply();
-                        }} />
-                      <Action glass compact label={lyricsPreview === option.id ? t("AutofillHidePreview") : t("AutofillPreview")}
-                        onPress={() => setLyricsPreview(lyricsPreview === option.id ? null : option.id)} />
-                      {lyricsPreview === option.id && <Text style={styles.lyricsPreview}>{option.content}</Text>}
+                            };
+                            if (formik.values.content.trim()) {
+                              Alert.alert(
+                                t("AutofillReplaceTitle"),
+                                t("AutofillReplaceHint"),
+                                [
+                                  { text: t("Cancel"), style: "cancel" },
+                                  { text: t("AutofillReplace"), onPress: apply }
+                                ]
+                              );
+                            } else apply();
+                          }}
+                        />
+                        <Action
+                          glass
+                          compact
+                          label={
+                            lyricsPreview === option.id
+                              ? t("AutofillHidePreview")
+                              : t("AutofillPreview")
+                          }
+                          onPress={() =>
+                            setLyricsPreview(
+                              lyricsPreview === option.id ? null : option.id
+                            )
+                          }
+                        />
+                        {lyricsPreview === option.id && (
+                          <Text style={styles.lyricsPreview}>
+                            {option.content}
+                          </Text>
+                        )}
                       </View>
                     ))}
                   </View>
