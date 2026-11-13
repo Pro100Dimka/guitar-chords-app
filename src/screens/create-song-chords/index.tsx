@@ -65,6 +65,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const [lyricsOptions, setLyricsOptions] = useState<Awaited<ReturnType<typeof lookupLyrics>>>([]);
     const lyricsController = useRef<AbortController | null>(null);
     const currentForm = useRef<FormikProps<FormValues>>(null);
+    const lyricsSnapshot = useRef("");
     const lyricsGeneration = useRef(0);
     const cancelLyrics = () => {
       lyricsGeneration.current++;
@@ -366,6 +367,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         lyricsController.current = controller;
                         const generation = ++lyricsGeneration.current;
                         const oldValues = JSON.stringify(formik.values);
+                        lyricsSnapshot.current = oldValues;
                         setLyricsBusy(true);
                         setLyricsOptions([]);
                         setLyricsMessage("Ищу текст…");
@@ -398,6 +400,11 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         label={option.title + " · " + option.artist + " · LRCLIB"}
                         onPress={() => {
                           const apply = () => {
+                            if (JSON.stringify(currentForm.current?.values) !== lyricsSnapshot.current) {
+                              Alert.alert("Форма изменилась", "Повтори поиск, чтобы не потерять правки.");
+                              setLyricsOptions([]);
+                              return;
+                            }
                             void formik.setFieldValue("content", option.content);
                             setLyricsOptions([]);
                           };
