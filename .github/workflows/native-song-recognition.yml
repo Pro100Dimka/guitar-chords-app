@@ -50,8 +50,9 @@ jobs:
       - name: Install JS dependencies
         run: npm ci
       - name: Compile native Rust JNI for Android (no APK)
+        working-directory: android/song-fingerprint
         run: |
-          cargo ndk -t arm64-v8a -t armeabi-v7a -o android/app/src/main/jniLibs build --manifest-path android/song-fingerprint/Cargo.toml --release --lib
+          cargo ndk -t arm64-v8a -t armeabi-v7a -o ../app/src/main/jniLibs build --release --lib
       - name: Compile Android Kotlin (no APK)
         working-directory: android
         run: chmod +x gradlew && ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon
