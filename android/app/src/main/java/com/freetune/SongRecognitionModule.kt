@@ -230,9 +230,9 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
 
     private fun submit(signature: String, durationMs: Int): Pair<String, String>? {
         val timestamp = System.currentTimeMillis()
-        val url = URL("https://amp.shazam.com/discovery/v5/en/US/iphone/-/tag/" +
+        val url = URL("https://amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag/" +
             UUID.randomUUID() + "/" + UUID.randomUUID() +
-            "?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3")
+            "?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3&sharehub=true&hubv5minorversion=v5.1&hidelb=true&video=v3")
         val payload = JSONObject().apply {
             put("timezone", "Europe/Paris")
             put("timestamp", timestamp)
@@ -251,7 +251,10 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             conn.readTimeout = 15000
             conn.doOutput = true
             conn.setRequestProperty("Content-Type", "application/json")
-            conn.setRequestProperty("User-Agent", "FreeTune/1.0 Android")
+            conn.setRequestProperty("User-Agent", "Dalvik/2.1.0 (Linux; U; Android 11)")
+            conn.setRequestProperty("X-Shazam-Platform", "IPHONE")
+            conn.setRequestProperty("X-Shazam-AppVersion", "14.1.0")
+            conn.setRequestProperty("Accept-Language", "en-US")
             conn.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
             ensureActive()
             if (conn.responseCode == 429) throw IllegalStateException("RateLimited")
