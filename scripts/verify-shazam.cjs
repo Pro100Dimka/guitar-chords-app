@@ -1,3 +1,4 @@
+// @ts-nocheck
 const { execFileSync } = require("node:child_process");
 const { readFileSync } = require("node:fs");
 const crypto = require("node:crypto");
