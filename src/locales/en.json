@@ -258,5 +258,15 @@
   "AutofillHidePreview": "Hide preview",
   "AutofillAlbum": "Album",
   "AutofillDuration": "Duration",
-  "AutofillUnknownAlbum": "Unknown album"
+  "AutofillUnknownAlbum": "Unknown album",
+  "AutofillRecognize": "Recognize song",
+  "AutofillRecognizeMic": "Recognize with microphone",
+  "AutofillRecognizeFile": "Recognize audio file",
+  "AutofillListening": "Listening for 12 seconds…",
+  "AutofillIdentifying": "Identifying song…",
+  "AutofillRecognized": "Recognized: {{artist}} — {{title}}",
+  "AutofillNoAudioMatch": "No song matched this audio.",
+  "AutofillMicDenied": "Microphone access denied.",
+  "AutofillRecognitionError": "Song recognition unavailable. Check connection and try again.",
+  "AutofillReplaceIdentity": "The existing song title and artist will be replaced. Lyrics are kept until you select a replacement."
 }
