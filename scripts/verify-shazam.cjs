@@ -9,13 +9,13 @@ async function recognize(path) {
   if (!uri.startsWith("data:audio/vnd.shazam.sig;base64,"))
     throw Error("Invalid native signature");
   const timestamp = Date.now();
-  const endpoint = "https://amp.shazam.com/discovery/v5/en/US/iphone/-/tag/" +
+  const endpoint = "https://amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag/" +
     crypto.randomUUID().toUpperCase() + "/" + crypto.randomUUID().toUpperCase() +
-    "?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3";
+    "?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3&sharehub=true&hubv5minorversion=v5.1&hidelb=true&video=v3";
   const body = {timezone:"Europe/Paris",timestamp,context:{},geolocation:{},
     signature:{uri,samplems:Math.round(readFileSync(path).byteLength / 32)}};
   const response = await fetch(endpoint, {method:"POST",
-    headers:{"Content-Type":"application/json","User-Agent":"Shazam/18.11.0 (iPhone; iOS 18.0)"},
+    headers:{"Content-Type":"application/json","User-Agent":"Dalvik/2.1.0 (Linux; U; Android 11)","X-Shazam-Platform":"IPHONE","X-Shazam-AppVersion":"14.1.0","Accept-Language":"en-US"},
     body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
   const payload = await response.text();
   let track=null;
