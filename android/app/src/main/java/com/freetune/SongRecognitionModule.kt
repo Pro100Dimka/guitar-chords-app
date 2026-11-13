@@ -203,10 +203,11 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
                                 sampleCount++
                                 val next16 = ((decodedFrames + frame + 1).toDouble() * 16000.0 / rate).toInt()
                                 // Average each input window before downsampling; repeat only when upsampling.
+                                val previousOutput = outputCount
                                 while (outputCount < next16 && outputCount < selected.size) {
                                     selected[outputCount++] = (sampleSum / sampleCount).toInt().toShort()
                                 }
-                                if (next16 > 0 && outputCount == next16) {
+                                if (outputCount > previousOutput) {
                                     sampleSum = 0L
                                     sampleCount = 0
                                 }
