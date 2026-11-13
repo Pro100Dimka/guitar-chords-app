@@ -91,10 +91,13 @@ function load(relative) {
     module,
     exports: module.exports,
     console,
+    URL,
     require: (name) => {
       if (stubs[name]) return stubs[name];
       if (!name.startsWith(".")) return require(name);
       const relativePath = path.resolve(path.dirname(filename), name);
+      if (relativePath.endsWith(".json"))
+        return JSON.parse(fs.readFileSync(relativePath, "utf8"));
       return load(
         fs.existsSync(`${relativePath}.ts`)
           ? `${relativePath}.ts`
@@ -160,7 +163,7 @@ async function main() {
   await assert.rejects(migrate(db), /newer application version/);
   assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 99);
   console.log(
-    "SQLite integration passed: CRUD, commit rollback, v1/v2 migration, duplicate audio imports, cancellation, stale responses, interruption/retry, manual edit preservation, optimistic revisions, backup/restore/relink, deletion cleanup."
+    "SQLite integration passed: CRUD, commit rollback, v1/v2 migration, duplicate audio imports, cancellation, stale responses, interruption/retry, manual edit preservation, optimistic revisions, backup/restore/relink, deletion cleanup, legacy private settings, service preferences, isolated installation access and credential-free backups."
   );
 }
 
@@ -293,12 +296,89 @@ async function audioScenarios(migrate, create, read, remove) {
     /AnalysisRevisionConflict/
   );
   preferences.songs[songId] = { capo: 2, transpose: -1, shapes: { Dm: 3 } };
+  const service = load("src/components/song-analysis/service-config.ts");
+  const privateSettings = {
+    url: "http://192.168.1.10:8765",
+    token: "private-secret-kept",
+    language: "uk"
+  };
+  sqlite
+    .prepare("INSERT INTO settings (key, value) VALUES (?, ?)")
+    .run("audio_analysis_server", JSON.stringify(privateSettings));
+  sqlite
+    .prepare("INSERT INTO settings (key, value) VALUES (?, ?)")
+    .run("language", "ua");
+  assert.equal((await service.loadAnalysisSettings()).mode, "private");
+  await service.saveAnalysisSettings({
+    ...privateSettings,
+    mode: "shared",
+    language: "ru"
+  });
+  assert.equal(
+    sqlite
+      .prepare("SELECT value FROM settings WHERE key = ?")
+      .get("audio_analysis_server").value,
+    JSON.stringify(privateSettings)
+  );
+  assert.equal((await service.loadAnalysisSettings()).language, "ru");
+  assert.equal((await service.loadAnalysisSettings()).mode, "shared");
+  const firstIdentity = {
+    installationId: "installation-one",
+    token: `ft1_${"a".repeat(64)}`,
+    expiresAt: 9999999999
+  };
+  const otherIdentity = {
+    installationId: "installation-two",
+    token: `ft1_${"b".repeat(64)}`,
+    expiresAt: 9999999999
+  };
+  await Promise.all([
+    service.saveAnalysisInstallation("https://first.test", firstIdentity),
+    service.saveAnalysisInstallation("https://second.test", otherIdentity)
+  ]);
+  assert.equal(
+    (await service.loadAnalysisInstallation("https://first.test")).token,
+    firstIdentity.token
+  );
+  assert.equal(
+    (await service.loadAnalysisInstallation("https://second.test")).token,
+    otherIdentity.token
+  );
+  await service.forgetAnalysisInstallation(
+    "https://first.test",
+    "obsolete-token"
+  );
+  assert.equal(
+    (await service.loadAnalysisInstallation("https://first.test")).token,
+    firstIdentity.token
+  );
+  await service.forgetAnalysisInstallation(
+    "https://first.test",
+    firstIdentity.token
+  );
+  assert.equal(
+    await service.loadAnalysisInstallation("https://first.test"),
+    undefined
+  );
+  assert.equal(
+    (await service.loadAnalysisInstallation("https://second.test")).token,
+    otherIdentity.token
+  );
   await library.exportLibrary();
   const backup = JSON.parse(backupText);
   assert.equal(backup.version, 2);
   assert.equal(backup.audioIncluded, false);
   assert.equal(backup.audioPolicy, "relink-original-by-sha256");
   assert.equal(backupText.includes(metadata.fileName), false);
+  for (const excluded of [
+    "audio_analysis_server",
+    "audio_analysis_installation",
+    "audio_analysis_service_preferences",
+    privateSettings.token,
+    otherIdentity.token,
+    "https://second.test"
+  ])
+    assert.equal(backupText.includes(excluded), false);
   const restored = library.parseLibraryBackup(backupText);
   assert.equal(
     restored.find((item) => item.audio).audio.analysis.lyrics[0].text,
@@ -310,6 +390,22 @@ async function audioScenarios(migrate, create, read, remove) {
   assert.equal(await audio.getAnalysisJob(songId), null);
   const restoreResult = await library.restoreLibrary(restored);
   assert.equal(restoreResult.added, 1);
+  assert.equal(
+    sqlite
+      .prepare("SELECT value FROM settings WHERE key = ?")
+      .get("audio_analysis_server").value,
+    JSON.stringify(privateSettings)
+  );
+  assert.equal(
+    sqlite.prepare("SELECT value FROM settings WHERE key = ?").get("language")
+      .value,
+    "ua"
+  );
+  assert.equal(
+    (await service.loadAnalysisInstallation("https://second.test")).token,
+    otherIdentity.token
+  );
+  assert.equal((await service.loadAnalysisSettings()).language, "ru");
   const restoredAudio = (await audio.listAudioSongs())[0];
   assert.equal(restoredAudio.fileName, null);
   assert.equal(restoredAudio.manuallyEdited, true);

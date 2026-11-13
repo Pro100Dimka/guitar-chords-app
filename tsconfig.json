@@ -14,5 +14,13 @@
     "typeRoots": ["./src/@types", "./node_modules/@types"]
   },
   // "include": ["src/**/*", "**/*.ts", "**/*.tsx", "index.tsx"],
-  "exclude": ["node_modules", "dist", "build", "ios", "android", "web", "*.cjs"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "ios",
+    "android",
+    "web",
+    "**/*.cjs"
+  ]
 }

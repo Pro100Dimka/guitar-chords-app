@@ -10,6 +10,7 @@ import {
 import { pick } from "@react-native-documents/picker";
 import { FileSystem } from "react-native-file-access";
 import { db } from "../src/components/database";
+import bundledService from "../src/config/analysis-service.json";
 import {
   AudioSong,
   createAudioSong,
@@ -25,6 +26,9 @@ import {
 import { songAudio, SongAudioState } from "../src/components/song-audio";
 import {
   loadAnalysisSettings,
+  inspectAnalysisService,
+  analysisIsRunning,
+  analysisNetworkStatus,
   startSongAnalysis
 } from "../src/components/song-analysis/client";
 import AnalysisSettingsSheet from "../src/screens/song/analysis-settings";
@@ -56,6 +60,8 @@ jest.mock("../src/components/song-analysis/client", () => ({
   subscribeAnalysis: jest.fn(() => () => {}),
   cancelSongAnalysis: jest.fn(async () => {}),
   loadAnalysisSettings: jest.fn(),
+  inspectAnalysisService: jest.fn(),
+  analysisNetworkStatus: jest.fn(() => ({})),
   startSongAnalysis: jest.fn(async () => {})
 }));
 jest.mock("../src/components/song-audio", () => ({
@@ -172,6 +178,9 @@ const action = (label: string) =>
 beforeEach(() => {
   jest.useFakeTimers();
   jest.resetAllMocks();
+  bundledService.url = "";
+  jest.mocked(analysisNetworkStatus).mockReturnValue({});
+  jest.mocked(inspectAnalysisService).mockResolvedValue({ ready: true });
   songAudio.isSupported = true;
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   jest
@@ -695,4 +704,168 @@ test("loading and background events cannot overwrite the saved position with an 
   expect(songAudio.pause).not.toHaveBeenCalled();
   await act(async () => finish(nativeState()));
   expect(songAudio.seek).toHaveBeenCalledWith(3000);
+});
+
+test("an undeployed shared service shows unavailable and disables analysis without ordinary connection inputs", async () => {
+  jest
+    .mocked(loadAnalysisSettings)
+    .mockResolvedValue({
+      mode: "shared",
+      url: "",
+      token: "",
+      language: "auto"
+    });
+  await act(async () => {
+    screen = Renderer.create(
+      <AnalysisSettingsSheet songId={7} onClose={jest.fn()} />
+    );
+  });
+  expect(screen!.root.findAllByType(TextInput)).toHaveLength(0);
+  expect(
+    screen!.root
+      .findAllByType(Text)
+      .some((node) => node.props.children === "AnalysisServiceUnavailable")
+  ).toBe(true);
+  expect(action("AnalysisStart").props.disabled).toBe(true);
+  expect(inspectAnalysisService).not.toHaveBeenCalled();
+  await act(async () => action("AnalysisStart").props.onPress());
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(startSongAnalysis).not.toHaveBeenCalled();
+});
+
+test("shared setup displays verified destination, limits and privacy and requires explicit complete-recording consent", async () => {
+  bundledService.url = "https://freetune.test";
+  jest
+    .mocked(loadAnalysisSettings)
+    .mockResolvedValue({ mode: "shared", url: "", token: "", language: "en" });
+  jest.mocked(inspectAnalysisService).mockResolvedValue({
+    ready: true,
+    serviceMode: "shared",
+    authentication: "installation",
+    limits: {
+      uploadBytes: 268435456,
+      durationSeconds: 1800,
+      activeJobsPerInstallation: 2,
+      jobsPerDay: 20
+    },
+    privacy: { audioDeletion: "after_processing", resultRetentionHours: 24 }
+  });
+  await act(async () => {
+    screen = Renderer.create(
+      <AnalysisSettingsSheet songId={7} onClose={jest.fn()} />
+    );
+  });
+  const text = screen!.root
+    .findAllByType(Text)
+    .map((node) => node.props.children);
+  expect(text).toEqual(
+    expect.arrayContaining([
+      "https://freetune.test",
+      "AnalysisServiceLimits",
+      "AnalysisSharedPrivacy"
+    ])
+  );
+  expect(screen!.root.findAllByType(TextInput)).toHaveLength(0);
+  expect(action("AnalysisStart").props.disabled).toBe(false);
+  await act(async () => action("AnalysisStart").props.onPress());
+  expect(startSongAnalysis).not.toHaveBeenCalled();
+  const consent = jest
+    .mocked(Alert.alert)
+    .mock.calls.find(([title]) => title === "AnalysisUploadTitle")!;
+  expect(consent[1]).toBe("AnalysisSharedUploadConsent: https://freetune.test");
+  await act(async () =>
+    consent[2]!.find((button) => button.text === "AnalysisSend")!.onPress!()
+  );
+  expect(startSongAnalysis).toHaveBeenCalledWith(7, {
+    mode: "shared",
+    url: "",
+    token: "",
+    language: "en"
+  });
+});
+
+test("advanced mode keeps the saved private URL and token when switching service modes", async () => {
+  jest
+    .mocked(loadAnalysisSettings)
+    .mockResolvedValue({
+      mode: "shared",
+      url: "http://192.168.1.10:8765",
+      token: "kept-private-token",
+      language: "ru"
+    });
+  await act(async () => {
+    screen = Renderer.create(
+      <AnalysisSettingsSheet songId={7} onClose={jest.fn()} />
+    );
+  });
+  expect(screen!.root.findAllByType(TextInput)).toHaveLength(0);
+  await act(async () => action("AnalysisAdvancedSettings").props.onPress());
+  await act(async () => action("AnalysisPrivateService").props.onPress());
+  expect(
+    screen!.root.findAllByType(TextInput).map((node) => node.props.value)
+  ).toEqual(["http://192.168.1.10:8765", "kept-private-token"]);
+  await act(async () => action("AnalysisSharedService").props.onPress());
+  expect(screen!.root.findAllByType(TextInput)).toHaveLength(0);
+  await act(async () => action("AnalysisPrivateService").props.onPress());
+  expect(
+    screen!.root.findAllByType(TextInput).map((node) => node.props.value)
+  ).toEqual(["http://192.168.1.10:8765", "kept-private-token"]);
+});
+
+test("line-only results are labelled and remain tied to actual native playback position", async () => {
+  const initial = audio();
+  initial.analysis!.lyrics[0].words = [];
+  jest.mocked(getAudioSong).mockResolvedValue(initial);
+  await act(async () => {
+    screen = Renderer.create(
+      <AudioSongScreen
+        song={{ id: 7, title: "Test", content: "" }}
+        initialAudio={initial}
+      />
+    );
+  });
+  await act(async () => nativeListener(nativeState(6000, "playing")));
+  expect(
+    screen!.root
+      .findAllByType(Text)
+      .some((node) => node.props.children === "AnalysisLineTimingOnly")
+  ).toBe(true);
+  expect(
+    screen!.root
+      .findAllByType(Text)
+      .filter((node) => node.props.style?.includes?.(styles.wordActive))
+  ).toHaveLength(0);
+});
+
+test("queued jobs show queue position and the same-job retry wait", async () => {
+  jest.mocked(analysisIsRunning).mockReturnValue(true);
+  jest
+    .mocked(analysisNetworkStatus)
+    .mockReturnValue({ queuePosition: 3, retryAfterSeconds: 4 });
+  jest.mocked(getAnalysisJob).mockResolvedValue({
+    id: "job-1",
+    songId: 7,
+    status: "queued",
+    stage: "queued",
+    progress: 0,
+    serverJobId: "remote-1",
+    serverUrl: "https://freetune.test",
+    error: null,
+    attempt: 1,
+    updatedAt: 1
+  });
+  await act(async () => {
+    screen = Renderer.create(
+      <AudioSongScreen
+        song={{ id: 7, title: "Test", content: "" }}
+        initialAudio={audio()}
+      />
+    );
+  });
+  const text = screen!.root
+    .findAllByType(Text)
+    .map((node) => node.props.children);
+  expect(text).toEqual(
+    expect.arrayContaining(["AnalysisQueuePosition", "AnalysisRetryAfter"])
+  );
 });

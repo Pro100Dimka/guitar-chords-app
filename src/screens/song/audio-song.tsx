@@ -20,6 +20,8 @@ import { songAudio, SongAudioState } from "../../components/song-audio";
 import { analysisErrorKey } from "../../components/song-analysis/errors";
 import {
   analysisIsRunning,
+  analysisNetworkStatus,
+  AnalysisNetworkStatus,
   cancelSongAnalysis,
   subscribeAnalysis
 } from "../../components/song-analysis/client";
@@ -64,6 +66,7 @@ const LyricRow = memo(function LyricRow({
   onSeek,
   onEdit,
   editLabel,
+  lineTimingLabel,
   canSeek
 }: {
   item: TimedLyric;
@@ -75,6 +78,7 @@ const LyricRow = memo(function LyricRow({
   onSeek: (seconds: number) => void;
   onEdit: (selection: EditSelection) => void;
   editLabel: string;
+  lineTimingLabel: string;
 }) {
   return (
     <View style={[styles.line, active && styles.active]}>
@@ -117,6 +121,9 @@ const LyricRow = memo(function LyricRow({
             ))
           : item.text}
       </Text>
+      {!item.words.length && (
+        <Text style={styles.muted}>{lineTimingLabel}</Text>
+      )}
       {editing && (
         <Action
           glass
@@ -204,6 +211,7 @@ export default function AudioSongScreen({
   const insets = useSafeAreaInsets();
   const [audio, setAudio] = useState(initialAudio);
   const [job, setJob] = useState<AnalysisJob | null>(null);
+  const [network, setNetwork] = useState<AnalysisNetworkStatus>({});
   const [playback, setPlayback] = useState(initialPlayback);
   const [playError, setPlayError] = useState("");
   const [readError, setReadError] = useState(false);
@@ -227,6 +235,7 @@ export default function AudioSongScreen({
   );
   const updateSong = usePreferences((state) => state.updateSong);
   const reload = useCallback(() => {
+    setNetwork(analysisNetworkStatus(song.id));
     void Promise.all([getAudioSong(song.id), getAnalysisJob(song.id)])
       .then(([nextAudio, nextJob]) => {
         if (nextAudio) setAudio(nextAudio);
@@ -239,6 +248,14 @@ export default function AudioSongScreen({
     reload();
     return subscribeAnalysis(reload);
   }, [reload]);
+  useEffect(() => {
+    if (!network.retryUntil) return;
+    const timer = setInterval(
+      () => setNetwork(analysisNetworkStatus(song.id)),
+      1000
+    );
+    return () => clearInterval(timer);
+  }, [network.retryUntil, song.id]);
   useEffect(() => {
     setAudio(initialAudio);
   }, [initialAudio]);
@@ -463,6 +480,7 @@ export default function AudioSongScreen({
             onSeek={seek}
             onEdit={openEdit}
             editLabel={t("AnalysisEditLine")}
+            lineTimingLabel={t("AnalysisLineTimingOnly")}
           />
         )}
         ListHeaderComponent={
@@ -518,6 +536,23 @@ export default function AudioSongScreen({
                     })}
                     {running ? ` · ${Math.round(job.progress * 100)}%` : ""}
                   </Text>
+                  {running && !!network.queuePosition && (
+                    <Text style={styles.muted}>
+                      {t("AnalysisQueuePosition", {
+                        position: network.queuePosition
+                      })}
+                    </Text>
+                  )}
+                  {!!network.retryAfterSeconds && (
+                    <Text style={styles.muted}>
+                      {t(
+                        running ? "AnalysisRetryAfter" : "AnalysisRetryLater",
+                        {
+                          seconds: network.retryAfterSeconds
+                        }
+                      )}
+                    </Text>
+                  )}
                   {running && (
                     <View
                       style={styles.progress}

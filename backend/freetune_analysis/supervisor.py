@@ -23,6 +23,8 @@ class Supervisor:
         self.process = None
         self.active_id = None
         self.task = None
+        self.maintenance_task = None
+        self.active_uploads = set()
         self.lock = asyncio.Lock()
         self.stopping = False
         self.service_lock = FileLock(str(settings.data_dir / "service.lock"))
@@ -33,14 +35,16 @@ class Supervisor:
             self.service_lock.acquire(timeout=0)
         except Timeout:
             raise RuntimeError("Another FreeTune server already owns FREETUNE_DATA_DIR") from None
-        self.store.interrupt_running()
-        for temporary in self.settings.jobs_dir.glob("upload-*.part"):
-            temporary.unlink(missing_ok=True)
-        # Results remain in SQLite; no server-side audio is needed for retry (client reuploads).
-        for directory in self.settings.jobs_dir.iterdir():
-            if directory.is_dir():
-                shutil.rmtree(directory, ignore_errors=True)
-        self.task = asyncio.create_task(self.run())
+        try:
+            self.stopping = False
+            self.store.interrupt_running()
+            self.maintain()
+            self.task = asyncio.create_task(self.run())
+            # Retention and failed deletions must continue during long native model work.
+            self.maintenance_task = asyncio.create_task(self.maintenance_loop())
+        except BaseException:
+            self.service_lock.release()
+            raise
 
     async def stop(self):
         self.stopping = True
@@ -48,12 +52,14 @@ class Supervisor:
             self.store.update(self.active_id, status="interrupted", stage="interrupted", progress=0,
                               error="server_stopped")
         await self.kill()
-        if self.task:
-            self.task.cancel()
-            try:
-                await self.task
-            except asyncio.CancelledError:
-                pass
+        for task in (self.task, self.maintenance_task):
+            if task:
+                task.cancel()
+                try:
+                    await task
+                except asyncio.CancelledError:
+                    pass
+        self.maintain()
         self.service_lock.release()
 
     async def kill(self):
@@ -78,8 +84,8 @@ class Supervisor:
         except psutil.NoSuchProcess:
             pass
 
-    async def cancel(self, job_id):
-        row = self.store.get(job_id)
+    async def cancel(self, job_id, owner="private"):
+        row = self.store.get(job_id, owner)
         if row is None:
             return None
         if row["status"] in {"queued", "running"}:
@@ -92,11 +98,64 @@ class Supervisor:
                         break
                     await asyncio.sleep(0.05)
         # A DELETE after a completed result is the client's acknowledgement + audio cleanup.
-        self.cleanup(job_id)
-        return self.store.get(job_id)
+        if self.active_id != job_id:
+            self.cleanup(job_id)
+        return self.store.get(job_id, owner)
 
     def cleanup(self, job_id):
-        shutil.rmtree(self.settings.jobs_dir / job_id, ignore_errors=True)
+        directory = self.settings.jobs_dir / job_id
+        try:
+            if directory.exists():
+                shutil.rmtree(directory)
+        except OSError:
+            # Keep the row and its storage/active-slot reservation until deletion succeeds.
+            self.store.cleanup_failed(job_id, self.settings.max_upload_bytes + self.settings.decoded_reservation_bytes)
+            logging.warning("Audio cleanup pending for job %s", job_id)
+            return False
+        self.store.cleaned(job_id)
+        return True
+
+    def cleanup_upload(self, identifier):
+        try:
+            directory = self.settings.jobs_dir / "uploads" / identifier
+            if directory.exists():
+                shutil.rmtree(directory)
+        except OSError:
+            return False
+        self.store.release_upload(identifier)
+        return True
+
+    def maintain(self):
+        for job_id in self.store.pending_cleanup():
+            if job_id != self.active_id:
+                self.cleanup(job_id)
+        for job_id in self.store.expired(time.time() - self.settings.retention_hours * 3600):
+            if job_id != self.active_id and self.cleanup(job_id):
+                self.store.delete(job_id)
+        for identifier in self.store.pending_uploads():
+            if identifier not in self.active_uploads:
+                self.cleanup_upload(identifier)
+        # Crash windows before a row commits can leave an unowned input directory.
+        orphan_bytes = 0
+        for path in self.settings.jobs_dir.iterdir():
+            if path.name == "uploads" or path.name == self.active_id:
+                continue
+            if path.is_dir() and self.store.record(path.name):
+                continue
+            try:
+                if path.is_dir():
+                    shutil.rmtree(path)
+                else:
+                    path.unlink(missing_ok=True)
+            except OSError:
+                orphan_bytes += self.settings.max_upload_bytes + self.settings.decoded_reservation_bytes
+        self.store.account_orphans(orphan_bytes)
+        self.store.maintain_metadata()
+
+    async def maintenance_loop(self):
+        while not self.stopping:
+            self.maintain()
+            await asyncio.sleep(1)
 
     def read_state(self, job_id):
         try:
@@ -128,12 +187,16 @@ class Supervisor:
             "FREETUNE_COMPUTE_TYPE": self.settings.compute_type,
             "FREETUNE_CPU_THREADS": str(self.settings.cpu_threads),
             "FREETUNE_MAX_DURATION_SECONDS": str(self.settings.max_duration_seconds),
+            "FREETUNE_SERVICE_MODE": self.settings.service_mode,
+            "FREETUNE_API_TOKEN": "" if self.settings.service_mode == "shared" else self.settings.token,
             "HF_HUB_OFFLINE": "1", "TRANSFORMERS_OFFLINE": "1",
         })
         started, peak, last_state = time.monotonic(), 0, None
         reason = None
         try:
-            with (directory / "worker.log").open("w", encoding="utf-8") as log:
+            # Native exception messages may include source audio content or filenames.
+            # Persist only structured error codes; never capture model stdout/stderr.
+            with open(os.devnull, "w") as log:
                 self.process = subprocess.Popen([
                     sys.executable, "-m", "freetune_analysis.worker", "--directory", str(directory),
                     "--input", str(directory / f"input{row['extension']}"), "--language", row["language"],
@@ -167,8 +230,8 @@ class Supervisor:
                         break
                     await asyncio.sleep(0.25)
                 last_state = self.read_state(row["id"]) or last_state
-                current = self.store.get(row["id"])
-                if current["status"] not in {"running", "queued"}:
+                current = self.store.get(row["id"], owner=None)
+                if current is None or current["status"] not in {"running", "queued"}:
                     return
                 if not reason and last_state and last_state["status"] in TERMINAL:
                     self.apply_state(row["id"], last_state, peak)
@@ -188,22 +251,10 @@ class Supervisor:
         finally:
             await self.kill()
             self.process, self.active_id = None, None
-            finished = self.store.get(row["id"])
-            if finished and finished["status"] in {"failed", "partial"}:
-                try:
-                    with (directory / "worker.log").open("rb") as error_log:
-                        error_log.seek(max(0, error_log.seek(0, 2) - 8192))
-                        logging.warning("Analysis %s: %s\n%s", row["id"], finished["status"],
-                                        error_log.read().decode("utf-8", errors="replace"))
-                except OSError:
-                    pass
             self.cleanup(row["id"])
 
     async def run(self):
         while not self.stopping:
-            for job_id in self.store.expired(time.time() - self.settings.retention_hours * 3600):
-                self.cleanup(job_id)
-                self.store.delete(job_id)
             row = self.store.queued()
             if row:
                 await self.execute(row)
