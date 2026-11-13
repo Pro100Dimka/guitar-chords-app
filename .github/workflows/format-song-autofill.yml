@@ -17,6 +17,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - run: git fetch origin feature/song-autofill && git checkout -B feature/song-autofill origin/feature/song-autofill
       - run: npm ci
       - run: npx prettier --write src/components/song-autofill/lyrics.ts src/screens/create-song-chords/index.tsx
       - name: Commit formatting
