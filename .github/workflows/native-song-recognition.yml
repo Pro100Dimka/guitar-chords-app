@@ -43,13 +43,18 @@ jobs:
           mkdir -p /tmp/freetune-samples
           curl -L --fail --retry 2 --user-agent 'FreeTune-CI/1.0 (public domain validation)' 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_i._allegro_con_brio.ogg' -o /tmp/freetune-samples/first.ogg
           curl -L --fail --retry 2 --user-agent 'FreeTune-CI/1.0 (public domain validation)' 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_iv._allegro.ogg' -o /tmp/freetune-samples/fourth.ogg
+          # Exact fixture used by ShazamIO's own recognition test (expects track key 53982678).
+          curl -L --fail --retry 2 'https://raw.githubusercontent.com/shazamio/ShazamIO/c2a4b6ee9dfa9e36cd6b24d10a57ad9e66a66dd1/examples/data/Gloria.ogg' -o /tmp/freetune-samples/gloria.ogg
+          GLORIA_DURATION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 /tmp/freetune-samples/gloria.ogg)
+          GLORIA_START=$(awk -v duration="$GLORIA_DURATION" 'BEGIN {print duration > 12 ? (duration - 12) / 2 : 0}')
+          ffmpeg -nostdin -v error -ss "$GLORIA_START" -i /tmp/freetune-samples/gloria.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/gloria.pcm
           ffmpeg -nostdin -v error -ss 55 -i /tmp/freetune-samples/first.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/first.pcm
           ffmpeg -nostdin -v error -ss 55 -i /tmp/freetune-samples/fourth.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/fourth.pcm
       - name: Genuine fingerprint and Shazam POST
         continue-on-error: true
         run: |
-          if [ -s /tmp/freetune-samples/first.pcm ] && [ -s /tmp/freetune-samples/fourth.pcm ]; then
-            node scripts/verify-shazam.cjs /tmp/freetune-samples/first.pcm /tmp/freetune-samples/fourth.pcm
+          if [ -s /tmp/freetune-samples/gloria.pcm ] && [ -s /tmp/freetune-samples/first.pcm ] && [ -s /tmp/freetune-samples/fourth.pcm ]; then
+            node scripts/verify-shazam.cjs /tmp/freetune-samples/gloria.pcm /tmp/freetune-samples/first.pcm /tmp/freetune-samples/fourth.pcm
           else
             echo 'ERROR: Cannot obtain real source recordings'
             exit 1
