@@ -27,5 +27,7 @@ jobs:
           git add src/components/song-autofill/*.ts src/screens/create-song-chords/index.tsx src/screens/library/index.tsx src/router/index.tsx
           if ! git diff --cached --quiet; then
             git commit -m "style: format song autofill sources"
+            git fetch origin feature/song-autofill
+            git rebase origin/feature/song-autofill
             git push origin HEAD:feature/song-autofill
           fi
