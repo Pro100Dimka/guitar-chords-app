@@ -290,3 +290,26 @@ primary advisories were checked on 2026-11-13:
 Whisper/LV-Chordia license details are in the model license document. FFmpeg's
 license follows the actual distributed build; it is a server process and is not
 linked into the Android application.
+
+### Public endpoint release gate
+
+Before setting `src/config/analysis-service.json`, run the **read-only**
+preflight against the deployed HTTPS origin from outside its host:
+
+```bash
+python3 backend/deploy/release_preflight.py https://analysis.example.org
+python3 -m unittest discover -s backend/tests -p test_release_preflight.py
+```
+
+Run the first command from the repository root, using **your real service
+domain** instead of the example. It verifies the TLS certificate and hostname,
+requires an HTTPS origin without credentials, rejects redirects, limits the
+health response size, and checks `ready=true`, `serviceMode=shared` and
+`authentication=installation`. It makes only a GET /health request: it
+neither registers an installation nor uploads a recording.
+
+A successful preflight is **necessary but insufficient** for release. Also run
+the real-model shared smoke, confirm cleanup and upload/cancel over the public
+HTTPS endpoint, monitor disk pressure and RAM, and perform physical Android
+testing. Keep the URL **empty** when any check is missing. The preflight never
+creates DNS, hosting, certificates or paid services.
