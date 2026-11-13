@@ -31,6 +31,7 @@ import { usePreferences } from "../../components/preferences";
 
 import { Action } from "../song/tools";
 import { lookupLyrics } from "../../components/song-autofill/lyrics";
+import { applyRecognitionDraft } from "../../components/song-autofill/draft";
 import {
   cancelRecognition,
   recognizeAudioFile,
@@ -118,15 +119,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
               title: found.title
             })
           );
-          const next = {
-            ...form.values,
-            title: found.title,
-            fk_band: {
-              id: "",
-              name: found.artist,
-              search_text_lower: found.artist.toLowerCase()
-            }
-          };
+          const next = applyRecognitionDraft(form.values, found.title, found.artist);
           await form.setValues(next);
           if (generation !== recognitionGeneration.current) return;
           setRecognitionStatus(t("AutofillSearching"));
