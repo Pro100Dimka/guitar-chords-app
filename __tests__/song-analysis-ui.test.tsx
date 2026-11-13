@@ -869,3 +869,36 @@ test("queued jobs show queue position and the same-job retry wait", async () => 
     expect.arrayContaining(["AnalysisQueuePosition", "AnalysisRetryAfter"])
   );
 });
+
+test("cancelled jobs keep the server-cancellation uncertainty visible after the alert", async () => {
+  jest.mocked(getAnalysisJob).mockResolvedValue({
+    id: "job-1",
+    songId: 7,
+    status: "cancelled",
+    stage: "cancelled",
+    progress: 0.3,
+    serverJobId: "remote-1",
+    serverUrl: "https://freetune.test",
+    error: null,
+    attempt: 1,
+    updatedAt: 1
+  });
+  await act(async () => {
+    screen = Renderer.create(
+      <AudioSongScreen
+        song={{ id: 7, title: "Test", content: "" }}
+        initialAudio={audio()}
+      />
+    );
+  });
+  const text = screen!.root
+    .findAllByType(Text)
+    .map((node) => node.props.children)
+    .flat();
+  expect(text).toEqual(
+    expect.arrayContaining([
+      "AnalysisStage_cancelled",
+      "AnalysisCancelledServerHint"
+    ])
+  );
+});

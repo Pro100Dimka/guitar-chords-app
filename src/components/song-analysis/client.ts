@@ -54,7 +54,7 @@ type Running = AnalysisNetworkStatus & {
   remoteId?: string;
   uploadStarted?: boolean;
   abort: AbortController;
-  cleanup?: Promise<void>;
+  cleanup?: Promise<boolean>;
   cancellation?: Promise<void>;
 };
 const running = new Map<number, Running>();
@@ -293,14 +293,14 @@ async function pollRemote(state: Running): Promise<unknown> {
     }
   }
 }
-async function discardRemote(state: Running) {
+async function discardRemote(state: Running): Promise<boolean> {
   if (state.cancellation) await state.cancellation;
   const path = state.remoteId
     ? `/v1/jobs/${state.remoteId}`
     : state.uploadStarted && state.jobId
       ? `/v1/job-requests/${state.jobId}`
       : null;
-  if (!path) return;
+  if (!path) return true;
   if (state.cleanup) return state.cleanup;
   state.cleanup = (async () => {
     try {
@@ -311,8 +311,11 @@ async function discardRemote(state: Running) {
         { method: "DELETE" },
         5000
       );
+      return true;
     } catch {
-      // Server retention is the fallback when the phone loses its connection.
+      // Automatic cleanup stays nonfatal after a result is saved. An explicit
+      // cancellation caller can disclose that the server did not acknowledge it.
+      return false;
     }
   })();
   return state.cleanup;
@@ -507,5 +510,6 @@ export async function cancelSongAnalysis(songId: number) {
   // Local cancellation is durable first; DELETE uses a separate, bounded signal.
   if (state && running.get(songId) === state) running.delete(songId);
   notify();
-  if (state) await discardRemote(state);
+  if (state && !(await discardRemote(state)))
+    throw new Error("AnalysisCancellationUnconfirmed");
 }

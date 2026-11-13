@@ -920,3 +920,64 @@ test("a failed SQLite cancellation releases runtime ownership, surfaces the fail
   expect(completeAnalysis).toHaveBeenCalledWith("local-2", result, false);
   expect(analysisIsRunning(7)).toBe(false);
 });
+
+test.each(["confirmed", "offline", "server busy"])(
+  "explicit cancellation reports remote acknowledgement: %s",
+  async (outcome) => {
+    fetchMock.mockImplementation((url, init) => {
+      if (String(url).endsWith("/health")) return response({ ready: true });
+      if (init?.method === "DELETE") {
+        if (outcome === "offline") return Promise.reject(new Error("Offline"));
+        return response(
+          { ok: outcome === "confirmed" },
+          outcome === "confirmed" ? 200 : 503
+        );
+      }
+      return response(
+        remote({
+          status: "running",
+          stage: "lyrics",
+          progress: 0.3,
+          result: null
+        })
+      );
+    });
+    const pending = startSongAnalysis(7, settings);
+    await flush();
+    const cancelled = cancelSongAnalysis(7);
+    if (outcome === "confirmed")
+      await expect(cancelled).resolves.toBeUndefined();
+    else
+      await expect(cancelled).rejects.toThrow(
+        "AnalysisCancellationUnconfirmed"
+      );
+    await expect(pending).resolves.toBeUndefined();
+    expect(cancelAnalysis).toHaveBeenCalledWith("local-1");
+    expect(analysisIsRunning(7)).toBe(false);
+    expect(completeAnalysis).not.toHaveBeenCalled();
+    expect(updateAnalysisJob).not.toHaveBeenCalledWith(
+      "local-1",
+      expect.objectContaining({ status: "failed" })
+    );
+    expect(
+      fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")
+    ).toHaveLength(1);
+  }
+);
+
+test("automatic cleanup failure does not fail or replace an already saved result", async () => {
+  fetchMock.mockImplementation((url, init) => {
+    if (String(url).endsWith("/health")) return response({ ready: true });
+    if (init?.method === "DELETE") return Promise.reject(new Error("Offline"));
+    return response(remote());
+  });
+  await expect(startSongAnalysis(7, settings)).resolves.toBeUndefined();
+  expect(completeAnalysis).toHaveBeenCalledTimes(1);
+  expect(completeAnalysis).toHaveBeenCalledWith("local-1", result, false);
+  expect(updateAnalysisJob).not.toHaveBeenCalledWith(
+    "local-1",
+    expect.objectContaining({ status: "failed" })
+  );
+  expect(cancelAnalysis).not.toHaveBeenCalled();
+  expect(analysisIsRunning(7)).toBe(false);
+});

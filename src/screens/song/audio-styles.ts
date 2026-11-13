@@ -1,6 +1,8 @@
 import { StyleSheet } from "react-native";
 import palette from "../../theme/palette";
 
+const ERROR_INK = "#ffb59f";
+
 export default StyleSheet.create({
   flex: { flex: 1 },
   content: {
@@ -12,6 +14,8 @@ export default StyleSheet.create({
     alignSelf: "center"
   },
   row: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: 8 },
+  noWrap: { flexWrap: "nowrap" },
+  listHeader: { gap: 16 },
   card: {
     padding: 16,
     borderRadius: 18,
@@ -34,7 +38,7 @@ export default StyleSheet.create({
   title: { color: palette.glass.ink, fontSize: 20, fontWeight: "600" },
   text: { color: palette.glass.ink, fontSize: 17, lineHeight: 27 },
   muted: { color: palette.glass.muted, fontSize: 14, lineHeight: 22 },
-  error: { color: "#ffb59f", fontSize: 15, lineHeight: 23 },
+  error: { color: ERROR_INK, fontSize: 15, lineHeight: 23 },
   gold: { color: palette.glass.accent },
   clock: {
     color: palette.glass.ink,

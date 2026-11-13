@@ -388,9 +388,9 @@
   "AnalysisCheckingService": "Checking service availability…",
   "AnalysisServiceReady": "The service is ready to receive a recording.",
   "AnalysisServiceLimits": "Limits: {{megabytes}} MiB and {{minutes}} minutes per recording; {{active}} active jobs and {{daily}} jobs per day for this installation.",
-  "AnalysisSharedPrivacy": "After you confirm, the complete recording is sent to the service. The operator can access it during processing. Uploaded and decoded audio is deleted after processing; the result is retained for up to {{hours}} hours. The app requests cleanup after saving or cancelling. Your local audio and edits stay on this device. Service access is excluded from backups.",
+  "AnalysisSharedPrivacy": "After confirmation, the complete recording goes to the service and its operator can access it. Uploaded and decoded audio is scheduled for deletion after processing; delayed cleanup is retried. Results are retained for up to {{hours}} hours. Cancellation may not reach the server when disconnected; processing can then continue within its limits. Local audio and edits stay on this device. Service access is excluded from backups.",
   "AnalysisPrivatePrivacy": "The complete recording is sent only after you confirm. The private server operator can access it and controls its retention policy. The app requests cleanup after saving or cancelling; if disconnected, server retention applies. Local audio and edits stay on this device. Access tokens are excluded from backups.",
-  "AnalysisSharedUploadConsent": "Send the complete recording to {{server}}? The operator can access it during processing. Audio is deleted after processing and the result is retained for up to {{hours}} hours. Your local recording and edits stay on this phone.",
+  "AnalysisSharedUploadConsent": "Send the complete recording to {{server}}? The operator can access it during processing. Audio cleanup starts after processing and is retried if delayed. The result is retained for up to {{hours}} hours. Your local recording and edits stay on this phone.",
   "AnalysisAdvancedSettings": "Advanced connection settings",
   "AnalysisAdvancedHint": "A private connection is optional. Saved private settings are kept when you switch to the free service.",
   "AnalysisSharedService": "Free FreeTune service",
@@ -405,5 +405,7 @@
   "AnalysisLineTimingOnly": "Approximate line timing only; word timing is unavailable.",
   "AnalysisRetryLater": "Wait {{seconds}} seconds before starting a new analysis. Your audio and saved edits are kept.",
   "AnalysisUploadTooLarge": "This recording exceeds the service upload limit. Check the limits shown before analysis. Your local recording is kept.",
-  "AnalysisDurationLimit": "This recording exceeds the service duration limit. Check the limits shown before analysis. Your local recording is kept."
+  "AnalysisDurationLimit": "This recording exceeds the service duration limit. Check the limits shown before analysis. Your local recording is kept.",
+  "AnalysisCancellationUnconfirmed": "Stopped locally, but the service did not confirm cancellation.",
+  "AnalysisCancelledServerHint": "Local cancellation is saved. If the server did not confirm it, processing may continue within its limits. Audio cleanup starts when processing stops and is retried if delayed."
 }

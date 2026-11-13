@@ -165,7 +165,7 @@ const ChordTimeline = memo(function ChordTimeline({
       initialNumToRender={8}
       maxToRenderPerBatch={8}
       windowSize={5}
-      contentContainerStyle={[styles.row, { flexWrap: "nowrap" }]}
+      contentContainerStyle={[styles.row, styles.noWrap]}
       extraData={`${current}:${transpose}:${capo}:${editing}:${canSeek}`}
       renderItem={({ item: chord, index }) => {
         const display = chordDisplay(chord.label, transpose, capo);
@@ -484,7 +484,7 @@ export default function AudioSongScreen({
           />
         )}
         ListHeaderComponent={
-          <View style={{ gap: 16 }}>
+          <View style={styles.listHeader}>
             <View style={styles.card}>
               <Text style={styles.muted}>
                 {audio.originalName} · {formatTime(audio.duration)}
@@ -574,6 +574,11 @@ export default function AudioSongScreen({
                   {!!job.error && (
                     <Text style={styles.error}>
                       {t(job.error, { defaultValue: t("AnalysisFailed") })}
+                    </Text>
+                  )}
+                  {job.status === "cancelled" && (
+                    <Text style={styles.muted}>
+                      {t("AnalysisCancelledServerHint")}
                     </Text>
                   )}
                 </>
