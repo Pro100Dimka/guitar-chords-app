@@ -268,5 +268,6 @@
   "AutofillNoAudioMatch": "Композицію не знайдено.",
   "AutofillMicDenied": "Немає дозволу на мікрофон.",
   "AutofillRecognitionError": "Не вдалося розпізнати пісню. Перевірте з'єднання.",
-  "AutofillReplaceIdentity": "Назву та виконавця буде замінено. Текст залишиться до вибору іншого варіанта."
+  "AutofillReplaceIdentity": "Назву та виконавця буде замінено. Текст залишиться до вибору іншого варіанта.",
+  "AutofillRecognitionRateLimited": "Shazam обмежив запити. Спробуйте пізніше."
 }
