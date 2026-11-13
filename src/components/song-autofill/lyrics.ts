@@ -59,7 +59,7 @@ export async function lookupLyrics(
         typeof item.plainLyrics === "string" && item.plainLyrics.trim()
           ? item.plainLyrics
           : typeof item.syncedLyrics === "string"
-            ? item.syncedLyrics.replace(/^\[[0-9:.]+\\]\s*/gm, "")
+            ? item.syncedLyrics.replace(/^\[[0-9:.]+\]\s*/gm, "")
             : "";
       if (!content.trim() || content.length > 200000) return [];
       return [{
