@@ -1,0 +1,354 @@
+{
+  "schemaVersion": 1,
+  "recordedDateUtc": "2026-11-13",
+  "branch": "feature/audio-song-analysis",
+  "implementationBaseCommit": "3a73101fb22483b405e61f1c3ce340709f8cc1da",
+  "status": "blocked_by_unavailable_execution_environment",
+  "acceptedRecognitionProfile": false,
+  "implementationChangesPublished": false,
+  "publicServiceDeployed": false,
+  "apkBuilt": false,
+  "physicalAndroidTested": false,
+  "workspaceBeforeOutage": "/workspace/scratch/a81b5595b6a5/freetune",
+  "evidencePolicy": "Observed tool outputs and completed reports before outage. This checkpoint does not contain the inaccessible implementation diff or full raw model outputs.",
+  "vocalCorpus": {
+    "fullRecordings": 30,
+    "languages": {
+      "en": 20,
+      "uk": 5,
+      "ru": 5
+    },
+    "statuses": {
+      "completed": 30,
+      "partial": 0,
+      "failed": 0
+    },
+    "development": 16,
+    "heldout": 14,
+    "humanTextAndWordTimeReferences": {
+      "en": 20,
+      "uk": 0,
+      "ru": 0
+    },
+    "humanFullVocalChordReferences": 0,
+    "historicallyUnseen": false,
+    "heldoutCaveat": "EN20 and two Slavic baseline results existed previously; final model outputs were held out prospectively. After examining these failures, this set is exposed for any subsequent correction.",
+    "referenceSuppliedToInference": false
+  },
+  "observedCandidate": {
+    "lyrics": "dropbox-dash/faster-whisper-large-v3-turbo",
+    "revision": "0a363e9161cbc7ed1431c9597a8ceaf0c4f78fcf",
+    "runtime": "CPU INT8",
+    "threadsPerWorker": 4,
+    "seed": 0,
+    "adapter": "Preserve confident tokens from weak windows; omit ambiguous word timing in favor of uncertain coarse lines",
+    "chords": "LV-Chordia 1.1.0 five-model ensemble; equal initial HMM priors",
+    "accepted": false,
+    "rejectionReasons": [
+      "Observed lexical lyrics on all seven completed instrumental controls; previous small baseline had no lyrics on all ten.",
+      "One held-out vocal recording exposes a long repetitive hallucination and a large WER regression.",
+      "Human timed-word coverage declines; held-out timing does not improve.",
+      "UK/RU recognition quality lacks verified human references; UK example contains an apparent closing-caption hallucination."
+    ],
+    "totalLyricLines": 954,
+    "totalCoarseLines": 345
+  },
+  "englishHistoricalComparison": {
+    "recordings": 20,
+    "referenceWords": 6237,
+    "baseline": {
+      "wordErrors": 2257,
+      "wer": 0.36187269520602855,
+      "markerAwareWer": 0.372615039281706,
+      "timedExactWords": 3853,
+      "timingReferenceWords": 5693,
+      "timedExactCoverage": 0.6767960653434042
+    },
+    "candidate": {
+      "wordErrors": 1768,
+      "wer": 0.28346961680295013,
+      "markerAwareWer": 0.2908449575116242,
+      "timedExactWords": 2819,
+      "timingReferenceWords": 5693,
+      "timedExactCoverage": 0.4951695064113824,
+      "lyricLines": 769,
+      "coarseLines": 284
+    },
+    "improvedSongs": 18,
+    "worsenedSongs": 2,
+    "developmentWer": {
+      "baseline": 0.3561381074168798,
+      "candidate": 0.24040920716112532
+    },
+    "heldoutWer": {
+      "baseline": 0.3676423287230621,
+      "candidate": 0.3267931810871663
+    },
+    "pairedTiming": {
+      "sameReferenceWords": 2284,
+      "baselineStartMaeSeconds": 0.36046454772101544,
+      "candidateStartMaeSeconds": 0.3019755002051661,
+      "baselineEndMaeSeconds": 0.34006862693901063,
+      "candidateEndMaeSeconds": 0.27361164039689134
+    },
+    "heldoutTimingRoundedSeconds": {
+      "baselineStart": 0.39465,
+      "candidateStart": 0.3974,
+      "baselineEnd": 0.37469,
+      "candidateEnd": 0.37605,
+      "sameReferenceWords": 1141
+    },
+    "interpretation": "Historical small versus changed model/adapter/seed: observed same-recording comparison, not an isolated causal model ablation or proof of uniformly improved synchronization.",
+    "regressions": [
+      {
+        "recording": "Kinematic — Peyote",
+        "baselineWerPercent": 25.786,
+        "candidateWerPercent": 31.447
+      },
+      {
+        "recording": "Explosive Ear Candy — Like The Sun",
+        "baselineWerPercent": 45.07,
+        "candidateWerPercent": 57.042
+      }
+    ]
+  },
+  "sameNativeAdapterComparison": {
+    "englishRecordings": 20,
+    "baselineWer": 0.3301266634599968,
+    "candidateWer": 0.28346961680295013,
+    "improved": 7,
+    "worsened": 2,
+    "unchanged": 11,
+    "separateBaselineRuntimeMeasured": false,
+    "controlGate": "Exact lyric text, all word times/confidences and warnings matched four separately run seeded legacy controls.",
+    "adverseCase": {
+      "recording": "Explosive Ear Candy — Like The Sun",
+      "referenceWords": 426,
+      "baselineErrors": 171,
+      "candidateErrors": 243,
+      "baselineInsertions": 0,
+      "candidateInsertions": 72,
+      "correctWordsBoth": 255,
+      "repetitiveCoarseIntervalSeconds": [
+        171.44,
+        192.92
+      ],
+      "repeatedTokens": 111
+    }
+  },
+  "resources": {
+    "environment": "Shared Linux x86-64 CPU; 9 logical CPUs available; not Android",
+    "evaluationWorkers": 2,
+    "threadsPerWorker": 4,
+    "productionWorkers": 1,
+    "audioSeconds": 6175.2386848072565,
+    "cohortWallSeconds": 1466.07,
+    "sumJobWallSeconds": 2863.318,
+    "maximumWorkerPeakRssMiB": 2496.95,
+    "byLanguage": {
+      "en": {
+        "recordings": 20,
+        "audioSeconds": 4333.0431292517005,
+        "sumJobWallSeconds": 1980.645,
+        "maximumPeakRssMiB": 2496.95,
+        "wer": 0.28346961680295013
+      },
+      "uk": {
+        "recordings": 5,
+        "audioSeconds": 880.7866666666666,
+        "sumJobWallSeconds": 404.942,
+        "maximumPeakRssMiB": 2494.88,
+        "wer": null
+      },
+      "ru": {
+        "recordings": 5,
+        "audioSeconds": 961.4088888888889,
+        "sumJobWallSeconds": 477.731,
+        "maximumPeakRssMiB": 2494.22,
+        "wer": null
+      }
+    },
+    "comparability": "Concurrent direct-pipeline timings cannot be compared as speedup with historical serial HTTP timings. Includes light development/test/render load.",
+    "controlledFourSongSelection": {
+      "sameAdapterAndSeed": true,
+      "smallWer": 0.30036630036630035,
+      "turboWer": 0.2313797313797314,
+      "smallWallSeconds": 299.046,
+      "turboWallSeconds": 396.063,
+      "smallPeakRssMiB": 1802.15,
+      "turboPeakRssMiB": 2499.79,
+      "improvedSongs": 2,
+      "worsenedSongs": 2
+    }
+  },
+  "chordDecoderExperiment": {
+    "instrumentalClips": 10,
+    "fullVocalSongs": false,
+    "development": 5,
+    "heldout": 5,
+    "baselineFullChordPercent": 43.5508,
+    "candidateFullChordPercent": 43.5923,
+    "baselineTriadPercent": 65.4094,
+    "candidateTriadPercent": 65.4591,
+    "baselineBoundaryF1Percent": 74.1379,
+    "candidateBoundaryF1Percent": 81.1321,
+    "boundaryToleranceSeconds": 0.5,
+    "baselineExtraChanges": 23,
+    "candidateExtraChanges": 13,
+    "missedChangesBoth": 7,
+    "matchedBoundaryMaeSecondsBoth": 0.1137565,
+    "meaning": "Removes one artificial starting N interval per tested clip; does not substantiate better harmonic labels on full vocal songs."
+  },
+  "instrumentalAsrAuditAtOutage": {
+    "planned": 10,
+    "observedCompleted": 7,
+    "observedWithUnwantedLyricLines": 7,
+    "model": "turbo",
+    "threads": 2,
+    "otherConcurrentInference": false,
+    "priorSmallBaseline": {
+      "completed": 10,
+      "lyricLines": 0
+    },
+    "processCompletionAfterOutage": "unknown",
+    "sessionId": 63708,
+    "reportPath": "backend/data/evaluation/v2-final-guitarset/report.json",
+    "firstFour": [
+      {
+        "id": "00_BN1-129-Eb_comp",
+        "start": 0.84,
+        "end": 1.5,
+        "text": "… you.",
+        "words": [],
+        "uncertain": true
+      },
+      {
+        "id": "00_Funk1-114-Ab_comp",
+        "start": 14.66,
+        "end": 16.82,
+        "text": "… you.",
+        "words": [],
+        "uncertain": true
+      },
+      {
+        "id": "00_Jazz1-130-D_comp",
+        "start": 9.82,
+        "end": 11.3,
+        "text": "… solo",
+        "words": [],
+        "uncertain": true
+      },
+      {
+        "id": "00_Rock1-130-A_comp",
+        "start": 1.18,
+        "end": 1.9,
+        "text": "… you.",
+        "words": [],
+        "uncertain": true
+      }
+    ]
+  },
+  "codeChecks": {
+    "jestSuites": 14,
+    "jestTests": 134,
+    "jestPassed": true,
+    "sqlite": "Passed on real SQLite: old library migration, transactions, duplicate imports, edits/revisions, interruption/retry/cancel, backups and relinking; private credentials excluded.",
+    "typescriptPassed": true,
+    "eslintQuietPassed": true,
+    "backendFullRun": {
+      "passed": 67,
+      "durationSeconds": 14.01
+    },
+    "additionalTargetedRun": {
+      "passed": 5,
+      "newUniqueTests": 2,
+      "durationSeconds": 0.07
+    },
+    "uniqueBackendTestsVerified": 69,
+    "independentScorerTests": 14,
+    "sharedServiceTestsIncludedInBackendCount": 16,
+    "pipCheckPassed": true,
+    "localizations": [
+      "en",
+      "ru",
+      "ua"
+    ],
+    "phonePlaybackProven": false
+  },
+  "service": {
+    "implementedLocally": "Automatic installation credentials; per-tenant files/jobs/keys; bounded persistent quotas/queue; separate cancellation budget; terminal audio deletion; retention and restart cleanup; Docker/Compose/Caddy configuration.",
+    "sharedLimits": {
+      "workers": 1,
+      "activeJobs": 8,
+      "activeJobsPerInstallation": 2,
+      "jobsPerInstallationPerDay": 20,
+      "uploadMiB": 256,
+      "durationMinutes": 30,
+      "resultsRetentionHours": 24
+    },
+    "publicUrl": "",
+    "finalAcceptedProfileSharedSmokeExecuted": false,
+    "provisionalSmoke": "Earlier real model HTTP smoke used a rejected timing pilot; it is not final evidence.",
+    "dockerStartupTested": false,
+    "publicTlsTested": false,
+    "paidResourcesConnected": false
+  },
+  "demos": {
+    "state": "Rendered and verified locally; observed rejected candidate, not accepted final profile; not persisted for delivery before outage.",
+    "directory": "/workspace/scratch/a81b5595b6a5/deliverables-v2",
+    "originalExcerptSeconds": [
+      0,
+      75
+    ],
+    "androidScreenRecording": false,
+    "examples": [
+      {
+        "language": "en",
+        "file": "en-cortez-feel.mp4",
+        "bytes": 2161140,
+        "zeroLagAudioCorrelation": 0.999278015,
+        "fullSongWer": 0.15168539325842698,
+        "analysisSha256": "55f465969b278444023b54520ce4067e46f0f823ef3dd4f210a254cf21427f7f"
+      },
+      {
+        "language": "uk",
+        "file": "uk-lysenko-oriental.mp4",
+        "bytes": 1869681,
+        "zeroLagAudioCorrelation": 0.999985304,
+        "fullSongWer": null,
+        "analysisSha256": "0bde26b8b268495aee958224ee4a694a8fb5008448c2bb1c1fb70e1b4c5a2df7",
+        "adverseOutput": {
+          "start": 27.18,
+          "end": 29.98,
+          "text": "Дякую за перегляд!",
+          "words": [],
+          "uncertain": true
+        }
+      },
+      {
+        "language": "ru",
+        "file": "ru-cherkashin-listopad.mp4",
+        "bytes": 1948346,
+        "zeroLagAudioCorrelation": 0.999980773,
+        "fullSongWer": null,
+        "analysisSha256": "0f331066d8754642e2d4e604beece3b8876015c1d41d431676504428602b4918"
+      }
+    ],
+    "metadataArchive": {
+      "file": "FreeTune-analysis-examples-v2.zip",
+      "bytes": 1261870,
+      "sha256": "d62892e83b7a8371b7623d7b6d0f04bc9141f4f1bc3cadde48e5fcc4695046fd",
+      "videosIncluded": false
+    }
+  },
+  "nextActions": [
+    "Restore access to the same workspace; inspect and preserve dirty files before any reset/checkout.",
+    "Inspect existing instrumental report and session state before starting duplicate inference.",
+    "Diagnose actual native and raw word alignments on failed clips under small/turbo and 2/4 threads; no song-specific text filter.",
+    "Test conservative compression and native valid-timing evidence policies; no correction was applied or measured before outage.",
+    "Treat previously inspected heldout data as exposed after this diagnostic correction; document any lack of a new independent holdout.",
+    "Re-evaluate an accepted candidate; run actual shared HTTP smoke and real client validator; preserve user edits and backups.",
+    "Update shared deployment model/config only after acceptance, publish complete implementation diff, and regenerate/persist examples.",
+    "Public deployment and physical Android remain separate unperformed checks; no APK required."
+  ]
+}
