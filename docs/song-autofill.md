@@ -1,53 +1,43 @@
-# Song autofill status (feature/song-autofill)
+# FreeTune song autofill — Android native recognition
 
-Base: d52753586e1c7126114442a1eaf785404b397b8c. No changes from audio-song-analysis branches.
+Branch: `feature/song-autofill`. Started from `8039cbd9`; no merges with model branches or `main`. No APK assembled.
 
-## Implemented
-- Existing add/edit form has an optional **Find lyrics (LRCLIB)** button.
-- Searches by explicitly entered artist and title. Strict independent identity matching; no mixing different versions or chords.
-- The chosen lyrics-only candidate changes the form's `content` **only** after selection; replacing an existing chord arrangement requires confirmation.
-- Request cancellation/timeout (10s), 429 and no-match states; stale responses do not apply after cancellation or manual form edits.
-- Existing save action, song ID, performer ID, media import and database migrations are unchanged. No audio file is created by this feature.
-- LRCLIB results show album, duration and expandable full text inside the same form; distinct records stay separate.
-- LRCLIB honors `Retry-After` via a local cooldown after HTTP 429; stale responses cannot replace manual edits.
-- Lookup labels/errors localized in English, Ukrainian and Russian.
-- Jest cases cover identity, partial lyrics, album/length variants, pre-cancelled request, no-match and 429; a branch-only GitHub Actions workflow runs Jest, TypeScript and lint without building APK. The 2026-11-13 run `43429676023` passed: 12 test suites, 52 tests, TypeScript and ESLint. See https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43429676023.
+## Current implementation
 
-## Live request verification
-- GitHub Actions run `43429676023` made a real, direct HTTP request to LRCLIB for `Imagine` / `John Lennon`: HTTP 200, 20 candidates, exact title+artist present. No lyrics were logged. This verifies LRCLIB reachability from the CI runner only, not mobile-device accessibility across countries.
-- No real sample-based Shazam fingerprint request, Android microphone capture, audio file import or temp cleanup test was performed. The corresponding feature remains absent.
+- **On device**: Android AudioRecord captures 12 seconds, or MediaExtractor/MediaCodec reads a bounded 12-second section of an audio document via `content://` / `file://`. Decode runs on a dedicated executor, not the React Native UI thread. Input is converted to 16kHz mono PCM16 with bounded averaging/resampling. File selection reads the original provider URI directly; original audio is not changed or deleted.
+- **Fingerprint**: JNI links a Rust library built with `cargo ndk` for `arm64-v8a` and `armeabi-v7a`. The source of the signal-processing and signature encoder is shazamio-core 2.1.0 pinned to `63f9583ee9729c95b9e9f10af6f2006d13df6fb2`, adapted for a direct PCM entrypoint without PyO3/Python.
+- **Network**: Shazam's *unofficial* `amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag` HTTPS request sends a base64 signature and timing metadata, not raw recording audio. 10/15-second connection/read timeouts and per-429 `Retry-After` cooldown apply. No API token, server, Python, model or Oracle deployment is needed.
+- **UI**: Android library has a Recognize song action, opening the existing add form; the same form supports microphone and audio-file recognition during add/edit. Confirm before replacing populated title/artist. A success sets existing `title` and `fk_band.name`, clears obsolete `fk_band.id`, preserves song `id`, existing lyrics, cover and links; then automatically invokes LRCLIB. The lyrics-only candidates stay reviewable, with album/duration and preview; a user must choose lyrics and press ordinary Save. No new database tables or records are created by recognition.
+- **Lifecycle**: cancellation stops the microphone and disconnects the HTTP request. Audio is retained in a bounded memory buffer and not saved as a temporary file. There are no feature-created audio files to clean after crashes. The original file is never deleted. Late completion is guarded by request generations and form snapshots.
+- Android-only UI actions are hidden on other platforms. Locales: English, Ukrainian, Russian.
 
-## Provider review
-| Source | Actual current status | Restrictions / action |
-| --- | --- | --- |
-| LRCLIB | Integrated client-side, lyrics-only fallback | https://lrclib.net/docs : anonymous API, client identification, rate limits; honor 429/Retry-After before retry; lyrics may be copyrighted, separately review redistribution permissions |
-| pisennyk.com.ua | Not integrated | https://pisennyk.com.ua/pravyla : site states it pays licenses for publishing works, but does not grant downstream application ingestion/redistribution rights |
-| www.pisni.org.ua | Not integrated | https://www.pisni.org.ua/articles/34.html : visible user rules are not permission for automated redistribution; no validated machine API/license |
-| akkordov.net | Not integrated | https://akkordov.net/agreement : section 6.5 restricts copying/saving/transmitting user content without permission; 6.7 personal non-commercial use |
+## Source / license audit
 
-No chord source meets the two-authorized-providers requirement. No owner contacted. No catalog download performed.
+- `shazamio-core` **2.1.0** is MIT; versions **up to and including 2.0.0** contained SongRec GPL-3.0+ code. Only the 2.1 source was adapted; original MIT text is in `android/song-fingerprint/UPSTREAM-LICENSE`. https://github.com/shazamio/shazamio-core
+- `Audile` is GPL-3.0+; none of its implementation was copied. https://github.com/AudileTeam/Audile
+- Rust JNI dependency `jni 0.21.1` is MIT/Apache-2.0; `chfft 0.3.4` is MPL-2.0. The unmodified `chfft` source is available at https://crates.io/crates/chfft/0.3.4; license text is in `CHFFT-MPL-2.0`. Binary redistribution must retain notices and MPL source availability. Also check resolved Cargo.lock transitive license inventory before a store release.
+- LRCLIB remains a lyrics-only fallback, never a chord provider; no chord sources were added. Site copyright/redistribution permissions need separate review.
+- Shazam is an unofficial endpoint with no contractual availability guarantee; HTTP 429, geographical restrictions, schema changes and no match are possible.
 
-## Direct on-device Shazam research (November 13, 2026)
-- Audile `master` is GPL-3.0-or-later; its bundled `songrecfp` crate explicitly declares `GPL-3.0+` in `core/recognition/native/songrecfp/Cargo.toml`. Its fingerprints are generated locally before a direct Shazam HTTP request, but that code cannot be copied to FreeTune without accepting and satisfying GPL obligations (FreeTune's distribution/licensing status has not established compatibility). Reference: https://github.com/AudileTeam/Audile.
-- `shazamio/shazamio-core` is MIT licensed and implemented in Rust, but exposes PyO3 Python bindings and does not provide a ready Android JNI/React Native module. Adapting the Rust implementation requires a separately tested Android-native decoder/resampler, JNI binding and dependency license audit. References: https://github.com/shazamio/shazamio-core/blob/master/pyproject.toml and THIRD-PARTY-NOTICES.md.
-- The Shazam endpoint is unofficial and may change, throttle or disallow clients. No **real sample fingerprint -> HTTP response** test was available here. Therefore microphone/audio recognition has **not** been connected as a pretend working feature. No URL/token/backend placeholders were introduced.
+## Reproducible checks
 
-## Not implemented / blocking
-- Microphone/file audio fingerprint recognition is **not implemented**. ShazamIO is Python-side and cannot be silently embedded as a Python Android environment. A server is not inherently required if a compatible Android-native fingerprint generator can be built and validated; this has not been done. A source tree without a live URL would not satisfy the user's end-to-end requirement.
-- There is therefore no `Recognize song` library button: it would otherwise advertise an inoperative workflow. The existing text/chord file importer still works, but audio files are not handled.
-- Capo, key, and chord conversion cannot be obtained from the current lyrics-only provider. No new schema or phantom metadata introduced.
-- At this stage the sole connected remote source is LRCLIB, not a two-provider chords solution.
+- GitHub Actions `native-song-recognition.yml` builds actual Rust JNI using `cargo ndk -t arm64-v8a -t armeabi-v7a ... build --release --lib`, and compiles Android code using `./gradlew :app:compileDebugKotlin --stacktrace --no-daemon`. **No APK task is invoked**. Run `43433570282` passed host Rust test/compile, both ABI builds and Kotlin compile on a prior version of this implementation.
+- The original LRCLIB test workflow uses `npm ci`, `npm test -- --runInBand`, `npx tsc --noEmit`, `npm run lint -- --max-warnings 0`. It has passed with 52 tests; a new draft preservation test is included and must pass on the current commit before certification.
+- Real audio test: two independent *public-domain* recordings of Beethoven Symphony No. 5 (movements I and IV) were downloaded only on CI, decoded as 12s samples and fingerprinted by the **same vendored Rust algorithm**. Shazam responded HTTP **200**, but `track=null` for both in run `43433696270`: actual HTTPS access was established, but **song identification was not confirmed**. Earlier request shape produced HTTP 429. The positive known `Gloria.ogg` fixture from ShazamIO test suite (upstream asserts key 53982678) is also configured in `shazam-real-audio-proof.yml`; inspect its job outcome before claiming successful recognition.
+- Physical Android microphone, `content://` providers, file cancellation/retry, audio interruptions and UI-to-Save flow **have not been run on a phone**. A successful CI compilation does **not** establish runtime correctness. Network limits can prevent matches.
 
-## Verification matrix
-| Scenario | Status |
-| --- | --- |
-| API identity matching; no-match; 429; metadata variants; cancellation | Jest verified in CI: 52 tests passed (12 suites) |
-| Form result is opt-in and saved via existing Save | Static review, device not tested |
-| Cancel/timeout/stale response | Static review, device not tested |
-| ShazamIO audio -> chords -> form | Blocked, not end-to-end tested |
-| Fall back to independent chord provider | Blocked on permissions/integration |
-| Microphone temp-file lifecycle and crash cleanup | Not applicable, audio capture not implemented |
-| Android / iOS real hardware | Not tested |
-| npm test, lint, TypeScript | All passed in GitHub Actions `43429676023` |
+## Commands (from repo root)
 
-Do not advertise this branch as complete song recognition until the above blockers are resolved. No APK built.
+```sh
+npm ci
+npm test -- --runInBand
+npx tsc --noEmit
+npm run lint -- --max-warnings 0
+cargo test --manifest-path android/song-fingerprint/Cargo.toml
+cd android/song-fingerprint
+cargo ndk -t arm64-v8a -t armeabi-v7a -o ../app/src/main/jniLibs build --release --lib
+cd ../
+./gradlew :app:compileDebugKotlin --stacktrace --no-daemon
+```
+
+This phase **implements a real local fingerprint/network pipeline** but remains **partially verified** until the known positive audio sample yields a non-empty Shazam track and the actual Android flows pass device testing. Do not describe the 200/no-match response as a recognized song.
