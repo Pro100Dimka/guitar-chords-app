@@ -20,7 +20,9 @@ def validate_public_url(raw: str) -> str:
             or parsed.password or parsed.query or parsed.fragment
             or parsed.path not in ("", "/")):
         raise ValueError("Use a bare public HTTPS origin, without a path, credentials or query")
-    hostname = parsed.hostname.rstrip(".")\n    if not hostname or hostname.endswith(".local") or hostname.endswith(".internal"):\n        raise ValueError("Use a public DNS hostname")
+    hostname = parsed.hostname.rstrip(".")
+    if not hostname or hostname.endswith(".local") or hostname.endswith(".internal"):
+        raise ValueError("Use a public DNS hostname")
     if hostname == "localhost" or hostname.endswith(".localhost"):
         raise ValueError("The release endpoint cannot be localhost")
     try:
@@ -61,11 +63,15 @@ def check_health(origin: str, timeout: float = 15.0) -> dict:
     body = json.loads(payload)
     if not isinstance(body, dict):
         raise ValueError("Health response must be an object")
-    validate_health(body)\n    return body\n\n\ndef validate_health(body: dict) -> None:\n    expected = {"ready": True, "serviceMode": "shared", "authentication": "installation"}
+    validate_health(body)
+    return body
+
+
+def validate_health(body: dict) -> None:
+    expected = {"ready": True, "serviceMode": "shared", "authentication": "installation"}
     for field, value in expected.items():
         if body.get(field) != value:
             raise ValueError(f"Health {field} must be {value!r}; got {body.get(field)!r}")
-    return body
 
 
 def main(argv=None) -> int:
@@ -77,7 +83,8 @@ def main(argv=None) -> int:
         if not 0 < args.timeout <= 120:
             raise ValueError("Timeout must be greater than zero and at most 120 seconds")
         origin = validate_public_url(args.origin)
-        health = check_health(origin, args.timeout)\n        validate_health(health)
+        health = check_health(origin, args.timeout)
+        validate_health(health)
     except (ValueError, OSError, json.JSONDecodeError, urllib.error.URLError, ssl.SSLError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
         return 1
