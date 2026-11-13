@@ -122,7 +122,13 @@ const Library: React.FC = () => {
         {t("library")}
       </Text>
       <View style={styles.collections}>
-        <Action glass label={t("AutofillRecognize")} onPress={() => navigation.navigate("createSong", { recognize: "mic" })} />
+        <Action
+          glass
+          label={t("AutofillRecognize")}
+          onPress={() =>
+            navigation.navigate("createSong", { recognize: "mic" })
+          }
+        />
       </View>
       <SearchBar setFilters={setFilters} />
       <View style={styles.collections}>

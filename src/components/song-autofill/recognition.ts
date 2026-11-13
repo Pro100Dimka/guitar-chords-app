@@ -18,11 +18,15 @@ const native = (): NativeRecognizer => {
   return NativeModules.SongRecognition as NativeRecognizer;
 };
 export async function recognizeMicrophone(): Promise<RecognizedSong | null> {
-  if (!(await checkMicPermission(true))) throw new Error("MicrophonePermissionDenied");
+  if (!(await checkMicPermission(true)))
+    throw new Error("MicrophonePermissionDenied");
   return native().recognizeMicrophone();
 }
 export async function recognizeAudioFile(): Promise<RecognizedSong | null> {
-  const [file] = await pick({ type: [types.audio], allowMultiSelection: false });
+  const [file] = await pick({
+    type: [types.audio],
+    allowMultiSelection: false
+  });
   if (!file?.uri) throw new Error("FileUnavailable");
   // Read the original content:// through Android's ContentResolver; never delete it.
   return native().recognizeFile(file.uri);

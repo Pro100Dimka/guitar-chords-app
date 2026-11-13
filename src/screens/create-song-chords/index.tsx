@@ -31,7 +31,11 @@ import { usePreferences } from "../../components/preferences";
 
 import { Action } from "../song/tools";
 import { lookupLyrics } from "../../components/song-autofill/lyrics";
-import { cancelRecognition, recognizeAudioFile, recognizeMicrophone } from "../../components/song-autofill/recognition";
+import {
+  cancelRecognition,
+  recognizeAudioFile,
+  recognizeMicrophone
+} from "../../components/song-autofill/recognition";
 import {
   fileCanceled,
   importedSong,
@@ -81,80 +85,121 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       void cancelRecognition();
       setRecognitionBusy(false);
     }, []);
-    const startRecognition = useCallback(async (mode: "mic" | "file") => {
-      const form = currentForm.current;
-      if (!form) return;
-      const snapshot = JSON.stringify(form.values);
-      const generation = ++recognitionGeneration.current;
-      cancelLyrics();
-      setLyricsOptions([]);
-      setRecognitionBusy(true);
-      setRecognitionStatus(t(mode === "mic" ? "AutofillListening" : "AutofillIdentifying"));
-      try {
-        const found = mode === "mic" ? await recognizeMicrophone() : await recognizeAudioFile();
-        if (generation !== recognitionGeneration.current) return;
-        if (snapshot !== JSON.stringify(currentForm.current?.values)) {
-          setRecognitionStatus(t("AutofillFormChanged"));
-          return;
+    const startRecognition = useCallback(
+      async (mode: "mic" | "file") => {
+        const form = currentForm.current;
+        if (!form) return;
+        const snapshot = JSON.stringify(form.values);
+        const generation = ++recognitionGeneration.current;
+        cancelLyrics();
+        setLyricsOptions([]);
+        setRecognitionBusy(true);
+        setRecognitionStatus(
+          t(mode === "mic" ? "AutofillListening" : "AutofillIdentifying")
+        );
+        try {
+          const found =
+            mode === "mic"
+              ? await recognizeMicrophone()
+              : await recognizeAudioFile();
+          if (generation !== recognitionGeneration.current) return;
+          if (snapshot !== JSON.stringify(currentForm.current?.values)) {
+            setRecognitionStatus(t("AutofillFormChanged"));
+            return;
+          }
+          if (!found) {
+            setRecognitionStatus(t("AutofillNoAudioMatch"));
+            return;
+          }
+          setRecognitionStatus(
+            t("AutofillRecognized", {
+              artist: found.artist,
+              title: found.title
+            })
+          );
+          const next = {
+            ...form.values,
+            title: found.title,
+            fk_band: {
+              id: "",
+              name: found.artist,
+              search_text_lower: found.artist.toLowerCase()
+            }
+          };
+          await form.setValues(next);
+          if (generation !== recognitionGeneration.current) return;
+          setRecognitionStatus(t("AutofillSearching"));
+          const lookupController = new AbortController();
+          lyricsController.current = lookupController;
+          const options = await lookupLyrics(
+            found.title,
+            found.artist,
+            lookupController.signal
+          );
+          if (generation !== recognitionGeneration.current) return;
+          if (
+            JSON.stringify(currentForm.current?.values) !== JSON.stringify(next)
+          ) {
+            setRecognitionStatus(t("AutofillFormChanged"));
+            return;
+          }
+          lyricsSnapshot.current = JSON.stringify(next);
+          setLyricsOptions(options);
+          setLyricsMessage(
+            options.length ? t("AutofillLyricsOnly") : t("AutofillNoMatch")
+          );
+          setRecognitionStatus(
+            t("AutofillRecognized", {
+              artist: found.artist,
+              title: found.title
+            })
+          );
+        } catch (error) {
+          if (generation !== recognitionGeneration.current) return;
+          const message =
+            error instanceof Error ? error.message : String(error);
+          if (
+            message.includes("OPERATION_CANCELED") ||
+            message.includes("Cancelled")
+          ) {
+            setRecognitionStatus(t("AutofillSearchCancelled"));
+          } else if (message.includes("PermissionDenied")) {
+            setRecognitionStatus(t("AutofillMicDenied"));
+          } else {
+            setRecognitionStatus(t("AutofillRecognitionError"));
+          }
+        } finally {
+          if (generation === recognitionGeneration.current) {
+            setRecognitionBusy(false);
+            lyricsController.current = null;
+          }
         }
-        if (!found) {
-          setRecognitionStatus(t("AutofillNoAudioMatch"));
-          return;
-        }
-        setRecognitionStatus(t("AutofillRecognized", { artist: found.artist, title: found.title }));
-        const next = {
-          ...form.values,
-          title: found.title,
-          fk_band: { id: "", name: found.artist, search_text_lower: found.artist.toLowerCase() }
-        };
-        await form.setValues(next);
-        if (generation !== recognitionGeneration.current) return;
-        setRecognitionStatus(t("AutofillSearching"));
-        const lookupController = new AbortController();
-        lyricsController.current = lookupController;
-        const options = await lookupLyrics(found.title, found.artist, lookupController.signal);
-        if (generation !== recognitionGeneration.current) return;
-        if (JSON.stringify(currentForm.current?.values) !== JSON.stringify(next)) {
-          setRecognitionStatus(t("AutofillFormChanged"));
-          return;
-        }
-        lyricsSnapshot.current = JSON.stringify(next);
-        setLyricsOptions(options);
-        setLyricsMessage(options.length ? t("AutofillLyricsOnly") : t("AutofillNoMatch"));
-        setRecognitionStatus(t("AutofillRecognized", { artist: found.artist, title: found.title }));
-      } catch (error) {
-        if (generation !== recognitionGeneration.current) return;
-        const message = error instanceof Error ? error.message : String(error);
-        if (message.includes("OPERATION_CANCELED") || message.includes("Cancelled")) {
-          setRecognitionStatus(t("AutofillSearchCancelled"));
-        } else if (message.includes("PermissionDenied")) {
-          setRecognitionStatus(t("AutofillMicDenied"));
-        } else {
-          setRecognitionStatus(t("AutofillRecognitionError"));
-        }
-      } finally {
-        if (generation === recognitionGeneration.current) {
-          setRecognitionBusy(false);
-          lyricsController.current = null;
-        }
-      }
-    }, [t]);
-    const askRecognition = useCallback((mode: "mic" | "file") => {
-      const values = currentForm.current?.values;
-      const proceed = () => void startRecognition(mode);
-      if (values && (values.title.trim() || values.fk_band.name.trim())) {
-        Alert.alert(t("AutofillReplaceTitle"), t("AutofillReplaceIdentity"), [
-          { text: t("Cancel"), style: "cancel" },
-          { text: t("AutofillReplace"), onPress: proceed }
-        ]);
-      } else proceed();
-    }, [startRecognition, t]);
-    useEffect(() => () => {
-      recognitionGeneration.current++;
-      void cancelRecognition();
-    }, []);
+      },
+      [t]
+    );
+    const askRecognition = useCallback(
+      (mode: "mic" | "file") => {
+        const values = currentForm.current?.values;
+        const proceed = () => void startRecognition(mode);
+        if (values && (values.title.trim() || values.fk_band.name.trim())) {
+          Alert.alert(t("AutofillReplaceTitle"), t("AutofillReplaceIdentity"), [
+            { text: t("Cancel"), style: "cancel" },
+            { text: t("AutofillReplace"), onPress: proceed }
+          ]);
+        } else proceed();
+      },
+      [startRecognition, t]
+    );
+    useEffect(
+      () => () => {
+        recognitionGeneration.current++;
+        void cancelRecognition();
+      },
+      []
+    );
     useEffect(() => {
-      if (route.params?.recognize !== "mic" || initialRecognition.current) return;
+      if (route.params?.recognize !== "mic" || initialRecognition.current)
+        return;
       initialRecognition.current = true;
       const timer = setTimeout(() => askRecognition("mic"), 250);
       return () => clearTimeout(timer);
@@ -393,15 +438,34 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     )}
                   </View>
                   <View style={styles.importButton}>
-                    <Action glass label={t("AutofillRecognizeMic")}
+                    <Action
+                      glass
+                      label={t("AutofillRecognizeMic")}
                       disabled={recognitionBusy || isSubmitting}
-                      onPress={() => askRecognition("mic")} />
-                    <Action glass label={t("AutofillRecognizeFile")}
+                      onPress={() => askRecognition("mic")}
+                    />
+                    <Action
+                      glass
+                      label={t("AutofillRecognizeFile")}
                       disabled={recognitionBusy || isSubmitting}
-                      onPress={() => askRecognition("file")} />
-                    {recognitionBusy && <Action glass label={t("AutofillCancelSearch")}
-                      onPress={() => { cancelAudio(); cancelLyrics(); setRecognitionStatus(t("AutofillSearchCancelled")); }} />}
-                    {!!recognitionStatus && <Text style={styles.lyricsMessage}>{recognitionStatus}</Text>}
+                      onPress={() => askRecognition("file")}
+                    />
+                    {recognitionBusy && (
+                      <Action
+                        glass
+                        label={t("AutofillCancelSearch")}
+                        onPress={() => {
+                          cancelAudio();
+                          cancelLyrics();
+                          setRecognitionStatus(t("AutofillSearchCancelled"));
+                        }}
+                      />
+                    )}
+                    {!!recognitionStatus && (
+                      <Text style={styles.lyricsMessage}>
+                        {recognitionStatus}
+                      </Text>
+                    )}
                   </View>
                   <View style={styles.importButton}>
                     <Action
