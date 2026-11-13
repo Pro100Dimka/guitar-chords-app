@@ -1,0 +1,16 @@
+{
+  "policy": "raw-dtw-evaluation-v1",
+  "dateUtc": "2026-11-13",
+  "purpose": "One fixed alternative to the conservative v3 whole-line fallback, investigated because early v3 regression runs lost substantial timed-word coverage.",
+  "exposureBeforeSelection": "Earlier v1/v2 evidence, v3 instrumental results, first four v3 vocal text/coverage summaries, and v3 shared Cortez smoke were already known. No raw-timing alternative scores were inspected before defining this policy.",
+  "rules": [
+    "Use the saved actual raw Whisper DTW intervals for words whose native and SDK spans are valid; do not invent intervals for invalid raw evidence.",
+    "Keep v3 lexical masking/recovery thresholds exactly: word probability 0.35, weak window -1.0, repetitive compression 2.4, weak-window recovery 0.70 with native support.",
+    "A raw/SDK boundary difference greater than 0.20s marks the word and line uncertain; do not shorten or redistribute the raw interval.",
+    "Retain existing disjoint-line normalization and non-lyric-caption handling.",
+    "Use cached model evidence only. Generate every hypothesis before reading human references. Do not tune on per-song outcomes."
+  ],
+  "comparison": ["All available 30 complete vocal recordings", "All 15 instrumental controls", "Text equality or any differences versus frozen v3", "WER and marker-aware WER", "Timed exact-word coverage", "Common-word paired start/end errors, including per-song regressions"],
+  "approval": "Evaluation only. Do not change the running frozen v3 benchmark or default service until complete comparison is reviewed and a genuine model/service run validates any accepted change.",
+  "independentVocalHoldout": false
+}

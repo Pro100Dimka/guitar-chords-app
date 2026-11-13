@@ -71,10 +71,12 @@ def validate(result):
 
 
 class Renderer:
-    def __init__(self, result, artist, title, source_url, license_name, license_url, seconds, font_dir):
+    def __init__(self, result, artist, title, source_url, license_name, license_url, seconds, font_dir,
+                 attribution=None):
         self.result, self.seconds = result, seconds
         self.artist, self.title = artist, title
         self.source_url, self.license_name, self.license_url = source_url, license_name, license_url
+        self.attribution = attribution or artist
         self.fonts = {}
         self.font_dir = font_dir
 
@@ -91,7 +93,8 @@ class Renderer:
             size -= 1
         return self.font(size, bold)
 
-    def words(self, draw, line, position, x, y, max_width, max_rows=3):
+    def words(self, draw, line, position, x, y, max_width, max_rows=2):
+        word_timing = bool(line.get("words"))
         words = line.get("words") or [
             {"text": part, "start": line["start"], "end": line["end"],
              "uncertain": line.get("uncertain", False)} for part in line["text"].split()
@@ -107,12 +110,16 @@ class Renderer:
             if rows <= max_rows:
                 break
         left, top, row_height = x, y, size + 14
+        truncated = False
         for word in words:
             label = word["text"]
             length = font.getlength(label + " ")
             if left > x and left + length > x + max_width:
                 left, top = x, top + row_height
-            highlighted = word["start"] <= position < word["end"]
+            if top >= y + max_rows * row_height:
+                truncated = True
+                break
+            highlighted = word_timing and word["start"] <= position < word["end"]
             if highlighted:
                 draw.rounded_rectangle((left - 4, top - 3, left + length - 4, top + size + 7),
                                        radius=5, fill=GOLD)
@@ -121,6 +128,7 @@ class Renderer:
                 for dot in range(round(left), round(left + length - font.getlength(" ")), 5):
                     draw.line((dot, top + size + 8, dot + 1, top + size + 8), fill=GOLD, width=2)
             left += length
+        return truncated
 
     def frame(self, position):
         frame = Image.new("RGB", (WIDTH, HEIGHT), BG)
@@ -148,7 +156,11 @@ class Renderer:
         if line:
             draw.text((298, 180), f"{stamp(line['start'], True)} — {stamp(line['end'], True)}",
                       font=self.font(12), fill=DIM)
-            self.words(draw, line, position, 298, 211, 605)
+            truncated = self.words(draw, line, position, 298, 211, 605)
+            timing = "Интервал строки; точное время слов не определено" if not line.get("words") else "Подсветка по интервалам распознанных слов"
+            if truncated:
+                timing = "Длинная строка показана частично; целиком — в JSON"
+            draw.text((298, 303), timing, font=self.font(12), fill=MUTED)
             if line.get("uncertain"):
                 draw.text((298, 322), "Пунктир и … — неуверенное распознавание", font=self.font(12), fill=GOLD)
         else:
@@ -188,7 +200,7 @@ class Renderer:
         draw.line((32, 457, 928, 457), fill=BORDER)
         draw.text((32, 469), "Автоматическая разметка · ошибки сохранены · исходный темп аудио",
                   font=self.font(13), fill=GOLD)
-        credit = f"{self.artist} · {self.title} · {self.license_name} · добавлена визуализация"
+        credit = f"{self.attribution} · {self.license_name} · добавлена визуализация"
         draw.text((32, 491), credit, font=self.fit(credit, 12, 890), fill=MUTED)
         urls = "  /  ".join(url.removeprefix("https://").removeprefix("http://").removeprefix("www.")
                             for url in (self.source_url, self.license_url))
@@ -204,6 +216,9 @@ def main():
     parser.add_argument("--source-url", required=True)
     parser.add_argument("--license", required=True)
     parser.add_argument("--license-url", required=True)
+    parser.add_argument("--artist", help="Explicit artist for WAVs without embedded tags")
+    parser.add_argument("--title", help="Explicit track title for WAVs without embedded tags")
+    parser.add_argument("--attribution", help="Additional required artist/recording credits")
     parser.add_argument("--seconds", type=float, default=75)
     parser.add_argument("--fps", type=int, default=8, choices=range(6, 11))
     parser.add_argument("--poster-time", type=float, default=31)
@@ -225,8 +240,9 @@ def main():
     seconds = min(args.seconds, result["duration"], float(probe["duration"]))
     if seconds <= 0:
         raise ValueError("Excerpt duration must be positive")
-    renderer = Renderer(result, tags.get("artist", "Unknown artist"), tags.get("title", args.audio.stem),
-                        args.source_url, args.license, args.license_url, seconds, args.font_dir)
+    renderer = Renderer(result, args.artist or tags.get("artist", "Unknown artist"),
+                        args.title or tags.get("title", args.audio.stem), args.source_url,
+                        args.license, args.license_url, seconds, args.font_dir, args.attribution)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_suffix(".partial.mp4")
     log = args.output.with_suffix(".ffmpeg.log")
@@ -239,7 +255,7 @@ def main():
                "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p", "-c:a", "aac",
                "-threads:a", "1", "-b:a", "160k", "-movflags", "+faststart",
                "-metadata", f"title={renderer.artist} — {renderer.title} / FreeTune backend analysis",
-               "-metadata", f"comment=Not Android. {args.source_url} | {args.license}: {args.license_url}",
+               "-metadata", f"comment=Not Android. {renderer.attribution}. {args.source_url} | {args.license}: {args.license_url}",
                str(temporary)]
     with log.open("wb") as stderr:
         process = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=stderr)
@@ -262,6 +278,8 @@ def main():
                 "analysisFile": args.result.name, "analysisSha256": sha256(args.result),
                 "analysisJobId": state.get("id"), "models": result["model"], "warnings": result.get("warnings", []),
                 "sourceUrl": args.source_url, "license": args.license, "licenseUrl": args.license_url,
+                "artist": renderer.artist, "title": renderer.title, "attribution": renderer.attribution,
+                "coarseTimingDisplay": "No word highlighting when words=[]; line interval explicitly labelled",
                 "excerptStartSeconds": 0, "excerptEndSeconds": seconds, "originalDuration": result["duration"],
                 "audioChanges": "Excerpt from original beginning, AAC encoding; no tempo or pitch change",
                 "annotationChanges": "None; words, chords, uncertainty and intervals use the supplied JSON",

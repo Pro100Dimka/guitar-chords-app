@@ -502,3 +502,63 @@ def test_real_tcp_cancel_key_resolves_job_after_unread_response(settings):
         assert cancelled.status_code == 200 and cancelled.json()["jobStatus"] == "cancelled"
         assert not (settings.jobs_dir / cancelled.json()["jobId"]).exists()
         assert submit(client, installation, "lost-response").json()["detail"] == "job_request_cancelled"
+
+
+def test_prepared_app_refuses_schema_changed_before_start(settings):
+    app = api.create_app(settings)
+    with app.state.store.connection() as db:
+        db.execute(f"PRAGMA user_version={SCHEMA_VERSION + 1}")
+    with pytest.raises(RuntimeError, match="schema changed"):
+        with TestClient(app):
+            pass
+    with app.state.store.connection() as db:
+        assert db.execute("PRAGMA user_version").fetchone()[0] == SCHEMA_VERSION + 1
+    with FileLock(str(settings.data_dir / "service.lock")).acquire(timeout=0):
+        pass
+
+
+@pytest.mark.parametrize('retry', [False, True])
+def test_failed_sqlite_publication_removes_moved_original(client, retry):
+    installation = register(client)
+    store = client.app.state.store
+    if retry:
+        first = submit(client, installation).json()
+        client.delete('/v1/jobs/' + first['id'], headers=headers(installation))
+    with store.connection() as db:
+        if retry:
+            db.execute("""CREATE TRIGGER fail_publish BEFORE UPDATE ON jobs WHEN new.status='queued'
+                BEGIN SELECT RAISE(ABORT,'injected commit failure'); END""")
+        else:
+            db.execute("""CREATE TRIGGER fail_publish BEFORE INSERT ON jobs
+                BEGIN SELECT RAISE(ABORT,'injected commit failure'); END""")
+    response = submit(client, installation)
+    assert response.status_code == 500 and response.json()['detail'] == 'storage_failed'
+    assert not list(client.app.state.supervisor.settings.jobs_dir.glob('*/input*'))
+    assert store.pending_uploads() == []
+    if retry:
+        assert store.get(first['id'], installation['installationId'])['status'] == 'cancelled'
+        assert store.record(first['id'])['audio_pending'] == 0
+    else:
+        assert store.by_key('same-key', installation['installationId']) is None
+
+
+def test_failed_publication_and_deletion_keeps_upload_lease(client, monkeypatch):
+    installation = register(client)
+    store = client.app.state.store
+    with store.connection() as db:
+        db.execute("""CREATE TRIGGER fail_publish BEFORE INSERT ON jobs
+            BEGIN SELECT RAISE(ABORT,'injected commit failure'); END""")
+    actual = api.shutil.rmtree
+    def fail_job(path, *args, **kwargs):
+        if Path(path).parent == client.app.state.supervisor.settings.jobs_dir:
+            raise PermissionError('injected deletion failure')
+        return actual(path, *args, **kwargs)
+    monkeypatch.setattr(api.shutil, 'rmtree', fail_job)
+    assert submit(client, installation).status_code == 500
+    assert len(store.pending_uploads()) == 1
+    assert list(client.app.state.supervisor.settings.jobs_dir.glob('*/input*'))
+    assert submit(client, installation).json()['detail'] == 'installation_upload_in_progress'
+    monkeypatch.setattr(api.shutil, 'rmtree', actual)
+    client.app.state.supervisor.maintain()
+    assert store.pending_uploads() == []
+    assert not list(client.app.state.supervisor.settings.jobs_dir.glob('*/input*'))

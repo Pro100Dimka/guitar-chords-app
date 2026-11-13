@@ -4,6 +4,7 @@ from contextlib import contextmanager
 import hashlib
 import hmac
 import json
+import os
 from pathlib import Path
 import secrets
 import sqlite3
@@ -103,6 +104,12 @@ class JobStore:
         with self.connection() as db:
             secret = db.execute("SELECT value FROM metadata WHERE key='network_hmac_secret'").fetchone()[0]
         return hmac.new(bytes.fromhex(secret), address.encode("utf-8"), hashlib.sha256).hexdigest()
+
+    def assert_current_schema(self):
+        with self.connection() as db:
+            version = db.execute("PRAGMA user_version").fetchone()[0]
+        if version != SCHEMA_VERSION:
+            raise RuntimeError("Database schema changed after application initialization; restart compatible code")
 
     @staticmethod
     def _counter(db, kind, subject, period, limit, detail, now):
@@ -264,22 +271,26 @@ class JobStore:
             job_id = old["id"] if old else uuid.uuid4().hex
             directory = jobs_dir / job_id
             directory.mkdir(parents=True, exist_ok=True)
+            if upload_id:
+                # The upload lease remains an owner of the filesystem destination
+                # until SQLite publication succeeds. Cleanup can then recover a
+                # failed commit without discarding the reservation or leaving audio.
+                with (upload.parent / "target-job").open("w", encoding="ascii") as marker:
+                    marker.write(job_id)
+                    marker.flush()
+                    os.fsync(marker.fileno())
             upload.replace(directory / f"input{extension}")
-            try:
-                if old:
-                    db.execute("""UPDATE jobs SET status='queued',stage='queued',progress=0,
-                        error=NULL,result=NULL,extension=?,updated_at=?,created_at=?,completed_at=NULL,
-                        audio_pending=1,storage_bytes=?,network_id=? WHERE id=?""",
-                        (extension, now, now, storage, network, job_id))
-                else:
-                    db.execute("""INSERT INTO jobs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
-                        job_id, key, owner, network, sha256, language,
-                        filename if owner == PRIVATE_OWNER else "", extension,
-                        "queued", "queued", 0, None, None, now, now, None, 1, storage))
-                return self.public(db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone(), db)
-            except Exception:
-                # Keep a cleanup record if SQLite or the disk fails; startup also finds orphan dirs.
-                raise
+            if old:
+                db.execute("""UPDATE jobs SET status='queued',stage='queued',progress=0,
+                    error=NULL,result=NULL,extension=?,updated_at=?,created_at=?,completed_at=NULL,
+                    audio_pending=1,storage_bytes=?,network_id=? WHERE id=?""",
+                    (extension, now, now, storage, network, job_id))
+            else:
+                db.execute("""INSERT INTO jobs VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)""", (
+                    job_id, key, owner, network, sha256, language,
+                    filename if owner == PRIVATE_OWNER else "", extension,
+                    "queued", "queued", 0, None, None, now, now, None, 1, storage))
+            return self.public(db.execute("SELECT * FROM jobs WHERE id=?", (job_id,)).fetchone(), db)
 
     def queued(self):
         with self.connection() as db:

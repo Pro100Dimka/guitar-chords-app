@@ -1,0 +1,120 @@
+name: freetune-analysis
+services:
+  analysis:
+    build:
+      context: ..
+    image: freetune-analysis:local
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    init: true
+    cpus: 4
+    mem_limit: 5g
+    memswap_limit: 5g
+    pids_limit: 128
+    stop_grace_period: 15s
+    environment:
+      FREETUNE_SERVICE_MODE: shared
+      FREETUNE_DATA_DIR: /data
+      FREETUNE_WHISPER_MODEL: small
+      FREETUNE_WHISPER_PATH: /models/whisper-small
+      FREETUNE_CPU_THREADS: "4"
+      FREETUNE_MAX_QUEUED_JOBS: "8"
+      FREETUNE_ACTIVE_JOBS_PER_INSTALLATION: "2"
+      FREETUNE_JOBS_PER_DAY: "20"
+      FREETUNE_JOBS_PER_NETWORK_DAY: "60"
+      FREETUNE_REGISTRATIONS_PER_NETWORK_DAY: "5"
+      FREETUNE_REGISTRATIONS_PER_HOUR: "100"
+      FREETUNE_REQUESTS_PER_MINUTE: "120"
+      FREETUNE_CANCELLATIONS_PER_MINUTE: "30"
+      FREETUNE_MAX_HTTP_REQUESTS: "32"
+      FREETUNE_MAX_CONCURRENT_UPLOADS: "2"
+      FREETUNE_UPLOAD_TIMEOUT_SECONDS: "300"
+      FREETUNE_MAX_UPLOAD_MB: "256"
+      FREETUNE_MAX_DURATION_SECONDS: "1800"
+      FREETUNE_MAX_STORAGE_MB: "2048"
+      FREETUNE_MAX_RSS_MB: "4096"
+      FREETUNE_MAX_JOB_SECONDS: "3600"
+      FREETUNE_RETENTION_HOURS: "24"
+      FREETUNE_INSTALLATION_TTL_DAYS: "90"
+      FREETUNE_TRUSTED_PROXY_IPS: 172.28.81.2
+    volumes:
+      - analysis-data:/data
+      - model-data:/models:ro
+      - model-cache:/cache
+    tmpfs:
+      - /tmp:size=16m,uid=10001,gid=10001,mode=1770
+    networks:
+      analysis-internal:
+        ipv4_address: 172.28.81.3
+    healthcheck:
+      test: [CMD, python, -c, "import json,urllib.request; r=json.load(urllib.request.urlopen('http://127.0.0.1:8765/health',timeout=10)); assert r['ready'] and r['serviceMode']=='shared'"]
+      interval: 30s
+      timeout: 12s
+      start_period: 60s
+      retries: 3
+
+  caddy:
+    build:
+      context: .
+      dockerfile: Dockerfile.caddy
+    image: freetune-caddy:2.11.7-local
+    restart: unless-stopped
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    pids_limit: 64
+    environment:
+      FREETUNE_DOMAIN: ${FREETUNE_DOMAIN:?Set the existing developer-operated HTTPS domain}
+      ACME_EMAIL: ${ACME_EMAIL:?Set the operator certificate contact email}
+    ports:
+      - "80:8080"
+      - "443:8443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    tmpfs:
+      - /tmp:size=16m,uid=10001,gid=10001,mode=1770
+    networks:
+      edge: {}
+      analysis-internal:
+        ipv4_address: 172.28.81.2
+    depends_on:
+      analysis:
+        condition: service_healthy
+
+  model-setup:
+    profiles: [setup]
+    build:
+      context: ..
+    image: freetune-analysis:local
+    user: "10001:10001"
+    command: [python, -m, freetune_analysis.setup_models, --model, small, --directory, /models/whisper-small]
+    environment:
+      HF_HUB_OFFLINE: "0"
+      TRANSFORMERS_OFFLINE: "0"
+    volumes:
+      - model-data:/models
+      - model-cache:/cache
+    networks: [setup-egress]
+
+networks:
+  edge: {}
+  setup-egress: {}
+  analysis-internal:
+    internal: true
+    ipam:
+      config:
+        - subnet: 172.28.81.0/29
+
+volumes:
+  analysis-data: {}
+  model-data: {}
+  model-cache: {}
+  caddy-data: {}
+  caddy-config: {}

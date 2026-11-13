@@ -1,0 +1,39 @@
+{
+	admin off
+	email {$ACME_EMAIL}
+	http_port 8080
+	https_port 8443
+	log {
+		exclude http.log.access http.log.error
+	}
+	servers {
+		protocols h1 h2
+		max_header_size 16KiB
+		timeouts {
+			read_header 10s
+			read_body 300s
+			write 330s
+			idle 30s
+		}
+	}
+}
+
+{$FREETUNE_DOMAIN} {
+	request_body {
+		max_size 269484032
+	}
+	header {
+		Cache-Control no-store
+		X-Content-Type-Options nosniff
+		Strict-Transport-Security "max-age=31536000"
+	}
+	reverse_proxy analysis:8765 {
+		header_up X-FreeTune-Client-IP {remote_host}
+		header_up -Forwarded
+		header_up -X-Forwarded-For
+		transport http {
+			dial_timeout 5s
+			response_header_timeout 310s
+		}
+	}
+}

@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 import re
 import shutil
+import sqlite3
 import time
 
 from fastapi import FastAPI, HTTPException, Request
@@ -116,7 +117,14 @@ class RequestLimits:
                 self.inflight += 1
         except LimitError as exc:
             return await limit_response(exc)(scope, receive, send)
-        received, started = 0, time.monotonic()
+        received, started, upload_released = 0, time.monotonic(), False
+
+        def release_upload():
+            nonlocal upload_released
+            if upload_id and not upload_released:
+                self.supervisor.active_uploads.discard(upload_id)
+                self.supervisor.cleanup_upload(upload_id)
+                upload_released = True
 
         async def bounded_receive():
             nonlocal received
@@ -134,6 +142,9 @@ class RequestLimits:
 
         async def private_send(message):
             if message["type"] == "http.response.start":
+                # Parsing/copying has finished. Release staging before acknowledging
+                # so an immediate retry cannot race a successful response's lease.
+                release_upload()
                 message.setdefault("headers", []).append((b"cache-control", b"no-store"))
             await send(message)
 
@@ -144,9 +155,7 @@ class RequestLimits:
                 self.cancelling -= 1
             else:
                 self.inflight -= 1
-            if upload_id:
-                self.supervisor.active_uploads.discard(upload_id)
-                self.supervisor.cleanup_upload(upload_id)
+            release_upload()
 
 
 def create_app(settings: Settings | None = None):
@@ -268,6 +277,8 @@ def create_app(settings: Settings | None = None):
             raise HTTPException(422, "invalid_multipart") from None
         except ClientDisconnect:
             raise HTTPException(400, "upload_disconnected") from None
+        except sqlite3.Error:
+            raise HTTPException(500, "storage_failed") from None
         except OSError as exc:
             raise HTTPException(507 if exc.errno == 28 else 500,
                                 "insufficient_disk_space" if exc.errno == 28 else "storage_failed") from None

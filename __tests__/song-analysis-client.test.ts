@@ -854,3 +854,69 @@ test("an upload quota Retry-After remains visible after failure and expires with
     fetchMock.mock.calls.filter(([, init]) => init?.method === "POST")
   ).toHaveLength(1);
 });
+
+test("a failed SQLite cancellation releases runtime ownership, surfaces the failure and does not DELETE before persistence", async () => {
+  const failure = new Error("SQLite cancellation commit failed");
+  jest.mocked(cancelAnalysis).mockRejectedValueOnce(failure);
+  fetchMock.mockImplementation((url, init) => {
+    if (String(url).endsWith("/health")) return response({ ready: true });
+    if (init?.method === "DELETE") return response({ ok: true });
+    return response(
+      remote({ status: "queued", stage: "queued", progress: 0, result: null })
+    );
+  });
+  const pending = startSongAnalysis(7, settings);
+  // Observe the rejection before cancellation can reject both public promises.
+  const outcome = pending.then(
+    () => undefined,
+    (error: unknown) => error
+  );
+  await flush();
+  await expect(cancelSongAnalysis(7)).rejects.toBe(failure);
+  expect(await outcome).toBe(failure);
+  expect(analysisIsRunning(7)).toBe(false);
+  expect(
+    fetchMock.mock.calls.filter(([, init]) => init?.method === "DELETE")
+  ).toHaveLength(0);
+  expect(completeAnalysis).not.toHaveBeenCalled();
+
+  // The database error is repaired and cancellation is explicitly persisted;
+  // clearing runtime state alone must not claim that the old row was cancelled.
+  jest.mocked(getAnalysisJob).mockResolvedValue({
+    id: "local-1",
+    songId: 7,
+    status: "queued",
+    stage: "queued",
+    progress: 0,
+    serverJobId: "remote-1",
+    serverUrl: settings.url,
+    error: null,
+    attempt: 1,
+    updatedAt: 1
+  });
+  await cancelSongAnalysis(7);
+  expect(cancelAnalysis).toHaveBeenCalledTimes(2);
+  jest.mocked(getAnalysisJob).mockResolvedValue(null);
+  jest.mocked(beginAnalysis).mockResolvedValue({
+    id: "local-2",
+    songId: 7,
+    status: "queued",
+    stage: "queued",
+    progress: 0,
+    serverJobId: null,
+    serverUrl: settings.url,
+    error: null,
+    attempt: 2,
+    updatedAt: 2
+  });
+  fetchMock.mockImplementation((url, init) =>
+    String(url).endsWith("/health")
+      ? response({ ready: true })
+      : init?.method === "DELETE"
+        ? response({ ok: true })
+        : response(remote({ id: "remote-2", idempotency_key: "local-2" }))
+  );
+  await startSongAnalysis(7, settings);
+  expect(completeAnalysis).toHaveBeenCalledWith("local-2", result, false);
+  expect(analysisIsRunning(7)).toBe(false);
+});

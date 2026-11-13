@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -31,12 +32,16 @@ class Supervisor:
 
     async def start(self):
         self.settings.jobs_dir.mkdir(parents=True, exist_ok=True)
+        self.settings.jobs_dir.chmod(0o700)
         try:
             self.service_lock.acquire(timeout=0)
         except Timeout:
             raise RuntimeError("Another FreeTune server already owns FREETUNE_DATA_DIR") from None
         try:
             self.stopping = False
+            # App construction and ASGI startup are separate: another version may
+            # have migrated the idle directory between those two lock acquisitions.
+            self.store.assert_current_schema()
             self.store.interrupt_running()
             self.maintain()
             self.task = asyncio.create_task(self.run())
@@ -118,6 +123,17 @@ class Supervisor:
     def cleanup_upload(self, identifier):
         try:
             directory = self.settings.jobs_dir / "uploads" / identifier
+            marker = directory / "target-job"
+            if marker.exists():
+                target = marker.read_text("ascii")
+                if not re.fullmatch(r"[a-f0-9]{32}", target):
+                    return False
+                row = self.store.record(target)
+                # Active/published work owns its own reservation. Otherwise the
+                # upload lease must clean the destination of a failed commit.
+                if target != self.active_id and (row is None or row["status"] in TERMINAL):
+                    if not self.cleanup(target):
+                        return False
             if directory.exists():
                 shutil.rmtree(directory)
         except OSError:

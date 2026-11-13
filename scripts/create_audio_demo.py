@@ -33,7 +33,7 @@ audio{width:100%;height:44px;margin:10px 0}.controls{display:flex;gap:8px;align-
 без подстановки эталонного текста. Ошибки оставлены видимыми.</p>
 <div class="facts"><div class="fact"><b id="duration">—</b>исходная запись</div><div class="fact"><b id="elapsed">—</b>обработка · Linux CPU</div><div class="fact"><b id="memory">—</b>пик памяти процесса</div><div class="fact"><b id="chordsCount">—</b>интервалов аккордов</div></div>
 <section class="panel"><h2>Слушайте и проверяйте по записи</h2>
-<audio id="audio" controls preload="metadata" src="data:audio/mpeg;base64,@@AUDIO@@"></audio>
+<audio id="audio" controls preload="metadata" src="data:@@MIME@@;base64,@@AUDIO@@"></audio>
 <div class="readout"><div><span class="muted">Аккорд записи</span><div id="currentChord" class="chord">—</div></div><div><div class="muted">Позиция оригинала</div><div id="clock" class="time">0:00.000</div></div></div>
 <div id="rail" class="rail" aria-label="Интервалы распознанных аккордов"><div id="head" class="head"></div></div>
 <div class="controls"><button id="first" class="primary">К первому распознанному слову</button><button id="setA">Поставить A</button><button id="setB">Поставить B</button><button id="clearLoop">Снять повтор</button><span id="loop" class="muted"></span></div>
@@ -64,7 +64,7 @@ const warningText={lyrics_unreliable:'Некоторые слова неразб
 $('warnings').textContent=result.warnings.map(x=>warningText[x]||x).join(' ');
 const chordNodes=result.chords.map((chord,i)=>{const node=document.createElement('button');node.className='interval';node.style.left=`${100*chord.start/result.duration}%`;node.style.width=`${100*(chord.end-chord.start)/result.duration}%`;node.title=`${chord.label} · ${time(chord.start)}–${time(chord.end)}`;node.setAttribute('aria-label',node.title);node.onclick=()=>{audio.currentTime=chord.start;update()};$('rail').append(node);return node});
 const lineNodes=result.lyrics.map((line,i)=>{const node=document.createElement('div');node.className='lyric';const stamp=document.createElement('span');stamp.className='stamp';stamp.textContent=`${time(line.start)} — ${time(line.end)}`;node.append(stamp);const words=document.createElement('div');words.className='words';const wordNodes=[];
-if(line.words.length){for(const word of line.words){const span=document.createElement('span');span.className='word'+(word.uncertain?' uncertain':'');span.textContent=word.text+' ';span.title=`${time(word.start)}–${time(word.end)}`;span.onclick=event=>{event.stopPropagation();audio.currentTime=word.start;update()};words.append(span);wordNodes.push(span)}}else{words.textContent=line.text;if(line.uncertain)words.classList.add('uncertain')}
+if(line.words.length){for(const word of line.words){const span=document.createElement('span');span.className='word'+(word.uncertain?' uncertain':'');span.textContent=word.text+' ';span.title=`${time(word.start)}–${time(word.end)}`;span.onclick=event=>{event.stopPropagation();audio.currentTime=word.start;update()};words.append(span);wordNodes.push(span)}}else{words.textContent=line.text;stamp.textContent+=' · Интервал строки; время слов не определено';if(line.uncertain)words.classList.add('uncertain')}
 node.append(words);node.onclick=()=>{audio.currentTime=line.start;update()};$('lyrics').append(node);return{node,wordNodes}});
 function update(){let t=audio.currentTime;if(a!==null&&b!==null&&t>=b&&!audio.paused){audio.currentTime=a;t=a}$('clock').textContent=time(t);$('head').style.left=`${100*t/result.duration}%`;const chord=active(result.chords,t),line=active(result.lyrics,t);$('currentChord').textContent=chord<0?'—':result.chords[chord].label;chordNodes.forEach((n,i)=>n.classList.toggle('active',i===chord));lineNodes.forEach(({node,wordNodes},i)=>{node.classList.toggle('active',i===line);const word=i===line?active(result.lyrics[i].words,t):-1;wordNodes.forEach((n,k)=>n.classList.toggle('active',k===word))});if(line!==previousLine&&line>=0&&!audio.paused){$('lyrics').scrollTo({top:lineNodes[line].node.offsetTop-$('lyrics').offsetTop-70,behavior:'smooth'})}previousLine=line;}
 function showLoop(){$('loop').textContent=a===null?'':`A ${time(a)}${b===null?'':` → B ${time(b)}`}`}
@@ -94,6 +94,9 @@ def main():
     if result.get("version") != 1 or not result.get("duration") or not result.get("model"):
         raise ValueError("Supply the actual version-1 analysis result, not a placeholder")
     recording = args.audio.read_bytes()
+    mime = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".m4a": "audio/mp4", ".ogg": "audio/ogg"}.get(args.audio.suffix.lower())
+    if not mime:
+        raise ValueError("Unsupported browser audio format")
     sha = hashlib.sha256(recording).hexdigest()
     if state.get("audio_sha256") and state["audio_sha256"] != sha:
         raise ValueError("The original audio hash does not match this analysis job")
@@ -104,6 +107,7 @@ def main():
     replacements = {
         "@@TITLE@@": html.escape(f"{args.artist} — {args.title}"),
         "@@AUDIO@@": base64.b64encode(recording).decode(),
+        "@@MIME@@": mime,
         "@@RESULT@@": json.dumps(result, ensure_ascii=False).replace("<", "\\u003c"),
         "@@HASH@@": sha, "@@ATTRIBUTION@@": credits,
     }

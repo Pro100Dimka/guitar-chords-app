@@ -1,6 +1,6 @@
 # Model and dependency provenance
 
-Checked against the upstream repositories/model cards on 2026-11-12. Preserve
+Checked against the upstream repositories/model cards on 2026-11-13. Preserve
 these notices when redistributing the backend or model files. The Android APK
 does not bundle the Python runtime, FFmpeg, or ASR/chord checkpoints.
 
@@ -44,12 +44,59 @@ No real Android phone was available to validate native singing ASR speed and
 memory. Actual delivered measurements must distinguish the Linux server,
 Android emulator, and any future physical-device runs.
 
+The recovery update keeps **small** as the default. The earlier turbo candidate
+improved average English text WER, but failed instrumental negative controls;
+the recovered native diagnostic reproduces false words through the original
+adapter at both two and four CPU threads. This is not fixed by an invented
+confidence threshold or a phrase blacklist. See
+[`quality-v3-native-diagnosis.json`](../docs/validation/quality-v3-native-diagnosis.json).
+`singing.py` observes the pinned SDK's raw attention/DTW alignment without
+changing decoder seeking. Materially adjusted word times are exposed as
+uncertain line timing rather than claimed precise word spans. The associated
+loss of word-level coverage must be reported with WER and paired boundary error.
+
+`chords.py` changes only the initial HMM prior so an excerpt may begin on an
+observed chord instead of being forced through an initial N frame. It uses the
+same five verified neural checkpoints, dictionary, transition penalties and
+20 ms grid. Its recurrence and the alignment observation code retain the
+upstream MIT notices in `licenses/`; no new trained weights are introduced.
+
 Mandatory Demucs preprocessing was deliberately omitted. The Jam-ALT paper
 reports that adding Demucs worsened Whisper v3 aggregate WER in that experiment
 (35.5% to 48.0%; known language 32.6% to 46.6%). These are external benchmark
 results, not this app's scores. They show that separation cannot be assumed to
 improve singing recognition. Source, Table 1:
 https://arxiv.org/html/2408.06370v1 . No Demucs weights are distributed here.
+
+There is a separate distribution constraint: the upstream Demucs author states
+that the supplied pretrained weights are not covered by the code's MIT license
+and are for scientific purposes. Do not infer a permissive weight license from
+the repository's code license or an unaffiliated converted-model card:
+https://github.com/facebookresearch/demucs/issues/327 . No separator weights
+were downloaded or used in the recovery benchmarks. A separation experiment
+would require a specific distributable checkpoint and a controlled quality
+comparison, including its latency, memory and unmodified time origin.
+
+Two more recent ASR families were inspected but not added as untested runtime
+dependencies:
+
+- NVIDIA `parakeet-tdt-0.6b-v3` explicitly supports English, Russian and Ukrainian
+  and publishes its weights under CC BY 4.0. Its model card's speech scores do
+  not establish singing accuracy on this corpus. No FreeTune timing/memory/WER
+  numbers are claimed for it: https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3 .
+- Qwen3-ASR-0.6B publishes Apache-2.0 weights and lists singing among supported
+  audio types, but Ukrainian is absent from its published language list and
+  from the accompanying forced aligner's list. It was not selected as a
+  three-language replacement: https://huggingface.co/Qwen/Qwen3-ASR-0.6B .
+
+The shared-service update pins FastAPI, Starlette and python-multipart in
+`requirements.txt`; these are server code dependencies, not ASR models or
+weights. The exact installed package versions are recorded in
+[`quality-v3-python-environment.txt`](../docs/validation/quality-v3-python-environment.txt).
+Their upstream licenses are MIT, BSD-3-Clause and Apache-2.0 respectively:
+https://github.com/fastapi/fastapi/blob/master/LICENSE ,
+https://github.com/Kludex/starlette/blob/main/LICENSE.md ,
+https://github.com/Kludex/python-multipart/blob/master/LICENSE.txt .
 
 Madmom's pretrained chord models were excluded because they are
 **CC BY-NC-SA 4.0**, unlike its permissive code license:
@@ -79,3 +126,12 @@ https://creativecommons.org/licenses/by/3.0/ . Its artist tag is `Cortéz`, albu
 that the dataset abbreviates as CC BY. Redistributed demo assets must credit the
 artist, retain the license/source, and describe any excerpting or audio
 conversion. Recognized model output is not a human-corrected transcript.
+
+The recovered ten-song Ukrainian/Russian corpus pins primary Commons revision
+URLs, original SHA-1/SHA-256 hashes, exact byte counts, authors and per-recording
+licenses in [`slavic-corpus-v3-sources.json`](../docs/validation/slavic-corpus-v3-sources.json).
+CC BY-SA adaptations retain the applicable share-alike terms. Historical public
+domain declarations are recorded as source declarations with jurisdictional
+limits, not generalized into a worldwide clearance. Full untrimmed WAV
+conversions are evaluation inputs; no published poem is treated as a verified
+transcript of a particular performance.

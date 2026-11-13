@@ -1,6 +1,12 @@
 ## Audio song analysis (Android)
 
-Import MP3/WAV/M4A into the library, recognize actual singing and chords using the free self-hosted backend, and practice with the original audio and editable timestamps.
+Import MP3/WAV/M4A into the library, analyze singing and harmony with the free
+analysis backend, and practice using the original audio and editable timestamps.
+The shared-service client uses automatic installation access; ordinary users do
+not enter a server address or token. **No public developer service is deployed
+yet**: the bundled URL is deliberately empty and ordinary analysis is disabled
+with an explanation. Developer deployment files and the compatible private-server
+mode are included. No APK was built for this update.
 
 - [Setup and user guide (Russian)](docs/audio-song-analysis.md)
 - [Backend setup, models and HTTP contract](backend/README.md)
