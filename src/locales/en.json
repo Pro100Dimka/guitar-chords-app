@@ -268,5 +268,6 @@
   "AutofillNoAudioMatch": "No song matched this audio.",
   "AutofillMicDenied": "Microphone access denied.",
   "AutofillRecognitionError": "Song recognition unavailable. Check connection and try again.",
-  "AutofillReplaceIdentity": "The existing song title and artist will be replaced. Lyrics are kept until you select a replacement."
+  "AutofillReplaceIdentity": "The existing song title and artist will be replaced. Lyrics are kept until you select a replacement.",
+  "AutofillRecognitionRateLimited": "Shazam is rate-limiting requests. Try again later."
 }
