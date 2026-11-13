@@ -6,6 +6,7 @@ import {
   Image,
   FlatList,
   ScrollView,
+  Platform,
   StyleSheet,
   useWindowDimensions,
   View
@@ -121,7 +122,7 @@ const Library: React.FC = () => {
       <Text accessibilityRole="header" style={styles.heading}>
         {t("library")}
       </Text>
-      <View style={styles.collections}>
+      {Platform.OS === "android" && <View style={styles.collections}>
         <Action
           glass
           label={t("AutofillRecognize")}
@@ -129,7 +130,7 @@ const Library: React.FC = () => {
             navigation.navigate("createSong", { recognize: "mic" })
           }
         />
-      </View>
+      </View>}
       <SearchBar setFilters={setFilters} />
       <View style={styles.collections}>
         {["AllSongs", "RecentSongs", "Favorites"].map((key) => (
