@@ -7,6 +7,8 @@ export interface LyricsOption {
   title: string;
   artist: string;
   content: string;
+  album: string;
+  duration: number | null;
   source: "LRCLIB";
 }
 const normalize = (value: string) =>
@@ -19,16 +21,21 @@ type LrcResult = {
   id?: unknown;
   trackName?: unknown;
   artistName?: unknown;
+  albumName?: unknown;
+  duration?: unknown;
   plainLyrics?: unknown;
   syncedLyrics?: unknown;
   instrumental?: unknown;
 };
+let retryAfter = 0;
 export async function lookupLyrics(
   title: string,
   artist: string,
   signal?: AbortSignal
 ): Promise<LyricsOption[]> {
   if (!title.trim() || !artist.trim()) throw new Error("MissingIdentity");
+  if (signal?.aborted) throw new Error("Cancelled");
+  if (Date.now() < retryAfter) throw new Error("RateLimited");
   const params = new URLSearchParams({
     track_name: title.trim(),
     artist_name: artist.trim()
@@ -42,9 +49,15 @@ export async function lookupLyrics(
       headers: { "Lrclib-Client": client, Accept: "application/json" },
       signal: timeout.signal
     });
-    if (response.status === 429) throw new Error("RateLimited");
+    if (response.status === 429) {
+      const seconds = Number(response.headers?.get("Retry-After"));
+      retryAfter = Date.now() + (Number.isFinite(seconds) && seconds > 0
+        ? Math.min(seconds, 3600) * 1000 : 30000);
+      throw new Error("RateLimited");
+    }
     if (!response.ok) throw new Error("LyricsServiceUnavailable");
     const payload: unknown = await response.json();
+    if (timeout.signal.aborted) throw new Error("Cancelled");
     if (!Array.isArray(payload)) throw new Error("InvalidLyricsResponse");
     return payload.slice(0, 20).flatMap((item: LrcResult) => {
       if (
@@ -63,6 +76,8 @@ export async function lookupLyrics(
             : "";
       if (!content.trim() || content.length > 200000) return [];
       return [{
+        album: typeof item.albumName === "string" ? item.albumName : "",
+        duration: typeof item.duration === "number" && Number.isFinite(item.duration) && item.duration >= 0 ? item.duration : null,
         id: item.id,
         title: item.trackName,
         artist: item.artistName,
