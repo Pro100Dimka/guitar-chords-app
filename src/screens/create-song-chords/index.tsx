@@ -161,7 +161,9 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
             message.includes("Cancelled")
           ) {
             setRecognitionStatus(t("AutofillSearchCancelled"));
-          } else if (message.includes("PermissionDenied")) {
+          } else if (message.includes("RateLimited")) {
+          setRecognitionStatus(t("AutofillRecognitionRateLimited"));
+        } else if (message.includes("PermissionDenied")) {
             setRecognitionStatus(t("AutofillMicDenied"));
           } else {
             setRecognitionStatus(t("AutofillRecognitionError"));
@@ -434,7 +436,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       </View>
                     )}
                   </View>
-                  <View style={styles.importButton}>
+                  {Platform.OS === "android" && <View style={styles.importButton}>
                     <Action
                       glass
                       label={t("AutofillRecognizeMic")}
@@ -463,7 +465,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         {recognitionStatus}
                       </Text>
                     )}
-                  </View>
+                  </View>}
                   <View style={styles.importButton}>
                     <Action
                       glass
