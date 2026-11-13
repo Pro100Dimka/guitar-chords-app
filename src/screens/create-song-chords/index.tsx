@@ -62,6 +62,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
   ({ song, setIsEdit }: ICreateChordSongProps) => {
     const route = useRoute<RouteProp<RootStackParamList, "createSong">>();
     const example = !song && route.params?.example;
+    const { t } = useTranslation();
     const [extras, setExtras] = useState(false);
     const [importing, setImporting] = useState(false);
     const [coverBusy, setCoverBusy] = useState(false);
@@ -233,7 +234,6 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       return () => listener.remove();
     }, []);
     const navigation = useNavigation<NavigationProp>();
-    const { t } = useTranslation();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [initialValuesState, setInitialValuesState] =
       useState<FormValues>(initialValues);
