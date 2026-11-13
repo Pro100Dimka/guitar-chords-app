@@ -7,7 +7,6 @@ src/config/analysis-service.json.
 import argparse
 import ipaddress
 import json
-import socket
 import ssl
 import sys
 import urllib.error
@@ -21,7 +20,7 @@ def validate_public_url(raw: str) -> str:
             or parsed.password or parsed.query or parsed.fragment
             or parsed.path not in ("", "/")):
         raise ValueError("Use a bare public HTTPS origin, without a path, credentials or query")
-    hostname = parsed.hostname.rstrip(".")
+    hostname = parsed.hostname.rstrip(".")\n    if not hostname or hostname.endswith(".local") or hostname.endswith(".internal"):\n        raise ValueError("Use a public DNS hostname")
     if hostname == "localhost" or hostname.endswith(".localhost"):
         raise ValueError("The release endpoint cannot be localhost")
     try:
@@ -42,8 +41,16 @@ def check_health(origin: str, timeout: float = 15.0) -> dict:
         method="GET",
     )
     # Default TLS context verifies chain and hostname. Never disable verification.
-    with urllib.request.urlopen(request, timeout=timeout,
-                                context=ssl.create_default_context()) as response:
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, request, fp, code, msg, headers, newurl):
+            raise ValueError("Public health endpoint must not redirect")
+
+    opener = urllib.request.build_opener(
+        urllib.request.HTTPSHandler(context=ssl.create_default_context()),
+        NoRedirect(),
+        urllib.request.ProxyHandler({}),
+    )
+    with opener.open(request, timeout=timeout) as response:
         if response.status != 200:
             raise ValueError(f"Unexpected health status: {response.status}")
         if response.headers.get_content_type() != "application/json":
