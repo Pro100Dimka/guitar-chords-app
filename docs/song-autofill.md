@@ -11,7 +11,11 @@ Base: d52753586e1c7126114442a1eaf785404b397b8c. No changes from audio-song-analy
 - LRCLIB results show album, duration and expandable full text inside the same form; distinct records stay separate.
 - LRCLIB honors `Retry-After` via a local cooldown after HTTP 429; stale responses cannot replace manual edits.
 - Lookup labels/errors localized in English, Ukrainian and Russian.
-- Jest cases cover identity, partial lyrics, album/length variants, pre-cancelled request, no-match and 429; a branch-only GitHub Actions workflow runs Jest, TypeScript and lint without building APK. CI outcomes must be checked before declaring green.
+- Jest cases cover identity, partial lyrics, album/length variants, pre-cancelled request, no-match and 429; a branch-only GitHub Actions workflow runs Jest, TypeScript and lint without building APK. The 2026-11-13 run `43429676023` passed: 12 test suites, 52 tests, TypeScript and ESLint. See https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43429676023.
+
+## Live request verification
+- GitHub Actions run `43429676023` made a real, direct HTTP request to LRCLIB for `Imagine` / `John Lennon`: HTTP 200, 20 candidates, exact title+artist present. No lyrics were logged. This verifies LRCLIB reachability from the CI runner only, not mobile-device accessibility across countries.
+- No real sample-based Shazam fingerprint request, Android microphone capture, audio file import or temp cleanup test was performed. The corresponding feature remains absent.
 
 ## Provider review
 | Source | Actual current status | Restrictions / action |
@@ -37,13 +41,13 @@ No chord source meets the two-authorized-providers requirement. No owner contact
 ## Verification matrix
 | Scenario | Status |
 | --- | --- |
-| API identity matching; no-match; 429; metadata variants; cancellation | Jest added; GitHub Actions checks to be reviewed |
+| API identity matching; no-match; 429; metadata variants; cancellation | Jest verified in CI: 52 tests passed (12 suites) |
 | Form result is opt-in and saved via existing Save | Static review, device not tested |
 | Cancel/timeout/stale response | Static review, device not tested |
 | ShazamIO audio -> chords -> form | Blocked, not end-to-end tested |
 | Fall back to independent chord provider | Blocked on permissions/integration |
 | Microphone temp-file lifecycle and crash cleanup | Not applicable, audio capture not implemented |
 | Android / iOS real hardware | Not tested |
-| npm test, lint, TypeScript | Branch GitHub Actions workflow added, results pending at documentation write |
+| npm test, lint, TypeScript | All passed in GitHub Actions `43429676023` |
 
 Do not advertise this branch as complete song recognition until the above blockers are resolved. No APK built.
