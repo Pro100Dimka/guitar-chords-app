@@ -1,6 +1,6 @@
 // src/screens/create-song-chords/index.tsx
 import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
-import { Formik, FormikHelpers } from "formik";
+import { Formik, FormikHelpers, FormikProps } from "formik";
 import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -64,6 +64,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const [lyricsMessage, setLyricsMessage] = useState("");
     const [lyricsOptions, setLyricsOptions] = useState<Awaited<ReturnType<typeof lookupLyrics>>>([]);
     const lyricsController = useRef<AbortController | null>(null);
+    const currentForm = useRef<FormikProps<FormValues>>(null);
     const lyricsGeneration = useRef(0);
     const cancelLyrics = () => {
       lyricsGeneration.current++;
@@ -143,6 +144,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           keyboardVerticalOffset={formTop}
         >
           <Formik
+            innerRef={currentForm}
             initialValues={initialValuesState}
             enableReinitialize
             validationSchema={validationSchema(t)}
@@ -370,7 +372,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         try {
                           const results = await lookupLyrics(title, artist, controller.signal);
                           if (generation !== lyricsGeneration.current) return;
-                          if (oldValues !== JSON.stringify(formik.values)) {
+                          if (oldValues !== JSON.stringify(currentForm.current?.values)) {
                             setLyricsMessage("Поля изменились. Запусти поиск заново.");
                             return;
                           }
