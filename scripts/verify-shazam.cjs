@@ -13,7 +13,7 @@ async function recognize(path) {
     crypto.randomUUID().toUpperCase() + "/" + crypto.randomUUID().toUpperCase() +
     "?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3&sharehub=true&hubv5minorversion=v5.1&hidelb=true&video=v3";
   const body = {timezone:"Europe/Paris",timestamp,context:{},geolocation:{},
-    signature:{uri,samplems:Math.round(readFileSync(path).byteLength / 32)}};
+    signature:{uri,samplems:Math.min(12000,Math.round(readFileSync(path).byteLength / 32))}};
   const response = await fetch(endpoint, {method:"POST",
     headers:{"Content-Type":"application/json","User-Agent":"Dalvik/2.1.0 (Linux; U; Android 11)","X-Shazam-Platform":"IPHONE","X-Shazam-AppVersion":"14.1.0","Accept-Language":"en-US"},
     body:JSON.stringify(body),signal:AbortSignal.timeout(20000)});
@@ -23,6 +23,8 @@ async function recognize(path) {
   catch {}
   console.log(JSON.stringify({clip:path,status:response.status,track,signatureBytes:uri.length}));
   if (!response.ok) throw Error("Shazam endpoint returned HTTP "+response.status);
+  if (path.endsWith("/gloria.pcm") && (track?.title !== "I Will Survive" || track?.artist !== "Gloria Gaynor"))
+    throw Error("Known positive fixture did not match expected song");
   return track;
 }
 (async()=>{let matched=0;for(const path of process.argv.slice(2)){if(await recognize(path)) matched++;}
