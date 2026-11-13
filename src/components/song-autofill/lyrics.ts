@@ -10,7 +10,7 @@ export interface LyricsOption {
   source: "LRCLIB";
 }
 const normalize = (value: string) =>
-  value.normalize("NFKC").toLocaleLowerCase().replace(/[^\\p{L}\\p{N}]+/gu, " ").trim();
+  value.normalize("NFKC").toLocaleLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
 export const matchingIdentity = (expected: string, actual: string) =>
   !!normalize(expected) && normalize(expected) === normalize(actual);
 
@@ -59,14 +59,14 @@ export async function lookupLyrics(
         typeof item.plainLyrics === "string" && item.plainLyrics.trim()
           ? item.plainLyrics
           : typeof item.syncedLyrics === "string"
-            ? item.syncedLyrics.replace(/^\\[[0-9:.]+\\]\\s*/gm, "")
+            ? item.syncedLyrics.replace(/^\[[0-9:.]+\\]\s*/gm, "")
             : "";
       if (!content.trim() || content.length > 200000) return [];
       return [{
         id: item.id,
         title: item.trackName,
         artist: item.artistName,
-        content: content.replace(/\\r\\n?/g, "\\n").trim(),
+        content: content.replace(/\r\n?/g, "\n").trim(),
         source: "LRCLIB" as const
       }];
     });
