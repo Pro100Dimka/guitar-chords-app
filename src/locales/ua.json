@@ -258,5 +258,15 @@
   "AutofillHidePreview": "Приховати текст",
   "AutofillAlbum": "Альбом",
   "AutofillDuration": "Тривалість",
-  "AutofillUnknownAlbum": "Альбом невідомий"
+  "AutofillUnknownAlbum": "Альбом невідомий",
+  "AutofillRecognize": "Розпізнати пісню",
+  "AutofillRecognizeMic": "Розпізнати з мікрофона",
+  "AutofillRecognizeFile": "Розпізнати аудіофайл",
+  "AutofillListening": "Слухаю 12 секунд…",
+  "AutofillIdentifying": "Визначаю пісню…",
+  "AutofillRecognized": "Визначено: {{artist}} — {{title}}",
+  "AutofillNoAudioMatch": "Композицію не знайдено.",
+  "AutofillMicDenied": "Немає дозволу на мікрофон.",
+  "AutofillRecognitionError": "Не вдалося розпізнати пісню. Перевірте з'єднання.",
+  "AutofillReplaceIdentity": "Назву та виконавця буде замінено. Текст залишиться до вибору іншого варіанта."
 }
