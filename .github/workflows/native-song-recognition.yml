@@ -30,6 +30,8 @@ jobs:
           cargo install cargo-ndk --locked
       - name: Native host fingerprint compilation
         run: cargo test --manifest-path android/song-fingerprint/Cargo.toml
+      - name: Install audio decoder for CI-only test clips
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Download public-domain recordings (not committed)
         continue-on-error: true
         run: |
