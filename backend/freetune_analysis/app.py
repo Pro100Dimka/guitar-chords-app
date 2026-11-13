@@ -31,6 +31,27 @@ def limit_response(exc):
                         headers={"Retry-After": str(exc.retry_after), "Cache-Control": "no-store"})
 
 
+class BoundedMultipartParser(MultiPartParser):
+    """Field-body limits do not include multipart headers such as filenames."""
+
+    def on_part_begin(self):
+        self.header_bytes = 0
+        super().on_part_begin()
+
+    def _header_size(self, start, end):
+        self.header_bytes += end - start
+        if self.header_bytes > 16 * 1024:
+            raise MultiPartException("Multipart headers too large")
+
+    def on_header_field(self, data, start, end):
+        self._header_size(start, end)
+        super().on_header_field(data, start, end)
+
+    def on_header_value(self, data, start, end):
+        self._header_size(start, end)
+        super().on_header_value(data, start, end)
+
+
 class RequestLimits:
     """Authenticate, reserve capacity and limit the stream before multipart parsing."""
 
@@ -228,7 +249,7 @@ def create_app(settings: Settings | None = None):
             raise HTTPException(503, "service_not_ready", headers={"Retry-After": "60"})
         if not request.headers.get("content-type", "").lower().startswith("multipart/form-data"):
             raise HTTPException(422, "multipart_required")
-        parser = MultiPartParser(request.headers, request.stream(), max_files=1, max_fields=3, max_part_size=1024)
+        parser = BoundedMultipartParser(request.headers, request.stream(), max_files=1, max_fields=3, max_part_size=1024)
         try:
             form = await parser.parse()
             if len(form.multi_items()) != len(form) or not {"file", "idempotency_key", "audio_sha256"} <= set(form.keys()) or not set(form.keys()) <= {"file", "language", "idempotency_key", "audio_sha256"}:

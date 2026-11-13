@@ -1,12 +1,12 @@
 {
   "schemaVersion": 1,
-  "recordedAtUtc": "2026-11-13T00:57:20.346067+00:00",
+  "recordedAtUtc": "2026-11-13T01:16:49.235678+00:00",
   "scope": "Restored shared service contract, resource admission, privacy cleanup and deployment templates",
   "publicServiceDeployed": false,
   "physicalAndroidTested": false,
   "apkBuilt": false,
   "contractTests": {
-    "command": "backend/.venv/bin/python -m pytest -q tests/test_contract.py tests/test_shared_service.py",
+    "command": ".venv/bin/python -m pytest -q tests/test_contract.py tests/test_shared_service.py",
     "passed": 61,
     "failed": 0,
     "elapsedSeconds": 17.03,
@@ -21,8 +21,11 @@
       "schema migration rollback, future refusal and startup lock race",
       "retention during busy worker",
       "cleanup failure retains row and quota",
-      "SQLite publication failure cleans moved source or retains upload lease"
-    ]
+      "SQLite publication failure cleans moved source or retains upload lease",
+      "multipart part headers bounded before filename accumulation"
+    ],
+    "workingDirectory": "backend",
+    "note": "The 61-case focused run preceded one additional multipart-header regression; all 62 current contract cases are included in the subsequent full suite."
   },
   "realModelSharedSmoke": {
     "schemaVersion": 1,
@@ -180,15 +183,27 @@
     ]
   },
   "validatedSourceSha256": {
-    "backend/freetune_analysis/app.py": "3046589610abb5ce4dac2c770870567cf33c8cbcc28e083aa3bc4210d6be414a",
+    "backend/freetune_analysis/app.py": "8ef26a086ff337c3005770809459a653aa27a6705883256a37a5293f7d5489ef",
     "backend/freetune_analysis/config.py": "8ea65fbb7fa8892a3f38764d90cda5dfae9f7a976051b514694219420a1c74aa",
     "backend/freetune_analysis/store.py": "0fb5e74938bf9cfe79a92c03fc252eac3af16e81e3c7fc49c4526fdfd4214063",
     "backend/freetune_analysis/supervisor.py": "48120d6d39c7962ae6cbfab5ccf5db17fd40e75bee7cfeab2d444b9731d72d24",
     "backend/freetune_analysis/__main__.py": "1b259fb60ad2467bb4a418870a3df520c24e35df956825ccede8002c359fe696",
-    "backend/tests/test_shared_service.py": "2ffa7daefc8f72185fc19cb3a10c70f41221aae3413d6829b1926b5d255021b3",
+    "backend/tests/test_shared_service.py": "cc5b1df6bacd9f1b574fbcb4eaaac99b5e1c13a9641d01b9386a6df11ce03376",
     "backend/Dockerfile": "d4d586264e24083a03e3eebe8706361ca365754db00a99b0f055bf2d8bfa8635",
     "backend/deploy/compose.yaml": "16639496c9a005f3dbd266ed4dfc39a44e5f93cf1ae0de82f628abed8946d3ab",
     "backend/deploy/Caddyfile": "5503b4a6bbf657ab08e876a8c88e419fa5288fb21bb773664ffbbed838e1ce09",
     "backend/deploy/Dockerfile.caddy": "61ba849c7fc9b3e310c6560a7f616c6478746d52532454010d2fe053b61029d7"
+  },
+  "fullBackendTests": {
+    "workingDirectory": "backend",
+    "command": ".venv/bin/python -m pytest -q tests",
+    "passed": 105,
+    "failed": 0,
+    "elapsedSeconds": 18.48,
+    "warnings": 2,
+    "warningsNote": "Starlette test-client/httpx and anyio portal deprecation notices; no test failures.",
+    "log": "backend/data/evaluation/shared-recovery-smoke/backend-tests-final.txt",
+    "logSha256": "dd14626f0bba9f06a21c9df2d7756934582dc534c2e7f12bdc655432dcdfff7f",
+    "coverageNote": "Includes all quality/decoder and 62 private/shared API contract cases, including the 16 KiB multipart part-header cap. No additional model inference smoke was run."
   }
 }

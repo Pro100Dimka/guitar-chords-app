@@ -562,3 +562,15 @@ def test_failed_publication_and_deletion_keeps_upload_lease(client, monkeypatch)
     client.app.state.supervisor.maintain()
     assert store.pending_uploads() == []
     assert not list(client.app.state.supervisor.settings.jobs_dir.glob('*/input*'))
+
+
+def test_multipart_part_headers_cannot_consume_the_audio_body_budget(client):
+    installation = register(client)
+    boundary = 'header-bound'
+    body = (b'--header-bound\r\nContent-Disposition: form-data; name="file"; filename="'
+            + b'x' * (32 * 1024) + b'.wav"\r\n\r\n' + AUDIO + b'\r\n--header-bound--\r\n')
+    response = client.post('/v1/jobs', headers={**headers(installation),
+                           'Content-Type': 'multipart/form-data; boundary=' + boundary}, content=body)
+    assert response.status_code == 422 and response.json()['detail'] == 'invalid_multipart'
+    assert client.app.state.store.pending_uploads() == []
+    assert client.app.state.store.count_queued() == 0
