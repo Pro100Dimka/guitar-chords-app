@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 3,
+  "legacySourceCommit": "3a73101fb22483b405e61f1c3ce340709f8cc1da",
+  "method": "Execute original adapter function on captured identical native segments; synthetic PCM/model replay, not separate inference",
+  "referenceSupplied": false,
+  "separateInferenceRuntimeMeasured": false,
+  "checks": [
+    {
+      "id": "HILA_-_Give_Me_the_Same",
+      "nativeSegments": 40,
+      "lyricsTextTimesAndConfidenceExactlyEqual": true,
+      "languageExactlyEqual": true,
+      "warningsExactlyEqual": true
+    },
+    {
+      "id": "Quentin_Hannappe_-_Keep_On",
+      "nativeSegments": 25,
+      "lyricsTextTimesAndConfidenceExactlyEqual": true,
+      "languageExactlyEqual": true,
+      "warningsExactlyEqual": true
+    },
+    {
+      "id": "Songwriterz_-_Back_In_Time",
+      "nativeSegments": 48,
+      "lyricsTextTimesAndConfidenceExactlyEqual": true,
+      "languageExactlyEqual": true,
+      "warningsExactlyEqual": true
+    },
+    {
+      "id": "Kinematic_-_Peyote",
+      "nativeSegments": 14,
+      "lyricsTextTimesAndConfidenceExactlyEqual": true,
+      "languageExactlyEqual": true,
+      "warningsExactlyEqual": true
+    }
+  ],
+  "passed": true
+}
