@@ -220,8 +220,8 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     }
 
     private fun submit(signature: String, durationMs: Int): Pair<String, String>? {
-        val timestamp = System.currentTimeMillis() / 1000
-        val url = URL("https://amp.shazam.com/discovery/v5/en/US/android/-/tag/" +
+        val timestamp = System.currentTimeMillis()
+        val url = URL("https://amp.shazam.com/discovery/v5/en/US/iphone/-/tag/" +
             UUID.randomUUID() + "/" + UUID.randomUUID() +
             "?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3")
         val payload = JSONObject().apply {
@@ -229,14 +229,10 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             put("timestamp", timestamp)
             put("signature", JSONObject().apply {
                 put("samplems", durationMs)
-                put("timestamp", timestamp)
                 put("uri", signature)
             })
-            put("geolocation", JSONObject().apply {
-                put("latitude", 0.0)
-                put("longitude", 0.0)
-                put("altitude", 0.0)
-            })
+            put("geolocation", JSONObject())
+            put("context", JSONObject())
         }
         val conn = url.openConnection() as HttpURLConnection
         connection = conn
