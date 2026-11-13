@@ -162,8 +162,8 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           ) {
             setRecognitionStatus(t("AutofillSearchCancelled"));
           } else if (message.includes("RateLimited")) {
-          setRecognitionStatus(t("AutofillRecognitionRateLimited"));
-        } else if (message.includes("PermissionDenied")) {
+            setRecognitionStatus(t("AutofillRecognitionRateLimited"));
+          } else if (message.includes("PermissionDenied")) {
             setRecognitionStatus(t("AutofillMicDenied"));
           } else {
             setRecognitionStatus(t("AutofillRecognitionError"));
@@ -436,36 +436,38 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       </View>
                     )}
                   </View>
-                  {Platform.OS === "android" && <View style={styles.importButton}>
-                    <Action
-                      glass
-                      label={t("AutofillRecognizeMic")}
-                      disabled={recognitionBusy || isSubmitting}
-                      onPress={() => askRecognition("mic")}
-                    />
-                    <Action
-                      glass
-                      label={t("AutofillRecognizeFile")}
-                      disabled={recognitionBusy || isSubmitting}
-                      onPress={() => askRecognition("file")}
-                    />
-                    {recognitionBusy && (
+                  {Platform.OS === "android" && (
+                    <View style={styles.importButton}>
                       <Action
                         glass
-                        label={t("AutofillCancelSearch")}
-                        onPress={() => {
-                          cancelAudio();
-                          cancelLyrics();
-                          setRecognitionStatus(t("AutofillSearchCancelled"));
-                        }}
+                        label={t("AutofillRecognizeMic")}
+                        disabled={recognitionBusy || isSubmitting}
+                        onPress={() => askRecognition("mic")}
                       />
-                    )}
-                    {!!recognitionStatus && (
-                      <Text style={styles.lyricsMessage}>
-                        {recognitionStatus}
-                      </Text>
-                    )}
-                  </View>}
+                      <Action
+                        glass
+                        label={t("AutofillRecognizeFile")}
+                        disabled={recognitionBusy || isSubmitting}
+                        onPress={() => askRecognition("file")}
+                      />
+                      {recognitionBusy && (
+                        <Action
+                          glass
+                          label={t("AutofillCancelSearch")}
+                          onPress={() => {
+                            cancelAudio();
+                            cancelLyrics();
+                            setRecognitionStatus(t("AutofillSearchCancelled"));
+                          }}
+                        />
+                      )}
+                      {!!recognitionStatus && (
+                        <Text style={styles.lyricsMessage}>
+                          {recognitionStatus}
+                        </Text>
+                      )}
+                    </View>
+                  )}
                   <View style={styles.importButton}>
                     <Action
                       glass
