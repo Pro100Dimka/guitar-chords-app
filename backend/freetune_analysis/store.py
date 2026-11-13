@@ -343,6 +343,12 @@ class JobStore:
             return [row[0] for row in db.execute("""SELECT id FROM jobs WHERE completed_at<?
                 AND status NOT IN ('running','queued')""", (cutoff,))]
 
+    def expire_results(self, cutoff):
+        """API result expiry does not depend on the audio filesystem being writable."""
+        with self.connection() as db:
+            db.execute("""UPDATE jobs SET result=NULL WHERE completed_at<?
+                AND status NOT IN ('running','queued') AND result IS NOT NULL""", (cutoff,))
+
     def delete(self, job_id):
         with self.connection() as db:
             db.execute("DELETE FROM jobs WHERE id=? AND audio_pending=0 AND status NOT IN ('running','queued')", (job_id,))

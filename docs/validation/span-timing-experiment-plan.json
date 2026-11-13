@@ -1,0 +1,26 @@
+{
+  "policy": "native-span-fallback-v1",
+  "dateUtc": "2026-11-13",
+  "productionAccepted": false,
+  "purpose": "One fixed correction to whole-line timing coverage loss, after rejecting an all-raw DTW alternative for increased paired start error.",
+  "exposure": "All30 conservative-v3 vocal results and15 instrumental controls, plus the completed all-raw timing comparison, are known. This is exposed regression testing, not a fresh independent holdout.",
+  "source": "Cached original native/SDK segments and native-word evidence from the frozen small seed0 runs; no further ASR.",
+  "rules": [
+    "Keep coarse-v3 lexical masking/recovery/native-validity decisions exactly, including no-speech/logprob, compression2.4, ordinary probability0.35 and weak-window recovery0.70.",
+    "Determine non-lyric caption omission from the same whole-line coarse-v3 grouping before splitting. Preserve source token order; reject any inconsistent ordering rather than guessing.",
+    "Create a unit per retained word. Publish the actual raw DTW interval when both SDK/native spans are valid and their maximum boundary difference is<=0.20seconds.",
+    "When the maximum boundary difference is>0.20seconds, retain the word text only in an uncertain coarse unit with words:[], using the envelope of the actual raw and SDK boundaries.",
+    "Resolve all connected overlaps on individual units, merging backwards as necessary. Any overlapping component becomes one uncertain coarse span with source-ordered text and actual endpoint envelope. Never trim or redistribute word spans.",
+    "Only after overlap resolution, group consecutive reliable units belonging to the same original ASR segment. Do not merge reliable units across a coarse component or caption boundary.",
+    "Generate ALL30 vocal and15 instrumental hypotheses before opening human references. No per-song tuning or threshold changes."
+  ],
+  "predeclaredChecks": {
+    "text": "Identical normalized lexical/uncertainty-token sequence to coarse-v3 for all45 outputs; WER therefore unchanged.",
+    "negative": "Zero lexical lyric words on all15 instrumental controls; report ellipsis-only spans separately.",
+    "timing": "Report paired start/end MAE on common reference positions, all per-song changes, exact timed coverage and remaining gap to same-native legacy. A pooled MAE increase>0.020seconds or any song increase>0.050seconds is a material regression that blocks promotion.",
+    "coverage": "Require a substantial gain over coarse-v3; do not describe a smaller timed subset's MAE as improved synchronization.",
+    "integration": "Actual client validator and real model/shared HTTP smoke required before production promotion."
+  },
+  "noNewInferenceOrRuntimeClaim": true,
+  "historicalTextRegressionRemains": "Frozenv3 EN20 has2351 errors versus2257 in historicalv1; this timing-only experiment cannot fix or hide that difference."
+}

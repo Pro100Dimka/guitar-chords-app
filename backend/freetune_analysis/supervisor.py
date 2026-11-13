@@ -107,12 +107,23 @@ class Supervisor:
             self.cleanup(job_id)
         return self.store.get(job_id, owner)
 
-    def cleanup(self, job_id):
+    def cleanup(self, job_id, *, result_expired=False):
         directory = self.settings.jobs_dir / job_id
+        failed = False
+        if result_expired:
+            # The inactive worker may have persisted a second copy of its
+            # result. Remove each copy even if deleting an audio file fails.
+            for name in ("state.json", "state.tmp"):
+                try:
+                    (directory / name).unlink(missing_ok=True)
+                except OSError:
+                    failed = True
         try:
             if directory.exists():
                 shutil.rmtree(directory)
         except OSError:
+            failed = True
+        if failed:
             # Keep the row and its storage/active-slot reservation until deletion succeeds.
             self.store.cleanup_failed(job_id, self.settings.max_upload_bytes + self.settings.decoded_reservation_bytes)
             logging.warning("Audio cleanup pending for job %s", job_id)
@@ -142,12 +153,17 @@ class Supervisor:
         return True
 
     def maintain(self):
-        for job_id in self.store.pending_cleanup():
-            if job_id != self.active_id:
-                self.cleanup(job_id)
-        for job_id in self.store.expired(time.time() - self.settings.retention_hours * 3600):
-            if job_id != self.active_id and self.cleanup(job_id):
+        cutoff = time.time() - self.settings.retention_hours * 3600
+        # Erase expired result content independently; an undeletable audio file
+        # must retain its cleanup row/quota, never extend API result retention.
+        self.store.expire_results(cutoff)
+        expired = set(self.store.expired(cutoff))
+        for job_id in expired:
+            if job_id != self.active_id and self.cleanup(job_id, result_expired=True):
                 self.store.delete(job_id)
+        for job_id in self.store.pending_cleanup():
+            if job_id != self.active_id and job_id not in expired:
+                self.cleanup(job_id)
         for identifier in self.store.pending_uploads():
             if identifier not in self.active_uploads:
                 self.cleanup_upload(identifier)

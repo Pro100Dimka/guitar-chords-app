@@ -574,3 +574,47 @@ def test_multipart_part_headers_cannot_consume_the_audio_body_budget(client):
     assert response.status_code == 422 and response.json()['detail'] == 'invalid_multipart'
     assert client.app.state.store.pending_uploads() == []
     assert client.app.state.store.count_queued() == 0
+
+
+@pytest.mark.parametrize('worker_state_writable', [True, False])
+def test_result_retention_expires_even_when_audio_cleanup_is_unavailable(client, monkeypatch,
+                                                                        worker_state_writable):
+    installation = register(client)
+    old = submit(client, installation, key='expired-result').json()
+    store = client.app.state.store
+    manager = client.app.state.supervisor
+    store.update(old['id'], status='completed', stage='done', progress=1,
+                 result={'lyrics': 'private expired result'})
+    directory = manager.settings.jobs_dir / old['id']
+    (directory / 'decoded.wav').write_bytes(b'decoded audio awaiting deletion')
+    state_paths = {directory / 'state.json', directory / 'state.tmp'}
+    for path in state_paths:
+        path.write_text(json.dumps({'status': 'completed', 'result': {'lyrics': 'private expired result'}}))
+    with store.connection() as db:
+        db.execute('UPDATE jobs SET completed_at=? WHERE id=?', (time.time() - 86401, old['id']))
+    fresh = submit(client, installation, key='fresh-result').json()
+    store.update(fresh['id'], status='completed', stage='done', progress=1, result={'preserve': True})
+    actual = api.shutil.rmtree
+    actual_unlink = Path.unlink
+    def unavailable(path, *args, **kwargs):
+        if Path(path) == directory:
+            raise PermissionError('audio filesystem unavailable')
+        return actual(path, *args, **kwargs)
+    def state_unavailable(path, *args, **kwargs):
+        if path in state_paths and not worker_state_writable:
+            raise PermissionError('worker state filesystem unavailable')
+        return actual_unlink(path, *args, **kwargs)
+    monkeypatch.setattr(api.shutil, 'rmtree', unavailable)
+    monkeypatch.setattr(Path, 'unlink', state_unavailable)
+    manager.maintain()
+    retained = store.record(old['id'])
+    assert retained is not None and retained['result'] is None
+    assert retained['audio_pending'] == 1 and retained['storage_bytes'] > 0
+    assert (directory / 'decoded.wav').exists() and list(directory.glob('input*'))
+    assert all(path.exists() is not worker_state_writable for path in state_paths)
+    assert client.get('/v1/jobs/' + old['id'], headers=headers(installation)).json()['result'] is None
+    assert store.get(fresh['id'], installation['installationId'])['result'] == {'preserve': True}
+    monkeypatch.setattr(api.shutil, 'rmtree', actual)
+    monkeypatch.setattr(Path, 'unlink', actual_unlink)
+    manager.maintain()
+    assert store.record(old['id']) is None and not directory.exists()

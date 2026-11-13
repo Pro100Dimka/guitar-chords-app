@@ -48,7 +48,7 @@ multipart, отмена до/после публикации задания, п�
 npx tsc --noEmit
 npm test -- --runInBand
 npm run test:sqlite
-backend/.venv/bin/python -m pytest -q backend/tests
+(cd backend && .venv/bin/python -m pytest -q tests)
 node scripts/configure_analysis_service.cjs --check
 ```
 

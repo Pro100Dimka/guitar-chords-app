@@ -143,6 +143,13 @@ filesystem deletion fails, the job row and its storage/active-slot reservation
 remain, cleanup is retried, and retry cannot overwrite the retained source.
 Completed-result DELETE is acknowledgement plus audio cleanup, not immediate
 result erasure. Retention expiry removes its row only after cleanup succeeds.
+Expired result content is cleared from the API/database at the retention limit
+even if failed audio deletion requires retaining the internal cleanup row and
+its quota reservation. Once the worker is inactive, cleanup separately unlinks
+its result-bearing `state.json` and `state.tmp` before deleting the audio
+directory. If the filesystem also prevents those unlinks, residual worker files
+remain pending cleanup and are retried; the 24-hour API expiry is not a guarantee
+of physical deletion from an unavailable or read-only filesystem.
 Restarts interrupt unfinished jobs and remove their audio before a re-upload.
 
 ## Developer deployment on existing infrastructure

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAtUtc": "2026-11-13T01:16:49.235678+00:00",
+  "recordedAtUtc": "2026-11-13T01:39:32.039836+00:00",
   "scope": "Restored shared service contract, resource admission, privacy cleanup and deployment templates",
   "publicServiceDeployed": false,
   "physicalAndroidTested": false,
@@ -22,10 +22,11 @@
       "retention during busy worker",
       "cleanup failure retains row and quota",
       "SQLite publication failure cleans moved source or retains upload lease",
-      "multipart part headers bounded before filename accumulation"
+      "multipart part headers bounded before filename accumulation",
+      "expired API result content cleared independently; inactive worker state files unlinked before audio-directory deletion, with row/quota and retries retained when either deletion fails"
     ],
     "workingDirectory": "backend",
-    "note": "The 61-case focused run preceded one additional multipart-header regression; all 62 current contract cases are included in the subsequent full suite."
+    "note": "The 61-case focused run preceded additional multipart-header and independent result-retention regressions; all 64 current contract cases are included in the subsequent full backend suite."
   },
   "realModelSharedSmoke": {
     "schemaVersion": 1,
@@ -145,7 +146,7 @@
     "jobFile": "report-job.json",
     "elapsedSeconds": 74.748
   },
-  "smokeCaveat": "The smoke preceded later startup-schema and failed-publication cleanup hardening; those changes were then verified in the contract suite. Source hashes were not captured at the initial smoke start; the runner now captures them for future runs. Model timings include concurrent unrelated evaluation activity and are not a controlled speed comparison.",
+  "smokeCaveat": "The smoke preceded later startup-schema, failed-publication cleanup, independent result-retention and client cancellation-disclosure hardening; those changes were verified by the subsequent complete suites. Source hashes were not captured at the initial smoke start; the runner now captures them for future runs. Model timings include concurrent unrelated evaluation activity and are not a controlled speed comparison.",
   "deploymentValidation": {
     "dockerAvailable": false,
     "containersStarted": false,
@@ -185,10 +186,10 @@
   "validatedSourceSha256": {
     "backend/freetune_analysis/app.py": "8ef26a086ff337c3005770809459a653aa27a6705883256a37a5293f7d5489ef",
     "backend/freetune_analysis/config.py": "8ea65fbb7fa8892a3f38764d90cda5dfae9f7a976051b514694219420a1c74aa",
-    "backend/freetune_analysis/store.py": "0fb5e74938bf9cfe79a92c03fc252eac3af16e81e3c7fc49c4526fdfd4214063",
-    "backend/freetune_analysis/supervisor.py": "48120d6d39c7962ae6cbfab5ccf5db17fd40e75bee7cfeab2d444b9731d72d24",
+    "backend/freetune_analysis/store.py": "0e34d9e6c0579d7eab5e8b1296a12f250bda2877aaab9b91d6a11ae038e378d9",
+    "backend/freetune_analysis/supervisor.py": "801281fb05b058a5fb43a700d756b919882369afef4c480e04ce5d3772aa1684",
     "backend/freetune_analysis/__main__.py": "1b259fb60ad2467bb4a418870a3df520c24e35df956825ccede8002c359fe696",
-    "backend/tests/test_shared_service.py": "cc5b1df6bacd9f1b574fbcb4eaaac99b5e1c13a9641d01b9386a6df11ce03376",
+    "backend/tests/test_shared_service.py": "26748d99d049d1a6a1cfcb586860bc2908fb3c025410ba70b6a8ec34d2ba5f82",
     "backend/Dockerfile": "d4d586264e24083a03e3eebe8706361ca365754db00a99b0f055bf2d8bfa8635",
     "backend/deploy/compose.yaml": "16639496c9a005f3dbd266ed4dfc39a44e5f93cf1ae0de82f628abed8946d3ab",
     "backend/deploy/Caddyfile": "5503b4a6bbf657ab08e876a8c88e419fa5288fb21bb773664ffbbed838e1ce09",
@@ -197,13 +198,119 @@
   "fullBackendTests": {
     "workingDirectory": "backend",
     "command": ".venv/bin/python -m pytest -q tests",
-    "passed": 105,
+    "passed": 107,
     "failed": 0,
-    "elapsedSeconds": 18.48,
+    "elapsedSeconds": 15.92,
     "warnings": 2,
     "warningsNote": "Starlette test-client/httpx and anyio portal deprecation notices; no test failures.",
-    "log": "backend/data/evaluation/shared-recovery-smoke/backend-tests-final.txt",
-    "logSha256": "dd14626f0bba9f06a21c9df2d7756934582dc534c2e7f12bdc655432dcdfff7f",
-    "coverageNote": "Includes all quality/decoder and 62 private/shared API contract cases, including the 16 KiB multipart part-header cap. No additional model inference smoke was run."
-  }
+    "log": {
+      "path": "backend/data/evaluation/final-client-checks/backend-worker-state-retention.txt",
+      "sha256": "2b18d1d832f419499e80ad33345f4960c205a6ecdaad2a0122932c1b7012e23e"
+    },
+    "coverageNote": "Includes all quality/decoder and 64 private/shared API contract cases, including API result expiry independent of audio deletion, removal of residual worker result files when writable, and quota/cleanup retention when worker state deletion also fails. No additional model inference smoke was run."
+  },
+  "frontendVerification": {
+    "nodeVersion": "v24.22.1",
+    "npmVersion": "11.9.0",
+    "jest": {
+      "command": "npm test -- --runInBand",
+      "suitesPassed": 15,
+      "testsPassed": 154,
+      "failed": 0,
+      "elapsedSeconds": 26.641,
+      "log": {
+        "path": "backend/data/evaluation/final-client-checks/jest-after-cancellation.txt",
+        "sha256": "3394455c70adc3487c549ab6c80f32c47f7efb0d3b00961d4a4c5599b0f27394"
+      }
+    },
+    "typecheck": {
+      "command": "./node_modules/.bin/tsc --noEmit",
+      "exitCode": 0,
+      "log": {
+        "path": "backend/data/evaluation/final-client-checks/typescript-final.txt",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    },
+    "eslint": {
+      "command": "npm run lint -- --max-warnings 0",
+      "exitCode": 0,
+      "lintErrors": 0,
+      "lintWarnings": 0,
+      "log": {
+        "path": "backend/data/evaluation/final-client-checks/eslint-final.txt",
+        "sha256": "da78d0909689fd5f5fddaac5dd80a950d381f2b9b932269f04f72f4832e31553"
+      }
+    },
+    "sqlite": {
+      "command": "npm run test:sqlite",
+      "exitCode": 0,
+      "log": {
+        "path": "backend/data/evaluation/final-client-checks/sqlite.txt",
+        "sha256": "88d62a8fc41631dad5ecf41cb497b7c59b06c8b3edae0ae7ecc5b7e55478a3e2"
+      },
+      "coverage": "Real SQLite CRUD, commit/migration rollback, duplicate imports, cancellation/stale responses, interruption/retry, manual edit preservation, optimistic revisions, backup/restore/relink, deletion cleanup, private settings, service preferences, isolated access and credential-free backups."
+    },
+    "finalAffectedUi": {
+      "command": "npm test -- --runInBand __tests__/song-analysis-ui.test.tsx",
+      "testsPassed": 21,
+      "failed": 0,
+      "elapsedSeconds": 4.416,
+      "log": {
+        "path": "backend/data/evaluation/final-client-checks/ui-final.txt",
+        "sha256": "eb621620f9155a7276d2652aa8bd555e663cfbcda52f3dda8a029d12f561fefe"
+      }
+    },
+    "releaseReadiness": {
+      "command": "node scripts/configure_analysis_service.cjs --check",
+      "exitCode": 1,
+      "expectedFailure": true,
+      "reason": "The bundled developer service URL is empty; the check refuses release readiness before any health request.",
+      "log": {
+        "path": "backend/data/evaluation/final-client-checks/release-readiness.txt",
+        "sha256": "9930fd554a117795dfdebbb06f5b8383bd80daaebde5579a582c4599799265da"
+      }
+    },
+    "initialRunCaveat": {
+      "testsPassed": 148,
+      "testsFailed": 1,
+      "suitesPassed": 14,
+      "suitesFailed": 1,
+      "log": {
+        "path": "backend/data/evaluation/final-client-checks/jest.txt",
+        "sha256": "52da0f7dc46cc9cfbbdd45d068d5a6f09c17c7719002486e929a94d819da14b0"
+      },
+      "failure": "Existing editing/playback test exceeded its default 5-second timeout while other work was running.",
+      "unchangedIsolatedRerun": {
+        "testsPassed": 6,
+        "failed": 0,
+        "elapsedSeconds": 2.559,
+        "log": {
+          "path": "backend/data/evaluation/final-client-checks/editing-rerun.txt",
+          "sha256": "0a013d1f26604c8481460aa6b8885b2be17e632c74f07488b380a519696bb5ae"
+        }
+      },
+      "interpretation": "Transient timing failure; resource contention is plausible but not proven. The unchanged editing suite and subsequent complete suite passed with the normal timeout; no timeout was increased."
+    },
+    "uiReview": [
+      "Empty shared endpoint visibly disables analysis while local import/manual editing remain available.",
+      "Ordinary shared flow has no IP/token inputs; private connection controls require Advanced settings.",
+      "Full-file consent precedes installation registration and upload.",
+      "Explicit cancellation discloses missing server acknowledgement; automatic cleanup errors do not fail a saved result.",
+      "Cancelled-state helper and shared privacy/consent messages describe bounded continued processing and delayed cleanup retries in English, Russian and Ukrainian."
+    ],
+    "physicalAndroidTested": false,
+    "apkBuilt": false,
+    "notes": "npm emitted notices about existing http-proxy/node-linker configuration; these are separate from ESLint warnings."
+  },
+  "validatedFrontendSha256": {
+    "src/components/song-analysis/client.ts": "6f062df76f163bc39ecccd209b2ca29ec57644616d71823a8e7cd6f7379816ab",
+    "src/screens/song/audio-song.tsx": "0436c64d5f8e1ab9229a356bc4a32d85b0685a38264ea1ffa2c2802e8aceef0d",
+    "src/screens/song/audio-styles.ts": "aad70b7f9a1645121a8fc846afe5969399187f1706e28342f9a74a52ea6bd705",
+    "src/locales/en.json": "2b1a19519ae330298dc11c9dd4ae3b9d75650503f5be6f3061ab5dfd5da7ead5",
+    "src/locales/ru.json": "34eb8aa55a2d4ca637759036ddda12511698a3bad68f03fc73255806713dd460",
+    "src/locales/ua.json": "1f25feb9612eb7ff93aaba10ca28fd8684316d15a0bdcd05891d227dc9139659",
+    "__tests__/song-analysis-client.test.ts": "53e67e2deea65907f556b83a9bfa4133490811ca38ac803ef702aada10bd8ba2",
+    "__tests__/song-analysis-ui.test.tsx": "def0a5073c7cdea324c2c957b58922d5304118b4ed77939160a553e6ad1290cc"
+  },
+  "retentionLimit": "The 24-hour result policy is logical expiry of API-visible database content. Once inactive, worker state.json/state.tmp are independently unlinked before recursive audio cleanup. An unavailable/read-only filesystem can delay physical removal of residual worker/audio files; cleanup rows, reservations and retries remain. No cryptographic deletion guarantee is claimed."
 }
