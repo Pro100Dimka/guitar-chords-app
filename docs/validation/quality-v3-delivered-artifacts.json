@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "createdAt": "2026-11-13T02:01:13.871574+00:00",
+  "projectCommit": "5c3cc62e50318713b6f6de59f696a51369fd747e",
+  "profile": "native-span-fallback-v1",
+  "artifacts": [
+    {
+      "filename": "FreeTune-EN-Cortez-Feel-Stripped-v3.mp4",
+      "status": "succeeded",
+      "bytes": 2175296,
+      "sha256": "ae5a5d27130101bd9c843c4e9dbb854d8bc4362e73ff5cec58bb87213075ed5c"
+    },
+    {
+      "filename": "FreeTune-UK-Oriental-Melody-v3.mp4",
+      "status": "succeeded",
+      "bytes": 1863337,
+      "sha256": "3c6741a9a130ca8ff716d539a2989ae27a14cb82d2298f25f364df6f378a85e5"
+    },
+    {
+      "filename": "FreeTune-RU-Cherkashin-Lystopad-v3.mp4",
+      "status": "succeeded",
+      "bytes": 1990516,
+      "sha256": "4877d160e6d4ddad8ef2c913988ed514474451c466384bff78a9fa71c05652c0"
+    },
+    {
+      "filename": "FreeTune-EN-Cortez-Feel-Stripped-v3.png",
+      "status": "succeeded",
+      "bytes": 52818,
+      "sha256": "45721058f12f86f099be58e97906f1f7a1c5bf13787a06d7a8ed93f16f101854"
+    },
+    {
+      "filename": "FreeTune-UK-Oriental-Melody-v3.png",
+      "status": "succeeded",
+      "bytes": 49290,
+      "sha256": "f84354b04487e492274b507a03216938e0027ee348c7c9110ce4f95128ab5e78"
+    },
+    {
+      "filename": "FreeTune-RU-Cherkashin-Lystopad-v3.png",
+      "status": "succeeded",
+      "bytes": 49842,
+      "sha256": "11ef4811de3b97a36b38e42003d4946afa9877fb361a936bfe1eeedfcc7f3304"
+    },
+    {
+      "filename": "FreeTune-v3-examples.zip",
+      "status": "succeeded",
+      "bytes": 47817,
+      "sha256": "805e2e417523f83f22e97df106301a8978477bfe4fe32bffc0c3ed8b2d6f53a1"
+    }
+  ],
+  "uploadSucceededCount": 7,
+  "archive": {
+    "filename": "FreeTune-v3-examples.zip",
+    "sha256": "805e2e417523f83f22e97df106301a8978477bfe4fe32bffc0c3ed8b2d6f53a1",
+    "bytes": 47817,
+    "whitelist": [
+      "FreeTune-EN-Cortez-Feel-Stripped-v3-analysis.json",
+      "FreeTune-EN-Cortez-Feel-Stripped-v3-render.json",
+      "FreeTune-EN-Cortez-Feel-Stripped-v3-verification.json",
+      "FreeTune-UK-Oriental-Melody-v3-analysis.json",
+      "FreeTune-UK-Oriental-Melody-v3-render.json",
+      "FreeTune-UK-Oriental-Melody-v3-verification.json",
+      "FreeTune-RU-Cherkashin-Lystopad-v3-analysis.json",
+      "FreeTune-RU-Cherkashin-Lystopad-v3-render.json",
+      "FreeTune-RU-Cherkashin-Lystopad-v3-verification.json",
+      "FreeTune-v3-example-source-pins.json",
+      "FreeTune-v3-example-metrics.json",
+      "FreeTune-v3-example-provenance.json",
+      "FreeTune-v3-CREDITS.txt"
+    ],
+    "exactWhitelistedEntryCount": 13,
+    "containsOriginalAudio": false,
+    "containsHumanReferenceText": false,
+    "containsOtherRecordingsTranscripts": false
+  },
+  "examples": [
+    {
+      "recordingId": "Cortez_-_Feel__Stripped_",
+      "sourceResultSha256": "27067b2e74fa8c121d92c4588c3d9dec584d09f1306e499ba07efcf884400104",
+      "sourceResultPath": "backend/data/evaluation/shared-span-final/report-job.json",
+      "exactResultByteCopy": true,
+      "executionDescription": "Actual full-song HTTP job against the final local shared service with per-installation authentication. No public server or physical Android device is represented.",
+      "license": "CC BY 3.0",
+      "visualizationLicense": "CC BY 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by/3.0/",
+      "attribution": "Cortéz (Ja'Cory Lavine)",
+      "originalExcerptSeconds": [
+        0,
+        75
+      ],
+      "audioCorrelationAtZeroLag": 0.9992780152751597,
+      "bestAudioLagSeconds": 0.0,
+      "lagResolutionSeconds": 0.0005,
+      "visualInspectionStatus": "passed",
+      "inspectedEncodedFrameSeconds": [
+        0,
+        31
+      ],
+      "visualInspectionScope": "Visual layout and displayed timing policy at original 0s and 31s only; not human lyric/chord validation and not physical Android validation.",
+      "posterSeconds": 31
+    },
+    {
+      "recordingId": "uk_lysenko_oriental",
+      "sourceResultSha256": "2393f25326f459ac38d0c26be5155543214cc35976446d8427423061e5f02291",
+      "sourceResultPath": "backend/data/evaluation/v3-span-final/uk_lysenko_oriental.analysis.json",
+      "exactResultByteCopy": true,
+      "executionDescription": "Full recording was processed by the frozen small ASR/chord pipeline. Final native-span-fallback-v1 intervals were replayed from those saved native observations without new ASR inference or human reference input; this is not a new full end-to-end runtime measurement.",
+      "license": "CC BY-SA 4.0",
+      "visualizationLicense": "CC BY-SA 4.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/4.0/",
+      "attribution": "Mykola Lysenko / Lesya Ukrainka / Ukrainian Art Song Project",
+      "originalExcerptSeconds": [
+        0,
+        75
+      ],
+      "audioCorrelationAtZeroLag": 0.9999853044297851,
+      "bestAudioLagSeconds": 0.0,
+      "lagResolutionSeconds": 0.0005,
+      "visualInspectionStatus": "passed",
+      "inspectedEncodedFrameSeconds": [
+        0,
+        31
+      ],
+      "visualInspectionScope": "Visual layout and displayed timing policy at original 0s and 31s only; not human lyric/chord validation and not physical Android validation.",
+      "posterSeconds": 31
+    },
+    {
+      "recordingId": "ru_cherkashin_leaves",
+      "sourceResultSha256": "b6c5e123f7033ce68d44437d11ccbfba9410a8de47545bfa48650c5b6350a3fb",
+      "sourceResultPath": "backend/data/evaluation/v3-span-final/ru_cherkashin_leaves.analysis.json",
+      "exactResultByteCopy": true,
+      "executionDescription": "Full recording was processed by the frozen small ASR/chord pipeline. Final native-span-fallback-v1 intervals were replayed from those saved native observations without new ASR inference or human reference input; this is not a new full end-to-end runtime measurement.",
+      "license": "CC BY-SA 3.0",
+      "visualizationLicense": "CC BY-SA 3.0",
+      "licenseUrl": "https://creativecommons.org/licenses/by-sa/3.0/",
+      "attribution": "Юрий Черкашин — автор и исполнитель",
+      "originalExcerptSeconds": [
+        0,
+        75
+      ],
+      "audioCorrelationAtZeroLag": 0.9999807731263961,
+      "bestAudioLagSeconds": 0.0,
+      "lagResolutionSeconds": 0.0005,
+      "visualInspectionStatus": "passed",
+      "inspectedEncodedFrameSeconds": [
+        0,
+        31
+      ],
+      "visualInspectionScope": "Visual layout and displayed timing policy at original 0s and 31s only; not human lyric/chord validation and not physical Android validation.",
+      "posterSeconds": 31
+    }
+  ],
+  "notAndroidScreenRecording": true,
+  "physicalAndroidTested": false,
+  "publicServiceDeployed": false,
+  "scope": "Three 0–75 second original-audio visualizations of actual automatic analysis, not Android screen recordings. Source-result bytes preserved. No exact human UK/RU reference or chord ground truth is claimed.",
+  "qualityLimitation": "EN20 lexical WER is37.6944%, worse than historical36.1873%. This accepted change repairs timing representation; it is not evidence of overall lyric-recognition improvement.",
+  "deliveryLinks": "Private delivery links are supplied in the conversation, not published to the repository."
+}
