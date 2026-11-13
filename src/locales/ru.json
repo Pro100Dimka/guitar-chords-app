@@ -258,5 +258,15 @@
   "AutofillHidePreview": "Скрыть текст",
   "AutofillAlbum": "Альбом",
   "AutofillDuration": "Длительность",
-  "AutofillUnknownAlbum": "Альбом неизвестен"
+  "AutofillUnknownAlbum": "Альбом неизвестен",
+  "AutofillRecognize": "Распознать песню",
+  "AutofillRecognizeMic": "Распознать с микрофона",
+  "AutofillRecognizeFile": "Распознать аудиофайл",
+  "AutofillListening": "Слушаю 12 секунд…",
+  "AutofillIdentifying": "Определяю песню…",
+  "AutofillRecognized": "Определено: {{artist}} — {{title}}",
+  "AutofillNoAudioMatch": "Композиция не найдена.",
+  "AutofillMicDenied": "Нет разрешения на микрофон.",
+  "AutofillRecognitionError": "Не удалось распознать песню. Проверь подключение.",
+  "AutofillReplaceIdentity": "Название и исполнитель будут заменены. Текст останется до выбора другого варианта."
 }
