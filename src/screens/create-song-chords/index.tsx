@@ -119,7 +119,11 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
               title: found.title
             })
           );
-          const next = applyRecognitionDraft(form.values, found.title, found.artist);
+          const next = applyRecognitionDraft(
+            form.values,
+            found.title,
+            found.artist
+          );
           await form.setValues(next);
           if (generation !== recognitionGeneration.current) return;
           setRecognitionStatus(t("AutofillSearching"));
