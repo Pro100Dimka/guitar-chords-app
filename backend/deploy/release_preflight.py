@@ -61,7 +61,7 @@ def check_health(origin: str, timeout: float = 15.0) -> dict:
     body = json.loads(payload)
     if not isinstance(body, dict):
         raise ValueError("Health response must be an object")
-    expected = {"ready": True, "serviceMode": "shared", "authentication": "installation"}
+    validate_health(body)\n    return body\n\n\ndef validate_health(body: dict) -> None:\n    expected = {"ready": True, "serviceMode": "shared", "authentication": "installation"}
     for field, value in expected.items():
         if body.get(field) != value:
             raise ValueError(f"Health {field} must be {value!r}; got {body.get(field)!r}")
@@ -77,7 +77,7 @@ def main(argv=None) -> int:
         if not 0 < args.timeout <= 120:
             raise ValueError("Timeout must be greater than zero and at most 120 seconds")
         origin = validate_public_url(args.origin)
-        health = check_health(origin, args.timeout)
+        health = check_health(origin, args.timeout)\n        validate_health(health)
     except (ValueError, OSError, json.JSONDecodeError, urllib.error.URLError, ssl.SSLError) as exc:
         print(json.dumps({"ok": False, "error": str(exc)}, ensure_ascii=False))
         return 1
