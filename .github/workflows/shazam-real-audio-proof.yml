@@ -2,7 +2,7 @@ name: shazam-real-audio-proof
 on:
   push:
     branches: [feature/song-autofill]
-    paths: [.github/workflows/shazam-real-audio-proof.yml]
+    paths: [.github/workflows/shazam-real-audio-proof.yml, android/song-fingerprint/src/bin/fingerprint_probe.rs, scripts/verify-shazam.cjs]
   workflow_dispatch:
 jobs:
   proof:
