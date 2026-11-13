@@ -1,11 +1,11 @@
 import { lookupLyrics } from "../src/components/song-autofill/lyrics";
 
 describe("LRCLIB selection metadata", () => {
-  const original = global.fetch;
-  afterEach(() => { global.fetch = original; });
+  const original = globalThis.fetch;
+  afterEach(() => { globalThis.fetch = original; });
 
   it("keeps studio and live versions independently, with album and duration", async () => {
-    global.fetch = jest.fn().mockResolvedValue({
+    globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true, status: 200,
       json: async () => [
         { id: 1, trackName: "Весна", artistName: "Скрябін", albumName: "Studio", duration: 180, plainLyrics: "one" },
@@ -21,7 +21,7 @@ describe("LRCLIB selection metadata", () => {
     const abort = new AbortController();
     abort.abort();
     const mocked = jest.fn();
-    global.fetch = mocked as typeof fetch;
+    globalThis.fetch = mocked as typeof fetch;
     await expect(lookupLyrics("Весна", "Скрябін", abort.signal)).rejects.toThrow("Cancelled");
     expect(mocked).not.toHaveBeenCalled();
   });
