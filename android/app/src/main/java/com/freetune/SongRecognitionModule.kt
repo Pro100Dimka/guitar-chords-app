@@ -133,7 +133,8 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
         var codec: MediaCodec? = null
         try {
             context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { asset ->
-                extractor.setDataSource(asset.fileDescriptor, asset.startOffset, asset.length)
+                if (asset.length >= 0) extractor.setDataSource(asset.fileDescriptor, asset.startOffset, asset.length)
+                else extractor.setDataSource(asset.fileDescriptor)
             } ?: throw IllegalStateException("FileUnavailable")
             val index = (0 until extractor.trackCount).firstOrNull {
                 extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
@@ -157,6 +158,8 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             var channels = format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
             var firstTimeUs = -1L
             var decodedFrames = 0L
+            var sampleSum = 0L
+            var sampleCount = 0
             while (!outputDone && outputCount < selected.size) {
                 ensureActive()
                 if (!inputDone) {
@@ -196,12 +199,17 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
                                 var sum = 0
                                 for (channel in 0 until channels) sum += samples.get()
                                 val mono = (sum / channels).toShort()
-                                val index16 = ((decodedFrames + frame).toDouble() * 16000.0 / rate).toInt()
+                                sampleSum += mono.toLong()
+                                sampleCount++
                                 val next16 = ((decodedFrames + frame + 1).toDouble() * 16000.0 / rate).toInt()
-                                // Zero-order hold, bounded; sufficient for a robust signature input.
-                                for (i in index16 until min(next16, selected.size))
-                                    selected[i] = mono
-                                outputCount = min(next16, selected.size)
+                                // Average each input window before downsampling; repeat only when upsampling.
+                                while (outputCount < next16 && outputCount < selected.size) {
+                                    selected[outputCount++] = (sampleSum / sampleCount).toInt().toShort()
+                                }
+                                if (next16 > 0 && outputCount == next16) {
+                                    sampleSum = 0L
+                                    sampleCount = 0
+                                }
                                 if (outputCount >= selected.size) break
                             }
                             decodedFrames += frameCount
