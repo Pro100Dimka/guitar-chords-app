@@ -1,6 +1,10 @@
 import type { FormValues } from "../../screens/create-song-chords";
 
-export function applyRecognitionDraft(values: FormValues, title: string, artist: string): FormValues {
+export function applyRecognitionDraft(
+  values: FormValues,
+  title: string,
+  artist: string
+): FormValues {
   return {
     ...values,
     title: title.trim(),
