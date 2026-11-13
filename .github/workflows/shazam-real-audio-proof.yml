@@ -1,0 +1,22 @@
+name: shazam-real-audio-proof
+on:
+  push:
+    branches: [feature/song-autofill]
+    paths: [.github/workflows/shazam-real-audio-proof.yml]
+  workflow_dispatch:
+jobs:
+  proof:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Decode known recognition fixture
+        run: |
+          curl --fail --location --retry 2 'https://raw.githubusercontent.com/shazamio/ShazamIO/c2a4b6ee9dfa9e36cd6b24d10a57ad9e66a66dd1/examples/data/Gloria.ogg' -o /tmp/gloria.ogg
+          DURATION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 /tmp/gloria.ogg)
+          START=$(awk -v duration="$DURATION" 'BEGIN {print duration > 12 ? (duration - 12) / 2 : 0}')
+          ffmpeg -nostdin -v error -ss "$START" -i /tmp/gloria.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/gloria.pcm
+      - name: Send genuine native fingerprint to Shazam and assert track
+        run: node scripts/verify-shazam.cjs /tmp/gloria.pcm
