@@ -25,6 +25,14 @@ repetition controls. It is not an accepted quality profile. See
 [machine-readable observations](../docs/validation/quality-v2-observed-checkpoint.json).
 Subsequent experiments must identify their exact code, model and examined data.
 
+The current timing adapter is `native-span-fallback-v1`: supported words retain
+their actual native DTW intervals; connected ambiguous intervals become explicit
+coarse fragments. The same audio, words and source timeline are retained. This
+fix restores much of the whole-line fallback's lost word coverage, but current
+EN20 WER remains 37.69% versus the historical 36.19%. See the
+[complete final comparison](../docs/validation/quality-v3-summary.md), including
+same-native controls, coverage loss, rejected alternatives and unmeasured areas.
+
 Model inference completing successfully is not evidence that every word, chord
 or timing is correct. Approximate line timing must remain visibly uncertain;
 word confidence is not calibrated transcription accuracy. English human lyric

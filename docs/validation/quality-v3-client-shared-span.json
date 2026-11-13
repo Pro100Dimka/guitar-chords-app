@@ -1,0 +1,32 @@
+{
+  "validator": "src/components/song-analysis/types.ts:validateSongAnalysis",
+  "validatorSha256": "ca440b09a937d1cb4ac10f56233fcf49a08a73b77648676780a0a27106447533",
+  "loadedVia": "typescript.transpileModule + VM; actual project function, no copied validator",
+  "checkedAt": "2026-11-13T01:52:55.424Z",
+  "originalDurationMethod": "ffprobe original recording container/audio duration, fixed client tolerance0.5s; not an Android MediaExtractor measurement",
+  "checks": [
+    {
+      "dataset": "Final native-span shared HTTP actual job",
+      "id": "report-job",
+      "status": "completed",
+      "passed": true,
+      "originalDurationSeconds": 240.587755,
+      "resultDurationSeconds": 240.56163265306122,
+      "durationDeltaSeconds": 0.02612234693876303,
+      "sourceSha256": "beefa48e4520bb290e739faa7c0a91e4e7296fb239577966b2129934ccf86b31",
+      "lyricLines": 60,
+      "wordIntervals": 330,
+      "chordIntervals": 77
+    }
+  ],
+  "missingResults": [],
+  "summary": {
+    "checked": 1,
+    "passed": 1,
+    "failed": 0,
+    "totalLyricLines": 60,
+    "totalWordIntervals": 330,
+    "totalChordIntervals": 77,
+    "maxDurationDeltaSeconds": 0.02612234693876303
+  }
+}

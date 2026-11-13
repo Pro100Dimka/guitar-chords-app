@@ -38,7 +38,7 @@ def write_json(path, value):
 
 def fingerprint():
     paths = [ROOT / "backend/freetune_analysis" / name for name in
-             ("pipeline.py", "singing.py", "chords.py")]
+             ("pipeline.py", "singing.py", "singing_spans.py", "chords.py")]
     return {str(path.relative_to(ROOT)): sha256(path) for path in paths}
 
 

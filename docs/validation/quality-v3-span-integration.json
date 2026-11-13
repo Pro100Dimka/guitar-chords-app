@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 3,
+  "method": "Actual final shared HTTP model job compared with its earlier cached native-span hypothesis; no reference was supplied to either inference or adaptation",
+  "id": "Cortez_-_Feel__Stripped_",
+  "sameAudioSha256": true,
+  "exactEquality": {
+    "duration": true,
+    "language": true,
+    "lyrics": true,
+    "chords": true,
+    "warnings": true
+  },
+  "model": {
+    "lyrics": "Systran/faster-whisper-small",
+    "alignment": "Whisper cross-attention DTW; native-span-fallback-v1 (raw supported words; local coarse spans)",
+    "chords": "lv-chordia-1.1.0 (5-model CQT ensemble + equal initial HMM priors)"
+  },
+  "metricsAgainstHumanReferenceAfterInference": {
+    "referenceWords": 356,
+    "predictedLexicalWords": 340,
+    "wordErrors": 67,
+    "wer": 0.18820224719101122,
+    "substitutions": 35,
+    "insertions": 8,
+    "deletions": 24,
+    "markerAwareErrors": 73,
+    "markerAwareWer": 0.2050561797752809,
+    "timingReferenceWords": 355,
+    "timedExactWords": 278,
+    "timedExactCoverage": 0.7830985915492957,
+    "startErrorSumSeconds": 99.79844833390086,
+    "endErrorSumSeconds": 90.63330093430089,
+    "startMaeSeconds": 0.358987224222665,
+    "endMaeSeconds": 0.326019068108996,
+    "coarseLines": 18
+  },
+  "jobSha256": "27067b2e74fa8c121d92c4588c3d9dec584d09f1306e499ba07efcf884400104",
+  "sourceCodeSha256": {
+    "backend/freetune_analysis/pipeline.py": "99255d1f51bac83f0b75f1eee2cfe82f02ca21dff940b06d8ac708d76cc27144",
+    "backend/freetune_analysis/singing.py": "3c577ae3a1c5496c6e5ac19c23e97e7fc7e45a37ac87b9998fee444768db4704",
+    "backend/freetune_analysis/singing_spans.py": "bc211450af3d990b3bb1efa6b5718a803bd93c1262b06e4e71b835f6c8da2560",
+    "backend/freetune_analysis/chords.py": "e7acd3f6610b985362dc40618f04255ed4e7993a50bc58d20d971676197e4fe8"
+  },
+  "productionAccepted": true,
+  "acceptedScope": "Local native timing fallback and verified service integration; overall transcription accuracy is not improved against historical v1.",
+  "actualInferencePerformed": true,
+  "httpSmoke": {
+    "evidence": "docs/validation/shared-service-recovery.json#finalProfileSharedSmoke",
+    "localReport": "backend/data/evaluation/shared-span-final/report.json",
+    "reportSha256": "de3c12ad1b91f7008fae7419062c60fd682bb0ecd84880ac3caf9e77e59bed56",
+    "checksPassed": 23,
+    "checksFailed": 0,
+    "transport": "real localhost TCP",
+    "sourceCodeUnchangedDuringRun": true,
+    "profile": "small / CPU INT8 / four threads / native-span-fallback-v1",
+    "elapsedSeconds": 71.341,
+    "workerElapsedSeconds": 65.117,
+    "peakRssMiB": 1741.04,
+    "publicServiceDeployed": false,
+    "physicalAndroidTested": false,
+    "measurementNote": "One actual full-recording shared HTTP run; unrelated non-ML host activity was not controlled. This is an operational smoke measurement, not an acceleration benchmark."
+  },
+  "clientValidation": {
+    "evidence": "docs/validation/quality-v3-client-shared-span.json",
+    "sha256": "0a2f0cfed5b6a47bdcc01e20a10ca5df3c83484784d5dadef88d315adb6fc244",
+    "passed": 1,
+    "failed": 0
+  },
+  "backendTests": {
+    "command": ".venv/bin/python -m pytest -q tests",
+    "workingDirectory": "backend",
+    "passed": 118,
+    "failed": 0,
+    "warnings": 2,
+    "elapsedSeconds": 16.22,
+    "log": "backend/data/evaluation/shared-span-final-backend-tests.txt",
+    "logSha256": "fdee09aa76e122095660272cf49abad0be34a32bf103ab3faef10e0b69c4939c"
+  }
+}

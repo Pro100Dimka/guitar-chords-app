@@ -17,7 +17,8 @@ import time
 import wave
 
 from .config import Settings, MODEL_REVISIONS
-from .singing import ADAPTER_VERSION, adapt_segment, capture_native_alignment
+from .singing import capture_native_alignment
+from .singing_spans import ADAPTER_VERSION, SpanAdapter
 
 
 class AnalysisError(Exception):
@@ -270,23 +271,17 @@ def recognize_lyrics(audio: Path, duration: float, language: str, settings: Sett
     )
     detected = info.language if info.language in {"uk", "ru", "en"} else None
     lines, warnings = [], []
+    adapter = SpanAdapter(duration, remove_non_lyric_captions)
     for segment in segments:
         progress(min(0.98, 0.45 + 0.53 * max(0, segment.end) / duration), lines, detected, warnings)
         evidence = native_evidence(segment)
         if native_observer:
             native_observer(segment, evidence)
-        line, segment_warnings = adapt_segment(segment, duration, evidence)
-        warnings.extend(segment_warnings)
-        if line:
-            lines.append(line)
-    lines, unreliable = disjoint_lyrics(lines)
-    lines, omitted = remove_non_lyric_captions(lines)
-    if omitted:
-        warnings.append("non_lyric_caption_omitted")
-    if unreliable:
-        warnings.append("word_timing_unreliable")
-    if not lines:
-        warnings.append("no_lyrics")
+        adapter.add(segment, evidence)
+        lines, partial_warnings = adapter.result()
+        # A prefix without words is not a conclusion about the entire song.
+        warnings = [code for code in partial_warnings if code != "no_lyrics"]
+    lines, warnings = adapter.result()
     if detected is None:
         warnings.append("language_not_supported")
     return lines, detected, sorted(set(warnings))
@@ -301,7 +296,7 @@ def analyze(source: Path, directory: Path, language: str, settings: Settings, em
         "version": 1, "duration": 0, "language": None if language == "auto" else language,
         "lyrics": [], "chords": [], "warnings": [],
         "model": {"lyrics": MODEL_REVISIONS[settings.whisper_model][0],
-                  "alignment": f"Whisper cross-attention DTW; {ADAPTER_VERSION} (native evidence, no invented timing)",
+                  "alignment": f"Whisper cross-attention DTW; {ADAPTER_VERSION} (raw supported words; local coarse spans)",
                   "chords": "lv-chordia-1.1.0 (5-model CQT ensemble + equal initial HMM priors)"},
     }
 
@@ -333,12 +328,11 @@ def analyze(source: Path, directory: Path, language: str, settings: Settings, em
             failed.append("chords")
         report("lyrics", 0.45)
         def lyric_progress(value, lines, detected, warnings):
-            partial, unreliable = disjoint_lyrics(lines)
-            partial, omitted = remove_non_lyric_captions(partial)
-            result.update(lyrics=partial, language=detected)
-            result["warnings"] = sorted(set(result["warnings"] + warnings +
-                                            (["word_timing_unreliable"] if unreliable else []) +
-                                            (["non_lyric_caption_omitted"] if omitted else [])))
+            # SpanAdapter has already normalized overlaps and applied the
+            # whole-line caption decision. Refiltering the split display rows
+            # could wrongly remove a token that was part of real lyric text.
+            result.update(lyrics=lines, language=detected)
+            result["warnings"] = sorted(set(result["warnings"] + warnings))
             report("lyrics", value)
         try:
             lyrics, detected, warnings = recognize_lyrics(

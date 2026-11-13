@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "recordedAtUtc": "2026-11-13T01:39:32.039836+00:00",
+  "recordedAtUtc": "2026-11-13T01:52:45.590630+00:00",
   "scope": "Restored shared service contract, resource admission, privacy cleanup and deployment templates",
   "publicServiceDeployed": false,
   "physicalAndroidTested": false,
@@ -198,16 +198,17 @@
   "fullBackendTests": {
     "workingDirectory": "backend",
     "command": ".venv/bin/python -m pytest -q tests",
-    "passed": 107,
+    "runBy": "recover_quality agent after production span adapter wiring",
+    "passed": 118,
     "failed": 0,
-    "elapsedSeconds": 15.92,
+    "elapsedSeconds": 16.22,
     "warnings": 2,
     "warningsNote": "Starlette test-client/httpx and anyio portal deprecation notices; no test failures.",
     "log": {
-      "path": "backend/data/evaluation/final-client-checks/backend-worker-state-retention.txt",
-      "sha256": "2b18d1d832f419499e80ad33345f4960c205a6ecdaad2a0122932c1b7012e23e"
+      "path": "backend/data/evaluation/shared-span-final-backend-tests.txt",
+      "sha256": "fdee09aa76e122095660272cf49abad0be34a32bf103ab3faef10e0b69c4939c"
     },
-    "coverageNote": "Includes all quality/decoder and 64 private/shared API contract cases, including API result expiry independent of audio deletion, removal of residual worker result files when writable, and quota/cleanup retention when worker state deletion also fails. No additional model inference smoke was run."
+    "coverageNote": "Complete backend suite, including 64 private/shared service contract cases and the final production span adapter/pipeline regressions. This suite was run once by the quality agent; the shared service agent verified its recorded result and performed the separate genuine HTTP smoke."
   },
   "frontendVerification": {
     "nodeVersion": "v24.22.1",
@@ -312,5 +313,212 @@
     "__tests__/song-analysis-client.test.ts": "53e67e2deea65907f556b83a9bfa4133490811ca38ac803ef702aada10bd8ba2",
     "__tests__/song-analysis-ui.test.tsx": "def0a5073c7cdea324c2c957b58922d5304118b4ed77939160a553e6ad1290cc"
   },
-  "retentionLimit": "The 24-hour result policy is logical expiry of API-visible database content. Once inactive, worker state.json/state.tmp are independently unlinked before recursive audio cleanup. An unavailable/read-only filesystem can delay physical removal of residual worker/audio files; cleanup rows, reservations and retries remain. No cryptographic deletion guarantee is claimed."
+  "retentionLimit": "The 24-hour result policy is logical expiry of API-visible database content. Once inactive, worker state.json/state.tmp are independently unlinked before recursive audio cleanup. An unavailable/read-only filesystem can delay physical removal of residual worker/audio files; cleanup rows, reservations and retries remain. No cryptographic deletion guarantee is claimed.",
+  "finalProfileSharedSmoke": {
+    "profile": "small CPU INT8, four threads, production native-span-fallback-v1",
+    "report": {
+      "schemaVersion": 1,
+      "status": "passed",
+      "transport": "real localhost TCP",
+      "inference": "real installed models; no mocked model or API",
+      "publicServiceDeployed": false,
+      "physicalAndroidTested": false,
+      "sourceSha256": "beefa48e4520bb290e739faa7c0a91e4e7296fb239577966b2129934ccf86b31",
+      "sourceBytes": 5947904,
+      "language": "en",
+      "model": "small",
+      "cpuThreads": 4,
+      "checks": {
+        "shared_ready": true,
+        "anonymous_job_rejected": true,
+        "two_installations": true,
+        "distinct_random_access": true,
+        "upload_accepted_4": true,
+        "upload_accepted_5": true,
+        "retry_reuses_job": true,
+        "foreign_get_404": true,
+        "foreign_delete_404": true,
+        "upload_accepted_9": true,
+        "keys_are_tenant_scoped": true,
+        "second_tenant_cancelled": true,
+        "cancelled_audio_deleted": true,
+        "real_analysis_completed": true,
+        "original_identity_preserved": true,
+        "real_lyrics_and_chords": true,
+        "terminal_audio_deleted": true,
+        "completed_delete_keeps_result": true,
+        "result_can_be_retrieved_again": true,
+        "server_stores_token_hashes_only": true,
+        "no_audio_or_upload_reservations": true,
+        "restart_ready": true,
+        "same_access_and_result_survive_restart": true
+      },
+      "transitions": [
+        {
+          "atSeconds": 2.118,
+          "state": [
+            "running",
+            "starting"
+          ]
+        },
+        {
+          "atSeconds": 3.127,
+          "state": [
+            "running",
+            "chords"
+          ]
+        },
+        {
+          "atSeconds": 25.479,
+          "state": [
+            "running",
+            "lyrics"
+          ]
+        },
+        {
+          "atSeconds": 69.736,
+          "state": [
+            "completed",
+            "done"
+          ]
+        }
+      ],
+      "sourceCodeSha256": {
+        "__init__.py": "3fe3d33ba2bd37b71a7065c421edb07220400df30b15af600059b19d403935c9",
+        "__main__.py": "1b259fb60ad2467bb4a418870a3df520c24e35df956825ccede8002c359fe696",
+        "app.py": "8ef26a086ff337c3005770809459a653aa27a6705883256a37a5293f7d5489ef",
+        "benchmark.py": "b8b3ff6b7c3c0b1d5b5d0bf6e1512ff0acaadba63bccebbb6f4656912ad910a6",
+        "chords.py": "e7acd3f6610b985362dc40618f04255ed4e7993a50bc58d20d971676197e4fe8",
+        "config.py": "8ea65fbb7fa8892a3f38764d90cda5dfae9f7a976051b514694219420a1c74aa",
+        "download_evaluation.py": "060a829637bbb97512f7aff6f4de96b129236ef07cac366fd9dfa1ff9f6b14f5",
+        "guard.py": "18e2ba592be938b25743d2319922cabb14f75f7b099727012d3cc05d17d722e5",
+        "pipeline.py": "99255d1f51bac83f0b75f1eee2cfe82f02ca21dff940b06d8ac708d76cc27144",
+        "quality_metrics.py": "678fa4891431cf72a58cd1ad92293c6e97c9bc56d991738ea788dbaa2c10ba5e",
+        "setup_models.py": "99c5b5c026f4219381f3d11defbb4f3e838d622105b92b7a64b392d0c467ba43",
+        "shared_smoke.py": "3743d0477a3ba51dd89d702a86b2113d118ffbe41d7965bd6445e0f49fc17fc8",
+        "singing.py": "3c577ae3a1c5496c6e5ac19c23e97e7fc7e45a37ac87b9998fee444768db4704",
+        "singing_spans.py": "bc211450af3d990b3bb1efa6b5718a803bd93c1262b06e4e71b835f6c8da2560",
+        "store.py": "0e34d9e6c0579d7eab5e8b1296a12f250bda2877aaab9b91d6a11ae038e378d9",
+        "supervisor.py": "801281fb05b058a5fb43a700d756b919882369afef4c480e04ce5d3772aa1684",
+        "worker.py": "94908186157bc1ca5ad35f077d19d1158351006b974c90ee8ea5edada34f7a3a"
+      },
+      "modelRevision": "536b0662742c02347bc0e980a01041f333bce120",
+      "packageVersions": {
+        "fastapi": "0.141.0",
+        "starlette": "1.3.1",
+        "python-multipart": "0.0.33",
+        "faster-whisper": "1.2.1",
+        "lv-chordia": "1.1.0"
+      },
+      "health": {
+        "status": "ok",
+        "version": 1,
+        "ready": true,
+        "models": {
+          "lyrics": {
+            "name": "Systran/faster-whisper-small",
+            "ready": true
+          },
+          "chords": {
+            "name": "lv-chordia-1.1.0",
+            "ready": true
+          },
+          "decoder": {
+            "name": "ffmpeg",
+            "ready": true
+          }
+        },
+        "serviceMode": "shared",
+        "authentication": "installation",
+        "authenticationRequired": true,
+        "limits": {
+          "uploadBytes": 268435456,
+          "durationSeconds": 1800,
+          "activeJobsPerInstallation": 2,
+          "jobsPerDay": 20
+        },
+        "privacy": {
+          "audioDeletion": "after_processing",
+          "resultRetentionHours": 24,
+          "installationTtlDays": 90
+        }
+      },
+      "resultSummary": {
+        "duration": 240.56163265306122,
+        "lyricLines": 60,
+        "chords": 77,
+        "warnings": [
+          "lyrics_unreliable",
+          "word_timing_unreliable"
+        ],
+        "metrics": {
+          "elapsedSeconds": 65.117,
+          "peakRssMb": 1741.04,
+          "device": "cpu/Linux/x86_64"
+        }
+      },
+      "resultFile": "report-result.json",
+      "jobFile": "report-job.json",
+      "elapsedSeconds": 71.341
+    },
+    "provenance": {
+      "startedAtUtc": "2026-11-13T01:50:30.064795+00:00",
+      "purpose": "One genuine shared HTTP final-profile smoke, not a cached quality replay",
+      "profile": "small / CPU INT8 / four threads / native-span-fallback-v1",
+      "sourceFrozenSha256": {
+        "freetune_analysis/pipeline.py": "99255d1f51bac83f0b75f1eee2cfe82f02ca21dff940b06d8ac708d76cc27144",
+        "freetune_analysis/singing_spans.py": "bc211450af3d990b3bb1efa6b5718a803bd93c1262b06e4e71b835f6c8da2560"
+      },
+      "concurrency": "Quality agent confirmed no other ML active before start; one model worker; unrelated non-ML host activity is not controlled.",
+      "command": "FREETUNE_SERVICE_MODE=shared FREETUNE_API_TOKEN= FREETUNE_WHISPER_MODEL=small FREETUNE_DEVICE=cpu FREETUNE_COMPUTE_TYPE=int8 FREETUNE_CPU_THREADS=4 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 .venv/bin/python -m freetune_analysis.shared_smoke data/evaluation/jamendo/Cortez_-_Feel__Stripped_.mp3 --language en --output data/evaluation/shared-span-final/report.json",
+      "observedCompletedAtUtc": "2026-11-13T01:51:52.713538+00:00",
+      "sourceCodeUnchangedDuringRun": true,
+      "reportArtifactSha256": {
+        "report.json": "de3c12ad1b91f7008fae7419062c60fd682bb0ecd84880ac3caf9e77e59bed56",
+        "report-result.json": "a03c49fa73531127b828866a03834ee707bd8b002157f08f093267fdfb2f49cb",
+        "report-job.json": "27067b2e74fa8c121d92c4588c3d9dec584d09f1306e499ba07efcf884400104",
+        "run.log": "8ea2c8fe398b98548061fbcbc4c49c3e99ffb8eb4ac41621389f0bb8e882b5ec"
+      }
+    },
+    "evidenceFiles": [
+      {
+        "path": "backend/data/evaluation/shared-span-final/report.json",
+        "sha256": "de3c12ad1b91f7008fae7419062c60fd682bb0ecd84880ac3caf9e77e59bed56"
+      },
+      {
+        "path": "backend/data/evaluation/shared-span-final/report-job.json",
+        "sha256": "27067b2e74fa8c121d92c4588c3d9dec584d09f1306e499ba07efcf884400104"
+      },
+      {
+        "path": "backend/data/evaluation/shared-span-final/report-result.json",
+        "sha256": "a03c49fa73531127b828866a03834ee707bd8b002157f08f093267fdfb2f49cb"
+      },
+      {
+        "path": "backend/data/evaluation/shared-span-final/run-context.json",
+        "sha256": "87ffec4b151ba8b98f7c4012058e618bb84e238d0de91ef590a55586cca82999"
+      },
+      {
+        "path": "backend/data/evaluation/shared-span-final/run.log",
+        "sha256": "8ea2c8fe398b98548061fbcbc4c49c3e99ffb8eb4ac41621389f0bb8e882b5ec"
+      }
+    ],
+    "runtimeNote": "These are newly measured timings from genuine full-recording inference through the shared HTTP service, not cached replay timings. One ML worker was active; unrelated non-ML host activity was not controlled, so this is an operational smoke measurement rather than a controlled performance comparison.",
+    "accuracyNote": "Successful HTTP/model execution and validation do not prove transcription, chord or timing accuracy; the response retains lyrics_unreliable and word_timing_unreliable warnings."
+  },
+  "priorBackendTestRuns": [
+    {
+      "workingDirectory": "backend",
+      "command": ".venv/bin/python -m pytest -q tests",
+      "passed": 107,
+      "failed": 0,
+      "elapsedSeconds": 15.92,
+      "warnings": 2,
+      "warningsNote": "Starlette test-client/httpx and anyio portal deprecation notices; no test failures.",
+      "log": {
+        "path": "backend/data/evaluation/final-client-checks/backend-worker-state-retention.txt",
+        "sha256": "2b18d1d832f419499e80ad33345f4960c205a6ecdaad2a0122932c1b7012e23e"
+      },
+      "coverageNote": "Includes all quality/decoder and 64 private/shared API contract cases, including API result expiry independent of audio deletion, removal of residual worker result files when writable, and quota/cleanup retention when worker state deletion also fails. No additional model inference smoke was run."
+    }
+  ]
 }

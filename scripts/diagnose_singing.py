@@ -38,8 +38,7 @@ def main():
     from faster_whisper import WhisperModel
     import faster_whisper
     from freetune_analysis.config import Settings, MODEL_REVISIONS
-    from freetune_analysis.pipeline import decode_audio, recognize_lyrics
-    from freetune_analysis.singing import ADAPTER_VERSION
+    from freetune_analysis.pipeline import ADAPTER_VERSION, decode_audio, recognize_lyrics
     ctranslate2.set_random_seed(0)
     observations = []
     native_segments = []

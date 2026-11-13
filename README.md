@@ -8,10 +8,15 @@ yet**: the bundled URL is deliberately empty and ordinary analysis is disabled
 with an explanation. Developer deployment files and the compatible private-server
 mode are included. No APK was built for this update.
 
+Validation includes 30 complete vocal recordings and 15 instrumental controls.
+The English text score still regresses against the historical run; the current
+profile is not presented as an overall recognition-quality improvement.
+
 - [Setup and user guide (Russian)](docs/audio-song-analysis.md)
 - [Backend setup, models and HTTP contract](backend/README.md)
 - [Model code/weight licenses](backend/MODEL_LICENSES.md)
 - [Measured validation and limitations](docs/validation/README.md)
+- [Final measurements, comparisons and remaining gaps](docs/validation/quality-v3-summary.md)
 
 This is a new [**React Native**](https://reactnative.dev) project, bootstrapped using [`@react-native-community/cli`](https://github.com/react-native-community/cli).
 
