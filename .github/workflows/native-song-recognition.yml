@@ -39,7 +39,6 @@ jobs:
           ffmpeg -nostdin -v error -ss 55 -i /tmp/freetune-samples/first.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/first.pcm
           ffmpeg -nostdin -v error -ss 55 -i /tmp/freetune-samples/fourth.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/fourth.pcm
       - name: Genuine fingerprint and Shazam POST
-        if: hashFiles('/tmp/freetune-samples/first.pcm') != ''
         continue-on-error: true
         run: |
           if [ -s /tmp/freetune-samples/first.pcm ] && [ -s /tmp/freetune-samples/fourth.pcm ]; then
