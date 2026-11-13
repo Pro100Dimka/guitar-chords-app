@@ -33,6 +33,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var connection: HttpURLConnection? = null
     @Volatile private var running = false
+    @Volatile private var rateLimitedUntil = 0L
 
     override fun getName() = "SongRecognition"
 
@@ -230,6 +231,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
 
     private fun submit(signature: String, durationMs: Int): Pair<String, String>? {
         val timestamp = System.currentTimeMillis()
+        if (timestamp < rateLimitedUntil) throw IllegalStateException("RateLimited")
         val url = URL("https://amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag/" +
             UUID.randomUUID() + "/" + UUID.randomUUID() +
             "?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3&sharehub=true&hubv5minorversion=v5.1&hidelb=true&video=v3")
@@ -257,7 +259,11 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             conn.setRequestProperty("Accept-Language", "en-US")
             conn.outputStream.use { it.write(payload.toString().toByteArray(Charsets.UTF_8)) }
             ensureActive()
-            if (conn.responseCode == 429) throw IllegalStateException("RateLimited")
+            if (conn.responseCode == 429) {
+                val seconds = conn.getHeaderField("Retry-After")?.toLongOrNull()?.coerceIn(1L, 3600L) ?: 30L
+                rateLimitedUntil = System.currentTimeMillis() + seconds * 1000L
+                throw IllegalStateException("RateLimited")
+            }
             if (conn.responseCode !in 200..299) throw IllegalStateException("ServiceHttp${conn.responseCode}")
             val response = conn.inputStream.bufferedReader().use { it.readText() }
             val track = JSONObject(response).optJSONObject("track") ?: return null
