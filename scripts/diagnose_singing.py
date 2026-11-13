@@ -39,11 +39,22 @@ def main():
     import faster_whisper
     from freetune_analysis.config import Settings, MODEL_REVISIONS
     from freetune_analysis.pipeline import decode_audio, recognize_lyrics
+    from freetune_analysis.singing import ADAPTER_VERSION
     ctranslate2.set_random_seed(0)
     observations = []
     native_segments = []
+    generations = []
 
     class ObservedWhisper(WhisperModel):
+        def generate_with_fallback(self, encoder_output, prompt, tokenizer, options):
+            result, average, temperature, compression = super().generate_with_fallback(
+                encoder_output, prompt, tokenizer, options)
+            generations.append({"text": tokenizer.decode(result.sequences_ids[0]),
+                                "avg_logprob": average, "temperature": temperature,
+                                "compression_ratio": compression,
+                                "no_speech_prob": result.no_speech_prob})
+            return result, average, temperature, compression
+
         def find_alignment(self, *arguments, **keywords):
             aligned = super().find_alignment(*arguments, **keywords)
             observations[-1]["rawDtwAlignments"] = deepcopy(aligned)
@@ -83,8 +94,8 @@ def main():
         "model": dict(zip(("id", "revision"), MODEL_REVISIONS[args.model])),
         "threads": args.threads, "seed": 0, "device": "cpu/int8", "platform": platform.platform(),
         "wallSeconds": time.monotonic() - started, "referenceSuppliedToInference": False,
-        "segments": native_segments, "alignmentCalls": observations,
-        "legacyAdapter": {"lyrics": lines, "language": language, "warnings": warnings},
+        "segments": native_segments, "alignmentCalls": observations, "generationCalls": generations,
+        "adapterOutput": {"version": ADAPTER_VERSION, "lyrics": lines, "language": language, "warnings": warnings},
     }
     args.output.write_text(json.dumps(report, ensure_ascii=False, indent=2,
                                       default=lambda value: value.item()) + "\n", "utf-8")

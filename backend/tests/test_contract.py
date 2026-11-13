@@ -226,6 +226,8 @@ def test_high_no_speech_score_does_not_delete_confident_singing(tmp_path, monkey
             return iter([segment]), SimpleNamespace(language="uk")
     monkeypatch.setitem(sys.modules, "faster_whisper", SimpleNamespace(WhisperModel=Recognizer))
     monkeypatch.setattr(pipeline, "availability", lambda _: {"models": {"lyrics": {"ready": True}}})
+    monkeypatch.setattr(pipeline, "capture_native_alignment", lambda _: lambda item: [
+        {"word": word.word, "start": word.start, "end": word.end} for word in item.words])
     source = tmp_path / "sung.wav"
     source.write_bytes(wav_bytes())
     lines, language, warnings = pipeline.recognize_lyrics(

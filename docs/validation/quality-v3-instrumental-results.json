@@ -1,0 +1,1983 @@
+{
+  "schemaVersion": 3,
+  "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "plan": {
+    "schemaVersion": 3,
+    "model": "small",
+    "seed": 0,
+    "threads": 4,
+    "workers": 1,
+    "codeSha256": {
+      "backend/freetune_analysis/pipeline.py": "e6f4a486d02d8ef8845f4e162ef3468c97a35be386515fbe35367bb28795d49e",
+      "backend/freetune_analysis/singing.py": "3c577ae3a1c5496c6e5ac19c23e97e7fc7e45a37ac87b9998fee444768db4704",
+      "backend/freetune_analysis/chords.py": "e7acd3f6610b985362dc40618f04255ed4e7993a50bc58d20d971676197e4fe8"
+    },
+    "recordings": [
+      {
+        "id": "00_BN1-129-Eb_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_BN1-129-Eb_comp_mic.wav",
+        "audioSha256": "59e1e3c9bebdabd48afe28050a2c031e6cf36e5697268301cdf2e74bc66b71f1",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_BN1-129-Eb_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "00_Funk1-114-Ab_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_Funk1-114-Ab_comp_mic.wav",
+        "audioSha256": "15eb54c1249e69e75c69d6611bd332c51735199c8ced22a35b87d662a81e5ba9",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_Funk1-114-Ab_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "00_Jazz1-130-D_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_Jazz1-130-D_comp_mic.wav",
+        "audioSha256": "b686a47b0a0a58dbdd818d2ebc9c31da87e4bed1af889dd62b1ffd1d1496f827",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_Jazz1-130-D_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "00_Rock1-130-A_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_Rock1-130-A_comp_mic.wav",
+        "audioSha256": "deb5aa62bc4ba99e394574a44bbfb95c22c789f8a4c4b4d8d5eccc0aa5e8392d",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_Rock1-130-A_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "00_SS1-100-C#_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_SS1-100-C#_comp_mic.wav",
+        "audioSha256": "4180689b2d372b7588253f3bf6782e904af04feef4d80726160965387d443662",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/00_SS1-100-C#_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "04_BN1-129-Eb_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_BN1-129-Eb_comp_mic.wav",
+        "audioSha256": "ca4b487760400edabb87ed478a523ad0587c020b8463f97429af4009789f4ebd",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_BN1-129-Eb_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "04_Funk1-114-Ab_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_Funk1-114-Ab_comp_mic.wav",
+        "audioSha256": "6e2a6fc4fdce9b250ab11a090a8f5c4efcc12f83a60b17c8ca206ffeda07a8f0",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_Funk1-114-Ab_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "04_Jazz1-130-D_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_Jazz1-130-D_comp_mic.wav",
+        "audioSha256": "69a9b13b9b4206c7b05ababa7dc4f63027212596aa9d255cac9301487099c899",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_Jazz1-130-D_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "04_Rock1-130-A_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_Rock1-130-A_comp_mic.wav",
+        "audioSha256": "139d6293709a89d256105fc65850129754de98b8d076e4eb1da8f706af80a26a",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_Rock1-130-A_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "04_SS1-100-C#_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_SS1-100-C#_comp_mic.wav",
+        "audioSha256": "39b592e5ab79e457a7901e865b4320e04014903465acdebd64235b4f44416650",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset/04_SS1-100-C#_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "exposed"
+      },
+      {
+        "id": "05_BN1-129-Eb_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_BN1-129-Eb_comp_mic.wav",
+        "audioSha256": "a55c99690ece8135baa9b05ffc42ee13ee408bcd3c2b0ef01fe373f69e844c3a",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_BN1-129-Eb_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "new"
+      },
+      {
+        "id": "05_Funk1-114-Ab_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_Funk1-114-Ab_comp_mic.wav",
+        "audioSha256": "63300b35df98320564fda1505df27b55bc519707728c1185e5b34da0e478b097",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_Funk1-114-Ab_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "new"
+      },
+      {
+        "id": "05_Jazz1-130-D_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_Jazz1-130-D_comp_mic.wav",
+        "audioSha256": "dc0d6d6351c1bf82ec4d186d93306b4f0bef6189ed691ec0ba1b57a74e6365a7",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_Jazz1-130-D_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "new"
+      },
+      {
+        "id": "05_Rock1-130-A_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_Rock1-130-A_comp_mic.wav",
+        "audioSha256": "711b2cc0a44a3890bf028c282e8edbc3f8ebfc2ec35a3806524abe7537c3db19",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_Rock1-130-A_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "new"
+      },
+      {
+        "id": "05_SS1-100-C#_comp",
+        "audio": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_SS1-100-C#_comp_mic.wav",
+        "audioSha256": "a8299b8c499cc67eb2e81e9e3afcc8382680d8a51150ce928407bb492e39c5fd",
+        "reference": null,
+        "chordReference": "/workspace/scratch/a81b5595b6a5/freetune/backend/data/evaluation/guitarset-new/05_SS1-100-C#_comp.reference.json",
+        "language": "en",
+        "kind": "instrumental",
+        "exposure": "new"
+      }
+    ]
+  },
+  "referenceSuppliedToInference": false,
+  "comparison": "Same-native legacy adapter and HMM replay, no second-inference runtime",
+  "measurement": "At most2 concurrent CPU processes,4threads each; direct full pipeline, not HTTP or Android; shared host",
+  "items": [
+    {
+      "id": "00_BN1-129-Eb_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "59e1e3c9bebdabd48afe28050a2c031e6cf36e5697268301cdf2e74bc66b71f1",
+      "status": "completed",
+      "durationSeconds": 22.32439909297052,
+      "wallSeconds": 18.725723462000133,
+      "metrics": {
+        "elapsedSeconds": 18.723,
+        "peakRssMb": 1569.65,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 9,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 3.1179069767441856,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.1396636462087774
+          },
+          "triad": {
+            "matchedSeconds": 6.215116279069768,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.27840015998579676
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 9,
+            "precision": 0.5555555555555556,
+            "recall": 1.0,
+            "f1": 0.7142857142857143,
+            "matchedMeanAbsoluteErrorSeconds": 0.1844186046511629
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 3.1179069767441856,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.1396636462087774
+          },
+          "triad": {
+            "matchedSeconds": 6.215116279069768,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.27840015998579676
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 8,
+            "precision": 0.625,
+            "recall": 1.0,
+            "f1": 0.7692307692307693,
+            "matchedMeanAbsoluteErrorSeconds": 0.1844186046511629
+          }
+        }
+      }
+    },
+    {
+      "id": "00_Funk1-114-Ab_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "15eb54c1249e69e75c69d6611bd332c51735199c8ced22a35b87d662a81e5ba9",
+      "status": "completed",
+      "durationSeconds": 25.258412698412698,
+      "wallSeconds": 12.809693455999877,
+      "metrics": {
+        "elapsedSeconds": 12.807,
+        "peakRssMb": 1231.88,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 7,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 11.688421052631579,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.46275381863584214
+          },
+          "triad": {
+            "matchedSeconds": 18.755768421052682,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.7425556813199824
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 2,
+            "referenceChanges": 5,
+            "predictedChanges": 7,
+            "precision": 0.2857142857142857,
+            "recall": 0.4,
+            "f1": 0.3333333333333333,
+            "matchedMeanAbsoluteErrorSeconds": 0.11973684210526159
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 11.708421052631579,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.46354563442781627
+          },
+          "triad": {
+            "matchedSeconds": 18.775768421052682,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.7433474971119566
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 2,
+            "referenceChanges": 5,
+            "predictedChanges": 6,
+            "precision": 0.3333333333333333,
+            "recall": 0.4,
+            "f1": 0.3636363636363636,
+            "matchedMeanAbsoluteErrorSeconds": 0.11973684210526159
+          }
+        }
+      }
+    },
+    {
+      "id": "00_Jazz1-130-D_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "b686a47b0a0a58dbdd818d2ebc9c31da87e4bed1af889dd62b1ffd1d1496f827",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 15.766220777999933,
+      "metrics": {
+        "elapsedSeconds": 15.765,
+        "peakRssMb": 1574.23,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 8,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 12.15104615384615,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.5486493170173272
+          },
+          "triad": {
+            "matchedSeconds": 17.51258461538461,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.7907358318606692
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 8,
+            "precision": 0.625,
+            "recall": 1.0,
+            "f1": 0.7692307692307693,
+            "matchedMeanAbsoluteErrorSeconds": 0.17492307692307704
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 12.15104615384615,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.5486493170173272
+          },
+          "triad": {
+            "matchedSeconds": 17.51258461538461,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.7907358318606692
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 7,
+            "precision": 0.7142857142857143,
+            "recall": 1.0,
+            "f1": 0.8333333333333333,
+            "matchedMeanAbsoluteErrorSeconds": 0.17492307692307704
+          }
+        }
+      }
+    },
+    {
+      "id": "00_Rock1-130-A_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "deb5aa62bc4ba99e394574a44bbfb95c22c789f8a4c4b4d8d5eccc0aa5e8392d",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 15.320765060000213,
+      "metrics": {
+        "elapsedSeconds": 15.32,
+        "peakRssMb": 1573.3,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 6,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 12.78923076923077,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.5774649061385082
+          },
+          "triad": {
+            "matchedSeconds": 20.05027692307692,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.9053188178675824
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 6,
+            "precision": 0.8333333333333334,
+            "recall": 1.0,
+            "f1": 0.9090909090909091,
+            "matchedMeanAbsoluteErrorSeconds": 0.11738461538461528
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 12.80923076923077,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.5783679548308936
+          },
+          "triad": {
+            "matchedSeconds": 20.070276923076925,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.9062218665599681
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 5,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "matchedMeanAbsoluteErrorSeconds": 0.11738461538461528
+          }
+        }
+      }
+    },
+    {
+      "id": "00_SS1-100-C#_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "4180689b2d372b7588253f3bf6782e904af04feef4d80726160965387d443662",
+      "status": "completed",
+      "durationSeconds": 28.8,
+      "wallSeconds": 13.14065646400013,
+      "metrics": {
+        "elapsedSeconds": 13.133,
+        "peakRssMb": 1231.56,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 6,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 7.190000000000001,
+            "scoredSeconds": 28.8,
+            "agreement": 0.2496527777777778
+          },
+          "triad": {
+            "matchedSeconds": 26.290000000000003,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9128472222222223
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 6,
+            "precision": 0.8333333333333334,
+            "recall": 1.0,
+            "f1": 0.9090909090909091,
+            "matchedMeanAbsoluteErrorSeconds": 0.019999999999999574
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 7.190000000000001,
+            "scoredSeconds": 28.8,
+            "agreement": 0.2496527777777778
+          },
+          "triad": {
+            "matchedSeconds": 26.310000000000002,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9135416666666667
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 5,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "matchedMeanAbsoluteErrorSeconds": 0.019999999999999574
+          }
+        }
+      }
+    },
+    {
+      "id": "04_BN1-129-Eb_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "ca4b487760400edabb87ed478a523ad0587c020b8463f97429af4009789f4ebd",
+      "status": "completed",
+      "durationSeconds": 22.32439909297052,
+      "wallSeconds": 14.728450004000024,
+      "metrics": {
+        "elapsedSeconds": 14.724,
+        "peakRssMb": 1233.68,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 6,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 12.843953488372092,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.5753325513884215
+          },
+          "triad": {
+            "matchedSeconds": 21.867189790644932,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.9795197487546461
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 6,
+            "precision": 0.8333333333333334,
+            "recall": 1.0,
+            "f1": 0.9090909090909091,
+            "matchedMeanAbsoluteErrorSeconds": 0.08744186046511722
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 12.863953488372092,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.5762284321651765
+          },
+          "triad": {
+            "matchedSeconds": 21.887189790644936,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.9804156295314013
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 5,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "matchedMeanAbsoluteErrorSeconds": 0.08744186046511722
+          }
+        }
+      }
+    },
+    {
+      "id": "04_Funk1-114-Ab_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "6e2a6fc4fdce9b250ab11a090a8f5c4efcc12f83a60b17c8ca206ffeda07a8f0",
+      "status": "completed",
+      "durationSeconds": 25.258412698412698,
+      "wallSeconds": 12.554539759999898,
+      "metrics": {
+        "elapsedSeconds": 12.551,
+        "peakRssMb": 1229.46,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 5,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 15.670526315789473,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.6204085102694328
+          },
+          "triad": {
+            "matchedSeconds": 15.670526315789473,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.6204085102694328
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 2,
+            "referenceChanges": 5,
+            "predictedChanges": 5,
+            "precision": 0.4,
+            "recall": 0.4,
+            "f1": 0.4000000000000001,
+            "matchedMeanAbsoluteErrorSeconds": 0.04868421052631611
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 15.690526315789473,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.621200326061407
+          },
+          "triad": {
+            "matchedSeconds": 15.690526315789473,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.621200326061407
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 2,
+            "referenceChanges": 5,
+            "predictedChanges": 4,
+            "precision": 0.5,
+            "recall": 0.4,
+            "f1": 0.4444444444444445,
+            "matchedMeanAbsoluteErrorSeconds": 0.04868421052631611
+          }
+        }
+      }
+    },
+    {
+      "id": "04_Jazz1-130-D_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "69a9b13b9b4206c7b05ababa7dc4f63027212596aa9d255cac9301487099c899",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 17.97690499600003,
+      "metrics": {
+        "elapsedSeconds": 17.973,
+        "peakRssMb": 1586.38,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 7,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 1.6207692307692305,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.07318167672523979
+          },
+          "triad": {
+            "matchedSeconds": 3.466923076923077,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.15654001756082384
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 7,
+            "precision": 0.7142857142857143,
+            "recall": 1.0,
+            "f1": 0.8333333333333333,
+            "matchedMeanAbsoluteErrorSeconds": 0.2161538461538468
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 1.6207692307692305,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.07318167672523979
+          },
+          "triad": {
+            "matchedSeconds": 3.466923076923077,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.15654001756082384
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 6,
+            "precision": 0.8333333333333334,
+            "recall": 1.0,
+            "f1": 0.9090909090909091,
+            "matchedMeanAbsoluteErrorSeconds": 0.2161538461538468
+          }
+        }
+      }
+    },
+    {
+      "id": "04_Rock1-130-A_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "139d6293709a89d256105fc65850129754de98b8d076e4eb1da8f706af80a26a",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 12.560143687000163,
+      "metrics": {
+        "elapsedSeconds": 12.557,
+        "peakRssMb": 1231.13,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 6,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 0.0,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.0
+          },
+          "triad": {
+            "matchedSeconds": 0.0,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.0
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 6,
+            "precision": 0.8333333333333334,
+            "recall": 1.0,
+            "f1": 0.9090909090909091,
+            "matchedMeanAbsoluteErrorSeconds": 0.0966153846153837
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 0.0,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.0
+          },
+          "triad": {
+            "matchedSeconds": 0.0,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.0
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 5,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "matchedMeanAbsoluteErrorSeconds": 0.0966153846153837
+          }
+        }
+      }
+    },
+    {
+      "id": "04_SS1-100-C#_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "exposed",
+      "audioSha256": "39b592e5ab79e457a7901e865b4320e04014903465acdebd64235b4f44416650",
+      "status": "completed",
+      "durationSeconds": 28.8,
+      "wallSeconds": 21.25269795799977,
+      "metrics": {
+        "elapsedSeconds": 21.25,
+        "peakRssMb": 1575.02,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 6,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 28.040000000000003,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9736111111111112
+          },
+          "triad": {
+            "matchedSeconds": 28.040000000000003,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9736111111111112
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 4,
+            "referenceChanges": 5,
+            "predictedChanges": 6,
+            "precision": 0.6666666666666666,
+            "recall": 0.8,
+            "f1": 0.7272727272727272,
+            "matchedMeanAbsoluteErrorSeconds": 0.01750000000000007
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 28.060000000000002,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9743055555555556
+          },
+          "triad": {
+            "matchedSeconds": 28.060000000000002,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9743055555555556
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 4,
+            "referenceChanges": 5,
+            "predictedChanges": 5,
+            "precision": 0.8,
+            "recall": 0.8,
+            "f1": 0.8000000000000002,
+            "matchedMeanAbsoluteErrorSeconds": 0.01750000000000007
+          }
+        }
+      }
+    },
+    {
+      "id": "05_BN1-129-Eb_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "new",
+      "audioSha256": "a55c99690ece8135baa9b05ffc42ee13ee408bcd3c2b0ef01fe373f69e844c3a",
+      "status": "completed",
+      "durationSeconds": 22.32439909297052,
+      "wallSeconds": 12.21761268299997,
+      "metrics": {
+        "elapsedSeconds": 12.214,
+        "peakRssMb": 1236.0,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 8,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 3.72093023255814,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.1666754933497754
+          },
+          "triad": {
+            "matchedSeconds": 6.550930232558138,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.2934426232606139
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 8,
+            "precision": 0.625,
+            "recall": 1.0,
+            "f1": 0.7692307692307693,
+            "matchedMeanAbsoluteErrorSeconds": 0.06897674418604716
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 3.72093023255814,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.1666754933497754
+          },
+          "triad": {
+            "matchedSeconds": 6.550930232558138,
+            "scoredSeconds": 22.32439909297052,
+            "agreement": 0.2934426232606139
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 7,
+            "precision": 0.7142857142857143,
+            "recall": 1.0,
+            "f1": 0.8333333333333333,
+            "matchedMeanAbsoluteErrorSeconds": 0.06897674418604716
+          }
+        }
+      }
+    },
+    {
+      "id": "05_Funk1-114-Ab_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "new",
+      "audioSha256": "63300b35df98320564fda1505df27b55bc519707728c1185e5b34da0e478b097",
+      "status": "completed",
+      "durationSeconds": 25.258412698412698,
+      "wallSeconds": 15.203638099000273,
+      "metrics": {
+        "elapsedSeconds": 15.202,
+        "peakRssMb": 1293.91,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 1
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 1,
+      "chordIntervals": 11,
+      "warnings": [
+        "lyrics_unreliable",
+        "word_timing_unreliable"
+      ],
+      "nativeWords": 1,
+      "nativeEvidenceMappedWords": 1,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 11.141052631578948,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.4410830706449706
+          },
+          "triad": {
+            "matchedSeconds": 14.056315789473686,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.5565006409540453
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 11,
+            "precision": 0.45454545454545453,
+            "recall": 1.0,
+            "f1": 0.625,
+            "matchedMeanAbsoluteErrorSeconds": 0.301894736842106
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 11.161052631578947,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.4418748864369447
+          },
+          "triad": {
+            "matchedSeconds": 14.076315789473686,
+            "scoredSeconds": 25.25840000000005,
+            "agreement": 0.5572924567460195
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 10,
+            "precision": 0.5,
+            "recall": 1.0,
+            "f1": 0.6666666666666666,
+            "matchedMeanAbsoluteErrorSeconds": 0.301894736842106
+          }
+        }
+      }
+    },
+    {
+      "id": "05_Jazz1-130-D_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "new",
+      "audioSha256": "dc0d6d6351c1bf82ec4d186d93306b4f0bef6189ed691ec0ba1b57a74e6365a7",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 13.964758052999969,
+      "metrics": {
+        "elapsedSeconds": 13.961,
+        "peakRssMb": 1231.76,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 10,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 0.0,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.0
+          },
+          "triad": {
+            "matchedSeconds": 0.0,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.0
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 4,
+            "referenceChanges": 5,
+            "predictedChanges": 10,
+            "precision": 0.4,
+            "recall": 0.8,
+            "f1": 0.5333333333333333,
+            "matchedMeanAbsoluteErrorSeconds": 0.3269230769230771
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 0.0,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.0
+          },
+          "triad": {
+            "matchedSeconds": 0.0,
+            "scoredSeconds": 22.147199999999998,
+            "agreement": 0.0
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 4,
+            "referenceChanges": 5,
+            "predictedChanges": 9,
+            "precision": 0.4444444444444444,
+            "recall": 0.8,
+            "f1": 0.5714285714285714,
+            "matchedMeanAbsoluteErrorSeconds": 0.3269230769230771
+          }
+        }
+      }
+    },
+    {
+      "id": "05_Rock1-130-A_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "new",
+      "audioSha256": "711b2cc0a44a3890bf028c282e8edbc3f8ebfc2ec35a3806524abe7537c3db19",
+      "status": "completed",
+      "durationSeconds": 22.14721088435374,
+      "wallSeconds": 12.14570212300032,
+      "metrics": {
+        "elapsedSeconds": 12.141,
+        "peakRssMb": 1234.23,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 9,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 12.524615384615387,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.5655168772854079
+          },
+          "triad": {
+            "matchedSeconds": 16.21692307692308,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.7322335589565759
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 9,
+            "precision": 0.5555555555555556,
+            "recall": 1.0,
+            "f1": 0.7142857142857143,
+            "matchedMeanAbsoluteErrorSeconds": 0.05830769230769093
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 12.544615384615387,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.5664199259777934
+          },
+          "triad": {
+            "matchedSeconds": 16.236923076923077,
+            "scoredSeconds": 22.1472,
+            "agreement": 0.7331366076489613
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 8,
+            "precision": 0.625,
+            "recall": 1.0,
+            "f1": 0.7692307692307693,
+            "matchedMeanAbsoluteErrorSeconds": 0.05830769230769093
+          }
+        }
+      }
+    },
+    {
+      "id": "05_SS1-100-C#_comp",
+      "kind": "instrumental",
+      "language": "en",
+      "exposure": "new",
+      "audioSha256": "a8299b8c499cc67eb2e81e9e3afcc8382680d8a51150ce928407bb492e39c5fd",
+      "status": "completed",
+      "durationSeconds": 28.8,
+      "wallSeconds": 12.59107267499985,
+      "metrics": {
+        "elapsedSeconds": 12.587,
+        "peakRssMb": 1233.18,
+        "device": "cpu/Linux/x86_64"
+      },
+      "legacy": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "candidate": {
+        "referenceWords": 0,
+        "predictedLexicalWords": 0,
+        "wordErrors": null,
+        "wer": null,
+        "substitutions": null,
+        "insertions": null,
+        "deletions": null,
+        "markerAwareErrors": null,
+        "markerAwareWer": null,
+        "timingReferenceWords": 0,
+        "timedExactWords": 0,
+        "timedExactCoverage": null,
+        "startErrorSumSeconds": 0,
+        "endErrorSumSeconds": 0,
+        "startMaeSeconds": null,
+        "endMaeSeconds": null,
+        "coarseLines": 0
+      },
+      "pairedTiming": {
+        "sameReferenceWords": 0,
+        "legacyStartErrorSumSeconds": 0,
+        "legacyStartMaeSeconds": null,
+        "legacyEndErrorSumSeconds": 0,
+        "legacyEndMaeSeconds": null,
+        "candidateStartErrorSumSeconds": 0,
+        "candidateStartMaeSeconds": null,
+        "candidateEndErrorSumSeconds": 0,
+        "candidateEndMaeSeconds": null
+      },
+      "lyricLines": 0,
+      "chordIntervals": 6,
+      "warnings": [
+        "no_lyrics"
+      ],
+      "nativeWords": 0,
+      "nativeEvidenceMappedWords": 0,
+      "chords": {
+        "legacy": {
+          "exact": {
+            "matchedSeconds": 28.36,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9847222222222222
+          },
+          "triad": {
+            "matchedSeconds": 28.36,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9847222222222222
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 6,
+            "precision": 0.8333333333333334,
+            "recall": 1.0,
+            "f1": 0.9090909090909091,
+            "matchedMeanAbsoluteErrorSeconds": 0.08400000000000034
+          }
+        },
+        "candidate": {
+          "exact": {
+            "matchedSeconds": 28.38,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9854166666666666
+          },
+          "triad": {
+            "matchedSeconds": 28.38,
+            "scoredSeconds": 28.8,
+            "agreement": 0.9854166666666666
+          },
+          "boundaries": {
+            "toleranceSeconds": 0.5,
+            "matches": 5,
+            "referenceChanges": 5,
+            "predictedChanges": 5,
+            "precision": 1.0,
+            "recall": 1.0,
+            "f1": 1.0,
+            "matchedMeanAbsoluteErrorSeconds": 0.08400000000000034
+          }
+        }
+      }
+    }
+  ],
+  "failures": [],
+  "summary": {
+    "recordings": 15,
+    "completed": 15,
+    "partial": 0,
+    "audioSeconds": 362.0317006802721,
+    "sumJobWallSeconds": 220.95857925800055,
+    "maximumWorkerPeakRssMiB": 1586.38,
+    "scoredRecordings": 0,
+    "legacy": {
+      "referenceWords": 0,
+      "wordErrors": 0,
+      "markerAwareErrors": 0,
+      "timingReferenceWords": 0,
+      "timedExactWords": 0,
+      "startErrorSumSeconds": 0,
+      "endErrorSumSeconds": 0,
+      "coarseLines": 0,
+      "wer": null,
+      "markerAwareWer": null,
+      "timedExactCoverage": null,
+      "startMaeSeconds": null,
+      "endMaeSeconds": null
+    },
+    "candidate": {
+      "referenceWords": 0,
+      "wordErrors": 0,
+      "markerAwareErrors": 0,
+      "timingReferenceWords": 0,
+      "timedExactWords": 0,
+      "startErrorSumSeconds": 0,
+      "endErrorSumSeconds": 0,
+      "coarseLines": 0,
+      "wer": null,
+      "markerAwareWer": null,
+      "timedExactCoverage": null,
+      "startMaeSeconds": null,
+      "endMaeSeconds": null
+    },
+    "pairedTiming": {
+      "sameReferenceWords": 0,
+      "legacyStartMaeSeconds": null,
+      "legacyEndMaeSeconds": null,
+      "candidateStartMaeSeconds": null,
+      "candidateEndMaeSeconds": null
+    },
+    "instrumental": {
+      "recordings": 15,
+      "withLexicalLyrics": 0,
+      "lexicalWords": 0,
+      "newControls": 5
+    }
+  },
+  "cohortWallSeconds": 245.0140155739996
+}

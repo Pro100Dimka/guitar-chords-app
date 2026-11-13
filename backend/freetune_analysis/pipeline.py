@@ -17,6 +17,7 @@ import time
 import wave
 
 from .config import Settings, MODEL_REVISIONS
+from .singing import ADAPTER_VERSION, adapt_segment, capture_native_alignment
 
 
 class AnalysisError(Exception):
@@ -91,7 +92,8 @@ def decode_audio(source: Path, target: Path, settings: Settings):
         raise AnalysisError("decoder_not_installed")
     try:
         probe = subprocess.run([
-            "ffprobe", "-v", "error", "-show_entries", "format=duration:stream=codec_type,duration",
+            "ffprobe", "-v", "error", "-protocol_whitelist", "file,pipe",
+            "-format_whitelist", "mp3,wav,mov", "-show_entries", "format=duration:stream=codec_type,duration",
             "-of", "json", str(source),
         ], capture_output=True, timeout=30, check=True)
         metadata = json.loads(probe.stdout)
@@ -109,7 +111,8 @@ def decode_audio(source: Path, target: Path, settings: Settings):
         if shutil.disk_usage(target.parent).free < needed:
             raise AnalysisError("insufficient_disk_space")
         subprocess.run([
-            "ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-xerror", "-y", "-i", str(source),
+            "ffmpeg", "-nostdin", "-hide_banner", "-v", "error", "-xerror", "-y",
+            "-protocol_whitelist", "file,pipe", "-format_whitelist", "mp3,wav,mov", "-i", str(source),
             "-map", "0:a:0", "-vn", "-ac", "1", "-ar", "22050", "-c:a", "pcm_s16le",
             "-t", str(settings.max_duration_seconds + 1), str(target),
         ], capture_output=True, timeout=180, check=True)
@@ -165,14 +168,8 @@ def chord_label(harte: str):
     return label
 
 
-def recognize_chords(audio: Path, duration: float, settings: Settings):
-    if not chord_weights_present(verify_hashes=True):
-        raise AnalysisError("chord_model_not_installed")
-    import torch
-    torch.set_num_threads(settings.cpu_threads)
-    from lv_chordia.chord_recognition import chord_recognition
-    # The public endpoint only supplies an owned local WAV, never a remote URL.
-    annotations = chord_recognition(str(audio), chord_dict_name="submission")
+def chord_intervals(annotations, duration):
+    """Bound recognized intervals to the untrimmed recording, preserving labels."""
     result = []
     for item in annotations:
         start, end = float(item["start_time"]), float(item["end_time"])
@@ -183,6 +180,18 @@ def recognize_chords(audio: Path, duration: float, settings: Settings):
             continue
         label = chord_label(str(item["chord"]))
         result.append({"start": start, "end": end, "label": label, "uncertain": label == "?"})
+    return result
+
+
+def recognize_chords(audio: Path, duration: float, settings: Settings, observer=None):
+    if not chord_weights_present(verify_hashes=True):
+        raise AnalysisError("chord_model_not_installed")
+    import torch
+    torch.set_num_threads(settings.cpu_threads)
+    from .chords import recognize_harmony
+    # The public endpoint only supplies an owned local WAV, never a remote URL.
+    annotations = recognize_harmony(audio, observer=observer)
+    result = chord_intervals(annotations, duration)
     if not result:
         raise AnalysisError("no_chords_detected")
     return result
@@ -231,14 +240,20 @@ def remove_non_lyric_captions(lines):
     return kept, len(lines) - len(kept)
 
 
-def recognize_lyrics(audio: Path, duration: float, language: str, settings: Settings, progress):
+def recognize_lyrics(audio: Path, duration: float, language: str, settings: Settings, progress,
+                     native_observer=None):
     if not availability(settings)["models"]["lyrics"]["ready"]:
         raise AnalysisError("lyrics_model_not_installed")
     from faster_whisper import WhisperModel
+    import ctranslate2
+    # Fix fallback sampling for reproducible evaluations and retries. This is
+    # process-local; each worker has its own model and random generator.
+    ctranslate2.set_random_seed(0)
     model = WhisperModel(
         str(settings.model_path), device=settings.device, compute_type=settings.compute_type,
         cpu_threads=settings.cpu_threads, num_workers=1, local_files_only=True,
     )
+    native_evidence = capture_native_alignment(model)
     # Already-decoded PCM avoids a second container decode and any differing codec priming.
     import soundfile as sf
     from scipy.signal import resample_poly
@@ -257,34 +272,13 @@ def recognize_lyrics(audio: Path, duration: float, language: str, settings: Sett
     lines, warnings = [], []
     for segment in segments:
         progress(min(0.98, 0.45 + 0.53 * max(0, segment.end) / duration), lines, detected, warnings)
-        # Whisper's no-speech score belongs to a 30s window. Singing can have a high
-        # score and confident decoded text; requiring BOTH signals avoids deleting
-        # whole real verses. This is the same conditional used by Whisper itself.
-        if segment.no_speech_prob >= 0.6 and segment.avg_logprob < -1.0:
-            continue
-        words = []
-        segment_uncertain = segment.avg_logprob < -1.0 or segment.compression_ratio > 2.4
-        for word in segment.words or []:
-            start, end = max(0.0, float(word.start)), min(duration, float(word.end))
-            if not math.isfinite(start) or not math.isfinite(end) or end <= start:
-                warnings.append("word_timing_unreliable")
-                continue
-            token = word.word.strip()
-            if not token:
-                continue
-            confidence = float(word.probability)
-            confidence = max(0.0, min(1.0, confidence)) if math.isfinite(confidence) else 0.0
-            uncertain = segment_uncertain or confidence < 0.35
-            # Low-confidence hypotheses are not presented as confidently recognized lyrics.
-            words.append({"start": start, "end": end, "text": "…" if uncertain else token,
-                          "confidence": confidence, "uncertain": uncertain})
-        if words:
-            uncertain = any(word["uncertain"] for word in words)
-            lines.append({"start": words[0]["start"], "end": words[-1]["end"],
-                          "text": " ".join(word["text"] for word in words),
-                          "words": words, "uncertain": uncertain})
-            if uncertain:
-                warnings.append("lyrics_unreliable")
+        evidence = native_evidence(segment)
+        if native_observer:
+            native_observer(segment, evidence)
+        line, segment_warnings = adapt_segment(segment, duration, evidence)
+        warnings.extend(segment_warnings)
+        if line:
+            lines.append(line)
     lines, unreliable = disjoint_lyrics(lines)
     lines, omitted = remove_non_lyric_captions(lines)
     if omitted:
@@ -307,8 +301,8 @@ def analyze(source: Path, directory: Path, language: str, settings: Settings, em
         "version": 1, "duration": 0, "language": None if language == "auto" else language,
         "lyrics": [], "chords": [], "warnings": [],
         "model": {"lyrics": MODEL_REVISIONS[settings.whisper_model][0],
-                  "alignment": "Whisper cross-attention DTW (faster-whisper word_timestamps)",
-                  "chords": "lv-chordia-1.1.0 (5-model CQT ensemble + HMM)"},
+                  "alignment": f"Whisper cross-attention DTW; {ADAPTER_VERSION} (native evidence, no invented timing)",
+                  "chords": "lv-chordia-1.1.0 (5-model CQT ensemble + equal initial HMM priors)"},
     }
 
     def report(stage, progress, status="running", error=None):

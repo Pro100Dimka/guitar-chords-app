@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "phase": "pre-candidate",
+  "recordedDateUtc": "2026-11-13",
+  "defaultModel": "small",
+  "legacyImplementation": "3a73101fb22483b405e61f1c3ce340709f8cc1da",
+  "priorCandidateAccepted": false,
+  "referenceSuppliedToInference": false,
+  "runtime": {"device": "cpu", "computeType": "int8", "seed": 0, "maximumConcurrentWorkers": 2, "maximumThreadsPerWorker": 4},
+  "diagnosticSelection": {"dataset": "GuitarSet v1.1.0", "recordings": ["00_BN1-129-Eb_comp", "00_Jazz1-130-D_comp"], "models": ["small", "turbo"], "threads": [2, 4], "exposure": "Previously observed failures"},
+  "exposedInstrumentalControls": {"players": ["00", "04"], "pieces": ["BN1-129-Eb", "Funk1-114-Ab", "Jazz1-130-D", "Rock1-130-A", "SS1-100-C#"], "count": 10},
+  "newInstrumentalControls": {"player": "05", "recordings": ["05_BN1-129-Eb_comp", "05_Funk1-114-Ab_comp", "05_Jazz1-130-D_comp", "05_Rock1-130-A_comp", "05_SS1-100-C#_comp"], "count": 5, "selectionFrozenBeforeInference": true, "purpose": "Independent instrumental negative controls and chord decoder check; not unseen vocal or language quality"},
+  "englishCorpus": {"recordings": 20, "source": "JamendoLyrics + Jam-ALT v1.4.0", "exposure": "All20 recordings and previous heldout have been inspected; this is exposed regression testing, not new heldout evidence", "referenceScope": "Separate human lyric text and word timing references; no human full-song chord reference"},
+  "slavicCorpus": {"historicalReproducible": ["uk_lysenko_dnieper", "ru_kalinka_1910"], "additionalSelection": "Root recovery manifest, separately frozen; lost original8 must not be claimed reproduced without provenance", "humanReferenceAvailable": false, "wer": null},
+  "lyricSafeguards": ["No song-specific phrase filters", "Retain legacy masking for compression_ratio>2.4", "Do not infer text from zero/invalid native word timing", "Recover individually confident words from a low-logprob window only with valid native alignment evidence and probability>=0.70", "SDK/raw native boundary change>0.20seconds becomes an explicitly approximate line, using the envelope of actual native/SDK intervals and words:[]; no compressed exact word time is published", "Keep all time coordinates on the untrimmed original recording; no stretching or uniform word redistribution"],
+  "acceptanceEvidence": ["Zero lexical lyric words on all15 instrumental controls", "No repetitive-window lexical recovery", "EN20 same-native old/new adapter comparison, both lexical and marker-aware WER", "Report exact timed-word coverage and common-word paired start/end MAE; no timing improvement claim based solely on a smaller matched subset", "Full result accepted by actual app validator", "Real shared HTTP smoke before describing profile integrated"],
+  "modelSelection": "Small remains default unless overall text/timing/negative-control/resource evidence justifies another profile. A lower WER alone does not establish better synchronization.",
+  "chordChange": "Only equal initial HMM priors, with fixed neural weights/dictionary/transitions and exact original frame grid. Compare both decoders on same neural observations; no second-inference runtime attributed.",
+  "unperformed": ["Public deployment", "Physical Android", "APK build", "Human Slavic lyric/timing validation", "Full vocal chord accuracy"]
+}

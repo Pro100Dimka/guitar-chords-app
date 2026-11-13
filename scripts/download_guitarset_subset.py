@@ -35,6 +35,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, default=Path("backend/data/evaluation/guitarset"))
     parser.add_argument("--archives", type=Path, help="Reuse downloaded official archives")
+    parser.add_argument("--players", nargs="+", choices=("00", "01", "02", "03", "04", "05"),
+                        default=["00", "04"], help="Players; freeze any new evaluation selection before inference")
     args = parser.parse_args()
     archives = args.archives or args.output / "archives"
     archives.mkdir(parents=True, exist_ok=True)
@@ -56,7 +58,9 @@ def main():
 
     with zipfile.ZipFile(archives / "annotation.zip") as annotations, \
             zipfile.ZipFile(archives / "audio_mono-mic.zip") as audio:
-        for name in NAMES:
+        names = [f"{player}_{piece}_comp" for player in args.players
+                 for piece in ("BN1-129-Eb", "Funk1-114-Ab", "Jazz1-130-D", "Rock1-130-A", "SS1-100-C#")]
+        for name in names:
             # Extract only named flat members, never archive-supplied paths.
             audio_path = args.output / f"{name}_mic.wav"
             audio_path.write_bytes(audio.read(audio_path.name))
@@ -81,7 +85,7 @@ def main():
         "GuitarSet v1.1.0 — Qingyang Xi, Rachel M. Bittner, Johan Pauwels, "
         "Xuzhou Ye, Juan Pablo Bello.\n"
         f"Source: {SOURCE}\nLicense: https://creativecommons.org/licenses/by/4.0/\n"
-        "Ten original mono microphone excerpts extracted without audio modification.\n"
+        f"{len(names)} original mono microphone excerpts extracted without audio modification.\n"
         "Chord references converted from the supplied performed-annotation JAMS.\n"
         "No additional human verification was performed.\n")
 

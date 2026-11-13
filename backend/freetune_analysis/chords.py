@@ -79,6 +79,10 @@ def recognize_harmony(audio: Path, observer=None):
     probabilities = []
     for model_name in MODEL_NAMES:
         network = NetworkInterface(ChordNet(None), model_name, load_checkpoint=False)
+        # Upstream loads the final .sdict in __init__; this flag refers only to
+        # fallback training checkpoints. Never infer with random weights.
+        if not network.finalized:
+            raise RuntimeError("chord_model_not_installed")
         probabilities.append(network.inference(entry.cqt))
     ensemble = [np.mean([result[index] for result in probabilities], axis=0)
                 for index in range(len(probabilities[0]))]
