@@ -14,6 +14,29 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+      - name: Live LRCLIB smoke test (public metadata only)
+        continue-on-error: true
+        run: |
+          node <<'NODE'
+          const url = new URL('https://lrclib.net/api/search');
+          url.searchParams.set('track_name', 'Imagine');
+          url.searchParams.set('artist_name', 'John Lennon');
+          (async () => {
+            const response = await fetch(url, {
+              headers: { 'Lrclib-Client': 'FreeTune/0.0.1 (https://github.com/Pro100Dimka/guitar-chords-app)' },
+              signal: AbortSignal.timeout(10000)
+            });
+            console.log('LRCLIB status:', response.status);
+            if (!response.ok) process.exitCode = 1;
+            else {
+              const data = await response.json();
+              if (!Array.isArray(data)) throw Error('Not array');
+              console.log('Candidate count:', data.length);
+              console.log('Exact match:', data.some(x => x.trackName === 'Imagine' && x.artistName === 'John Lennon'));
+              if (!data.some(x => x.trackName === 'Imagine' && x.artistName === 'John Lennon')) process.exitCode = 1;
+            }
+          })().catch(error => { console.error(error.message); process.exitCode = 1; });
+          NODE
       - name: Jest
         run: npm test -- --runInBand
       - name: TypeScript
