@@ -673,7 +673,10 @@ test.each([
     await validationSchema(String).isValid({
       title: "Title",
       content: "Am\nWords",
-      [key]: "a".repeat(length)
+      [key]:
+        key === "youtube_music"
+          ? "https://youtube.com/watch?v=" + "a".repeat(length)
+          : "a".repeat(length)
     })
   ).toBe(false);
 });
@@ -708,13 +711,11 @@ test("saving an imported capo arrangement preserves sounding pitch and playable 
     "sample.cho"
   );
   expect(songChordSequence(imported.content)).toEqual(["F#m"]);
-  jest
-    .mocked(crud.createItem)
-    .mockResolvedValue({
-      insertId: 888,
-      rowsAffected: 1,
-      rows: { length: 0, item: jest.fn() }
-    });
+  jest.mocked(crud.createItem).mockResolvedValue({
+    insertId: 888,
+    rowsAffected: 1,
+    rows: { length: 0, item: jest.fn() }
+  });
   const navigation = { replace: jest.fn() };
   await act(async () => {
     screen = Renderer.create(
@@ -739,4 +740,18 @@ test("saving an imported capo arrangement preserves sounding pitch and playable 
       preferences.transpose - preferences.capo
     )
   ).toBe("Em");
+});
+
+test("artist length uses the same contract as song backup fields", async () => {
+  const {
+    validationSchema
+  } = require("../src/screens/create-song-chords/formik/validation-schema");
+  expect(
+    await validationSchema(String).isValid({
+      ...initialSong,
+      title: "Title",
+      content: "Am\nWords",
+      fk_band: { id: "", name: "a".repeat(1001), search_text_lower: "" }
+    })
+  ).toBe(false);
 });

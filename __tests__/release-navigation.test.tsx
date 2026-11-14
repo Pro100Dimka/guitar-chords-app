@@ -176,3 +176,19 @@ test("guide section links return to an existing root navigator", async () => {
   });
   await act(async () => screen.unmount());
 });
+
+test("root return also works when opened without a Tabs route", () => {
+  const router = StackRouter({ initialRouteName: "Song" });
+  const options = {
+    routeNames: ["Tabs", "Song"],
+    routeParamList: {},
+    routeGetIdList: {}
+  };
+  const state = router.getInitialState(options);
+  const next = router.getStateForAction(
+    state,
+    StackActions.popTo("Tabs", { screen: "library" }),
+    options
+  )!;
+  expect(next.routes.map((x) => x.name)).toEqual(["Tabs"]);
+});
