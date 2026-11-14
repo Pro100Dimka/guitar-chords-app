@@ -1,4 +1,8 @@
-import { chordsAboveLyrics, songChords } from "../../screens/song/chords";
+import {
+  chordsAboveLyrics,
+  songChords,
+  transposeSong
+} from "../../screens/song/chords";
 import { Parser, parseDocument, DomUtils } from "htmlparser2";
 
 export interface LyricsOption {
@@ -8,6 +12,8 @@ export interface LyricsOption {
   content: string;
   album: string;
   duration: number | null;
+  capo?: number;
+  tuning?: string;
   source:
     | "LRCLIB"
     | "Пісенник"
@@ -39,6 +45,21 @@ const primaryArtist = (value: string) =>
 export const matchingIdentity = (expected: string, actual: string) =>
   !!normalize(trackTitle(expected)) &&
   normalize(trackTitle(expected)) === normalize(trackTitle(actual));
+
+export function preferredSongContent(options: LyricsOption[], album = "") {
+  const score = (option: LyricsOption) =>
+    (option.hasChords ? 1000 : 0) +
+    (album && normalize(album) === normalize(option.album) ? 100 : 0);
+  const best = Math.max(...options.map(score));
+  const candidates = options.filter((option) => score(option) === best);
+  return candidates.filter(
+    (option, index) =>
+      candidates.findIndex(
+        (other) =>
+          other.content === option.content && other.capo === option.capo
+      ) === index
+  );
+}
 
 const client =
   "FreeTune/0.0.1 (https://github.com/Pro100Dimka/guitar-chords-app)";
@@ -479,12 +500,42 @@ async function lookupChordPage(
     }
   });
   parser.end(DomUtils.getInnerHTML(body));
-  const content = chordsAboveLyrics(
-    text
-      .replace(/\u200b/g, "")
-      .replace(/\u00a0/g, " ")
-      .replace(/\r\n?/g, "\n")
-      .trim()
+  const capoElement =
+    DomUtils.findOne(
+      (element) =>
+        element.attribs["data-anchor"] === "--chord-capo" ||
+        element.attribs["data-capo"] !== undefined,
+      document.children
+    ) ??
+    DomUtils.findOne(
+      (element) =>
+        element.attribs.id === "capo" &&
+        /\d/.test(DomUtils.textContent(element)),
+      document.children
+    );
+  const capo = Math.min(
+    12,
+    Number(
+      (
+        capoElement?.attribs["data-capo"] ??
+        (capoElement ? DomUtils.textContent(capoElement) : "")
+      ).match(/\d+/)?.[0] ?? 0
+    )
+  );
+  const tuningElement = DomUtils.findOne(
+    (element) => !!element.attribs["data-tuning"],
+    document.children
+  );
+  const tuning = tuningElement?.attribs["data-tuning"];
+  const content = transposeSong(
+    chordsAboveLyrics(
+      text
+        .replace(/\u200b/g, "")
+        .replace(/\u00a0/g, " ")
+        .replace(/\r\n?/g, "\n")
+        .trim()
+    ),
+    capo
   );
   if (!content || content.length > 200000) return [];
   return [
@@ -493,6 +544,8 @@ async function lookupChordPage(
       title: foundTitle,
       artist: foundArtist,
       content,
+      capo,
+      tuning,
       album: "",
       duration: null,
       source,

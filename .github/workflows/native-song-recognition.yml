@@ -4,7 +4,7 @@ concurrency:
   cancel-in-progress: true
 on:
   push:
-    branches: [feature/song-autofill]
+    branches: [main, feature/song-autofill]
     paths:
       - android/song-fingerprint/**
       - android/app/src/main/**
@@ -17,6 +17,8 @@ on:
       - test-native.ps1
       - .github/workflows/native-song-recognition.yml
       - scripts/verify-shazam.cjs
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 jobs:
   native:
@@ -30,7 +32,7 @@ jobs:
           cache: npm
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-linux-android,armv7-linux-androideabi
+          targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
       - name: Android NDK setup
         run: |
           echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
@@ -73,7 +75,7 @@ jobs:
       - name: Compile native Rust JNI for Android (no APK)
         working-directory: android/song-fingerprint
         run: |
-          cargo ndk -t arm64-v8a -t armeabi-v7a -o ../app/src/main/jniLibs build --release --lib
+          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o ../app/src/main/jniLibs build --release --lib
       - name: Compile Android Kotlin (no APK)
         working-directory: android
         run: chmod +x gradlew && ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon

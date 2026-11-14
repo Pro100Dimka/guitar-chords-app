@@ -2,6 +2,7 @@
 const assert = require("node:assert/strict");
 const { DatabaseSync } = require("node:sqlite");
 const path = require("node:path");
+const fs = require("node:fs");
 const vm = require("node:vm");
 const babel = require("@babel/core");
 const WebSQLDatabase = require("websql/lib/websql/WebSQLDatabase");
@@ -17,7 +18,11 @@ const adapter = {
     const results = queries.map(({ sql, args }) => {
       try {
         const statement = sqlite.prepare(sql);
-        if (statement.columns().length) return { rows: statement.all(...args), rowsAffected: 0 };
+        if (statement.columns().length) {
+          const rows = statement.all(...args);
+          if (rows.some(row => Object.values(row).some(value => typeof value === "string" && Buffer.byteLength(value) > 2 * 1024 * 1024))) throw new Error("CursorWindow row too large");
+          return {rows, rowsAffected:0};
+        }
         const result = statement.run(...args);
         return { rows: [], rowsAffected: Number(result.changes), insertId: Number(result.lastInsertRowid) };
       } catch (error) {
@@ -40,8 +45,13 @@ function load(relative) {
   const module = { exports: {} };
   vm.runInNewContext(code, {
     module, exports: module.exports, console,
-    require: (name) => name === "../index" ? { db }
-      : name.startsWith(".") ? load(path.resolve(path.dirname(filename), `${name}.ts`)) : require(name)
+    setTimeout, clearTimeout,
+    require: (name) => {
+      if (name === "../index" || name === "./database") return {db};
+      if (!name.startsWith(".")) return require(name);
+      const target = path.resolve(path.dirname(filename), name);
+      return load(fs.existsSync(`${target}.ts`) ? `${target}.ts` : path.join(target,"index.ts"));
+    }
   });
   modules.set(filename, module.exports);
   return module.exports;
@@ -77,6 +87,28 @@ async function main() {
   }
   await remove({ tableName: "bands", filters: `id = ${insertId}` });
   assert.equal((await read({ tableName: "bands" })).length, 0);
+  const preferences = load("src/components/preferences.ts");
+  const legacy = JSON.stringify({instrument:"chromatic",songs:Object.fromEntries(Array.from({length:144},(_,i)=>[i+1,{cover:"data:image/jpeg;base64,"+"a".repeat(15000),favorite:true,capo:2}]))});
+  sqlite.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("experience",legacy);
+  await assert.rejects(read({tableName:"settings",filters:"key = ?",parameters:["experience"]}), /CursorWindow/);
+  failure="END;";
+  await assert.rejects(preferences.loadPreferences(), /Injected failure/);
+  failure=undefined;
+  assert.equal(sqlite.prepare("SELECT value FROM settings WHERE key = 'experience'").get().value,legacy);
+  assert.equal(Object.keys(preferences.usePreferences.getState().songs).length,0);
+  await preferences.loadPreferences();
+  assert.equal(Object.keys(preferences.usePreferences.getState().songs).length,144);
+  assert.equal(preferences.usePreferences.getState().songs[144].capo,2);
+  assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE 'song:%'").get().n,144);
+  assert.ok(sqlite.prepare("SELECT length(value) AS n FROM settings WHERE key = 'experience'").get().n < 4096);
+  preferences.usePreferences.getState().updateSong(144,{cover:"data:image/jpeg;base64,"+"z".repeat(290000)});
+  preferences.flushPreferences();
+  await new Promise((resolve,reject)=>db.transaction(()=>{},reject,resolve));
+  preferences.usePreferences.setState({songs:{}});
+  await preferences.loadPreferences();
+  assert.equal(preferences.usePreferences.getState().songs[144].cover.length,290023);
+  assert.equal(preferences.usePreferences.getState().songs[1].favorite,true);
+  console.log("SQLite preference migration passed: oversized legacy read reproduced, rollback preserved legacy data, chunked migration and multi-part cover reload passed.");
   sqlite.exec("PRAGMA user_version = 99");
   await assert.rejects(migrate(db), /newer application version/);
   assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 99);

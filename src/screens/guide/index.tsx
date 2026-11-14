@@ -386,7 +386,7 @@ export function GuideArticle() {
       data: "settings",
       help: "settings"
     }[article.section];
-    navigation.navigate("Tabs", { screen: target });
+    navigation.popTo("Tabs", { screen: target });
   };
   return (
     <ScrollView
@@ -457,7 +457,7 @@ export function GuideArticle() {
         label={t("GuideTitle")}
         onPress={() => {
           if (navigation.canGoBack()) navigation.goBack();
-          else navigation.navigate("Tabs", { screen: "guide" });
+          else navigation.popTo("Tabs", { screen: "guide" });
         }}
       />
       <Text accessibilityRole="header" style={styles.sectionHeading}>

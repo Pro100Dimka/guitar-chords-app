@@ -283,8 +283,8 @@ class MicrophoneStream: RCTEventEmitter {
         guard rms >= 0.003 else { return 0 }
         let sustaining = previousRms > 0 && rms <= previousRms * 1.2
         previousRms = rms
-        let minLag = max(1, Int(sampleRate / 2000))
-        let maxLag = min(Int(sampleRate / 40), buffer.count / 2 - 1)
+        let minLag = max(1, Int(sampleRate / 2500))
+        let maxLag = min(Int(sampleRate / 32), buffer.count / 2 - 1)
         guard maxLag >= minLag else { return 0 }
         var correlations = [Double](repeating: 0, count: maxLag + 2)
         norm.withUnsafeBufferPointer { samples in
@@ -308,6 +308,12 @@ class MicrophoneStream: RCTEventEmitter {
         let peaks = (minLag...maxLag).filter {
             correlations[$0] >= correlations[$0 - 1] && correlations[$0] > correlations[$0 + 1]
         }
+        func peakCorrelation(_ lag: Int) -> Double {
+            let delta = correlations[lag - 1] - correlations[lag + 1]
+            let curvature = correlations[lag - 1] - 2 * correlations[lag] + correlations[lag + 1]
+            let shift = curvature != 0 ? max(-0.5, min(0.5, 0.5 * delta / curvature)) : 0
+            return correlations[lag] - 0.25 * delta * shift
+        }
         guard let bestLag = peaks.first(where: { correlations[$0] >= bestCorrelation * peakThreshold }) else { return 0 }
         func frequency(_ lag: Int) -> Double {
             let left = correlations[lag - 1]
@@ -316,17 +322,6 @@ class MicrophoneStream: RCTEventEmitter {
             let shift = curvature != 0 ? max(-0.5, min(0.5, 0.5 * (left - right) / curvature)) : 0
             return sampleRate / (Double(lag) + shift)
         }
-        let detected = frequency(bestLag)
-        guard let lastPitch = pitchHistory.first else { return Float(detected) }
-        let previous = Double(lastPitch)
-        let ratio = max(detected, previous) / min(detected, previous)
-        let harmonic = ratio.rounded()
-        guard sustaining, (2...12).contains(harmonic), abs(1200 * log2(ratio / harmonic)) <= 70 else { return Float(detected) }
-        guard let trackedLag = peaks.filter({
-            correlations[$0] >= max(0.45, bestCorrelation * 0.5) &&
-                abs(1200 * log2(frequency($0) / previous)) < 50
-        }).max(by: { correlations[$0] < correlations[$1] }) else { return Float(detected) }
-        let tracked = frequency(trackedLag)
         func amplitude(_ frequency: Double) -> Double {
             var real = 0.0
             var imaginary = 0.0
@@ -338,6 +333,22 @@ class MicrophoneStream: RCTEventEmitter {
             }
             return sqrt(real * real + imaginary * imaginary)
         }
+        var detected = frequency(bestLag)
+        // At high pitches, fractional sample lags can depress a fundamental peak.
+        if let upper = peaks.first(where: { Double($0) < sampleRate / 2000 && peakCorrelation($0) >= bestCorrelation * peakThreshold }) {
+            let candidate = frequency(upper)
+            if candidate > 2000 && candidate > detected * 1.5 && amplitude(candidate) > amplitude(detected) * 4 { detected = candidate }
+        }
+        guard let lastPitch = pitchHistory.first else { return Float(detected) }
+        let previous = Double(lastPitch)
+        let ratio = max(detected, previous) / min(detected, previous)
+        let harmonic = ratio.rounded()
+        guard sustaining, (2...12).contains(harmonic), abs(1200 * log2(ratio / harmonic)) <= 70 else { return Float(detected) }
+        guard let trackedLag = peaks.filter({
+            correlations[$0] >= max(0.45, bestCorrelation * 0.5) &&
+                abs(1200 * log2(frequency($0) / previous)) < 50
+        }).max(by: { correlations[$0] < correlations[$1] }) else { return Float(detected) }
+        let tracked = frequency(trackedLag)
         // Follow a measured peak, never substitute the previous frequency itself.
         let requiredSupport = detected < tracked ? 1.25 : 0.08
         return Float(amplitude(tracked) > amplitude(detected) * requiredSupport ? tracked : detected)

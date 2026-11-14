@@ -44,6 +44,8 @@ export interface FormValues {
   id: number;
   title: string;
   cover: string;
+  capo?: number;
+  sourceTuning?: string;
   contentSource?: SongPreferences["contentSource"];
   content: string;
   youtube_music: string;

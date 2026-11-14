@@ -1,3 +1,4 @@
+import { songFieldLimits } from "@/@interfaces";
 import { NavigationProp } from "@/router";
 import { t } from "../../../locales";
 import { Alert } from "react-native";
@@ -12,11 +13,27 @@ import { usePreferences } from "../../../components/preferences";
 
 const onSabmit = async (
   _actions: FormikHelpers<FormValues>,
-  { fk_band, id, cover, contentSource, ...values }: FormValues,
+  {
+    fk_band,
+    id,
+    cover,
+    contentSource,
+    capo,
+    sourceTuning,
+    ...values
+  }: FormValues,
   navigation: Pick<NavigationProp, "replace">,
   setIsEdit?: (_: boolean) => void
 ) => {
   try {
+    const fields = { ...values, band_name: fk_band?.name ?? "" };
+    if (
+      Object.entries(songFieldLimits).some(
+        ([key, limit]) =>
+          fields[key as keyof typeof songFieldLimits].length > limit
+      )
+    )
+      throw new Error("FileTooLarge");
     const performer = fk_band?.name.trim() ?? "";
     let bandId: string | number | null = performer ? fk_band.id || null : null;
     if (performer && !bandId) {
@@ -48,7 +65,12 @@ const onSabmit = async (
         },
         filters: `id = ${id}`
       });
-      usePreferences.getState().updateSong(id, { cover, contentSource });
+      usePreferences.getState().updateSong(id, {
+        cover,
+        contentSource,
+        ...(capo !== undefined ? { capo, transpose: 0 } : {}),
+        ...(sourceTuning ? { sourceTuning } : {})
+      });
       Alert.alert(t`ElementChanged`);
       if (setIsEdit) setIsEdit(false);
       return;
@@ -61,7 +83,12 @@ const onSabmit = async (
         band_id: bandId
       }
     });
-    usePreferences.getState().updateSong(insertId, { cover, contentSource });
+    usePreferences.getState().updateSong(insertId, {
+      cover,
+      contentSource,
+      ...(capo !== undefined ? { capo, transpose: 0 } : {}),
+      ...(sourceTuning ? { sourceTuning } : {})
+    });
     Alert.alert(t`ElementAdded`);
     navigation.replace("Song", { id: insertId.toString() });
   } catch (err) {

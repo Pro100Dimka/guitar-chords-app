@@ -325,3 +325,29 @@ test("backgrounding stops capture and returning checks permission before restart
   expect(checkMicPermission).toHaveBeenLastCalledWith(false);
   expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(2);
 });
+
+test("changing octave stops the reference and the next tap plays again", async () => {
+  const previous = usePreferences.getState();
+  usePreferences.setState({ instrument: "chromatic", chromaticOctave: 4 });
+  const play = jest
+    .spyOn(guitarAudio, "playGuitar")
+    .mockImplementation(() => {});
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Tuner active />);
+    });
+    await act(async () => screen.root.findByType(Buttons).props.onReference());
+    expect(screen.root.findByType(Buttons).props.referencePlaying).toBe(true);
+    await act(async () =>
+      usePreferences.getState().update({ chromaticOctave: 5 })
+    );
+    expect(screen.root.findByType(Buttons).props.referencePlaying).toBe(false);
+    await act(async () => screen.root.findByType(Buttons).props.onReference());
+    expect(play).toHaveBeenLastCalledWith([81], previous.tunerReference);
+    expect(play).toHaveBeenCalledTimes(2);
+  } finally {
+    await act(async () => screen.unmount());
+    usePreferences.setState(previous);
+    play.mockRestore();
+  }
+});

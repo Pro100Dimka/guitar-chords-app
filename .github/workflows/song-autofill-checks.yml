@@ -1,7 +1,9 @@
 name: song-autofill-checks
 on:
   push:
-    branches: [feature/song-autofill]
+    branches: [main, feature/song-autofill]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 jobs:
   validation:
@@ -38,6 +40,8 @@ jobs:
             }
           })().catch(error => { console.error(error.message); process.exitCode = 1; });
           NODE
+      - name: SQLite integration
+        run: npm run test:sqlite
       - name: Jest
         run: npm test -- --runInBand
       - name: TypeScript

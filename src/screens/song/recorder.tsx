@@ -20,11 +20,15 @@ import palette from "../../theme/palette";
 export default function SongRecorder({
   songId,
   active,
-  onStart
+  onStart,
+  open = false,
+  onOpened
 }: {
   songId: number;
   active: boolean;
   onStart: () => void;
+  open?: boolean;
+  onOpened?: () => void;
 }) {
   const { t, i18n } = useTranslation();
   const [visible, setVisible] = useState(false);
@@ -42,6 +46,12 @@ export default function SongRecorder({
     const files = await performanceAudio.list(songId);
     if (mounted.current) setTakes(files);
   }, [songId]);
+  useEffect(() => {
+    if (!open) return;
+    setVisible(true);
+    void load().catch(() => Alert.alert(t("RecordingError")));
+    onOpened?.();
+  }, [open, load, onOpened, t]);
   const run = async (action: () => Promise<void>) => {
     if (operation.current) return;
     operation.current = true;

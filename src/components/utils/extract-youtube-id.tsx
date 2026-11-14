@@ -1,17 +1,27 @@
 export default function extractYoutubeId(url: string): string {
   try {
     const parsed = new URL(url);
-    if (parsed.hostname === "youtu.be") {
-      return parsed.pathname.slice(1); // /VIDEO_ID
-    }
-    if (parsed.searchParams.has("v")) {
-      return parsed.searchParams.get("v") || "";
-    }
-    // для embed-ссылок
-    if (parsed.pathname.startsWith("/embed/")) {
-      return parsed.pathname.split("/embed/")[1];
-    }
-    return "";
+    const host = parsed.hostname.toLowerCase();
+    if (
+      ![
+        "youtube.com",
+        "www.youtube.com",
+        "m.youtube.com",
+        "music.youtube.com",
+        "youtube-nocookie.com",
+        "www.youtube-nocookie.com",
+        "youtu.be"
+      ].includes(host)
+    )
+      return "";
+    const parts = parsed.pathname.split("/").filter(Boolean);
+    const id =
+      host === "youtu.be"
+        ? parts[0]
+        : ["embed", "shorts", "live"].includes(parts[0])
+          ? parts[1]
+          : parsed.searchParams.get("v");
+    return id && /^[A-Za-z0-9_-]{11}$/.test(id) ? id : "";
   } catch {
     return "";
   }

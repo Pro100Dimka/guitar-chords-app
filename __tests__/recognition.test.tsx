@@ -1,3 +1,4 @@
+jest.mock("react-native-safe-area-context",()=>({SafeAreaView:require("react-native").View,useSafeAreaInsets:()=>({top:0,bottom:0,left:0,right:0})}));
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
 import {
@@ -17,6 +18,7 @@ import RecognizeSong from "../src/screens/recognize-song";
 
 jest.mock("../src/components/permissions", () => jest.fn());
 jest.mock("../src/components/song-autofill/lyrics", () => ({
+  ...jest.requireActual("../src/components/song-autofill/lyrics"),
   lookupSongContent: jest.fn()
 }));
 jest.mock("../src/components/library-files", () => ({
@@ -45,13 +47,11 @@ const previousNative = NativeModules.SongRecognition;
 beforeEach(() => {
   jest.replaceProperty(Platform, "OS", "android");
   NativeModules.SongRecognition = {
-    recognizeMicrophone: jest
-      .fn()
-      .mockResolvedValue({
-        title: "Track",
-        artist: "Artist",
-        source: "Shazam"
-      }),
+    recognizeMicrophone: jest.fn().mockResolvedValue({
+      title: "Track",
+      artist: "Artist",
+      source: "Shazam"
+    }),
     recognizeFile: jest.fn(),
     cancel: jest.fn().mockResolvedValue(undefined)
   };
@@ -163,4 +163,140 @@ test("backgrounding during enrichment keeps an editable metadata draft and ignor
     ])
   );
   expect(mockNavigation.replace).toHaveBeenCalledTimes(1);
+});
+
+test("recognition selects lyrics from the known album instead of the first version", async () => {
+  NativeModules.SongRecognition.recognizeMicrophone.mockResolvedValue({
+    title: "Track",
+    artist: "Artist",
+    album: "Studio",
+    source: "Shazam"
+  });
+  jest.mocked(lookupSongContent).mockResolvedValue([
+    {
+      id: 1,
+      title: "Track",
+      artist: "Artist",
+      album: "Live",
+      duration: 300,
+      content: "Live words",
+      source: "LRCLIB"
+    },
+    {
+      id: 2,
+      title: "Track",
+      artist: "Artist",
+      album: "Studio",
+      duration: 200,
+      content: "Studio words",
+      source: "LRCLIB"
+    }
+  ]);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (x) =>
+          x.props.accessibilityLabel === "AddSongStart" &&
+          typeof x.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  await act(async () =>
+    screen!.root
+      .find(
+        (x) =>
+          x.props.accessibilityLabel === "AddSongEditResult" &&
+          typeof x.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  expect(mockNavigation.replace).toHaveBeenLastCalledWith(
+    "createSong",
+    expect.objectContaining({
+      draft: expect.objectContaining({ content: "Studio words" })
+    })
+  );
+});
+
+test("ambiguous lyric versions wait for an explicit choice", async () => {
+  jest.mocked(lookupSongContent).mockResolvedValue([
+    {
+      id: 1,
+      title: "Track",
+      artist: "Artist",
+      album: "Live",
+      duration: 300,
+      content: "Live words",
+      source: "LRCLIB"
+    },
+    {
+      id: 2,
+      title: "Track",
+      artist: "Artist",
+      album: "Studio",
+      duration: 200,
+      content: "Studio words",
+      source: "LRCLIB"
+    }
+  ]);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () => {
+    void screen!.root
+      .find(
+        (x) =>
+          x.props.accessibilityLabel === "AddSongStart" &&
+          typeof x.props.onPress === "function"
+      )
+      .props.onPress();
+  });
+  expect(mockNavigation.replace).not.toHaveBeenCalled();
+  const { Action } = require("../src/screens/song/tools");
+  await act(async () =>
+    screen!.root
+      .findAllByType(Action)
+      .find((x) => String(x.props.label).startsWith("Studio ·"))!
+      .props.onPress()
+  );
+  await act(async () =>
+    screen!.root
+      .find(
+        (x) =>
+          x.props.accessibilityLabel === "AddSongEditResult" &&
+          typeof x.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  expect(mockNavigation.replace).toHaveBeenLastCalledWith(
+    "createSong",
+    expect.objectContaining({
+      draft: expect.objectContaining({ content: "Studio words" })
+    })
+  );
+});
+
+test("identical text from another album cannot hide the known album match", () => {
+  const { preferredSongContent } = jest.requireActual(
+    "../src/components/song-autofill/lyrics"
+  );
+  const base = {
+    title: "Track",
+    artist: "Artist",
+    duration: 200,
+    content: "Same words",
+    source: "LRCLIB"
+  };
+  expect(
+    preferredSongContent(
+      [
+        { ...base, id: 1, album: "Live" },
+        { ...base, id: 2, album: "Studio" }
+      ],
+      "Studio"
+    )
+  ).toEqual([expect.objectContaining({ id: 2 })]);
 });

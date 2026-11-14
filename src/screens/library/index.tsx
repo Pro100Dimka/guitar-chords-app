@@ -1,9 +1,9 @@
+import { requestSongDeletion } from "../../components/library-files";
 // src/screens/library/index.tsx
 import { useFocusEffect, useNavigation } from "@react-navigation/native";
 import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Image,
   FlatList,
   ScrollView,
@@ -19,7 +19,7 @@ import LibraryItem from "./library-item";
 import SearchBar from "./search";
 import palette from "../../theme/palette";
 import { ISong } from "@/@interfaces";
-import { deleteItem, getAllItems } from "@/components/database/crud";
+import { getAllItems } from "@/components/database/crud";
 import { usePreferences } from "@/components/preferences";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Sheet, Action } from "../song/tools";
@@ -183,24 +183,17 @@ const Library: React.FC = () => {
             onPress={() => {
               const song = selectedSong;
               setSelectedSong(null);
-              Alert.alert(t("Delete"), song.title, [
-                { text: t("Cancel"), style: "cancel" },
-                {
-                  text: t("Delete"),
-                  style: "destructive",
-                  onPress: () => {
-                    void deleteItem({
-                      tableName: "songs",
-                      filters: `id = ${song.id}`
-                    })
-                      .then(() => {
-                        usePreferences.getState().removeSong(song.id);
-                        return loadSongs(0);
-                      })
-                      .catch(() => Alert.alert(t("Error")));
-                  }
-                }
-              ]);
+              requestSongDeletion(
+                song.id,
+                () => {
+                  void loadSongs(0);
+                },
+                () =>
+                  navigation.navigate("Song", {
+                    id: String(song.id),
+                    recordings: true
+                  })
+              );
             }}
           />
         </Sheet>

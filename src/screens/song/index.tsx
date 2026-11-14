@@ -23,6 +23,7 @@ import {
   useFocusEffect,
   useIsFocused,
   useRoute,
+  useNavigation,
   RouteProp
 } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
@@ -33,7 +34,7 @@ import SongModal from "./header-modal";
 import VideoTabs from "./video-tabs";
 import Header from "../../components/header";
 import palette from "../../theme/palette";
-import { RootStackParamList } from "../../router";
+import { NavigationProp, RootStackParamList } from "../../router";
 import { ISong } from "../../@interfaces";
 import { getAllItems } from "@/components/database/crud";
 import {
@@ -54,6 +55,7 @@ import { Action, ChordSheet, SongTools } from "./tools";
 
 const SongDetail: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, "Song">>();
+  const navigation = useNavigation<NavigationProp>();
   const songId = Number(route?.params?.id);
   const { t } = useTranslation();
   const focused = useIsFocused();
@@ -380,6 +382,8 @@ const SongDetail: React.FC = () => {
           >
             <SongRecorder
               songId={songId}
+              open={route.params?.recordings}
+              onOpened={() => navigation.setParams({ recordings: false })}
               active={focused && !tuner && !tools && !chord && !isEdit}
               onStart={() => {
                 setVideos(false);

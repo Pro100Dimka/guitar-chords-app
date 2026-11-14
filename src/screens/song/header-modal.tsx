@@ -3,7 +3,6 @@ import Ionicons from "react-native-vector-icons/Ionicons";
 import { FC, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  Alert,
   Modal,
   Pressable,
   StyleSheet,
@@ -14,8 +13,7 @@ import Text from "../../components/styled-text";
 import palette from "../../theme/palette";
 import { useNavigation } from "@react-navigation/native";
 import { NavigationProp } from "../../router";
-import { deleteItem } from "@/components/database/crud";
-import { usePreferences } from "@/components/preferences";
+import { requestSongDeletion } from "@/components/library-files";
 interface ISongModalProps {
   setIsEdit: (_: boolean) => void;
   songId: number;
@@ -29,15 +27,12 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
     [t`Edit`, () => setIsEdit(true)],
     [
       t`Delete`,
-      async () => {
-        await deleteItem({ tableName: "songs", filters: `id =${songId}` })
-          .then(() => {
-            usePreferences.getState().removeSong(songId);
-            navigation.navigate("Tabs", { screen: "library" });
-            Alert.alert(t`ElementDeleted`);
-          })
-          .catch((err) => console.error(err));
-      }
+      () =>
+        requestSongDeletion(
+          songId,
+          () => navigation.popTo("Tabs", { screen: "library" }),
+          () => navigation.setParams({ recordings: true })
+        )
     ]
   ];
   return (

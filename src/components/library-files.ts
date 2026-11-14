@@ -1,4 +1,9 @@
-import { chordsAboveLyrics } from "../screens/song/chords";
+import { Alert } from "react-native";
+import { t } from "../locales";
+import { performanceAudio } from "./performance-audio";
+import { deleteItem } from "./database/crud";
+import { songFieldLimits } from "@/@interfaces";
+import { chordsAboveLyrics, transposeSong } from "../screens/song/chords";
 import {
   errorCodes,
   isErrorWithCode,
@@ -15,7 +20,8 @@ import {
   normalizeSongPreferences,
   SongPreferences,
   suspendPreferenceSaving,
-  usePreferences
+  usePreferences,
+  writePreferences
 } from "./preferences";
 
 const maxBytes = 5 * 1024 * 1024;
@@ -128,15 +134,26 @@ export function importedSong(text: string, name: string) {
   const title =
     text.match(/^\s*\{(?:title|t):\s*([^}]+)\}\s*$/im)?.[1]?.trim() ??
     name.replace(/\.[^.]+$/, "");
-  // Leave musical directives visible for review, without silently changing pitch.
-  const content = text.replace(/^\s*\{(?:title|t):[^}]+\}\s*$/gim, "").trim();
+  if (title.length > songFieldLimits.title) throw new Error("FileTooLarge");
+  const capo = Math.min(12, Number(text.match(/\{capo:\s*(\d+)\}/i)?.[1] ?? 0));
+  const sourceTuning = text.match(/\{tuning:\s*([^}]+)\}/i)?.[1]?.trim();
+  const content = text
+    .replace(/^\s*\{(?:title|t|capo|tuning):[^}]+\}\s*$/gim, "")
+    .trim();
   if (!content) throw new Error("FileFormatError");
   const artist =
     text.match(/^\s*\{(?:artist|a):\s*([^}]+)\}\s*$/im)?.[1]?.trim() ?? "";
+  if (artist.length > songFieldLimits.band_name)
+    throw new Error("FileTooLarge");
   return {
     title,
-    content: chordsAboveLyrics(
-      content.replace(/^\s*\{(?:artist|a):[^}]+\}\s*$/gim, "").trim()
+    capo,
+    sourceTuning,
+    content: transposeSong(
+      chordsAboveLyrics(
+        content.replace(/^\s*\{(?:artist|a):[^}]+\}\s*$/gim, "").trim()
+      ),
+      capo
     ),
     fk_band: {
       id: "",
@@ -174,18 +191,17 @@ export function parseLibraryBackup(text: string): BackupSong[] {
   return data.songs.map((song: unknown) => {
     if (!record(song)) throw new Error("BackupInvalid");
     const strings: Record<string, string> = {};
-    for (const [key, limit] of Object.entries({
-      title: 1000,
-      content: 200000,
-      band_name: 1000,
-      youtube_music: 4000,
-      youtobe_lesson: 4000
-    })) {
+    for (const key of Object.keys(songFieldLimits)) {
       const value = song[key];
-      if (typeof value !== "string" || value.length > limit)
+      if (typeof value !== "string" || value.length > maxBytes)
         throw new Error("BackupInvalid");
       strings[key] = value;
     }
+    if (
+      Object.values(strings).reduce((size, value) => size + value.length, 0) >
+      400000
+    )
+      throw new Error("BackupInvalid");
     if (!strings.title.trim() || !strings.content.trim())
       throw new Error("BackupInvalid");
     return {
@@ -263,38 +279,11 @@ export async function restoreLibrary(songs: BackupSong[]) {
           const insertNext = (index: number) => {
             const song = songs[index];
             if (!song) {
-              const {
-                instrument,
-                tuning,
-                customTuning,
-                tunerSound,
-                tunerReference,
-                tunerSpectrum,
-                chromaticOctave,
-                autoDetect,
-                stringIndex,
-                tab,
-                songs: currentSongs
-              } = usePreferences.getState();
-              tx.executeSql(
-                "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
-                [
-                  "experience",
-                  JSON.stringify({
-                    instrument,
-                    tuning,
-                    customTuning,
-                    tunerSound,
-                    tunerReference,
-                    tunerSpectrum,
-                    chromaticOctave,
-                    autoDetect,
-                    stringIndex,
-                    tab,
-                    songs: { ...currentSongs, ...addedPreferences }
-                  })
-                ]
-              );
+              const state = usePreferences.getState();
+              writePreferences(tx, {
+                ...state,
+                songs: { ...state.songs, ...addedPreferences }
+              });
               return;
             }
             const { title, content, band_name, youtube_music, youtobe_lesson } =
@@ -357,4 +346,60 @@ export async function restoreLibrary(songs: BackupSong[]) {
   } finally {
     resumeSaving();
   }
+}
+
+export function requestSongDeletion(
+  songId: number,
+  onDeleted: () => void,
+  onRecordings: () => void
+) {
+  const fail = () => Alert.alert(t("Error"));
+  const remove = async (
+    takes: Awaited<ReturnType<typeof performanceAudio.list>>
+  ) => {
+    try {
+      if (takes.some((take) => take.processing))
+        throw new Error("RecordingBusy");
+      performanceAudio.stopPlayback();
+      for (const take of takes) {
+        if (!(await performanceAudio.remove(take.path)))
+          throw new Error("RecordingDeleteFailed");
+      }
+      await deleteItem({ tableName: "songs", filters: `id = ${songId}` });
+      usePreferences.getState().removeSong(songId);
+      onDeleted();
+    } catch {
+      fail();
+    }
+  };
+  Alert.alert(t("Delete"), t("DeleteSongConfirm"), [
+    { text: t("Cancel"), style: "cancel" },
+    {
+      text: t("Delete"),
+      style: "destructive",
+      onPress: () => {
+        void (async () => {
+          try {
+            await performanceAudio.stop();
+            const takes = await performanceAudio.list(songId);
+            if (!takes.length) {
+              await remove([]);
+              return;
+            }
+            Alert.alert(t("MyRecordings"), t("DeleteSongRecordings"), [
+              { text: t("Cancel"), style: "cancel" },
+              { text: t("MyRecordings"), onPress: onRecordings },
+              {
+                text: t("DeleteSongAndRecordings"),
+                style: "destructive",
+                onPress: () => void remove(takes)
+              }
+            ]);
+          } catch {
+            fail();
+          }
+        })();
+      }
+    }
+  ]);
 }

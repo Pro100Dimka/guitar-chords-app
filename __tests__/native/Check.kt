@@ -23,6 +23,18 @@ fun checkAccuracy(module: MicrophoneStreamModule, recordingsDirectory: File) {
     var cases = 0
     var transitions = 0
     for (rate in listOf(44100, 48000)) {
+        for (reference in listOf(400.0, 480.0)) {
+            for (midi in listOf(28, 95)) {
+                for (detune in listOf(-50, 0, 50)) {
+                    val frequency = reference * 2.0.pow((midi - 69) / 12.0 + detune / 1200.0)
+                    reset.invoke(module)
+                    val pitch = estimate(tone(frequency, rate, 0, 0.8), rate)
+                    if (pitch <= 0 || abs(1200 * log2(pitch / frequency)) > 3) failures.add("Calibration edge failed rate=$rate frequency=$frequency pitch=$pitch")
+                }
+            }
+        }
+    }
+    for (rate in listOf(44100, 48000)) {
         val frequencies = listOf(82.4069, 110.0, 146.8324, 195.9977, 246.9417, 329.6276)
         for (from in frequencies) for (to in frequencies.filter { it != from }) {
             for (level in listOf(0.3, 1.0, 1.5)) {

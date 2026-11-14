@@ -133,3 +133,11 @@ export interface IBand {
   id: number;
   name: string;
 }
+
+export const songFieldLimits = {
+  title: 1000,
+  content: 200000,
+  band_name: 1000,
+  youtube_music: 4000,
+  youtobe_lesson: 4000
+};

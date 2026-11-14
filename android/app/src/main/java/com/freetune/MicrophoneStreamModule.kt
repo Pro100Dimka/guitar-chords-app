@@ -167,8 +167,8 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         if (rms < 0.003) return 0f
         val sustaining = previousRms > 0 && rms <= previousRms * 1.2
         previousRms = rms
-        val minFreq = 40
-        val maxFreq = 2000
+        val minFreq = 32
+        val maxFreq = 2500
         val minLag = maxOf(1, sampleRate / maxFreq)
         val maxLag = minOf(sampleRate / minFreq, buffer.size / 2 - 1)
         if (maxLag < minLag) return 0f
@@ -193,6 +193,12 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
             correlations[it] >= correlations[it - 1] &&
                 correlations[it] > correlations[it + 1]
         }
+        fun peakCorrelation(lag: Int): Double {
+            val delta = correlations[lag - 1] - correlations[lag + 1]
+            val curvature = correlations[lag - 1] - 2 * correlations[lag] + correlations[lag + 1]
+            val shift = if (curvature != 0.0) (0.5 * delta / curvature).coerceIn(-0.5, 0.5) else 0.0
+            return correlations[lag] - 0.25 * delta * shift
+        }
         val bestLag = peaks.firstOrNull { correlations[it] >= bestCorr * peakThreshold } ?: return 0f
         fun frequency(lag: Int): Double {
             val left = correlations[lag - 1]
@@ -201,16 +207,6 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
             val shift = if (curvature != 0.0) (0.5 * (left - right) / curvature).coerceIn(-0.5, 0.5) else 0.0
             return sampleRate / (lag + shift)
         }
-        val detected = frequency(bestLag)
-        val previous = pitchHistory.firstOrNull()?.toDouble() ?: return detected.toFloat()
-        val ratio = maxOf(detected, previous) / minOf(detected, previous)
-        val harmonic = Math.round(ratio)
-        if (!sustaining || harmonic !in 2..12 || kotlin.math.abs(1200 * kotlin.math.log2(ratio / harmonic)) > 70) return detected.toFloat()
-        val trackedLag = peaks.filter {
-            correlations[it] >= maxOf(0.45, bestCorr * 0.5) &&
-                kotlin.math.abs(1200 * kotlin.math.log2(frequency(it) / previous)) < 50
-        }.maxByOrNull { correlations[it] } ?: return detected.toFloat()
-        val tracked = frequency(trackedLag)
         fun amplitude(freq: Double): Double {
             var real = 0.0
             var imaginary = 0.0
@@ -222,6 +218,22 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
             }
             return Math.sqrt(real * real + imaginary * imaginary)
         }
+        var detected = frequency(bestLag)
+        // At high pitches, fractional sample lags can depress a fundamental peak.
+        val upper = peaks.firstOrNull { it < sampleRate / 2000.0 && peakCorrelation(it) >= bestCorr * peakThreshold }
+        if (upper != null) {
+            val candidate = frequency(upper)
+            if (candidate > 2000 && candidate > detected * 1.5 && amplitude(candidate) > amplitude(detected) * 4) detected = candidate
+        }
+        val previous = pitchHistory.firstOrNull()?.toDouble() ?: return detected.toFloat()
+        val ratio = maxOf(detected, previous) / minOf(detected, previous)
+        val harmonic = Math.round(ratio)
+        if (!sustaining || harmonic !in 2..12 || kotlin.math.abs(1200 * kotlin.math.log2(ratio / harmonic)) > 70) return detected.toFloat()
+        val trackedLag = peaks.filter {
+            correlations[it] >= maxOf(0.45, bestCorr * 0.5) &&
+                kotlin.math.abs(1200 * kotlin.math.log2(frequency(it) / previous)) < 50
+        }.maxByOrNull { correlations[it] } ?: return detected.toFloat()
+        val tracked = frequency(trackedLag)
         // Follow a measured peak, never substitute the previous frequency itself.
         val requiredSupport = if (detected < tracked) 1.25 else 0.08
         return if (amplitude(tracked) > amplitude(detected) * requiredSupport) tracked.toFloat() else detected.toFloat()

@@ -169,11 +169,28 @@ test("unconfigured store never shows a payment button or invented price", async 
   expect(mockRequestPurchase).not.toHaveBeenCalled();
 });
 test("deferred payment returned as a rejection blocks another charge", async () => {
-  mockRequestPurchase.mockRejectedValueOnce({ code: ErrorCode.DeferredPayment });
+  mockRequestPurchase.mockRejectedValueOnce({
+    code: ErrorCode.DeferredPayment
+  });
   await open();
   await act(async () => payButton().props.onPress());
   expect(payButton().props.disabled).toBe(true);
   await act(async () => payButton().props.onPress());
   expect(mockRequestPurchase).toHaveBeenCalledTimes(1);
   expect(finishTransaction).not.toHaveBeenCalled();
+});
+
+test("retry clears a pending purchase that is no longer returned by the store", async () => {
+  await open();
+  await act(async () =>
+    mockCallbacks.onPurchaseSuccess!({ ...purchase, purchaseState: "pending" })
+  );
+  expect(payButton().props.disabled).toBe(true);
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((x) => x.props.label === "Retry")!
+      .props.onPress()
+  );
+  expect(payButton().props.disabled).toBe(false);
 });

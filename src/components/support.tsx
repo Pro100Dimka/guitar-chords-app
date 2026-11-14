@@ -79,6 +79,13 @@ export default function Support() {
       }
       await fetchProducts({ skus: [SUPPORT_PRODUCT], type: "in-app" });
       const purchases = await getAvailablePurchases();
+      setPending(
+        purchases.some(
+          (item) =>
+            item.productId === SUPPORT_PRODUCT &&
+            item.purchaseState !== "purchased"
+        )
+      );
       await Promise.all(purchases.map(complete));
       setStatus((current) =>
         current === "SupportLoading" ? "SupportUnavailable" : current

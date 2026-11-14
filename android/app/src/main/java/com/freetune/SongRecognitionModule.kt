@@ -101,6 +101,8 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
                     }
                     putString("source", "Shazam")
                 })
+            } catch (error: LinkageError) {
+                promise.reject("RecognitionUnsupported", "Audio recognition is unavailable for this device", error)
             } catch (error: Exception) {
                 promise.reject(if (cancelled.get()) "Cancelled" else "RecognitionFailed",
                     error.message ?: "Recognition failed", error)

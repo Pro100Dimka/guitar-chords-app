@@ -44,6 +44,7 @@ const VideoTabs: FC<ISong> = (song) => {
           </TouchableOpacity>
         ))}
       </View>
+      {!videoId && <Text style={styles.tabText}>{t("InvalidUrl")}</Text>}
       {!!videoId && width > 0 && (
         <View style={styles.player}>
           <YoutubePlayer

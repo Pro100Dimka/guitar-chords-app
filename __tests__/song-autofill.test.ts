@@ -88,6 +88,31 @@ describe("content provider failover", () => {
     jest.restoreAllMocks();
   });
 
+  it("preserves source capo and tuning alongside canonical sounding chords", async () => {
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(
+            `<h1>${title}</h1><h2>${artist}</h2><div>Capo: <button data-anchor="--chord-capo">2.º traste</button></div><div data-tuning="E A D G B E"></div><pre>Em7 G D4 A7(4)\nExample words</pre>`
+          )
+        : response(String(url))
+    );
+    const pending = lookup(title, artist);
+    await jest.advanceTimersByTimeAsync(0);
+    const result = await pending;
+    expect(result[0]).toMatchObject({
+      capo: 2,
+      tuning: "E A D G B E",
+      hasChords: true
+    });
+    const { songChordSequence } = require("../src/screens/song/chords");
+    expect(songChordSequence(result[0].content)).toEqual([
+      "F#m7",
+      "A",
+      "Esus4",
+      "B7sus4"
+    ]);
+  });
+
   it.each([
     [
       "E-Chords",

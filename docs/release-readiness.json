@@ -5,9 +5,9 @@
   "design_changes": false,
   "checks": {
     "javascript": {
-      "suites": 15,
-      "tests": 102,
-      "status": "Passed full local Jest run after review fixes, including cancellation, background enrichment, save routing, chord alignment, source cooldown, cache preparation, native-preview request ordering and CI request construction."
+      "suites": 16,
+      "tests": 130,
+      "status": "Passed full local Jest run for the release-review corrections; remote CI pending."
     },
     "typescript": "Passed tsc --noEmit locally and in CI.",
     "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
@@ -389,6 +389,19 @@
           "status": "success"
         }
       }
+    },
+    "main_review_regressions": {
+      "reviewed_base": "46c0edad453e9a428304fef3f1a64322f6a211e5",
+      "status": "Local checks passed; main/PR CI and APK packaging pending.",
+      "storage": "Bounded per-song settings chunks; legacy aggregate read in SQL substrings; migration and multi-part reload verified through actual SQLite with a simulated 2 MiB row ceiling. Commit-failure rollback preserves old data.",
+      "backup": "Shared new-save field limits; older fields remain exportable/restorable within the backup file and bounded text-row limits.",
+      "deletion": "Both deletion paths confirm intent, stop capture, inspect recordings, offer access for export, and require explicit deletion of recordings. Recording failures preserve the song. Root navigation uses popTo.",
+      "import": "Provider aliases, section/repeat tokens, canonical sounding-key capo import, tuning metadata, album selection and explicit ambiguous-version choice covered by regressions.",
+      "tuner": "Expanded 32-2500 Hz detection and spectrally supported upper-range correction. 24 calibration-edge cases, previous 270 cases, 180 string transitions, decay/recording checks and capture lifecycle checks passed with hardware stubs. iOS source updated, native iOS execution unavailable.",
+      "other": "Pending purchase retry, Shorts/Live URL handling, unknown-host rejection and reference-tone octave state covered by regressions. Every declared ABI has a matching ELF fingerprint binary. JNI load failures are reported as unsupported recognition.",
+      "ci": "JS, SQLite, TypeScript, ESLint, native and strict real-audio workflows trigger on main and main-targeted pull requests. Branch-protection settings were not modified.",
+      "privacy": "GuitareTab added to all three localized policies and HTML policy; README now distinguishes Android and iOS recording failure behavior.",
+      "scope": "No design changes and no manual lookup button added."
     }
   },
   "privacy_forms_draft": [
@@ -531,5 +544,5 @@
     ],
     "target_audience": "13-15, 16-17 and 18+ recommended as a draft after the owner requested advice; IARC remains unassigned and nothing is submitted."
   },
-  "candidate_version_code": 11
+  "candidate_version_code": 12
 }

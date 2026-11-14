@@ -50,6 +50,7 @@ jest.mock("react-i18next", () => ({
 }));
 jest.mock("../src/locales", () => ({ t: String }));
 jest.mock("@react-navigation/native", () => ({
+  useNavigation: () => ({ setParams: jest.fn() }),
   useIsFocused: () => true,
   useRoute: () => ({ params: { id: "1" } }),
   useFocusEffect: (callback: () => void) =>
@@ -639,4 +640,103 @@ test("closing the song editor reloads the persisted content", async () => {
           React.Children.toArray(node.props.children).join("") === "New content"
       )
   ).toBe(true);
+});
+
+test.each([
+  "Em7 G D4 A7(4)",
+  "[Intro] Em7 G Dsus4 A7sus4",
+  "Em7 G Dsus4 A7sus4 2x"
+])("provider chord line participates in musical tools: %s", (line) => {
+  const {
+    songChordSequence,
+    transposeChord
+  } = require("../src/screens/song/chords");
+  const normalized = chordsAboveLyrics(line);
+  expect(songChordSequence(normalized)).toEqual([
+    "Em7",
+    "G",
+    "Dsus4",
+    "A7sus4"
+  ]);
+  expect(transposeChord("D4", 2)).toBe("Esus4");
+});
+
+test.each([
+  ["title", 1001],
+  ["content", 200001],
+  ["youtube_music", 4001]
+])("editor rejects oversized %s before storage", async (key, length) => {
+  const {
+    validationSchema
+  } = require("../src/screens/create-song-chords/formik/validation-schema");
+  expect(
+    await validationSchema(String).isValid({
+      title: "Title",
+      content: "Am\nWords",
+      [key]: "a".repeat(length)
+    })
+  ).toBe(false);
+});
+
+test.each([
+  "https://youtube.com/shorts/dQw4w9WgXcQ",
+  "https://youtube.com/live/dQw4w9WgXcQ",
+  "https://youtu.be/dQw4w9WgXcQ?t=12"
+])("supported video URL: %s", (url) => {
+  expect(
+    require("../src/components/utils/extract-youtube-id").default(url)
+  ).toBe("dQw4w9WgXcQ");
+});
+
+test("non-YouTube v parameters are not embedded", () => {
+  expect(
+    require("../src/components/utils/extract-youtube-id").default(
+      "https://example.com/?v=dQw4w9WgXcQ"
+    )
+  ).toBe("");
+});
+
+test("saving an imported capo arrangement preserves sounding pitch and playable shapes", async () => {
+  const { importedSong } = require("../src/components/library-files");
+  const {
+    songChordSequence,
+    transposeChord
+  } = require("../src/screens/song/chords");
+  const { usePreferences } = require("../src/components/preferences");
+  const imported = importedSong(
+    "{title: Example}\n{capo: 2}\n{tuning: E A D G B E}\n[Em]Example words",
+    "sample.cho"
+  );
+  expect(songChordSequence(imported.content)).toEqual(["F#m"]);
+  jest
+    .mocked(crud.createItem)
+    .mockResolvedValue({
+      insertId: 888,
+      rowsAffected: 1,
+      rows: { length: 0, item: jest.fn() }
+    });
+  const navigation = { replace: jest.fn() };
+  await act(async () => {
+    screen = Renderer.create(
+      <Formik
+        initialValues={{ ...initialSong, ...imported }}
+        onSubmit={(values, actions) => onSubmit(actions, values, navigation)}
+      >
+        {({ submitForm }) => <Text onPress={submitForm}>Save</Text>}
+      </Formik>
+    );
+  });
+  await act(async () => screen!.root.findByType(Text).props.onPress());
+  const preferences = usePreferences.getState().songs[888];
+  expect(preferences).toMatchObject({
+    capo: 2,
+    transpose: 0,
+    sourceTuning: "E A D G B E"
+  });
+  expect(
+    transposeChord(
+      songChordSequence(imported.content)[0],
+      preferences.transpose - preferences.capo
+    )
+  ).toBe("Em");
 });

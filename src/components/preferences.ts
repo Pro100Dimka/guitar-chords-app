@@ -1,10 +1,12 @@
 import { guitarTunings, standardTuning } from "../screens/tuner/tunings";
 import { create } from "zustand";
+import type { SQLTransaction } from "react-native-sqlite-2";
 import { db } from "./database";
 import { getAllItems } from "./database/crud";
 
 export interface SongPreferences {
   cover?: string;
+  sourceTuning?: string;
   contentSource?: { name: string; url: string; credit?: string };
   fontSize: number;
   transpose: number;
@@ -56,6 +58,7 @@ let pending: ReturnType<typeof setTimeout> | undefined;
 let savingPaused = false;
 let revision = 0;
 let savedRevision = 0;
+let savedSongs: Record<string, SongPreferences> = {};
 export const usePreferences = create<PreferencesStore>((set) => ({
   instrument: "guitar",
   tuning: "standard",
@@ -108,51 +111,52 @@ export function flushPreferences() {
   if (savingPaused) return;
   if (pending !== undefined) clearTimeout(pending);
   pending = undefined;
-  const {
-    instrument,
-    tuning,
-    customTuning,
-    tunerSound,
-    tunerReference,
-    tunerSpectrum,
-    chromaticOctave,
-    autoDetect,
-    stringIndex,
-    tab,
-    songs
-  } = usePreferences.getState();
+  const state = usePreferences.getState();
   if (revision === savedRevision && !usePreferences.getState().saveError)
     return;
   const savingRevision = revision;
   db.transaction(
-    (tx) => {
-      tx.executeSql(
-        "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
-        [
-          "experience",
-          JSON.stringify({
-            instrument,
-            tuning,
-            customTuning,
-            tunerSound,
-            tunerReference,
-            tunerSpectrum,
-            chromaticOctave,
-            autoDetect,
-            stringIndex,
-            tab,
-            songs
-          })
-        ]
-      );
-    },
+    (tx) => writePreferences(tx, state),
     () => usePreferences.setState({ saveError: true }),
     () => {
       savedRevision = savingRevision;
+      savedSongs = state.songs;
       if (savingRevision === revision)
         usePreferences.setState({ saveError: false });
     }
   );
+}
+export function writePreferences(tx: SQLTransaction, state: Preferences) {
+  const { songs } = state;
+  const settings = Object.fromEntries(
+    Object.entries(state).filter(
+      ([key, value]) =>
+        !["songs", "saveError"].includes(key) && typeof value !== "function"
+    )
+  );
+  tx.executeSql("INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)", [
+    "experience",
+    JSON.stringify(settings)
+  ]);
+  for (const [id, song] of Object.entries(songs)) {
+    if (savedSongs[id] === song) continue;
+    tx.executeSql("DELETE FROM settings WHERE key LIKE ?", [`song:${id}:%`]);
+    const text = JSON.stringify(normalizeSongPreferences(song));
+    let part = 0;
+    for (let start = 0; start < text.length; ) {
+      let end = Math.min(text.length, start + 65536);
+      if (end < text.length && /[\uD800-\uDBFF]/.test(text[end - 1])) end--;
+      tx.executeSql(
+        "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+        [`song:${id}:${part++}`, text.slice(start, end)]
+      );
+      start = end;
+    }
+  }
+  for (const id of Object.keys(savedSongs)) {
+    if (!(id in songs))
+      tx.executeSql("DELETE FROM settings WHERE key LIKE ?", [`song:${id}:%`]);
+  }
 }
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
@@ -175,6 +179,10 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
         shapes[chord] = index;
     });
   return {
+    sourceTuning:
+      typeof song.sourceTuning === "string"
+        ? song.sourceTuning.slice(0, 100)
+        : undefined,
     contentSource:
       typeof source.name === "string" &&
       [
@@ -226,15 +234,27 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
   };
 }
 export async function loadPreferences() {
-  const [row] = await getAllItems<{ value: string }>({
+  const [size] = await getAllItems<{ length: number }>({
     tableName: "settings",
+    fields: "length(value) AS length",
     filters: "key = ?",
     parameters: ["experience"]
   });
-  if (!row) return;
+  if (!size) return;
+  let text = "";
+  for (let offset = 1; offset <= size.length; offset += 65536) {
+    const [chunk] = await getAllItems<{ value: string }>({
+      tableName: "settings",
+      fields: `substr(value, ${offset}, 65536) AS value`,
+      filters: "key = ?",
+      parameters: ["experience"]
+    });
+    if (!chunk) throw new Error("PreferenceReadFailed");
+    text += chunk.value;
+  }
   let data: unknown;
   try {
-    data = JSON.parse(row.value);
+    data = JSON.parse(text);
   } catch {
     usePreferences.setState({ saveError: true });
     return;
@@ -246,7 +266,33 @@ export async function loadPreferences() {
       if (!record(song) || !/^\d+$/.test(id)) return;
       songs[id] = normalizeSongPreferences(song);
     });
-  usePreferences.setState({
+  const rows = await getAllItems<{ key: string; value: string }>({
+    tableName: "settings",
+    filters: "key LIKE ?",
+    parameters: ["song:%"]
+  });
+  const pieces = new Map<string, Map<number, string>>();
+  for (const row of rows) {
+    const match = /^song:(\d+):(\d+)$/.exec(row.key);
+    if (!match) continue;
+    const parts = pieces.get(match[1]) ?? new Map<number, string>();
+    parts.set(Number(match[2]), row.value);
+    pieces.set(match[1], parts);
+  }
+  for (const [id, parts] of pieces) {
+    const text = Array.from({ length: parts.size }, (_, index) => {
+      const part = parts.get(index);
+      if (part === undefined) throw new Error("PreferenceReadFailed");
+      return part;
+    }).join("");
+    try {
+      songs[id] = normalizeSongPreferences(JSON.parse(text));
+    } catch {
+      usePreferences.setState({ saveError: true });
+      throw new Error("PreferenceReadFailed");
+    }
+  }
+  const state: Preferences = {
     songs,
     instrument: data.instrument === "chromatic" ? "chromatic" : "guitar",
     tuning:
@@ -275,5 +321,12 @@ export async function loadPreferences() {
       ["tuner", "library", "settings", "guide"].includes(data.tab)
         ? data.tab
         : "tuner"
-  });
+  };
+  if (record(data.songs)) {
+    await new Promise<void>((resolve, reject) =>
+      db.transaction((tx) => writePreferences(tx, state), reject, resolve)
+    );
+  }
+  savedSongs = songs;
+  usePreferences.setState(state);
 }

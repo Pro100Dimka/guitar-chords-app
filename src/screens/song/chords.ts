@@ -37,6 +37,7 @@ const roots: Record<string, number> = {
 };
 const accidentals: Record<string, number> = { "#": 1, b: -1 };
 export function transposeChord(chord: string, semitones: number) {
+  chord = normalizeChord(chord);
   if (!chordPattern.test(chord) || semitones === 0) return chord;
   const notes = chord.includes("b") ? flatNotes : sharpNotes;
   return chord.replace(
@@ -337,20 +338,51 @@ export function chordShapes(chord: string): Frets[] {
   return result;
 }
 
+export function normalizeChord(chord: string) {
+  return chord.replace(
+    /^([A-G][#b]?)(4|2|7\(4\)|7\(9\)|m7\(b5\))(?=\/|$)/,
+    (_, root: string, quality: string) =>
+      root +
+      ({
+        "4": "sus4",
+        "2": "sus2",
+        "7(4)": "7sus4",
+        "7(9)": "9",
+        "m7(b5)": "m7b5"
+      }[quality] ?? quality)
+  );
+}
+function chordTokens(line: string) {
+  return line
+    .replace(
+      /\[(?:intro|verse|chorus|bridge|outro|solo|interlude|instrumental|приспів|куплет|припев)[^\]]*\]/gi,
+      " "
+    )
+    .replace(/[|:]/g, " ")
+    .trim()
+    .split(/\s+/)
+    .filter(
+      (token) =>
+        token && !/^(?:[-()[\]]+|\(?[xх×]\d+\)?|\(?\d+[xх×]\)?)$/i.test(token)
+    )
+    .map(normalizeChord);
+}
 export function chordsAboveLyrics(content: string) {
   return content
     .split(/\r?\n/)
     .map((line) => {
+      if (isChordLine(line)) return line.replace(/\S+/g, normalizeChord);
       let lyrics = "";
       let chords = "";
       let previous = 0;
       for (const match of line.matchAll(/\[([^\]]+)\]/g)) {
-        if (!chordPattern.test(match[1])) continue;
+        const chord = normalizeChord(match[1]);
+        if (!chordPattern.test(chord)) continue;
         lyrics += line.slice(previous, match.index);
         const column = [...lyrics].length;
         const target = Math.max(column, chords.length ? chords.length + 1 : 0);
         lyrics += " ".repeat(target - column);
-        chords = chords.padEnd(target) + match[1];
+        chords = chords.padEnd(target) + chord;
         previous = match.index + match[0].length;
       }
       if (!chords) return line;
@@ -361,24 +393,40 @@ export function chordsAboveLyrics(content: string) {
 }
 
 export function isChordLine(line: string) {
-  const tokens = line
-    .trim()
-    .split(/\s+/)
-    .filter((token) => !/^[|:\-()[\]]+$/.test(token));
-  return tokens.length > 0 && tokens.every((token) => chordPattern.test(token));
+  const tokens = chordTokens(line);
+  return (
+    tokens.length > 0 &&
+    tokens.some((token) => chordPattern.test(token)) &&
+    tokens.every(
+      (token) =>
+        chordPattern.test(token) ||
+        /^[A-G][#b]?(?:m|maj|min|dim|aug|sus|add|[\d#b()+-])*(?:\/[A-G][#b]?)?$/.test(
+          token
+        )
+    )
+  );
 }
 
 export function songChordSequence(content: string) {
-  return content.split("\n").flatMap((line) =>
-    isChordLine(line)
-      ? line
-          .trim()
-          .split(/\s+/)
-          .filter((token) => chordPattern.test(token))
-      : [...line.matchAll(/\[([^\]]+)\]/g)]
-          .map((match) => match[1])
-          .filter((token) => chordPattern.test(token))
-  );
+  return content
+    .split("\n")
+    .flatMap((line) =>
+      isChordLine(line)
+        ? chordTokens(line).filter((token) => chordPattern.test(token))
+        : [...line.matchAll(/\[([^\]]+)\]/g)]
+            .map((match) => normalizeChord(match[1]))
+            .filter((token) => chordPattern.test(token))
+    );
+}
+export function transposeSong(content: string, semitones: number) {
+  return chordsAboveLyrics(content)
+    .split("\n")
+    .map((line) =>
+      isChordLine(line)
+        ? line.replace(/\S+/g, (token) => transposeChord(token, semitones))
+        : line
+    )
+    .join("\n");
 }
 export function songChords(content: string) {
   return [...new Set(songChordSequence(content))];

@@ -393,6 +393,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const currString = stringNotes?.length === 1 ? stringNotes[0] : null;
   const octaveLayout = chromaticLayout(stageWidth, layout.height);
   const selectOctave = (value: number | null) => {
+    stopReference();
     note.value = null;
     usePreferences.getState().update({ chromaticOctave: value });
     setChooseOctave(false);
@@ -405,13 +406,16 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       performanceAudio.stopPlayback();
     };
   }, [active, isChromatic]);
-  const stopReference = () => {
+  const stopReference = useCallback(() => {
     previewUntil.current = Math.min(previewUntil.current, Date.now() + 180);
     if (referenceTimer.current !== undefined)
       clearTimeout(referenceTimer.current);
     performanceAudio.stopPlayback();
     setReferencePlaying(false);
-  };
+  }, []);
+  useEffect(() => {
+    stopReference();
+  }, [chromaticOctave, stopReference]);
   const playReference = () => {
     if (referencePlaying) {
       stopReference();

@@ -16,7 +16,7 @@ import Header from "@/components/header";
 
 export type RootStackParamList = {
   Tabs: { screen: string; id?: string };
-  Song: { id: string } | undefined;
+  Song: { id: string; recordings?: boolean } | undefined;
   GuideArticle: { id: string };
   createSong:
     | {

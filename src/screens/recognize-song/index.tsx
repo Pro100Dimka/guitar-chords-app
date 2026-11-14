@@ -30,7 +30,12 @@ import {
   recognizeMicrophone,
   RecognizedSong
 } from "../../components/song-autofill/recognition";
-import { lookupSongContent } from "../../components/song-autofill/lyrics";
+import { Action, Sheet } from "../song/tools";
+import {
+  preferredSongContent,
+  LyricsOption,
+  lookupSongContent
+} from "../../components/song-autofill/lyrics";
 import {
   fileCanceled,
   importedSong,
@@ -48,6 +53,10 @@ export default function RecognizeSong() {
   const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
   const size = Math.min(220, width - 100, height < 500 ? 140 : 220);
+  const [versions, setVersions] = useState<LyricsOption[]>([]);
+  const versionResolver = useRef<((option?: LyricsOption) => void) | undefined>(
+    undefined
+  );
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [found, setFound] = useState<RecognizedSong | null>(null);
@@ -64,6 +73,9 @@ export default function RecognizeSong() {
   const pulse = useRef(new Animated.Value(0)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
   const stop = useCallback(() => {
+    versionResolver.current?.();
+    versionResolver.current = undefined;
+    setVersions([]);
     generation.current++;
     running.current = false;
     controller.current?.abort();
@@ -166,10 +178,20 @@ export default function RecognizeSong() {
         readRemoteSongCover(result.cover ?? "", abort.signal).catch(() => "")
       ]);
       if (request !== generation.current) return;
-      const selected = lyrics.options[0];
+      const candidates = preferredSongContent(lyrics.options, result.album);
+      const selected =
+        candidates.length > 1
+          ? await new Promise<LyricsOption | undefined>((resolve) => {
+              versionResolver.current = resolve;
+              setVersions(candidates);
+            })
+          : candidates[0];
+      if (request !== generation.current) return;
       next = {
         ...next,
         cover,
+        capo: selected?.capo,
+        sourceTuning: selected?.tuning,
         content: selected?.content ?? next.content,
         contentSource: selected?.url
           ? { name: selected.source, url: selected.url }
@@ -355,6 +377,27 @@ export default function RecognizeSong() {
             <Text style={styles.hint}>{t(lyricsNotice)}</Text>
           )}
         </Pressable>
+      )}
+      {!!versions.length && (
+        <Sheet
+          title={t("ChooseLyricsVersion")}
+          onClose={() => {
+            versionResolver.current?.();
+            setVersions([]);
+          }}
+        >
+          {versions.map((option) => (
+            <Action
+              key={`${option.source}:${option.id}:${option.album}`}
+              label={`${option.album || option.title} · ${option.source}${option.duration ? ` · ${Math.round(option.duration)} s` : ""}`}
+              onPress={() => {
+                versionResolver.current?.(option);
+                versionResolver.current = undefined;
+                setVersions([]);
+              }}
+            />
+          ))}
+        </Sheet>
       )}
     </ScrollView>
   );
