@@ -653,5 +653,6 @@
   "RhythmShuffle": "Shuffle",
   "RhythmGallop": "Gallop",
   "RhythmNine": "Nine strokes (2 bars)",
-  "RecordedGuitar": "FreeTune acoustic recordings"
+  "RecordedGuitar": "FreeTune acoustic recordings",
+  "RhythmFour": "Four strokes"
 }

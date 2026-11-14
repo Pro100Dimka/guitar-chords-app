@@ -7,6 +7,13 @@ export const rhythms: {
 }[] = [
   { id: "six", title: "RhythmSix", pattern: "D-DU-UDU", meter: 4, division: 2 },
   {
+    id: "four",
+    title: "RhythmFour",
+    pattern: "D-U-D-U-",
+    meter: 4,
+    division: 2
+  },
+  {
     id: "quarter",
     title: "RhythmQuarter",
     pattern: "D-D-D-D-",

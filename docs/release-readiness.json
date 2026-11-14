@@ -554,7 +554,7 @@
     "recorded_audio_integration": {
       "status": "Source integrated; final phone APK and current CI pending.",
       "design_changes": false,
-      "rhythms": 14,
+      "rhythms": 15,
       "ordering": "Practical broad pop/rock usefulness, not a measured worldwide ranking; Old Faithful first.",
       "rhythm_timing": "Eighth-note, triplet and sixteenth-note grids persisted per song; bass strokes use individual recorded strings.",
       "playback": "Whole recorded strokes for matching voicings; alternate/extended voicings use physical-string recordings with measured tuning. Three round-robin variants per direction, natural overlapping tails, smooth chord-change damping. No added room on whole recordings.",
@@ -684,7 +684,7 @@
     "version_code": 14
   },
   "reviewed_on": "2026-11-15",
-  "review_scope": "Integration of owner-approved chord and string recordings, preload and gapless preparation, physical-string alternate fingerings, 14 rhythm presets and persistent rhythmic subdivisions. Visual styles unchanged.",
+  "review_scope": "Integration of owner-approved chord and string recordings, preload and gapless preparation, physical-string alternate fingerings, 15 rhythm presets and persistent rhythmic subdivisions. Visual styles unchanged.",
   "artifact_scope": "VersionCode 14 phone APKs contain all implementation changes through b581a6aea655c4a42865908e16c357f4b7c1322c. Later documentation-only changes do not alter app code. Both APKs retain the preceding sideload certificate and contain the verified fresh Hermes bundle. Physical microphone/speaker latency, Bluetooth, native iOS execution and store submission remain unverified. The listed AAB is historical versionCode 7 and does not contain current fixes.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
