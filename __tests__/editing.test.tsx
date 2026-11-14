@@ -1,3 +1,5 @@
+import { db } from "../src/components/database";
+import type { SQLTransaction } from "react-native-sqlite-2";
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
 import {
@@ -53,6 +55,7 @@ jest.mock("react-i18next", () => ({
 jest.mock("../src/locales", () => ({ t: String }));
 jest.mock("@react-navigation/native", () => ({
   useNavigation: () => ({ setParams: jest.fn() }),
+  usePreventRemove: jest.fn(),
   useIsFocused: () => true,
   useRoute: () => ({ params: { id: "1" } }),
   useFocusEffect: (callback: () => void) =>
@@ -71,6 +74,24 @@ jest.mock(
     ({ children }: { children: React.ReactNode }) =>
       children
 );
+function mockSongSave(id: number) {
+  const writes: string[] = [];
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    const tx: SQLTransaction = {
+      executeSql: (sql, _args, done) => {
+        writes.push(String(sql));
+        done?.(tx, {
+          insertId: id,
+          rowsAffected: 1,
+          rows: { length: 0, item: jest.fn() }
+        });
+      }
+    };
+    body(tx);
+    success?.();
+  });
+  return writes;
+}
 let screen: Renderer.ReactTestRenderer | undefined;
 
 test("long chord labels keep subsequent chords aligned with their lyric words", () => {
@@ -137,11 +158,7 @@ test("late preparation of an earlier fingering cannot replace the latest tap", a
 });
 
 test("saving an imported draft replaces the form route instead of retaining a reusable new-song draft", async () => {
-  jest.mocked(crud.createItem).mockResolvedValue({
-    insertId: 73,
-    rowsAffected: 1,
-    rows: { length: 0, item: jest.fn() }
-  });
+  const writes = mockSongSave(73);
   const navigation = { navigate: jest.fn(), replace: jest.fn() };
   let form!: FormikProps<typeof initialSong>;
   await act(async () => {
@@ -166,7 +183,9 @@ test("saving an imported draft replaces the form route instead of retaining a re
   });
   expect(navigation.replace).toHaveBeenCalledWith("Song", { id: "73" });
   expect(navigation.navigate).not.toHaveBeenCalled();
-  expect(crud.createItem).toHaveBeenCalledTimes(1);
+  expect(
+    writes.filter((sql) => sql.startsWith("INSERT INTO songs"))
+  ).toHaveLength(1);
 });
 
 test("recording list hides empty interrupted takes while retaining active processing", async () => {
@@ -713,11 +732,7 @@ test("saving an imported capo arrangement preserves sounding pitch and playable 
     "sample.cho"
   );
   expect(songChordSequence(imported.content)).toEqual(["F#m"]);
-  jest.mocked(crud.createItem).mockResolvedValue({
-    insertId: 888,
-    rowsAffected: 1,
-    rows: { length: 0, item: jest.fn() }
-  });
+  mockSongSave(888);
   const navigation = { replace: jest.fn() };
   await act(async () => {
     screen = Renderer.create(
@@ -961,5 +976,31 @@ test.each(["android", "ios"] as const)(
       args[3]?.cancelable ||
         args[2]!.some((button) => button.style === "cancel")
     ).toBe(true);
+  }
+);
+
+test.each(["C7(b9)", "Cmaj13", "C11"])(
+  "extended chord notation survives transposition and practice: %s",
+  (chord) => {
+    const {
+      transposeSong,
+      songChordSequence
+    } = require("../src/screens/song/chords");
+    expect(transposeSong(`C ${chord} F`, 2)).toBe(
+      `D ${chord.replace(/^C/, "D")} G`
+    );
+    expect(songChordSequence(`C ${chord} F`)).toEqual(["C", chord, "F"]);
+  }
+);
+
+test.each(["Cm(maj7)", "CmMaj7", "Cø7", "C°7", "C+", "DbM9/Ab", "C6/9"])(
+  "expanded parser preserves previously supported notation: %s",
+  (chord) => {
+    const {
+      songChordSequence,
+      transposeChord
+    } = require("../src/screens/song/chords");
+    expect(songChordSequence(chord)).toEqual([chord]);
+    expect(transposeChord(chord, 2)).not.toBe(chord);
   }
 );

@@ -179,6 +179,7 @@ fun checkAccuracy(module: MicrophoneStreamModule, recordingsDirectory: File) {
     check(failures.isEmpty()) { "Pitch accuracy regression" }
 }
 fun main(args: Array<String>) {
+    checkRecognitionCancellation()
     for (rate in listOf(22050, 44100, 48000)) {
         val silence = RecordingPolish(rate)
         check((0 until rate).all { silence.process(0.0) == 0.0 })

@@ -34,10 +34,9 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     ReactContextBaseJavaModule(context) {
     private val worker = Executors.newSingleThreadExecutor()
     private val captureWorker = Executors.newSingleThreadExecutor()
-    private val cancelled = AtomicBoolean(false)
+    private val session = RecognitionSession()
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var connection: HttpURLConnection? = null
-    @Volatile private var running = false
     @Volatile private var rateLimitedUntil = 0L
 
     override fun getName() = "SongRecognition"
@@ -47,26 +46,26 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
 
     @ReactMethod
     fun recognizeFile(uri: String, promise: Promise) = start(promise) {
-        require(uri.startsWith("content://") || uri.startsWith("file://")) { "Invalid audio URI" }
-        identify(decodeFile(Uri.parse(uri)))
+        require(uri.startsWith("content://") || uri.startsWith("file://")) { "FileUnavailable" }
+        val samples = try { decodeFile(Uri.parse(uri)) } catch (error: Exception) {
+            if (session.cancelled.get() || error.message in setOf("FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "Cancelled")) throw error
+            throw IllegalStateException(if (error is java.io.IOException || error is SecurityException) "FileUnavailable" else "AudioDecodeFailed", error)
+        }
+        identify(samples)
     }
 
     @ReactMethod
     fun cancel(promise: Promise) {
-        cancelled.set(true)
-        try { recorder?.stop() } catch (_: Exception) {}
-        connection?.disconnect()
-        promise.resolve(null)
+        session.cancel({
+            try { recorder?.stop() } catch (_: Exception) {}
+            connection?.disconnect()
+        }, { promise.resolve(null) })
     }
 
     private fun start(promise: Promise, recognize: () -> JSONObject?) {
-        synchronized(this) {
-            if (running) {
-                promise.reject("Busy", "Recognition is already running")
-                return
-            }
-            running = true
-            cancelled.set(false)
+        if (!session.begin()) {
+            promise.reject("Busy", "Recognition is already running")
+            return
         }
         worker.execute {
             try {
@@ -104,20 +103,27 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             } catch (error: LinkageError) {
                 promise.reject("RecognitionUnsupported", "Audio recognition is unavailable for this device", error)
             } catch (error: Exception) {
-                promise.reject(if (cancelled.get()) "Cancelled" else "RecognitionFailed",
-                    error.message ?: "Recognition failed", error)
+                val categories = setOf("AudioTooShort", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "AudioDecodeFailed", "MicrophonePermissionDenied", "AudioDeviceUnavailable", "MicrophoneReadFailed", "RateLimited")
+                val code = when {
+                    session.cancelled.get() -> "Cancelled"
+                    error.message in categories -> error.message!!
+                    error.message?.startsWith("ServiceHttp") == true -> "ServiceUnavailable"
+                    error is java.io.IOException -> "NetworkError"
+                    else -> "RecognitionFailed"
+                }
+                promise.reject(code, error.message ?: "Recognition failed", error)
             } finally {
                 try { recorder?.release() } catch (_: Exception) {}
                 recorder = null
                 connection?.disconnect()
                 connection = null
-                synchronized(this) { running = false }
+                session.finish()
             }
         }
     }
 
     private fun ensureActive() {
-        if (cancelled.get() || Thread.currentThread().isInterrupted)
+        if (session.cancelled.get() || Thread.currentThread().isInterrupted)
             throw IllegalStateException("Cancelled")
     }
 
@@ -339,11 +345,38 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     }
 
     override fun invalidate() {
-        cancelled.set(true)
+        session.cancelled.set(true)
         try { recorder?.stop() } catch (_: Exception) {}
         connection?.disconnect()
         worker.shutdownNow()
         captureWorker.shutdownNow()
         super.invalidate()
+    }
+}
+
+
+internal class RecognitionSession {
+    val cancelled = AtomicBoolean(false)
+    private var running = false
+    private val waiters = mutableListOf<() -> Unit>()
+
+    @Synchronized fun begin(): Boolean {
+        if (running) return false
+        running = true
+        cancelled.set(false)
+        return true
+    }
+
+    @Synchronized fun cancel(interrupt: () -> Unit, complete: () -> Unit) {
+        cancelled.set(true)
+        interrupt()
+        if (running) waiters.add(complete) else complete()
+    }
+
+    @Synchronized fun finish() {
+        running = false
+        val completed = waiters.toList()
+        waiters.clear()
+        completed.forEach { it() }
     }
 }

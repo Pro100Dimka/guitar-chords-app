@@ -46,7 +46,7 @@ import RequireMicAccess from "../tuner";
 import MicrophoneStream from "../tuner/MicrophoneStream";
 import {
   chordsAboveLyrics,
-  chordPattern,
+  chordNotationPattern,
   chordLineParts,
   isChordLine,
   songChords,
@@ -244,7 +244,7 @@ const SongDetail: React.FC = () => {
           {parts.map((part, i) => {
             const token = onlyChords ? part : part.slice(1, -1);
             return (onlyChords || /^\[.*\]$/.test(part)) &&
-              chordPattern.test(token)
+              chordNotationPattern.test(token)
               ? renderChord(
                   onlyChords
                     ? token

@@ -236,14 +236,17 @@ async function lookupPisennyk(
 ): Promise<LyricsOption[]> {
   const origin = "https://pisennyk.com.ua";
   const search = await fetchPisennyk(
-    `${origin}/search?${new URLSearchParams({ q: `${title} ${artist}` })}`,
+    `${origin}/search?${new URLSearchParams({ q: `${trackTitle(title)} ${primaryArtist(artist)}` })}`,
     signal
   );
   if (!search) return [];
   const document = parseDocument(search);
   const candidate = DomUtils.getElementsByTagName("a", document.children).find(
     (element) =>
-      sameArtist(`${title} ${artist}`, DomUtils.textContent(element)) &&
+      sameArtist(
+        `${trackTitle(title)} ${primaryArtist(artist)}`,
+        trackTitle(DomUtils.textContent(element))
+      ) &&
       /^https:\/\/pisennyk\.com\.ua\/[^/?#]+\/[^/?#]+$/.test(
         element.attribs.href ?? ""
       )

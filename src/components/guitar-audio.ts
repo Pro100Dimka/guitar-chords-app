@@ -30,7 +30,15 @@ export function prepareGuitar(notes: number[], reference = 440) {
   const mix = new Float32Array(rate * (notes.length > 1 ? 5 : 3));
   notes.forEach((midi, string) => {
     const frequency = reference * 2 ** ((midi - 69) / 12);
-    const source = samples.reduce((best, item) =>
+    // Reference recordings with measured drift/offset above five cents are excluded.
+    const candidates =
+      notes.length === 1
+        ? samples.filter(
+            (sample) =>
+              ![104.446284, 197.800245, 661.957901].includes(sample.frequency)
+          )
+        : samples;
+    const source = candidates.reduce((best, item) =>
       Math.abs(Math.log2(item.frequency / frequency)) <
       Math.abs(Math.log2(best.frequency / frequency))
         ? item

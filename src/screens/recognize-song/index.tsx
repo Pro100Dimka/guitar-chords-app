@@ -57,6 +57,15 @@ export default function RecognizeSong() {
   const versionResolver = useRef<((option?: LyricsOption) => void) | undefined>(
     undefined
   );
+  const [stopping, setStopping] = useState(false);
+  const cancellation = useRef<Promise<void> | null>(null);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [found, setFound] = useState<RecognizedSong | null>(null);
@@ -73,15 +82,32 @@ export default function RecognizeSong() {
   const pulse = useRef(new Animated.Value(0)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
   const stop = useCallback(() => {
+    if (cancellation.current) return cancellation.current;
     versionResolver.current?.();
     versionResolver.current = undefined;
     setVersions([]);
     generation.current++;
-    running.current = false;
+    running.current = true;
     controller.current?.abort();
-    void cancelRecognition().catch(() => undefined);
-    setBusy(false);
-  }, []);
+    if (mounted.current) {
+      setBusy(true);
+      setStopping(true);
+      setMessage(t("AutofillStopping"));
+    }
+    const complete = cancelRecognition()
+      .catch(() => undefined)
+      .finally(() => {
+        cancellation.current = null;
+        running.current = false;
+        if (mounted.current) {
+          setBusy(false);
+          setStopping(false);
+          setMessage(t("AutofillSearchCancelled"));
+        }
+      });
+    cancellation.current = complete;
+    return complete;
+  }, [t]);
   useEffect(() => {
     void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
     const subscription = AccessibilityInfo.addEventListener(
@@ -116,7 +142,6 @@ export default function RecognizeSong() {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "background" && mode === "mic" && running.current) {
         stop();
-        setMessage(t("AutofillSearchCancelled"));
       }
     });
     return () => subscription.remove();
@@ -228,7 +253,32 @@ export default function RecognizeSong() {
       if (request !== generation.current) return;
       const errorMessage =
         error instanceof Error ? error.message : String(error);
+      const categories: Record<string, string> = {
+        AudioTooShort: "AutofillAudioTooShort",
+        FileUnavailable: "AutofillFileUnavailable",
+        NoAudioTrack: "AutofillNoAudioTrack",
+        UnsupportedPcmFormat: "AutofillUnsupportedAudio",
+        UnsupportedAudio: "AutofillUnsupportedAudio",
+        AudioDecodeFailed: "AutofillUnsupportedAudio",
+        NetworkError: "AutofillNetworkError",
+        ServiceUnavailable: "AutofillServiceUnavailable",
+        Busy: "AutofillBusy",
+        MicrophonePermissionDenied: "AutofillMicDenied",
+        AudioDeviceUnavailable: "AutofillAudioDeviceError",
+        MicrophoneReadFailed: "AutofillAudioDeviceError"
+      };
+      const code =
+        typeof error === "object" && error !== null && "code" in error
+          ? String(error.code)
+          : "";
+      const category =
+        categories[code] ??
+        categories[
+          Object.keys(categories).find((key) => errorMessage.includes(key)) ??
+            ""
+        ];
       const key =
+        category ??
         [
           {
             matches: fileCanceled(error) || errorMessage.includes("Cancelled"),
@@ -263,7 +313,9 @@ export default function RecognizeSong() {
   useFocusEffect(
     useCallback(() => {
       if (mode !== "mic") void start();
-      return stop;
+      return () => {
+        void stop();
+      };
     }, [mode, start, stop])
   );
   const icon = {
@@ -305,10 +357,11 @@ export default function RecognizeSong() {
                 busy ? "AutofillCancelSearch" : "AddSongStart"
               )}
               accessibilityState={{ busy }}
+              disabled={stopping}
               onPress={() => {
+                if (cancellation.current) return;
                 if (busy) {
                   stop();
-                  setMessage(t("AutofillSearchCancelled"));
                 } else void start();
               }}
               style={({ pressed }) => [

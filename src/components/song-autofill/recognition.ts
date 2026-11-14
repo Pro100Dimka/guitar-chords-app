@@ -23,6 +23,7 @@ const native = (): NativeRecognizer => {
     throw new Error("RecognitionUnsupported");
   return NativeModules.SongRecognition as NativeRecognizer;
 };
+let cancellation: Promise<void> = Promise.resolve();
 export async function recognizeMicrophone(
   signal?: AbortSignal
 ): Promise<RecognizedSong | null> {
@@ -30,6 +31,8 @@ export async function recognizeMicrophone(
   const granted = await checkMicPermission(true);
   if (signal?.aborted) throw new Error("Cancelled");
   if (!granted) throw new Error("MicrophonePermissionDenied");
+  await cancellation;
+  if (signal?.aborted) throw new Error("Cancelled");
   return native().recognizeMicrophone();
 }
 export async function recognizeAudioFile(
@@ -43,9 +46,13 @@ export async function recognizeAudioFile(
   if (signal?.aborted) throw new Error("Cancelled");
   if (!file?.uri) throw new Error("FileUnavailable");
   // Read the original content:// through Android's ContentResolver; never delete it.
+  await cancellation;
+  if (signal?.aborted) throw new Error("Cancelled");
   return native().recognizeFile(file.uri);
 }
 export async function cancelRecognition() {
-  if (Platform.OS === "android" && NativeModules.SongRecognition)
-    await native().cancel();
+  if (Platform.OS === "android" && NativeModules.SongRecognition) {
+    cancellation = native().cancel();
+    await cancellation;
+  }
 }

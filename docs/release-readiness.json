@@ -5,13 +5,13 @@
   "design_changes": false,
   "checks": {
     "javascript": {
-      "suites": 16,
-      "tests": 140,
-      "status": "Passed full local run and main CI, including Android/iOS cover cancellation cases. TypeScript, ESLint and actual SQLite integration also passed."
+      "suites": 17,
+      "tests": 179,
+      "status": "Passed full local run, including atomic save failure/retry, editor navigation protection, extended chord notation, cancellation admission, local file errors and remaster identity checks. Current CI pending."
     },
     "typescript": "Passed tsc --noEmit locally and in CI.",
     "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
-    "sqlite": "passed again: CRUD, bound search, rollback, legacy adoption, repeat migration and newer schema rejection",
+    "sqlite": "Passed actual SQLite integration, including settings-write failure rolling back song, performer and metadata together for creates and edits; retry and reload succeeded.",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
@@ -81,7 +81,7 @@
         {
           "track": "I Will Survive",
           "artist": "Gloria Gaynor",
-          "source": "Пісенник",
+          "source": "РџС–СЃРµРЅРЅРёРє",
           "has_chords": true,
           "primary_failure": "simulated 503 from Cifra Club",
           "elapsed_ms": 10560
@@ -454,6 +454,47 @@
           }
         ]
       }
+    },
+    "seven_issue_review": {
+      "base_commit": "8ab13cfe30bb256e804a22c5c54e7397b8bc5e3a",
+      "status": "Local regression checks passed; APK and CI verification pending.",
+      "cases": [
+        "Save song, performer and per-song metadata in one transaction; publish state and navigate only after commit.",
+        "Six acoustic string references hold pitch within five cents in four attack/sustain windows at 432, 440 and 442 Hz. G3 independently measured by FFT.",
+        "Transpose roots and slash bass independently of the fingering catalogue; keep extended chords in practice and explicitly report unavailable fingerings.",
+        "Unsaved editor intercepts header/system/gesture route removal with save, discard or stay; failed save preserves input. Process-death draft recovery is not implemented.",
+        "Native cancellation completes after worker resource cleanup; UI and cross-screen admission wait for completion.",
+        "Pisennyk normalizes remaster title in search and candidate selection, then validates performer on the song page.",
+        "Native local-file error categories map to specific localized messages; network advice is reserved for network errors."
+      ],
+      "g3_fft_cents": {
+        "windows_seconds": [
+          [
+            0.1,
+            0.5
+          ],
+          [
+            0.7,
+            1.1
+          ],
+          [
+            1.3,
+            1.7
+          ]
+        ],
+        "before": [
+          1.316,
+          -11.748,
+          -12.453
+        ],
+        "after": [
+          -0.7,
+          -0.32,
+          0.605
+        ]
+      },
+      "native_verification": "Production RecognitionSession checked with real threads and deferred cleanup, plus the existing capture, full-register pitch and recording checks. Hardware and codecs are stubbed.",
+      "design_changes": false
     }
   },
   "privacy_forms_draft": [
@@ -577,7 +618,7 @@
     "version_code": 13
   },
   "reviewed_on": "2026-11-14",
-  "review_scope": "Nine follow-up correctness defects: delimiter-preserving chord parsing, high-register pitch selection, recording capture ownership, legacy nullable links, preview ownership, visible tuning metadata, platform-safe cover cancellation, restored-preference cleanup and early text attribution. Bank documentation corrected; historical AAB explicitly excluded from current distribution.",
+  "review_scope": "Seven correctness defects: atomic song metadata persistence, acoustic G3 reference drift, extended chord transposition and practice order, unsaved editor navigation, cancellation/retry admission, remaster content lookup and actionable local audio errors. Existing visual design preserved.",
   "artifact_scope": "VersionCode 13 phone APKs contain all implementation changes through c999523 and retain the preceding sideload certificate. A fresh Hermes bundle including both cover-dialog platform branches is verified inside each APK. Later documentation-only changes do not alter app code. Physical microphones, Bluetooth, native iOS execution and store submission remain unverified. The AAB listed in artifacts is historical versionCode 7 and does not contain current fixes.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
@@ -599,7 +640,7 @@
     ],
     "target_audience": "13-15, 16-17 and 18+ recommended as a draft after the owner requested advice; IARC remains unassigned and nothing is submitted."
   },
-  "candidate_version_code": 13,
+  "candidate_version_code": 14,
   "current_distribution_bundle": {
     "status": "not_built_for_current_source",
     "version_code": null

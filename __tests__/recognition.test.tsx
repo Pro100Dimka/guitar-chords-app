@@ -31,12 +31,13 @@ jest.mock("../src/components/library-files", () => ({
   readLibraryFile: jest.fn()
 }));
 jest.mock("@react-navigation/native", () => ({
-  useRoute: () => ({ params: { mode: "mic" } }),
+  useRoute: () => ({ params: { mode: mockMode } }),
   useNavigation: () => mockNavigation,
   useFocusEffect: (callback: () => void) =>
     require("react").useEffect(callback, [callback])
 }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
+let mockMode: "mic" | "file" = "mic";
 const mockNavigation = { replace: jest.fn() };
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -48,6 +49,7 @@ function deferred<T>() {
 let screen: Renderer.ReactTestRenderer | undefined;
 const previousNative = NativeModules.SongRecognition;
 beforeEach(() => {
+  mockMode = "mic";
   jest.replaceProperty(Platform, "OS", "android");
   NativeModules.SongRecognition = {
     recognizeMicrophone: jest.fn().mockResolvedValue({
@@ -316,4 +318,82 @@ test("identical text from another album cannot hide the known album match", () =
       "Studio"
     )
   ).toEqual([expect.objectContaining({ id: 2 })]);
+});
+
+test("immediate retry waits until native cancellation finishes", async () => {
+  const native = NativeModules.SongRecognition;
+  const first = deferred<null>(),
+    stopped = deferred<void>();
+  let pending = true;
+  native.recognizeMicrophone.mockImplementation(() =>
+    native.recognizeMicrophone.mock.calls.length === 1
+      ? first.promise
+      : pending
+        ? Promise.reject(new Error("Busy"))
+        : Promise.resolve(null)
+  );
+  native.cancel.mockImplementation(() => stopped.promise);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  const button = () =>
+    screen!.root.find(
+      (node) =>
+        typeof node.props.onPress === "function" &&
+        ["AddSongStart", "AutofillCancelSearch"].includes(
+          node.props.accessibilityLabel
+        )
+    );
+  await act(async () => {
+    void button().props.onPress();
+  });
+  await act(async () => {
+    void button().props.onPress();
+  });
+  await act(async () => {
+    void button().props.onPress();
+  });
+  expect(native.recognizeMicrophone).toHaveBeenCalledTimes(1);
+  pending = false;
+  await act(async () => {
+    first.resolve(null);
+    stopped.resolve();
+  });
+  await act(async () => button().props.onPress());
+  expect(native.recognizeMicrophone).toHaveBeenCalledTimes(2);
+  expect(JSON.stringify(screen!.toJSON())).not.toContain(
+    "AutofillRecognitionError"
+  );
+});
+
+test.each([
+  ["AudioTooShort", "AutofillAudioTooShort"],
+  ["FileUnavailable", "AutofillFileUnavailable"],
+  ["NoAudioTrack", "AutofillNoAudioTrack"],
+  ["UnsupportedPcmFormat", "AutofillUnsupportedAudio"]
+])("local file error %s has a specific explanation", async (code, message) => {
+  mockMode = "file";
+  jest.mocked(pick).mockResolvedValue([
+    {
+      uri: "content://clip",
+      name: "clip.wav",
+      type: "audio/wav",
+      size: 44100,
+      isVirtual: false,
+      hasRequestedType: true,
+      nativeType: "audio/wav",
+      convertibleToMimeTypes: null,
+      error: null
+    }
+  ]);
+  NativeModules.SongRecognition.recognizeFile.mockRejectedValue(
+    Object.assign(new Error(code), { code: "RecognitionFailed" })
+  );
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  expect(JSON.stringify(screen!.toJSON())).toContain(message);
+  expect(JSON.stringify(screen!.toJSON())).not.toContain(
+    "AutofillRecognitionError"
+  );
 });

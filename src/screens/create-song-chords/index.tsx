@@ -1,7 +1,13 @@
 import { chordsAboveLyrics } from "../song/chords";
 // src/screens/create-song-chords/index.tsx
-import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
-import { Formik, FormikHelpers } from "formik";
+import {
+  useFocusEffect,
+  useRoute,
+  RouteProp,
+  usePreventRemove,
+  NavigationAction
+} from "@react-navigation/native";
+import { Formik, FormikHelpers, useFormikContext } from "formik";
 import React, { memo, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
@@ -57,6 +63,57 @@ interface ICreateChordSongProps {
   setIsEdit?: (_: boolean) => void;
 }
 
+export function SongEditorGuard({
+  allowLeave,
+  pendingExit
+}: {
+  allowLeave: { current: boolean };
+  pendingExit: { current: NavigationAction | null };
+}) {
+  const formik = useFormikContext<FormValues>();
+  const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
+  const changed =
+    formik.dirty ||
+    (!formik.values.id &&
+      [
+        formik.values.title,
+        formik.values.content,
+        formik.values.cover,
+        formik.values.fk_band.name
+      ].some((value) => !!value.trim()));
+  usePreventRemove(changed && !allowLeave.current, ({ data: { action } }) => {
+    if (allowLeave.current) {
+      navigation.dispatch(action);
+      return;
+    }
+    if (formik.isSubmitting) return;
+    Alert.alert(t("UnsavedSong"), undefined, [
+      { text: t("StayInEditor"), style: "cancel" },
+      {
+        text: t("DiscardChanges"),
+        style: "destructive",
+        onPress: () => {
+          pendingExit.current = null;
+          allowLeave.current = true;
+          navigation.dispatch(action);
+        }
+      },
+      {
+        text: t("SaveSong"),
+        onPress: () => {
+          pendingExit.current = action;
+          const clear = () => {
+            if (pendingExit.current === action) pendingExit.current = null;
+          };
+          void formik.submitForm().then(clear, clear);
+        }
+      }
+    ]);
+  });
+  return null;
+}
+
 const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
   ({ song, setIsEdit }: ICreateChordSongProps) => {
     const route = useRoute<RouteProp<RootStackParamList, "createSong">>();
@@ -71,6 +128,8 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const [editingLyrics, setEditingLyrics] = useState(false);
     const [formTop, setFormTop] = useState(0);
     const navigation = useNavigation<NavigationProp>();
+    const allowLeave = useRef(false);
+    const pendingExit = useRef<NavigationAction | null>(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [initialValuesState, setInitialValuesState] =
       useState<FormValues>(initialValues);
@@ -117,14 +176,24 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       actions: FormikHelpers<FormValues>
     ) => {
       setIsSubmitting(true);
-      await onSubmit(
-        actions,
-        { ...values, content: chordsAboveLyrics(values.content) },
-        navigation,
-        setIsEdit
-      );
-      setIsSubmitting(false);
-      actions.setSubmitting(false);
+      const finish = (fallback: () => void) => {
+        allowLeave.current = true;
+        const action = pendingExit.current;
+        pendingExit.current = null;
+        if (action) navigation.dispatch(action);
+        else fallback();
+      };
+      try {
+        await onSubmit(
+          actions,
+          { ...values, content: chordsAboveLyrics(values.content) },
+          { replace: (...args) => finish(() => navigation.replace(...args)) },
+          () => finish(() => setIsEdit?.(false))
+        );
+      } finally {
+        setIsSubmitting(false);
+        actions.setSubmitting(false);
+      }
     };
 
     return (
@@ -146,6 +215,10 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           >
             {(formik) => (
               <View style={styles.flex}>
+                <SongEditorGuard
+                  allowLeave={allowLeave}
+                  pendingExit={pendingExit}
+                />
                 <ScrollView
                   style={styles.flex}
                   contentContainerStyle={styles.container}

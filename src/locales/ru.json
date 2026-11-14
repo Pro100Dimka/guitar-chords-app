@@ -269,7 +269,7 @@
   "AutofillRecognized": "Определено: {{artist}} — {{title}}",
   "AutofillNoAudioMatch": "Композиция не найдена.",
   "AutofillMicDenied": "Нет разрешения на микрофон.",
-  "AutofillRecognitionError": "Не удалось распознать песню. Проверь подключение.",
+  "AutofillRecognitionError": "Не удалось распознать это аудио. Попробуйте другой фрагмент.",
   "AutofillReplaceIdentity": "Название и исполнитель будут заменены. Текст останется до выбора другого варианта.",
   "AutofillRecognitionRateLimited": "Shazam ограничил запросы. Повтори позже.",
   "AddSongTitle": "Добавить песню",
@@ -634,5 +634,17 @@
   "DeleteSongConfirm": "Удалить эту песню?",
   "DeleteSongRecordings": "У песни есть записи. Откройте их для прослушивания и экспорта или удалите песню вместе со всеми её записями.",
   "DeleteSongAndRecordings": "Удалить песню и записи",
-  "ChooseLyricsVersion": "Выберите версию записи"
+  "ChooseLyricsVersion": "Выберите версию записи",
+  "UnsavedSong": "Сохранить изменения песни?",
+  "StayInEditor": "Остаться",
+  "DiscardChanges": "Отбросить изменения",
+  "AutofillStopping": "Останавливаем распознавание…",
+  "AutofillAudioTooShort": "Выберите аудиофрагмент длительностью не менее 2 секунд.",
+  "AutofillFileUnavailable": "Не удалось открыть аудиофайл. Выберите его снова и разрешите доступ.",
+  "AutofillNoAudioTrack": "В этом файле нет аудиодорожки.",
+  "AutofillUnsupportedAudio": "Не удалось прочитать этот аудиоформат. Попробуйте WAV, MP3 или M4A.",
+  "AutofillNetworkError": "Не удалось связаться с сервисом распознавания. Проверьте подключение и повторите.",
+  "AutofillServiceUnavailable": "Сервис распознавания недоступен. Попробуйте позже.",
+  "AutofillBusy": "Предыдущее распознавание ещё останавливается. Подождите.",
+  "AutofillAudioDeviceError": "Микрофон недоступен. Закройте другие приложения записи и повторите."
 }

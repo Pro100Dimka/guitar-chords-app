@@ -878,7 +878,10 @@ function RhythmPlayer({
     });
   }, [progressionKey, shapesKey, fingeringsKey, capo]);
   const bank = useMemo(
-    () => (canPrepare ? acousticBank(frequencies.flat()) : null),
+    () =>
+      canPrepare && frequencies.every((notes) => notes.length)
+        ? acousticBank(frequencies.flat())
+        : null,
     [frequencies, canPrepare]
   );
   const instrument = useMemo(
@@ -997,6 +1000,15 @@ function RhythmPlayer({
       );
   }, [playConfig]);
   const source = useMemo(() => ({ html: preview }), [preview]);
+  const unavailable = progression.filter(
+    (_, index) => !frequencies[index]?.length
+  );
+  if (unavailable.length)
+    return autoplay ? null : (
+      <Text style={styles.description}>
+        {t("NoFingering")}: {unavailable.join(", ")}
+      </Text>
+    );
   return (
     <View style={autoplay ? styles.hiddenPreview : undefined}>
       {active && (

@@ -269,7 +269,7 @@
   "AutofillRecognized": "Recognized: {{artist}} — {{title}}",
   "AutofillNoAudioMatch": "No song matched this audio.",
   "AutofillMicDenied": "Microphone access denied.",
-  "AutofillRecognitionError": "Song recognition unavailable. Check connection and try again.",
+  "AutofillRecognitionError": "Could not recognize this audio. Try another excerpt.",
   "AutofillReplaceIdentity": "The existing song title and artist will be replaced. Lyrics are kept until you select a replacement.",
   "AutofillRecognitionRateLimited": "Shazam is rate-limiting requests. Try again later.",
   "AddSongTitle": "Add a song",
@@ -634,5 +634,17 @@
   "DeleteSongConfirm": "Delete this song?",
   "DeleteSongRecordings": "This song has recordings. Open them to listen or export before deleting, or explicitly delete the song and all its recordings.",
   "DeleteSongAndRecordings": "Delete song and recordings",
-  "ChooseLyricsVersion": "Choose the recording version"
+  "ChooseLyricsVersion": "Choose the recording version",
+  "UnsavedSong": "Save changes to this song?",
+  "StayInEditor": "Stay",
+  "DiscardChanges": "Discard changes",
+  "AutofillStopping": "Stopping recognition…",
+  "AutofillAudioTooShort": "Use an audio excerpt at least 2 seconds long.",
+  "AutofillFileUnavailable": "Could not open the audio file. Select it again and allow access.",
+  "AutofillNoAudioTrack": "This file does not contain an audio track.",
+  "AutofillUnsupportedAudio": "Could not decode this audio format. Try WAV, MP3 or M4A.",
+  "AutofillNetworkError": "Could not reach the recognition service. Check your connection and try again.",
+  "AutofillServiceUnavailable": "The recognition service is unavailable. Try again later.",
+  "AutofillBusy": "The previous recognition is still stopping. Please wait.",
+  "AutofillAudioDeviceError": "The microphone is unavailable. Close other recording apps and try again."
 }

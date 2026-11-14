@@ -7,6 +7,7 @@ const vm = require("node:vm");
 const babel = require("@babel/core");
 const WebSQLDatabase = require("websql/lib/websql/WebSQLDatabase");
 const root = __dirname;
+const alerts=[];
 const sqlite = new DatabaseSync(":memory:");
 let failure;
 const adapter = {
@@ -47,8 +48,8 @@ function load(relative) {
     module, exports: module.exports, console,
     setTimeout, clearTimeout,
     require: (name) => {
-      if (name === "../index" || name === "./database") return {db};
-      if (["react-native", "react-native-file-access", "@react-native-documents/picker", "@bam.tech/react-native-image-resizer"].includes(name)) return name === "react-native" ? {Alert:{alert(){}}} : {};
+      if (["../index", "./database", "@/components/database"].includes(name)) return {db};
+      if (["react-native", "react-native-file-access", "@react-native-documents/picker", "@bam.tech/react-native-image-resizer"].includes(name)) return name === "react-native" ? {Alert:{alert(...args){alerts.push(args);}}} : {};
       if (name.endsWith("locales")) return {t:key=>key};
       if (name === "./performance-audio") return {performanceAudio:{}};
       if (name.startsWith("@/")) { const target=path.join(root,"src",name.slice(2)); return load(fs.existsSync(target+".ts")?target+".ts":path.join(target,"index.ts")); }
@@ -141,6 +142,32 @@ async function main() {
   } catch(error) {reviewFailures.push(`nullable edit: ${error.message}`);}
   assert.deepEqual(reviewFailures,[]);
   console.log("SQLite review regressions passed: real NULL video fields edit successfully; restored/deleted covers and preferences stay deleted after reload.");
+  const submit=load("src/screens/create-song-chords/formik/on-sabmit.tsx").default;
+  for (const editing of [false,true]) {
+    sqlite.exec("DELETE FROM settings; DELETE FROM songs; DELETE FROM bands;");
+    sqlite.prepare("INSERT INTO settings (key,value) VALUES (?,?)").run("experience",JSON.stringify({songs:{}}));
+    await preferences.loadPreferences();preferences.usePreferences.setState({saveError:false});
+    let id=0;
+    if(editing) id=(await create({tableName:"songs",data:{title:"Before",content:"Am\nOriginal",youtube_music:"",youtobe_lesson:""}})).insertId;
+    const values={id,title:"Atomic",content:"F#m\nWords",youtube_music:"",youtobe_lesson:"",cover:"data:image/jpeg;base64,/9j/2Q==",capo:2,sourceTuning:"D A D G B E",contentSource:{name:"Shazam",url:"https://www.shazam.com/track/123",credit:"Attribution"},fk_band:{id:"",name:"Atomic artist",search_text_lower:"atomic artist"}};
+    let navigated=false,closed=false;alerts.length=0;
+    failure="INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)";
+    await submit({},values,{replace(){navigated=true;}},()=>{closed=true;});
+    preferences.flushPreferences();await new Promise((resolve,reject)=>db.transaction(()=>{},reject,resolve));
+    failure=undefined;
+    assert.equal(navigated,false);assert.equal(closed,false);
+    assert.ok(!alerts.some(args=>["ElementAdded","ElementChanged"].includes(args[0])));
+    const rows=await read({tableName:"songs"});
+    assert.equal(rows.length,editing?1:0);if(editing)assert.equal(rows[0].title,"Before");
+    assert.equal((await read({tableName:"bands"})).length,0);
+    assert.equal(preferences.usePreferences.getState().songs[id]?.capo,undefined);
+    await submit({},values,{replace(){navigated=true;}},()=>{closed=true;});
+    const savedRows=await read({tableName:"songs"});assert.equal(savedRows.length,1);assert.equal(savedRows[0].title,"Atomic");
+    preferences.usePreferences.setState({songs:{}});await preferences.loadPreferences();
+    assert.equal(preferences.usePreferences.getState().songs[savedRows[0].id].capo,2);
+    assert.equal(preferences.usePreferences.getState().songs[savedRows[0].id].contentSource.credit,"Attribution");
+  }
+  console.log("Atomic song saves passed: settings failures roll back song, artist and metadata; retry commits both create and edit completely.");
   sqlite.exec("PRAGMA user_version = 99");
   await assert.rejects(migrate(db), /newer application version/);
   assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 99);

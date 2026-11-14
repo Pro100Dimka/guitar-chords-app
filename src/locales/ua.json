@@ -269,7 +269,7 @@
   "AutofillRecognized": "Визначено: {{artist}} — {{title}}",
   "AutofillNoAudioMatch": "Композицію не знайдено.",
   "AutofillMicDenied": "Немає дозволу на мікрофон.",
-  "AutofillRecognitionError": "Не вдалося розпізнати пісню. Перевірте з'єднання.",
+  "AutofillRecognitionError": "Не вдалося розпізнати це аудіо. Спробуйте інший фрагмент.",
   "AutofillReplaceIdentity": "Назву та виконавця буде замінено. Текст залишиться до вибору іншого варіанта.",
   "AutofillRecognitionRateLimited": "Shazam обмежив запити. Спробуйте пізніше.",
   "AddSongTitle": "Додати пісню",
@@ -634,5 +634,17 @@
   "DeleteSongConfirm": "Видалити цю пісню?",
   "DeleteSongRecordings": "Пісня має записи. Відкрийте їх для прослуховування й експорту або видаліть пісню разом з усіма її записами.",
   "DeleteSongAndRecordings": "Видалити пісню й записи",
-  "ChooseLyricsVersion": "Виберіть версію запису"
+  "ChooseLyricsVersion": "Виберіть версію запису",
+  "UnsavedSong": "Зберегти зміни пісні?",
+  "StayInEditor": "Залишитися",
+  "DiscardChanges": "Відкинути зміни",
+  "AutofillStopping": "Зупиняємо розпізнавання…",
+  "AutofillAudioTooShort": "Виберіть аудіофрагмент тривалістю щонайменше 2 секунди.",
+  "AutofillFileUnavailable": "Не вдалося відкрити аудіофайл. Виберіть його знову й надайте доступ.",
+  "AutofillNoAudioTrack": "Цей файл не містить аудіодоріжки.",
+  "AutofillUnsupportedAudio": "Не вдалося прочитати цей аудіоформат. Спробуйте WAV, MP3 або M4A.",
+  "AutofillNetworkError": "Не вдалося зв’язатися із сервісом розпізнавання. Перевірте з’єднання й повторіть.",
+  "AutofillServiceUnavailable": "Сервіс розпізнавання недоступний. Спробуйте пізніше.",
+  "AutofillBusy": "Попереднє розпізнавання ще зупиняється. Зачекайте.",
+  "AutofillAudioDeviceError": "Мікрофон недоступний. Закрийте інші застосунки запису й повторіть."
 }

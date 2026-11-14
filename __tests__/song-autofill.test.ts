@@ -113,6 +113,38 @@ describe("content provider failover", () => {
     ]);
   });
 
+  it.each([true, false])(
+    "Pisennyk normalizes remasters and validates the page performer (matching: %s)",
+    async (matching) => {
+      const candidate = "https://pisennyk.com.ua/test-artist/test-song";
+      request.mockImplementation(async (url) =>
+        String(url).startsWith("https://pisennyk.com.ua/search")
+          ? new Response(`<a href="${candidate}">${title} ${artist}</a>`)
+          : String(url) === candidate
+            ? new Response(
+                `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: title, byArtist: { "@type": "MusicGroup", name: matching ? artist : "Another performer" } })}</script><div class="interpretation-content"><code data-chord="Am">Am</code>Example words</div>`
+              )
+            : response(String(url))
+      );
+      const pending = lookup(`${title} (2011 Remaster)`, artist);
+      await jest.advanceTimersByTimeAsync(10000);
+      const result = await pending;
+      expect(
+        request.mock.calls.some(([url]) => String(url) === candidate)
+      ).toBe(true);
+      if (!matching) {
+        expect(result.some((option) => option.source === "Пісенник")).toBe(
+          false
+        );
+        return;
+      }
+      expect(result).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ source: "Пісенник", hasChords: true })
+        ])
+      );
+    }
+  );
   it.each([
     [
       "E-Chords",
