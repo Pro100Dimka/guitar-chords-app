@@ -1,16 +1,16 @@
 {
-  "build": 10,
+  "build": 11,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
-  "design_changes": true,
+  "design_changes": false,
   "checks": {
     "javascript": {
       "suites": 15,
       "tests": 102,
       "status": "Passed full local Jest run after review fixes, including cancellation, background enrichment, save routing, chord alignment, source cooldown, cache preparation, native-preview request ordering and CI request construction."
     },
-    "typescript": "passed after the current source and regression-check changes",
-    "eslint": "passed for changed production guitar-audio, tuner and song sources",
+    "typescript": "Passed tsc --noEmit locally and in CI.",
+    "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
     "sqlite": "passed again: CRUD, bound search, rollback, legacy adoption, repeat migration and newer schema rejection",
     "android_pitch": {
       "synthetic_cases": 270,
@@ -28,7 +28,7 @@
       "recordings": 250,
       "status": "250 recordings and room impulse decoded successfully; physical playback pending"
     },
-    "android_bundle": "Historical candidate only: passed: release AAB and both APK architectures built; Android lint 0 errors, 28 warnings; ZIP integrity; new 250 samples included, old bank absent; 21 arm64 libraries have >=16 KB ELF alignment; APK ZIP alignment verified. Physical-device and Google Play processing checks remain pending.",
+    "android_bundle": "VersionCode 11 ARM64 and ARM32 APKs assembled successfully. Release lint passed; signing, archive integrity, current Hermes bundle, native prepareFingering method, guide assets, third-party notices, ZIP alignment and ARM64 ELF alignment verified. Listed AAB remains historical.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "not run: requires macOS/Xcode",
     "device_tests": "owner to perform",
@@ -353,7 +353,7 @@
       "cold_start": "A never-prepared fingering can still wait for first rendering; existing native cache is checked before waiting"
     },
     "review_regressions": {
-      "status": "Local checks passed; remote Rust/CI and versionCode 11 packaging pending",
+      "status": "Passed local regressions, all three source CI workflows and final versionCode 11 APK verification.",
       "fixed": [
         "Stopped AudioRecord zero/negative reads drain normally",
         "AbortSignal checked before dialogs and after permission or file selection",
@@ -365,8 +365,30 @@
       ],
       "native": "Original committed recorder reproduced Microphone capture failed: 0. Corrected production recorder preserved captured frames, processed tail and EOS for zero and negative terminal reads with deterministic platform/codec stubs. Existing native tuner checks passed.",
       "audio_render": "Managed browser rendered two distinct stereo Am positions with natural 15.3-second tails and peaks below -12 dBFS. This is not a phone latency or listening test.",
-      "notices": "MIT upstream and MPL-2.0 chfft notice/source text added to Android assets; final APK contents pending verification",
-      "ci": "Strict real-audio proof watches all fingerprint sources and Cargo files; native CI watches Android sources/config and mandatory host regressions; TypeScript and ESLint still run after a Jest failure when dependencies installed"
+      "notices": "MIT upstream and MPL-2.0 chfft notice/source text verified inside both final APK assets.",
+      "ci": "Strict real-audio proof watches all fingerprint sources and Cargo files; native CI watches Android sources/config and mandatory host regressions; TypeScript and ESLint still run after a Jest failure when dependencies installed",
+      "ci_results": {
+        "source_commit": "8436c36a58e489efcce72fdb004cf9f1e1340a7e",
+        "javascript": {
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43618467989",
+          "status": "success",
+          "suites": 15,
+          "tests": 102,
+          "typescript": "passed",
+          "eslint": "passed"
+        },
+        "native": {
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43618467992",
+          "status": "success",
+          "rust_tests": "Three deterministic cases passed in each of the library and probe targets.",
+          "recording": "Stopped zero/negative reads preserve captured PCM, effect tail and encoder EOS under platform stubs.",
+          "android": "Rust JNI and Kotlin compiled successfully."
+        },
+        "real_audio": {
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43618467978",
+          "status": "success"
+        }
+      }
     }
   },
   "privacy_forms_draft": [
@@ -473,22 +495,22 @@
       "version_code": 7
     },
     "apk_arm64": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc10-arm64-v8a.apk",
-      "bytes": 101337582,
-      "sha256": "3db6bd917ab80e8c3d5b65d29c4b6d1bb993fb566b2c6da23ef0e7d66a2a2f2b",
-      "version_code": 10
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc11-arm64-v8a.apk",
+      "bytes": 101348423,
+      "sha256": "cb571228f2946ed649a9e49632343b71085a69fc8339edb70b8c9a0f40916fa7",
+      "version_code": 11
     },
     "apk_arm32": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc10-armeabi-v7a.apk",
-      "bytes": 90505682,
-      "sha256": "0353a01d9e3345053bb399ed6ccf95f38dfa78018722506624f7932c204b148e",
-      "version_code": 10
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc11-armeabi-v7a.apk",
+      "bytes": 90516523,
+      "sha256": "5e4aef387a1655e578b283fc78993f63906a36a4394ac0048609a4ce20e472e2",
+      "version_code": 11
     },
-    "version_code": 10
+    "version_code": 11
   },
   "reviewed_on": "2026-11-14",
-  "review_scope": "Source performance and scrolling fixes, minified-fragment restoration investigation, emulator recording and UI measurements, production Web Audio rendering and store-material preparation. No new APK/AAB.",
-  "artifact_scope": "VersionCode 10 ARM64 and ARM32 phone APKs include all current source changes: full 25-topic guide revision in three languages, refreshed tuner illustrations, prepared native string playback, persistent fingering player and touch-down auditions, chromatic tuner and prior song lookup fixes. Fresh production Hermes and native app code are included. APKs retain the preceding sideload test certificate. The listed AAB remains historical versionCode 7. No new store bundle, native iOS archive or physical-device latency verification is claimed. A subsequent native fingering-preview and exact-voicing-key correction is source-only and is not in those versionCode 10 APKs.",
+  "review_scope": "Seven reviewed behavior defects corrected, regression tests restored and extended, CI coverage expanded, final phone APKs verified. No design changes in this review.",
+  "artifact_scope": "VersionCode 11 ARM64 and ARM32 APKs include source commit 8436c36, exact-voicing native fingering previews and all seven review corrections. Both retain the preceding sideload certificate. Final archives include current Hermes code and fingerprint license notices. The AAB remains historical versionCode 7. Physical-phone latency, microphone/codec behavior and subjective listening remain device checks.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
