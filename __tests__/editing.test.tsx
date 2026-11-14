@@ -356,7 +356,7 @@ test("each rhythm can be selected once through its full pattern and applied", as
     expect(change).not.toHaveBeenCalled();
     const configuration = injectJavaScript.mock.calls.at(-1)![0];
     expect(configuration).toContain(
-      `"pattern":${JSON.stringify(rhythms[index].pattern.padEnd(Math.ceil(rhythms[index].pattern.length / (rhythms[index].meter * 2)) * rhythms[index].meter * 2, "-"))}`
+      `"pattern":${JSON.stringify(rhythms[index].pattern.padEnd(Math.ceil(rhythms[index].pattern.length / (rhythms[index].meter * rhythms[index].division)) * rhythms[index].meter * rhythms[index].division, "-"))}`
     );
     expect(configuration).toContain('"requested":true');
     expect(
@@ -369,6 +369,7 @@ test("each rhythm can be selected once through its full pattern and applied", as
     expect(change).toHaveBeenLastCalledWith({
       strum: rhythms[index].pattern,
       strumMeter: rhythms[index].meter,
+      strumDivision: rhythms[index].division,
       strumPreset: rhythms[index].id
     });
   }
@@ -380,6 +381,7 @@ test("each rhythm can be selected once through its full pattern and applied", as
   expect(change).toHaveBeenCalledWith({
     strum: rhythms[7].pattern,
     strumMeter: rhythms[7].meter,
+    strumDivision: rhythms[7].division,
     strumPreset: rhythms[7].id
   });
   const html = screen!.root.findByType(WebView).props.source.html;
@@ -457,6 +459,11 @@ test("each rhythm can be selected once through its full pattern and applied", as
   const initialization = injectJavaScript.mock.calls.find(([script]) =>
     script.startsWith("window.loadInstrument(")
   )![0];
+  const load = window.loadInstrument;
+  window.loadInstrument = (data: any) => {
+    data.bank.recordings = [];
+    return load(data);
+  };
   require("node:vm").runInNewContext(initialization.split(";")[0], { window });
   for (let i = 0; i < 20; i++) await Promise.resolve();
   window.configurePlayer({

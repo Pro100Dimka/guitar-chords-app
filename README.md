@@ -154,15 +154,20 @@ checks with deterministic device stubs, not physical microphone certification.
 The matching subharmonic tracking correction is also applied to the Swift source;
 the iOS native checks must still run on macOS.
 
-The current acoustic engine loads `assets/meta-steel-guitar.json`: 125 sampled
-string/note positions, each with soft and medium attacks (250 recordings), plus
-a room impulse. Chords and rhythms are assembled from these steel-string acoustic
-recordings with direction-dependent string order, attack timing, dynamics and
-natural release. Tuner reference strings use the separate Meta Steel Guitar
-reference bank. These banks use CC0-1.0; source notices are in
-`assets/meta-steel-guitar.LICENSE.txt` and `assets/guitar-samples.LICENSE.txt`.
-Strummed Acoustic files retained in the repository are historical evaluation
-material and are not loaded by the current acoustic engine.
+### Sound bank
+
+The acoustic engine loads `assets/guitar-bank.json`: the owner's 24 major/minor
+chords, three actual downstrokes and three upstrokes per chord. Matching voicings
+play these complete recordings with natural overlapping tails. Other positions,
+extended chords and bass hits use the owner's six recorded open strings, retuned
+to the selected frets. `assets/guitar-samples.json` contains measured-pitch PCM
+references from the same strings for tuner playback. Samples are prepared before
+audition and native playback uses cached PCM keys.
+
+The original WAV masters remain outside the repository. See
+`assets/recorded-guitar-source.json` for source paths and preparation settings.
+The recordings are used at the owner's request; they are not asserted to be CC0.
+The former Meta Steel Guitar source notices are retained for historical attribution.
 
 Preferences tests cover save failures, reloads and backup preservation of covers,
 performer names, lyrics and selected chord shapes.
@@ -238,7 +243,7 @@ To learn more about React Native, take a look at the following resources:
 - Settings > Library backup: save a portable JSON copy or preview a copy before restoring. Songs and their favorites, fingerings, rhythm and reading settings are included. Restore is transactional and only appends missing songs; matching title, content, artist and links are skipped with existing preferences preserved. Limits: 5 MB per file, 2,000 songs, 200,000 characters per song. Keep exported files somewhere safe; cloud storage, if selected in the system picker, is managed by its provider.
 - Song > Reading > Play more easily: compare fingerings for capo positions 0 through 7 while preserving the sounding key and original text. Suggestions assume standard guitar tuning and use a fingering-complexity estimate. The previous position can be restored while the panel remains open.
 - Song > Practice: play the entire chord sequence from the song, including repeated chords. Select a starting chord and tempo for a one-minute session, with one chord per bar. This is a timing guide, not microphone-based playing assessment. Backgrounding the app stops playback.
-- Rhythm previews use the song's chords, selected fingerings and capo. The standalone catalog uses an example progression. Playback uses the Meta Steel Guitar note bank (CC0), including alternate fingerings and directional strums. Source notices are in assets/meta-steel-guitar.LICENSE.txt and assets/guitar-samples.LICENSE.txt.
+- Rhythm previews use the song's chords, selected fingerings and capo. The standalone catalog uses an example progression. Playback uses the owner-provided chord and string recordings, including alternate fingerings and directional strums. See assets/recorded-guitar-source.json.
 - Fingerings include the curated shapes followed by generated alternatives across the neck, filtered for chord tones, bass and fretting reach. More shapes load on demand. Diagrams assume standard six-string tuning.
 - Song > Record: record voice and guitar locally as AAC/M4A while reading the song, then listen, export or delete takes. After capture, local background processing reduces low rumble, gently compresses levels and adds a small room effect. On Android, effects are applied during capture and the temporary AAC file is published only after successful encoding. No separate original is retained, and a failed Android recording is removed. On iOS, post-processing replaces the captured take only on success; on failure that captured take remains available. Playback, export and deletion are disabled while that take is processing. Native encoding and microphone quality still require Android and iOS device checks. Recording stops on leaving the screen or backgrounding the app, and is limited to 30 minutes. Recordings are not included in the JSON library backup; export important takes separately. Uninstalling the app removes its local recordings.
 - Guitar tuner: 33 preset tunings and editable six-string tuning. The note fills green after holding within 5 cents for 1.1 seconds, followed by an optional soft confirmation sound. The cue is excluded from pitch feedback briefly to avoid triggering itself. Very low tunings require suitable strings and instrument setup.

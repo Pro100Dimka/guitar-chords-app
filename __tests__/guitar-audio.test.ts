@@ -126,6 +126,6 @@ test.each(
       ([start, end]) =>
         1200 * Math.log2(pitchWindow(wave, target, start, end) / target)
     );
-    expect(cents.map(Math.abs).every((value) => value <= 5)).toBe(true);
+    for (const value of cents) expect(Math.abs(value)).toBeLessThanOrEqual(5);
   }
 );

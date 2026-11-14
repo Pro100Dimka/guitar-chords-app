@@ -5,9 +5,9 @@
   "design_changes": false,
   "checks": {
     "javascript": {
-      "suites": 17,
-      "tests": 179,
-      "status": "Passed 179 tests in 17 suites locally and in main CI. TypeScript, zero-warning ESLint and actual SQLite integration also passed."
+      "suites": 18,
+      "tests": 206,
+      "status": "206 local tests passed, including recorded-stroke variants, cached scheduling, fingering preloading and saved rhythm subdivisions. Current source CI pending."
     },
     "typescript": "Passed tsc --noEmit locally and in CI.",
     "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
@@ -25,11 +25,13 @@
       "full_register_frames": 3360
     },
     "audio_bank": {
-      "source": "Meta Steel Guitar",
-      "license": "CC0-1.0",
-      "positions": 125,
-      "recordings": 250,
-      "status": "250 recordings and room impulse decoded successfully; physical playback pending"
+      "source": "Owner-provided acoustic guitar recordings",
+      "rights": "Embedded at the owner's explicit request; not claimed to be CC0.",
+      "chords": 24,
+      "recorded_chord_strokes": 144,
+      "open_strings": 6,
+      "original_open_string_takes": 11,
+      "status": "Original approved WAVs preserved outside repository; gapless mobile chord banks and measured-pitch string references prepared."
     },
     "android_bundle": "VersionCode 14 ARM64 and ARM32 APKs assembled successfully. Release lint passed; fresh Hermes bundle hash, seven-fix localization markers, signing, archive integrity, native methods, third-party notices, ZIP alignment and ARM64 ELF alignment verified. Fingerprint Rust sources unchanged; current ARM JNI libraries reused locally and rebuilt in CI. No current AAB was built.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
@@ -548,6 +550,17 @@
           }
         ]
       }
+    },
+    "recorded_audio_integration": {
+      "status": "Source integrated; final phone APK and current CI pending.",
+      "design_changes": false,
+      "rhythms": 14,
+      "ordering": "Practical broad pop/rock usefulness, not a measured worldwide ranking; Old Faithful first.",
+      "rhythm_timing": "Eighth-note, triplet and sixteenth-note grids persisted per song; bass strokes use individual recorded strings.",
+      "playback": "Whole recorded strokes for matching voicings; alternate/extended voicings use physical-string recordings with measured tuning. Three round-robin variants per direction, natural overlapping tails, smooth chord-change damping. No added room on whole recordings.",
+      "latency": "Per-chord lazy bank loading; only first downstroke decoded for matching fingering previews; native prepared-PCM reuse. MP3 encoder-delay metadata avoids 23 ms priming. Standard 6 ms safety-node lookahead removed from native-ready fingering PCM. Physical phone latency unmeasured.",
+      "proof": "E:/Releases/FreeTune/Audio/Guitar-live-24-2026-11-14/app-engine-verification.json",
+      "source_manifest": "assets/recorded-guitar-source.json"
     }
   },
   "privacy_forms_draft": [
@@ -670,8 +683,8 @@
     },
     "version_code": 14
   },
-  "reviewed_on": "2026-11-14",
-  "review_scope": "Seven correctness defects: atomic song metadata persistence, acoustic G3 reference drift, extended chord transposition and practice order, unsaved editor navigation, cancellation/retry admission, remaster content lookup and actionable local audio errors. Existing visual design preserved.",
+  "reviewed_on": "2026-11-15",
+  "review_scope": "Integration of owner-approved chord and string recordings, preload and gapless preparation, physical-string alternate fingerings, 14 rhythm presets and persistent rhythmic subdivisions. Visual styles unchanged.",
   "artifact_scope": "VersionCode 14 phone APKs contain all implementation changes through b581a6aea655c4a42865908e16c357f4b7c1322c. Later documentation-only changes do not alter app code. Both APKs retain the preceding sideload certificate and contain the verified fresh Hermes bundle. Physical microphone/speaker latency, Bluetooth, native iOS execution and store submission remain unverified. The listed AAB is historical versionCode 7 and does not contain current fixes.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
@@ -693,7 +706,7 @@
     ],
     "target_audience": "13-15, 16-17 and 18+ recommended as a draft after the owner requested advice; IARC remains unassigned and nothing is submitted."
   },
-  "candidate_version_code": 14,
+  "candidate_version_code": 15,
   "current_distribution_bundle": {
     "status": "not_built_for_current_source",
     "version_code": null

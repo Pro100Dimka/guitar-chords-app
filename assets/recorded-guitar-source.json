@@ -1,0 +1,21 @@
+{
+  "sources": [
+    "E:/Написание музыки/Проэкты/гитара/Mixdown/Ам.wav",
+    "E:/Написание музыки/Проэкты/гитара/Mixdown/аккорды.wav"
+  ],
+  "approved_masters": "E:/Releases/FreeTune/Audio/Guitar-live-24-2026-11-14",
+  "rights": "Owner-provided recordings; app embedding explicitly requested by the owner. No CC0 or third-party licence claimed.",
+  "chords": 24,
+  "down_per_chord": 3,
+  "up_per_chord": 3,
+  "strings": 6,
+  "missing_variant": "E2 has one available recorded attack; shared for soft and medium string synthesis.",
+  "format": "Gapless 192 kbps MP3 with Xing/LAME encoder-delay metadata, original stereo chord recordings and mono 22050 Hz strings; tuner PCM is 16-bit mono 22050 Hz.",
+  "preparation": "scripts/prepare-recorded-guitar.py; source WAV masters unchanged. Chord masters approved before encoding. No looping or time stretching.",
+  "rhythm_order": "Practical order by broad pop/rock usefulness, not a measured global popularity ranking. Old Faithful first, basic quarter/eighth patterns next, style-specific patterns later.",
+  "rhythm_sources": [
+    "https://www.justinguitar.com/advanced_search?q=strum",
+    "https://hub.yamaha.com/music-educators/instruments/guitars-education/guitar-strumming-patterns-for-beginners/"
+  ],
+  "loading": "Chord banks are loaded individually. Web Audio keeps at most 48 decoded cache entries; existing native prepared-PCM cache handles immediate repeated auditions."
+}

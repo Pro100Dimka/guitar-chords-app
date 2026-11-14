@@ -381,10 +381,10 @@ const Settings: React.FC = () => {
           </Text>
           <Action
             glass
-            label="Meta Steel Guitar · CC0"
+            label={t("RecordedGuitar")}
             onPress={() => {
               void Linking.openURL(
-                "https://github.com/facebookincubator/Meta-open-sound/tree/main/systems/instruments/meta-steel-guitar"
+                "https://github.com/Pro100Dimka/guitar-chords-app#sound-bank"
               ).catch(() => {});
             }}
           />

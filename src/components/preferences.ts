@@ -18,6 +18,7 @@ export interface SongPreferences {
   shapes: Record<string, number>;
   strum: string;
   strumMeter: 3 | 4;
+  strumDivision: number;
   strumPreset: string;
   tempo: number;
 }
@@ -32,6 +33,7 @@ export const defaultSongPreferences: SongPreferences = {
   shapes: {},
   strum: "",
   strumMeter: 4,
+  strumDivision: 2,
   strumPreset: "",
   tempo: 80
 };
@@ -226,9 +228,12 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
     shapes,
     strum:
       typeof song.strum === "string"
-        ? song.strum.replace(/[^DUX-]/g, "").slice(0, 16)
+        ? song.strum.replace(/[^DUXB-]/g, "").slice(0, 16)
         : "",
     strumMeter: song.strumMeter === 3 ? 3 : 4,
+    strumDivision: [2, 3, 4].includes(Number(song.strumDivision))
+      ? Number(song.strumDivision)
+      : 2,
     strumPreset:
       typeof song.strumPreset === "string" ? song.strumPreset.slice(0, 32) : "",
     tempo: Math.round(number(song.tempo, 80, 40, 200))

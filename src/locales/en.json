@@ -235,7 +235,7 @@
   "OctaveHint": "Manual mode shows only notes in the selected octave. Auto removes the restriction. Your choice is saved.",
   "ClearSearch": "Clear search",
   "AudioCredits": "Sound credits",
-  "ChordRecordingCredits": "Guitar sounds: Meta Steel Guitar, Meta Creative Audio. Licensed under CC0 1.0. Chords and strumming use recordings of individual strings with attack, sustain and room processing.",
+  "ChordRecordingCredits": "Acoustic guitar recordings provided by the developer. 24 major and minor chords, three genuine downstrokes and upstrokes per chord, plus recorded open strings. Other fingerings are played from these strings.",
   "ChangeSongCover": "Change cover",
   "RotateCover": "Rotate",
   "ResetCover": "Reset",
@@ -646,5 +646,12 @@
   "AutofillNetworkError": "Could not reach the recognition service. Check your connection and try again.",
   "AutofillServiceUnavailable": "The recognition service is unavailable. Try again later.",
   "AutofillBusy": "The previous recognition is still stopping. Please wait.",
-  "AutofillAudioDeviceError": "The microphone is unavailable. Close other recording apps and try again."
+  "AutofillAudioDeviceError": "The microphone is unavailable. Close other recording apps and try again.",
+  "RhythmBallad": "Ballad",
+  "RhythmBass": "Bass and chord",
+  "RhythmRock": "Rock downstrokes",
+  "RhythmShuffle": "Shuffle",
+  "RhythmGallop": "Gallop",
+  "RhythmNine": "Nine strokes (2 bars)",
+  "RecordedGuitar": "FreeTune acoustic recordings"
 }

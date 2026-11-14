@@ -29,7 +29,11 @@ import Svg, { Circle, Line, Text as SvgText } from "react-native-svg";
 import { useTranslation } from "react-i18next";
 import { SongPreferences } from "@/components/preferences";
 import palette from "@/theme/palette";
-import { acousticBank, acousticEngine } from "../../components/acoustic-player";
+import {
+  acousticBank,
+  acousticEngine,
+  recordedChordFrets
+} from "../../components/acoustic-player";
 import { performanceAudio } from "../../components/performance-audio";
 import guitarBackground from "../../../assets/images/gold-background.png";
 import {
@@ -720,6 +724,7 @@ function TransitionPractice({
       <RhythmPlayer
         pattern={value.strum || "D-D-D-D-"}
         meter={value.strum ? value.strumMeter : 4}
+        division={value.strum ? value.strumDivision : 2}
         tempo={value.tempo}
         practice={ordered}
         chords={ordered}
@@ -761,26 +766,35 @@ function TransitionPractice({
 
 export function RhythmGrid({
   pattern,
-  meter
+  meter,
+  division = 2
 }: {
   pattern: string;
   meter: number;
+  division?: number;
 }) {
+  const counts: Record<number, string[]> = {
+    2: ["", "&"],
+    3: ["", "&", "a"],
+    4: ["", "e", "&", "a"]
+  };
   return (
     <View style={styles.rhythmRows}>
       {Array.from(
-        { length: Math.ceil(pattern.length / (meter * 2)) },
+        { length: Math.ceil(pattern.length / (meter * division)) },
         (_, bar) => (
           <View key={bar} style={styles.beats}>
-            {Array.from({ length: meter * 2 }, (_, step) => {
-              const symbol = pattern[bar * meter * 2 + step] ?? "-";
+            {Array.from({ length: meter * division }, (_, step) => {
+              const symbol = pattern[bar * meter * division + step] ?? "-";
               return (
                 <View
                   key={step}
                   style={[styles.beat, symbol !== "-" && styles.beatPlayed]}
                 >
                   <Text style={styles.beatCount}>
-                    {step % 2 === 0 ? step / 2 + 1 : "&"}
+                    {step % division === 0
+                      ? step / division + 1
+                      : counts[division][step % division]}
                   </Text>
                   <Text style={styles.beatSymbol}>{rhythmSymbols[symbol]}</Text>
                 </View>
@@ -796,6 +810,7 @@ export function RhythmGrid({
 function RhythmPlayer({
   pattern,
   meter,
+  division = 2,
   tempo,
   compact = false,
   autoplay = false,
@@ -826,6 +841,7 @@ function RhythmPlayer({
   shapes?: Record<string, number>;
   pattern: string;
   meter: number;
+  division?: number;
   tempo: number;
 }) {
   const { t } = useTranslation();
@@ -843,7 +859,8 @@ function RhythmPlayer({
     );
     return () => listener.remove();
   }, []);
-  const slots = Math.ceil(pattern.length / (meter * 2)) * meter * 2;
+  const slots =
+    Math.ceil(pattern.length / (meter * division)) * meter * division;
   const padded = pattern.padEnd(slots, "-");
   const progression = chords.length ? chords : ["C"];
   const progressionKey = progression.join(" ");
@@ -859,6 +876,7 @@ function RhythmPlayer({
         .map(
           (chord) =>
             chordShapes(chord)[selected[chord]] ??
+            recordedChordFrets[chord] ??
             chordShapeOptions(chord)[0]?.frets
         );
     return positions.map((frets) => {
@@ -877,12 +895,13 @@ function RhythmPlayer({
       );
     });
   }, [progressionKey, shapesKey, fingeringsKey, capo]);
+  const fingeringPreview = stroke !== undefined;
   const bank = useMemo(
     () =>
       canPrepare && frequencies.every((notes) => notes.length)
-        ? acousticBank(frequencies.flat())
+        ? acousticBank(frequencies.flat(), frequencies, fingeringPreview)
         : null,
-    [frequencies, canPrepare]
+    [frequencies, canPrepare, fingeringPreview]
   );
   const instrument = useMemo(
     () =>
@@ -906,6 +925,7 @@ function RhythmPlayer({
   const playConfig = JSON.stringify({
     pattern: padded,
     meter,
+    division,
     tempo,
     practice: !!practice,
     stroke: stroke ?? null,
@@ -915,7 +935,7 @@ function RhythmPlayer({
   const preview = useMemo(
     () => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{background:transparent}body{margin:0;background:transparent;font-family:system-ui;color:${palette.glass.ink}}button{width:100%;height:48px;border:1px solid ${palette.glass.edge};border-radius:14px;background:${palette.glass.play};color:${palette.gold.ink};box-shadow:0 0 12px #ffb00077,inset 0 1px 1px #fff9c9;border-color:#ffe59b;background:linear-gradient(#fff2a6,#ffd65a 16%,#ffbc08 48%,#ffaa00 52%,#ffd34a);font:600 19px system-ui}#count{height:28px;line-height:28px;text-align:center;font-size:13px}${compact ? "button{width:44px;height:44px;border-radius:50%;margin:2px;box-shadow:0 0 2px #ffb00077,inset 0 1px 1px #fff9c9}#count{display:none}" : ""}</style></head><body><button id="play"></button><div id="count"></div><script>
     let context,engine,timer,playing=false,step=0,next=0,start=0,preparing=Promise.resolve(),playToken=0,lastChord=-1,singleStroke=false,activeFingering=0,loading=true,wantsPlay=false,instrumentToken=0;
-    let pattern='D-D-D-D-',tempo=80,meter=4,practice=false;
+    let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false;
     let chords=[],frequencies=[];
     const labels=${labels};
     const button=document.getElementById('play'), count=document.getElementById('count');button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);
@@ -927,16 +947,16 @@ function RhythmPlayer({
       if(next<now){const delay=now+.025-next;start+=delay;next+=delay;}
       while(next<now+.5){
         if(practice&&next>=start+60)break;
-        const position=step++,index=position%pattern.length,hit=pattern[index],chordIndex=singleStroke?activeFingering:Math.floor(position/(meter*2))%chords.length;
+        const position=step++,index=position%pattern.length,hit=pattern[index],chordIndex=singleStroke?activeFingering:Math.floor(position/(meter*division))%chords.length;
         if(hit!=='-'){
           const end=engine.stroke(frequencies[chordIndex],hit,next,index,lastChord!==-1&&lastChord!==chordIndex,pattern);
           lastChord=chordIndex;
           if(singleStroke){timer=setTimeout(()=>{stop();},Math.max(0,(end||next+1)-context.currentTime)*1000);return;}
         }
-        next+=30/tempo;
+        next+=60/tempo/division;
       }
-      const elapsed=Math.max(0,now-start),position=Math.floor(elapsed*tempo/30),chordIndex=Math.floor(position/(meter*2))%chords.length;
-      const beat=position%2===0?String(Math.floor(position/2)%meter+1):'&';
+      const elapsed=Math.max(0,now-start),position=Math.floor(elapsed*tempo*division/60),chordIndex=Math.floor(position/(meter*division))%chords.length;
+      const beat=position%division===0?String(Math.floor(position/division)%meter+1):'&';
       count.textContent=chords[chordIndex]+' · '+beat+(practice?' · '+Math.max(0,60-Math.floor(elapsed))+' '+labels.seconds:'');
       timer=setTimeout(tick,20);
     }
@@ -974,7 +994,7 @@ function RhythmPlayer({
     };
     window.configurePlayer=config=>{
       const resume=config.requested===null?(playing||wantsPlay):config.requested;
-      stop();pattern=config.pattern;tempo=config.tempo;meter=config.meter;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
+      stop();pattern=config.pattern;tempo=config.tempo;meter=config.meter;division=config.division||2;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
       wantsPlay=resume;if(resume&&!loading)play();
     };
     button.onclick=()=>{if(playing||wantsPlay){stop();return;}if(loading){wantsPlay=true;return;}play();};
@@ -1103,6 +1123,7 @@ function RhythmEditor({
                 onChange({
                   strum: item.pattern,
                   strumMeter: item.meter,
+                  strumDivision: item.division,
                   strumPreset: item.id
                 });
               }}
@@ -1112,7 +1133,11 @@ function RhythmEditor({
                 <Text style={styles.label}>{t(item.title)}</Text>
                 <Text style={styles.positionLabel}>{item.meter}/4</Text>
               </View>
-              <RhythmGrid pattern={item.pattern} meter={item.meter} />
+              <RhythmGrid
+                pattern={item.pattern}
+                meter={item.meter}
+                division={item.division}
+              />
             </Pressable>
             <View style={styles.rhythmControls}>
               <Action
@@ -1129,6 +1154,7 @@ function RhythmEditor({
                   onChange({
                     strum: item.pattern,
                     strumMeter: item.meter,
+                    strumDivision: item.division,
                     strumPreset: item.id
                   })
                 }
@@ -1141,6 +1167,7 @@ function RhythmEditor({
           autoStart={!!previewRhythm}
           pattern={previewRhythm?.pattern ?? rhythms[0].pattern}
           meter={previewRhythm?.meter ?? rhythms[0].meter}
+          division={previewRhythm?.division ?? rhythms[0].division}
           tempo={value.tempo}
           chords={chords}
           capo={value.capo}
@@ -1181,14 +1208,19 @@ function RhythmEditor({
       </View>
 
       {value.strum ? (
-        <RhythmGrid pattern={value.strum} meter={value.strumMeter} />
+        <RhythmGrid
+          pattern={value.strum}
+          meter={value.strumMeter}
+          division={value.strumDivision}
+        />
       ) : (
         <Text style={styles.description}>{t("NoStrum")}</Text>
       )}
-      {/[DUX]/.test(value.strum) && (
+      {/[DUXB]/.test(value.strum) && (
         <RhythmPlayer
           pattern={value.strum}
           meter={value.strumMeter}
+          division={value.strumDivision}
           tempo={value.tempo}
           chords={chords}
           capo={value.capo}
