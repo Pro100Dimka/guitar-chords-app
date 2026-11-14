@@ -37,7 +37,8 @@ jest.mock("react-native-iap", () => ({
 }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
 jest.mock("react-native-safe-area-context", () => ({
-  SafeAreaView: require("react-native").View
+  SafeAreaView: require("react-native").View,
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 })
 }));
 
 let mockCallbacks: NonNullable<Parameters<typeof useIAP>[0]>;

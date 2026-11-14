@@ -9,6 +9,7 @@ import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaRecorder
 import android.net.Uri
+import android.os.SystemClock
 import android.os.Build
 import android.util.Base64
 import com.facebook.react.bridge.*
@@ -17,18 +18,22 @@ import java.net.URL
 import java.nio.ByteOrder
 import java.util.UUID
 import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicBoolean
 import org.json.JSONObject
 import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
- * Audio stays on the device: at most 12 seconds are decoded and fingerprinted locally.
+ * Audio stays on the device: microphone capture is bounded to 20 seconds; fingerprints use up to 12 seconds.
  * Only the Shazam signature is sent over HTTPS. No audio files or DB rows are created.
  */
 class SongRecognitionModule(private val context: ReactApplicationContext) :
     ReactContextBaseJavaModule(context) {
     private val worker = Executors.newSingleThreadExecutor()
+    private val captureWorker = Executors.newSingleThreadExecutor()
     private val cancelled = AtomicBoolean(false)
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var connection: HttpURLConnection? = null
@@ -43,7 +48,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     @ReactMethod
     fun recognizeFile(uri: String, promise: Promise) = start(promise) {
         require(uri.startsWith("content://") || uri.startsWith("file://")) { "Invalid audio URI" }
-        decodeFile(Uri.parse(uri))
+        identify(decodeFile(Uri.parse(uri)))
     }
 
     @ReactMethod
@@ -54,7 +59,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
         promise.resolve(null)
     }
 
-    private fun start(promise: Promise, pcm: () -> ShortArray) {
+    private fun start(promise: Promise, recognize: () -> JSONObject?) {
         synchronized(this) {
             if (running) {
                 promise.reject("Busy", "Recognition is already running")
@@ -65,17 +70,35 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
         }
         worker.execute {
             try {
-                val samples = pcm()
-                ensureActive()
-                if (samples.size < 32_000) throw IllegalStateException("AudioTooShort")
-                val signature = SongFingerprint.fingerprint(samples)
-                ensureActive()
-                val result = submit(signature, samples.size * 1000 / 16_000)
+                val result = recognize()
                 ensureActive()
                 if (result == null) promise.resolve(null)
                 else promise.resolve(Arguments.createMap().apply {
-                    putString("title", result.first)
-                    putString("artist", result.second)
+                    putString("title", result.optString("title"))
+                    putString("artist", result.optString("subtitle"))
+                    putString("cover", result.optJSONObject("images")?.optString("coverarthq") ?: "")
+                    putString("genre", result.optJSONObject("genres")?.optString("primary") ?: "")
+                    val key = result.optString("key")
+                    if (key.matches(Regex("[0-9]+"))) putString("url", "https://www.shazam.com/track/$key")
+                    val sections = result.optJSONArray("sections")
+                    for (i in 0 until (sections?.length() ?: 0)) {
+                        val section = sections?.optJSONObject(i) ?: continue
+                        if (section.optString("type") == "LYRICS") {
+                            val lines = section.optJSONArray("text")
+                            val lyrics = (0 until (lines?.length() ?: 0))
+                                .mapNotNull { lines?.opt(it) as? String }.joinToString("\n").trim()
+                            if (lyrics.isNotEmpty() && lyrics.length <= 200000) {
+                                putString("lyrics", lyrics)
+                                putString("lyricsCredit", section.optString("footer").take(2000))
+                            }
+                        }
+                        val metadata = section.optJSONArray("metadata") ?: continue
+                        for (j in 0 until metadata.length()) {
+                            val entry = metadata.optJSONObject(j) ?: continue
+                            if (entry.optString("title").equals("Album", ignoreCase = true))
+                                putString("album", entry.optString("text"))
+                        }
+                    }
                     putString("source", "Shazam")
                 })
             } catch (error: Exception) {
@@ -96,7 +119,15 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             throw IllegalStateException("Cancelled")
     }
 
-    private fun captureMicrophone(): ShortArray {
+    private fun identify(samples: ShortArray): JSONObject? {
+        ensureActive()
+        if (samples.size < 32_000) throw IllegalStateException("AudioTooShort")
+        val signature = SongFingerprint.fingerprint(samples)
+        ensureActive()
+        return submit(signature, samples.size * 1000 / 16_000)
+    }
+
+    private fun captureMicrophone(): JSONObject? {
         if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
             throw SecurityException("MicrophonePermissionDenied")
         val minBuffer = AudioRecord.getMinBufferSize(16_000,
@@ -106,23 +137,53 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(minBuffer, 4096))
         recorder = record
         if (record.state != AudioRecord.STATE_INITIALIZED) throw IllegalStateException("AudioDeviceUnavailable")
-        val collected = ShortArray(12 * 16_000)
-        val buffer = ShortArray(2048)
-        var count = 0
-        try {
-            record.startRecording()
-            while (count < collected.size) {
-                ensureActive()
-                val n = record.read(buffer, 0, min(buffer.size, collected.size - count))
-                if (n < 0) throw IllegalStateException("MicrophoneReadFailed")
-                if (n == 0) continue
-                buffer.copyInto(collected, count, 0, n)
-                count += n
+        val collected = ShortArray(20 * 16_000)
+        val count = AtomicInteger(0)
+        val done = AtomicBoolean(false)
+        val captureError = AtomicReference<Exception?>(null)
+        val deadline = SystemClock.elapsedRealtime() + 20_000L
+        record.startRecording()
+        val capture = captureWorker.submit {
+            val buffer = ShortArray(2048)
+            try {
+                while (!done.get() && count.get() < collected.size && SystemClock.elapsedRealtime() < deadline) {
+                    ensureActive()
+                    val offset = count.get()
+                    val n = record.read(buffer, 0, min(buffer.size, collected.size - offset), AudioRecord.READ_NON_BLOCKING)
+                    if (n < 0) throw IllegalStateException("MicrophoneReadFailed")
+                    if (n == 0) { Thread.sleep(10); continue }
+                    buffer.copyInto(collected, offset, 0, n)
+                    count.addAndGet(n)
+                }
+            } catch (error: Exception) {
+                if (!done.get()) captureError.set(error)
+            } finally {
+                try { record.stop() } catch (_: Exception) {}
             }
-        } finally {
-            try { record.stop() } catch (_: Exception) {}
         }
-        return collected.copyOf(count)
+        try {
+            var previousCount = 0
+            for (seconds in intArrayOf(3, 7, 12, 20)) {
+                if (seconds * 16_000 <= previousCount) continue
+                while (count.get() < seconds * 16_000 && !capture.isDone && SystemClock.elapsedRealtime() < deadline) {
+                    ensureActive()
+                    Thread.sleep(25)
+                }
+                ensureActive()
+                captureError.get()?.let { throw it }
+                val available = count.get()
+                if (available < 32_000 || available <= previousCount) continue
+                val snapshot = collected.copyOfRange(maxOf(0, available - 12 * 16_000), available)
+                previousCount = available
+                val result = identify(snapshot)
+                if (result != null) return result
+            }
+            return null
+        } finally {
+            done.set(true)
+            try { record.stop() } catch (_: Exception) {}
+            try { capture.get(1, TimeUnit.SECONDS) } catch (_: Exception) {}
+        }
     }
 
     /**
@@ -229,7 +290,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
         }
     }
 
-    private fun submit(signature: String, durationMs: Int): Pair<String, String>? {
+    private fun submit(signature: String, durationMs: Int): JSONObject? {
         val timestamp = System.currentTimeMillis()
         if (timestamp < rateLimitedUntil) throw IllegalStateException("RateLimited")
         val url = URL("https://amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag/" +
@@ -269,7 +330,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             val track = JSONObject(response).optJSONObject("track") ?: return null
             val title = track.optString("title").trim()
             val artist = track.optString("subtitle").trim()
-            return if (title.isNotEmpty() && artist.isNotEmpty()) title to artist else null
+            return if (title.isNotEmpty() && artist.isNotEmpty()) track else null
         } finally {
             conn.disconnect()
         }
@@ -280,6 +341,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
         try { recorder?.stop() } catch (_: Exception) {}
         connection?.disconnect()
         worker.shutdownNow()
+        captureWorker.shutdownNow()
         super.invalidate()
     }
 }

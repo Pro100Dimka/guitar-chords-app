@@ -1,22 +1,29 @@
+import { chordsAboveLyrics } from "../song/chords";
 // src/screens/create-song-chords/index.tsx
 import { useFocusEffect, useRoute, RouteProp } from "@react-navigation/native";
-import { Formik, FormikHelpers, FormikProps } from "formik";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import { Formik, FormikHelpers } from "formik";
+import React, { memo, useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
   ActivityIndicator,
   Image,
   Keyboard,
+  Linking,
+  Modal,
   KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
   StyleSheet,
+  TextInput,
   View,
   useWindowDimensions
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets
+} from "react-native-safe-area-context";
 import Text from "../../components/styled-text";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import TextField from "../../components/fields/text-field";
@@ -27,28 +34,17 @@ import { useNavigation } from "@react-navigation/native";
 import { NavigationProp, RootStackParamList } from "@/router";
 import palette from "@/theme/palette";
 import { ISong } from "@/@interfaces";
-import { usePreferences } from "../../components/preferences";
+import { usePreferences, SongPreferences } from "../../components/preferences";
 
 import { Action } from "../song/tools";
-import { lookupLyrics } from "../../components/song-autofill/lyrics";
-import { applyRecognitionDraft } from "../../components/song-autofill/draft";
-import {
-  cancelRecognition,
-  recognizeAudioFile,
-  recognizeMicrophone
-} from "../../components/song-autofill/recognition";
-import {
-  fileCanceled,
-  importedSong,
-  readLibraryFile,
-  readSongCover
-} from "../../components/library-files";
+import { fileCanceled, readSongCover } from "../../components/library-files";
 
 // интерфейс для формы
 export interface FormValues {
   id: number;
   title: string;
   cover: string;
+  contentSource?: SongPreferences["contentSource"];
   content: string;
   youtube_music: string;
   youtobe_lesson: string;
@@ -65,188 +61,28 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const example = !song && route.params?.example;
     const { t } = useTranslation();
     const [extras, setExtras] = useState(false);
-    const [importing, setImporting] = useState(false);
     const [coverBusy, setCoverBusy] = useState(false);
-    const [lyricsBusy, setLyricsBusy] = useState(false);
-    const [lyricsMessage, setLyricsMessage] = useState("");
-    const [lyricsPreview, setLyricsPreview] = useState<number | null>(null);
-    const [lyricsOptions, setLyricsOptions] = useState<
-      Awaited<ReturnType<typeof lookupLyrics>>
-    >([]);
-    const lyricsController = useRef<AbortController | null>(null);
-    const currentForm = useRef<FormikProps<FormValues>>(null);
-    const lyricsSnapshot = useRef("");
-    const lyricsGeneration = useRef(0);
-
-    const [recognitionStatus, setRecognitionStatus] = useState("");
-    const [recognitionBusy, setRecognitionBusy] = useState(false);
-    const recognitionGeneration = useRef(0);
-    const initialRecognition = useRef(false);
-    const cancelAudio = useCallback(() => {
-      recognitionGeneration.current++;
-      void cancelRecognition();
-      setRecognitionBusy(false);
-    }, []);
-    const startRecognition = useCallback(
-      async (mode: "mic" | "file") => {
-        const form = currentForm.current;
-        if (!form) return;
-        const snapshot = JSON.stringify(form.values);
-        const generation = ++recognitionGeneration.current;
-        cancelLyrics();
-        setLyricsOptions([]);
-        setRecognitionBusy(true);
-        setRecognitionStatus(
-          t(mode === "mic" ? "AutofillListening" : "AutofillIdentifying")
-        );
-        try {
-          const found =
-            mode === "mic"
-              ? await recognizeMicrophone()
-              : await recognizeAudioFile();
-          if (generation !== recognitionGeneration.current) return;
-          if (snapshot !== JSON.stringify(currentForm.current?.values)) {
-            setRecognitionStatus(t("AutofillFormChanged"));
-            return;
-          }
-          if (!found) {
-            setRecognitionStatus(t("AutofillNoAudioMatch"));
-            return;
-          }
-          setRecognitionStatus(
-            t("AutofillRecognized", {
-              artist: found.artist,
-              title: found.title
-            })
-          );
-          const next = applyRecognitionDraft(
-            form.values,
-            found.title,
-            found.artist
-          );
-          await form.setValues(next);
-          if (generation !== recognitionGeneration.current) return;
-          setRecognitionStatus(t("AutofillSearching"));
-          const lookupController = new AbortController();
-          lyricsController.current = lookupController;
-          const options = await lookupLyrics(
-            found.title,
-            found.artist,
-            lookupController.signal
-          );
-          if (generation !== recognitionGeneration.current) return;
-          if (
-            JSON.stringify(currentForm.current?.values) !== JSON.stringify(next)
-          ) {
-            setRecognitionStatus(t("AutofillFormChanged"));
-            return;
-          }
-          lyricsSnapshot.current = JSON.stringify(next);
-          setLyricsOptions(options);
-          setLyricsMessage(
-            options.length ? t("AutofillLyricsOnly") : t("AutofillNoMatch")
-          );
-          setRecognitionStatus(
-            t("AutofillRecognized", {
-              artist: found.artist,
-              title: found.title
-            })
-          );
-        } catch (error) {
-          if (generation !== recognitionGeneration.current) return;
-          const message =
-            error instanceof Error ? error.message : String(error);
-          if (
-            message.includes("OPERATION_CANCELED") ||
-            message.includes("Cancelled")
-          ) {
-            setRecognitionStatus(t("AutofillSearchCancelled"));
-          } else if (message.includes("RateLimited")) {
-            setRecognitionStatus(t("AutofillRecognitionRateLimited"));
-          } else if (message.includes("PermissionDenied")) {
-            setRecognitionStatus(t("AutofillMicDenied"));
-          } else {
-            setRecognitionStatus(t("AutofillRecognitionError"));
-          }
-        } finally {
-          if (generation === recognitionGeneration.current) {
-            setRecognitionBusy(false);
-            lyricsController.current = null;
-          }
-        }
-      },
-      [t]
-    );
-    const askRecognition = useCallback(
-      (mode: "mic" | "file") => {
-        const values = currentForm.current?.values;
-        const proceed = () => void startRecognition(mode);
-        if (values && (values.title.trim() || values.fk_band.name.trim())) {
-          Alert.alert(t("AutofillReplaceTitle"), t("AutofillReplaceIdentity"), [
-            { text: t("Cancel"), style: "cancel" },
-            { text: t("AutofillReplace"), onPress: proceed }
-          ]);
-        } else proceed();
-      },
-      [startRecognition, t]
-    );
-    useEffect(
-      () => () => {
-        recognitionGeneration.current++;
-        void cancelRecognition();
-      },
-      []
-    );
-    useEffect(() => {
-      if (route.params?.recognize !== "mic" || initialRecognition.current)
-        return;
-      initialRecognition.current = true;
-      const timer = setTimeout(() => askRecognition("mic"), 250);
-      return () => clearTimeout(timer);
-    }, [route.params?.recognize, askRecognition]);
-
-    const cancelLyrics = () => {
-      lyricsGeneration.current++;
-      lyricsController.current?.abort();
-      lyricsController.current = null;
-      setLyricsBusy(false);
-    };
-    useEffect(
-      () => () => {
-        lyricsGeneration.current++;
-        lyricsController.current?.abort();
-      },
-      []
-    );
-    const { width } = useWindowDimensions();
+    const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const form = useRef<View>(null);
-    const scroll = useRef<ScrollView>(null);
-    const editingLyrics = useRef(false);
+    const lyricsInput = useRef<TextInput>(null);
+    const [editingLyrics, setEditingLyrics] = useState(false);
     const [formTop, setFormTop] = useState(0);
-    const [viewport, setViewport] = useState(400);
-    useEffect(() => {
-      const listener = Keyboard.addListener("keyboardDidShow", () => {
-        if (editingLyrics.current)
-          scroll.current?.scrollToEnd({ animated: true });
-      });
-      return () => listener.remove();
-    }, []);
     const navigation = useNavigation<NavigationProp>();
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [initialValuesState, setInitialValuesState] =
       useState<FormValues>(initialValues);
     useFocusEffect(
       useCallback(() => {
-        cancelLyrics();
-        setLyricsOptions([]);
-        setLyricsPreview(null);
         if (song && song.id) {
           const { band_name, band_id, ...songProps } = song;
           setInitialValuesState({
             ...initialValues,
             ...songProps,
+            content: chordsAboveLyrics(songProps.content ?? ""),
             cover: usePreferences.getState().songs[song.id]?.cover ?? "",
+            contentSource:
+              usePreferences.getState().songs[song.id]?.contentSource,
             fk_band: {
               name: band_name ?? "",
               id: band_id?.toString() ?? "",
@@ -259,19 +95,28 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
               ? {
                   ...initialValues,
                   title: t("ExampleTitle"),
-                  content: t("ExampleLyrics")
+                  content: chordsAboveLyrics(t("ExampleLyrics"))
                 }
-              : initialValues
+              : {
+                  ...initialValues,
+                  ...route.params?.draft,
+                  content: chordsAboveLyrics(route.params?.draft?.content ?? "")
+                }
           );
         }
-      }, [song, example, t])
+      }, [song, example, route.params?.draft, t])
     );
     const handleSubmit = async (
       values: FormValues,
       actions: FormikHelpers<FormValues>
     ) => {
       setIsSubmitting(true);
-      await onSubmit(actions, values, navigation, setIsEdit);
+      await onSubmit(
+        actions,
+        { ...values, content: chordsAboveLyrics(values.content) },
+        navigation,
+        setIsEdit
+      );
       setIsSubmitting(false);
       actions.setSubmitting(false);
     };
@@ -288,7 +133,6 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           keyboardVerticalOffset={formTop}
         >
           <Formik
-            innerRef={currentForm}
             initialValues={initialValuesState}
             enableReinitialize
             validationSchema={validationSchema(t)}
@@ -297,15 +141,11 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
             {(formik) => (
               <View style={styles.flex}>
                 <ScrollView
-                  ref={scroll}
                   style={styles.flex}
                   contentContainerStyle={styles.container}
                   keyboardShouldPersistTaps="handled"
                   keyboardDismissMode="on-drag"
                   showsVerticalScrollIndicator={false}
-                  onLayout={({ nativeEvent }) =>
-                    setViewport(nativeEvent.layout.height)
-                  }
                 >
                   <View style={styles.identity}>
                     <Pressable
@@ -436,248 +276,67 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       </View>
                     )}
                   </View>
-                  {Platform.OS === "android" && (
-                    <View style={styles.importButton}>
-                      <Action
-                        glass
-                        label={t("AutofillRecognizeMic")}
-                        disabled={recognitionBusy || isSubmitting}
-                        onPress={() => askRecognition("mic")}
-                      />
-                      <Action
-                        glass
-                        label={t("AutofillRecognizeFile")}
-                        disabled={recognitionBusy || isSubmitting}
-                        onPress={() => askRecognition("file")}
-                      />
-                      {recognitionBusy && (
-                        <Action
-                          glass
-                          label={t("AutofillCancelSearch")}
-                          onPress={() => {
-                            cancelAudio();
-                            cancelLyrics();
-                            setRecognitionStatus(t("AutofillSearchCancelled"));
-                          }}
-                        />
-                      )}
-                      {!!recognitionStatus && (
-                        <Text style={styles.lyricsMessage}>
-                          {recognitionStatus}
-                        </Text>
-                      )}
-                    </View>
+                  {!song && route.params?.notice && (
+                    <Text style={styles.importNotice}>
+                      {t(route.params.notice)}
+                    </Text>
                   )}
-                  <View style={styles.importButton}>
-                    <Action
-                      glass
-                      label={t(importing ? "FileLoading" : "ImportSong")}
-                      disabled={importing || isSubmitting}
-                      onPress={async () => {
-                        const importFile = async () => {
-                          setImporting(true);
-                          try {
-                            const file = await readLibraryFile("song");
-                            const imported = importedSong(file.text, file.name);
-                            await formik.setValues({
-                              ...formik.values,
-                              ...imported
-                            });
-                            Alert.alert(
-                              t("ImportReview"),
-                              t("ImportReviewHint")
+                  <View style={styles.lyricsHeading}>
+                    <Text style={styles.lyricsLabel}>{t("ChordsLyrics")}</Text>
+                    {formik.values.contentSource && (
+                      <Pressable
+                        accessibilityRole="link"
+                        accessibilityLabel={t("SongContentSource")}
+                        style={styles.sourceButton}
+                        onPress={() => {
+                          const url = formik.values.contentSource?.url;
+                          if (url)
+                            void Linking.openURL(url).catch(() =>
+                              Alert.alert(t("Error"))
                             );
-                          } catch (error) {
-                            if (!fileCanceled(error))
-                              Alert.alert(
-                                t("ImportFailed"),
-                                t(
-                                  error instanceof Error &&
-                                    [
-                                      "FileFormatError",
-                                      "FileTooLarge",
-                                      "FileEncodingError"
-                                    ].includes(error.message)
-                                    ? error.message
-                                    : "FileReadError"
-                                )
-                              );
-                          } finally {
-                            setImporting(false);
-                          }
-                        };
-                        if (formik.values.content.trim())
-                          Alert.alert(
-                            t("ReplaceDraft"),
-                            t("ReplaceDraftHint"),
-                            [
-                              { text: t("Cancel"), style: "cancel" },
-                              {
-                                text: t("ImportSong"),
-                                onPress: () => void importFile()
-                              }
-                            ]
-                          );
-                        else await importFile();
-                      }}
-                    />
-                  </View>
-                  <View style={styles.importButton}>
-                    <Action
-                      glass
-                      label={
-                        lyricsBusy
-                          ? t("AutofillCancelSearch")
-                          : t("AutofillFindLyrics")
-                      }
-                      disabled={importing || isSubmitting}
-                      onPress={async () => {
-                        if (lyricsBusy) {
-                          cancelLyrics();
-                          setLyricsMessage(t("AutofillSearchCancelled"));
-                          return;
-                        }
-                        const title = formik.values.title.trim();
-                        const artist = formik.values.fk_band.name.trim();
-                        if (!title || !artist) {
-                          Alert.alert(t("AutofillIdentityRequired"));
-                          return;
-                        }
-                        cancelLyrics();
-                        const controller = new AbortController();
-                        lyricsController.current = controller;
-                        const generation = ++lyricsGeneration.current;
-                        setLyricsPreview(null);
-                        const oldValues = JSON.stringify(formik.values);
-                        lyricsSnapshot.current = oldValues;
-                        setLyricsBusy(true);
-                        setLyricsOptions([]);
-                        setLyricsMessage(t("AutofillSearching"));
-                        try {
-                          const results = await lookupLyrics(
-                            title,
-                            artist,
-                            controller.signal
-                          );
-                          if (generation !== lyricsGeneration.current) return;
-                          if (
-                            oldValues !==
-                            JSON.stringify(currentForm.current?.values)
-                          ) {
-                            setLyricsMessage(t("AutofillFormChanged"));
-                            return;
-                          }
-                          setLyricsOptions(results);
-                          setLyricsMessage(
-                            results.length
-                              ? t("AutofillLyricsOnly")
-                              : t("AutofillNoMatch")
-                          );
-                        } catch (error) {
-                          if (generation === lyricsGeneration.current)
-                            setLyricsMessage(
-                              error instanceof Error &&
-                                error.message === "RateLimited"
-                                ? t("AutofillRateLimited")
-                                : t("AutofillUnavailable")
-                            );
-                        } finally {
-                          if (generation === lyricsGeneration.current) {
-                            setLyricsBusy(false);
-                            lyricsController.current = null;
-                          }
-                        }
-                      }}
-                    />
-                    {!!lyricsMessage && (
-                      <Text style={styles.lyricsMessage}>{lyricsMessage}</Text>
+                        }}
+                      >
+                        <MaterialCommunityIcons
+                          name="link-variant"
+                          size={20}
+                          color={palette.glass.muted}
+                        />
+                      </Pressable>
                     )}
-                    {lyricsOptions.map((option) => (
-                      <View key={option.id} style={styles.lyricsCandidate}>
-                        <Text style={styles.lyricsMessage}>
-                          {t("AutofillAlbum")}:{" "}
-                          {option.album || t("AutofillUnknownAlbum")} ·{" "}
-                          {t("AutofillDuration")}:{" "}
-                          {option.duration === null
-                            ? "—"
-                            : `${Math.floor(option.duration / 60)}:${String(Math.floor(option.duration % 60)).padStart(2, "0")}`}
-                        </Text>
-                        <Action
-                          glass
-                          label={
-                            option.title + " · " + option.artist + " · LRCLIB"
-                          }
-                          onPress={() => {
-                            const apply = () => {
-                              if (
-                                JSON.stringify(currentForm.current?.values) !==
-                                lyricsSnapshot.current
-                              ) {
-                                Alert.alert(t("AutofillFormChanged"));
-                                setLyricsOptions([]);
-                                return;
-                              }
-                              void formik.setFieldValue(
-                                "content",
-                                option.content
-                              );
-                              setLyricsOptions([]);
-                            };
-                            if (formik.values.content.trim()) {
-                              Alert.alert(
-                                t("AutofillReplaceTitle"),
-                                t("AutofillReplaceHint"),
-                                [
-                                  { text: t("Cancel"), style: "cancel" },
-                                  { text: t("AutofillReplace"), onPress: apply }
-                                ]
-                              );
-                            } else apply();
-                          }}
-                        />
-                        <Action
-                          glass
-                          compact
-                          label={
-                            lyricsPreview === option.id
-                              ? t("AutofillHidePreview")
-                              : t("AutofillPreview")
-                          }
-                          onPress={() =>
-                            setLyricsPreview(
-                              lyricsPreview === option.id ? null : option.id
-                            )
-                          }
-                        />
-                        {lyricsPreview === option.id && (
-                          <Text style={styles.lyricsPreview}>
-                            {option.content}
-                          </Text>
-                        )}
-                      </View>
-                    ))}
+                    <Action
+                      compact
+                      icon="arrow-expand"
+                      label={t("EditLyrics")}
+                      onPress={() => {
+                        Keyboard.dismiss();
+                        setEditingLyrics(true);
+                      }}
+                    />
                   </View>
-                  <TextField
-                    label={t("ChordsLyrics")}
-                    placeholder={t("PasteSongHint")}
-                    formik={formik}
-                    name="content"
-                    style={{
-                      input: {
-                        minHeight: 56,
-                        height: Math.max(56, Math.min(260, viewport - 70)),
-                        textAlignVertical: "top"
-                      }
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t("EditLyrics")}
+                    onPress={() => {
+                      Keyboard.dismiss();
+                      setEditingLyrics(true);
                     }}
-                    onFocus={() => {
-                      editingLyrics.current = true;
-                      scroll.current?.scrollToEnd({ animated: true });
-                    }}
-                    onBlur={() => {
-                      editingLyrics.current = false;
-                    }}
-                    multiline
-                  />
+                    style={styles.lyricsPreview}
+                  >
+                    <Text
+                      numberOfLines={6}
+                      style={[
+                        styles.lyricsText,
+                        !formik.values.content && styles.lyricsPlaceholder
+                      ]}
+                    >
+                      {formik.values.content || t("PasteSongHint")}
+                    </Text>
+                  </Pressable>
+                  {!!formik.touched.content && !!formik.errors.content && (
+                    <Text style={styles.fieldError}>
+                      {formik.errors.content}
+                    </Text>
+                  )}
                 </ScrollView>
                 <View
                   style={[
@@ -689,9 +348,74 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     primary
                     label={t("SaveSong")}
                     onPress={() => formik.handleSubmit()}
-                    disabled={isSubmitting || importing || coverBusy}
+                    disabled={isSubmitting || coverBusy}
                   />
                 </View>
+                {editingLyrics && (
+                  <Modal
+                    statusBarTranslucent
+                    navigationBarTranslucent
+                    supportedOrientations={["portrait", "landscape"]}
+                    animationType="slide"
+                    onRequestClose={() => setEditingLyrics(false)}
+                    onShow={() => {
+                      setTimeout(() => {
+                        lyricsInput.current?.focus();
+                        lyricsInput.current?.setNativeProps({
+                          selection: { start: 0, end: 0 }
+                        });
+                      }, 100);
+                    }}
+                  >
+                    <SafeAreaView style={styles.editor}>
+                      <KeyboardAvoidingView
+                        style={styles.flex}
+                        behavior={Platform.OS === "ios" ? "padding" : "height"}
+                      >
+                        <View
+                          style={[
+                            styles.editorHeader,
+                            width > height && styles.editorHeaderCompact
+                          ]}
+                        >
+                          <Text style={styles.editorTitle}>
+                            {t("ChordsLyrics")}
+                          </Text>
+                          <Action
+                            compact
+                            icon="arrow-collapse"
+                            label={t("CollapseEditor")}
+                            onPress={() => {
+                              Keyboard.dismiss();
+                              setEditingLyrics(false);
+                            }}
+                          />
+                        </View>
+                        <TextInput
+                          ref={lyricsInput}
+                          multiline
+                          disableFullscreenUI
+                          accessibilityLabel={t("ChordsLyrics")}
+                          value={formik.values.content}
+                          onChangeText={formik.handleChange("content")}
+                          onBlur={() => formik.setFieldTouched("content")}
+                          placeholder={t("PasteSongHint")}
+                          placeholderTextColor={palette.glass.muted}
+                          selectionColor={palette.glass.accent}
+                          autoCorrect={false}
+                          autoCapitalize="none"
+                          keyboardAppearance="dark"
+                          textAlignVertical="top"
+                          style={[
+                            styles.lyricsText,
+                            styles.editorInput,
+                            width > height && styles.editorInputCompact
+                          ]}
+                        />
+                      </KeyboardAvoidingView>
+                    </SafeAreaView>
+                  </Modal>
+                )}
               </View>
             )}
           </Formik>
@@ -702,6 +426,47 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
 );
 
 const styles = StyleSheet.create({
+  editor: { flex: 1, backgroundColor: palette.glass.control },
+  editorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    padding: 12,
+    borderBottomWidth: 1,
+    borderColor: palette.glass.surfaceEdge
+  },
+  editorTitle: {
+    flex: 1,
+    color: palette.glass.ink,
+    fontSize: 18,
+    fontWeight: "600"
+  },
+  editorHeaderCompact: { paddingVertical: 4 },
+  editorInputCompact: { paddingVertical: 4 },
+  editorInput: { flex: 1, minHeight: 0, padding: 20, color: palette.glass.ink },
+  lyricsHeading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 8
+  },
+  lyricsLabel: { flex: 1, color: palette.glass.muted, fontSize: 14 },
+  lyricsPreview: {
+    minHeight: 180,
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: palette.glass.surfaceEdge,
+    backgroundColor: palette.glass.surface
+  },
+  lyricsText: {
+    color: palette.glass.ink,
+    fontSize: 16,
+    lineHeight: 26,
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace"
+  },
+  lyricsPlaceholder: { color: palette.glass.muted },
+  fieldError: { color: palette.error.main, marginTop: 8, fontSize: 13 },
   identity: {
     flexDirection: "row",
     alignItems: "center",
@@ -732,10 +497,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: palette.gold.top
   },
-  importButton: { marginBottom: 16, gap: 8 },
-  lyricsMessage: { color: palette.glass.muted, fontSize: 13 },
-  lyricsCandidate: { gap: 6, marginVertical: 6 },
-  lyricsPreview: { color: palette.glass.ink, fontSize: 14, lineHeight: 21 },
+  sourceButton: {
+    width: 44,
+    height: 44,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  importNotice: {
+    color: palette.glass.muted,
+    fontSize: 13,
+    lineHeight: 20,
+    marginBottom: 16
+  },
   details: {
     marginBottom: 16,
     backgroundColor: palette.glass.surface,

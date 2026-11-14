@@ -1,20 +1,35 @@
+import { GuideArticle } from "@/screens/guide";
 // src/router/index.tsx
 import { createStaticNavigation, RouteProp } from "@react-navigation/native";
 import {
   createNativeStackNavigator,
+  NativeStackNavigationOptions,
   NativeStackNavigationProp
 } from "@react-navigation/native-stack";
 import Tabs from "./tabs";
 import palette from "../theme/palette";
 import Song from "../screens/song";
 import CreateChordSong from "@/screens/create-song-chords";
-import { t } from "@/locales";
+import RecognizeSong from "@/screens/recognize-song";
+import type { FormValues } from "@/screens/create-song-chords";
 import Header from "@/components/header";
 
 export type RootStackParamList = {
   Tabs: { screen: string; id?: string };
   Song: { id: string } | undefined;
-  createSong: { example?: boolean; recognize?: "mic" } | undefined;
+  GuideArticle: { id: string };
+  createSong:
+    | {
+        example?: boolean;
+        draft?: Partial<FormValues>;
+        notice?:
+          | "AddSongLyricsNotice"
+          | "AddSongChordsNotice"
+          | "AddSongNoLyrics"
+          | "AddSongLyricsUnavailable";
+      }
+    | undefined;
+  recognizeSong: { mode: "mic" | "file" | "text" };
 };
 export type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -30,8 +45,26 @@ declare global {
   }
 }
 
+const guideOptions: NativeStackNavigationOptions = {
+  header: ({ navigation }) => (
+    <Header
+      titleKey="GuideTitle"
+      icon="book-open-page-variant-outline"
+      showBack
+      onBack={() => {
+        if (navigation.canGoBack()) navigation.goBack();
+        else navigation.replace("Tabs", { screen: "guide" });
+      }}
+      glass
+    />
+  ),
+  contentStyle: { backgroundColor: palette.colors.transparent }
+};
+
 const RootStack = createNativeStackNavigator({
+  initialRouteName: "Tabs",
   screens: {
+    GuideArticle: { screen: GuideArticle, options: guideOptions },
     Tabs: {
       screen: Tabs,
       options: {
@@ -48,11 +81,25 @@ const RootStack = createNativeStackNavigator({
         contentStyle: { backgroundColor: palette.colors.transparent }
       }
     },
+    recognizeSong: {
+      screen: RecognizeSong,
+      options: {
+        header: () => (
+          <Header
+            titleKey="AddSongTitle"
+            icon="music-note-plus"
+            showBack
+            glass
+          />
+        ),
+        contentStyle: { backgroundColor: palette.colors.transparent }
+      }
+    },
     createSong: {
       screen: CreateChordSong,
       options: {
         header: () => (
-          <Header title={t("NewSong")} icon="music-note-plus" showBack glass />
+          <Header titleKey="NewSong" icon="music-note-plus" showBack glass />
         ),
         animationTypeForReplace: "pop",
         headerShown: true,

@@ -6,7 +6,10 @@ import palette from "../../theme/palette";
 import { NavigationProp } from "@/router";
 import { ISong } from "@/@interfaces";
 import { usePreferences } from "@/components/preferences";
-const LibraryItem: React.FC<{ song: ISong }> = ({ song }) => {
+const LibraryItem: React.FC<{ song: ISong; onLongPress?: () => void }> = ({
+  song,
+  onLongPress
+}) => {
   const navigation = useNavigation<NavigationProp>();
   const favorite = usePreferences((state) => state.songs[song.id]?.favorite);
   const cover = usePreferences((state) => state.songs[song.id]?.cover);
@@ -15,6 +18,8 @@ const LibraryItem: React.FC<{ song: ISong }> = ({ song }) => {
       accessibilityRole="button"
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={() => navigation.navigate("Song", { id: song.id.toString() })}
+      onLongPress={onLongPress}
+      delayLongPress={350}
     >
       <Image
         source={

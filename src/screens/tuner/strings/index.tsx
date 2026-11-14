@@ -16,17 +16,11 @@ import {
 import { runOnJS } from "react-native-worklets";
 import { useParagraphBuilder } from "../paragraphs";
 import { INote, IString } from "@/@interfaces";
+import { guitarLayout } from "../guitar-layout";
 
 const primary = palette.guitarDial.note;
 
-export const STRINGS_TOP = 0;
-export const NOTE_BOX_TOP = STRINGS_TOP - 55;
 export const NOTE_BOX_WIDTH = 50;
-export const TRANSLATE_Y_STRINGS = 70;
-// Bridge pins stay attached to the stretched guitar artwork.
-export const BRIDGE_Y_RATIO = 0.92;
-// The extended artwork adds 680 pixels above the original 1536-pixel body.
-export const NECK_EXTENSION_RATIO = 680 / 2216;
 
 const Strings: FC<{
   rms: SharedValue<number>;
@@ -37,7 +31,6 @@ const Strings: FC<{
   currString: IString | null;
   width: number;
   height: number;
-  neckHeight?: number;
   onReady?: () => void;
 }> = (props) => {
   const {
@@ -49,7 +42,6 @@ const Strings: FC<{
     currString,
     width,
     height,
-    neckHeight = 0,
     onReady
   } = props;
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
@@ -66,11 +58,15 @@ const Strings: FC<{
     }
   );
   if (!stringNotes) return null;
-  const bottom = Math.max(20, height * BRIDGE_Y_RATIO - TRANSLATE_Y_STRINGS);
-  const spacing = width / (stringNotes.length + 1);
+  const {
+    stringLeft,
+    stringWidth,
+    stringBottom: bottom
+  } = guitarLayout(width, height);
+  const spacing = stringWidth / Math.max(1, stringNotes.length - 1);
   const boxWidth = Math.min(NOTE_BOX_WIDTH, spacing - 4);
-  const top = -neckHeight - TRANSLATE_Y_STRINGS;
-  const boxTop = NOTE_BOX_TOP - neckHeight;
+  const top = 0;
+  const boxTop = 15;
   const stringClip = Skia.Path.Make();
   stringClip.addRect({ x: 0, y: top, width, height: boxTop - top });
   stringClip.addRect({
@@ -80,9 +76,9 @@ const Strings: FC<{
     height: bottom - boxTop - 50 + 12
   });
   return (
-    <Group transform={[{ translateY: TRANSLATE_Y_STRINGS }]}>
+    <Group>
       {stringNotes.map((s, i) => {
-        const x = spacing * (i + 1);
+        const x = stringLeft + spacing * i;
         const curr = currString || currentNote;
         const active = s.name === curr?.name && s.octave === curr?.octave;
         return (
@@ -106,9 +102,11 @@ const Strings: FC<{
               height={50}
               r={10}
               color={
-                active
-                  ? palette.colors.grayOpacity
-                  : palette.colors.blackOpacityTiny
+                width > height
+                  ? palette.glass.surface
+                  : active
+                    ? palette.colors.grayOpacity
+                    : palette.colors.blackOpacityTiny
               }
             />
             <RoundedRect

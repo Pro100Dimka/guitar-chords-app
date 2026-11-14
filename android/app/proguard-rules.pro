@@ -8,3 +8,6 @@
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
 # Add any project specific keep options here:
+
+# The restoration factory recognizes screen fragments by their package name.
+-keepnames class com.swmansion.rnscreens.** extends androidx.fragment.app.Fragment

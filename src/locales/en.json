@@ -1,4 +1,6 @@
 {
+  "SwitchTuner": "Switch tuner",
+  "Tuning": "Tuning",
   "RecordingLocalHint": "Recordings stay on your device. Sound is enhanced automatically without keeping a separate original take.",
   "PreviousShapes": "Previous fingerings",
   "NextShapes": "Next fingerings",
@@ -150,7 +152,7 @@
   "SupportFinishError": "Could not finish the purchase. Tap Retry to check it without making another payment.",
   "SupportThanks": "Thank you for your support!",
   "LibraryLoadError": "Could not load songs. Please try again.",
-  "PrivacyText": "FreeTune privacy policy\nUpdated: November 11, 2026\n\nDeveloper: Андреев Дмитрий\nContact: pro100dimka.and@gmail.com\n\nWith your permission, the microphone is used for tuning and recording performances. The tuner processes audio on the device without saving it. Performance recording starts only when you press Record and is stored locally. You can listen to, delete or export takes using the system file dialog. The app does not send audio to the developer. Exporting to cloud storage is subject to the selected provider’s policy. Permission can be revoked in device settings.\n\nSongs, preferences and recently opened songs are stored locally. No developer server collects them. Songs can be deleted from the library; uninstalling the app removes its local data. Library recovery after uninstalling is not guaranteed.\n\nThe app contains no advertising or analytics SDKs. Opening a user-added YouTube video or external link may allow that service to receive your IP address, device information and process cookies under its own policy. Google privacy policy: https://policies.google.com/privacy.\n\nVoluntary purchases are processed by the App Store or Google Play. The app receives product and transaction status information to finish the purchase. The developer does not receive your payment card details. Store policies: https://www.apple.com/legal/privacy/ and https://policies.google.com/privacy.\n\nIf you email the developer, your email address and message are used to respond and resolve your request, then deleted when no longer needed unless retention is legally required. You can request deletion of correspondence at the address above. Policy updates are published in the app.\n\nLibrary backups include songs, covers and song preferences, but not audio recordings. Export important recordings separately. Opening a song with a YouTube link automatically loads the embedded player before playback is pressed. Its wrapper page is hosted on GitHub Pages; GitHub and YouTube may receive network information under their policies. GitHub privacy policy: https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement.",
+  "PrivacyText": "FreeTune privacy policy\nUpdated: November 14, 2026\n\nDeveloper: Андреев Дмитрий\nContact: pro100dimka.and@gmail.com\n\nWith your permission, the microphone is used for tuning and recording performances. The tuner processes audio on the device without saving it. Performance recording starts only when you press Record and is stored locally. You can listen to, delete or export takes using the system file dialog. The app does not send audio to the developer. Exporting to cloud storage is subject to the selected provider’s policy. Permission can be revoked in device settings.\n\nSongs, preferences and recently opened songs are stored locally. No developer server collects them. Songs can be deleted from the library; uninstalling the app removes its local data. Library recovery after uninstalling is not guaranteed.\n\nThe app contains no advertising or analytics SDKs. Opening a user-added YouTube video or external link may allow that service to receive your IP address, device information and process cookies under its own policy. Google privacy policy: https://policies.google.com/privacy.\n\nVoluntary purchases are processed by the App Store or Google Play. The app receives product and transaction status information to finish the purchase. The developer does not receive your payment card details. Store policies: https://www.apple.com/legal/privacy/ and https://policies.google.com/privacy.\n\nIf you email the developer, your email address and message are used to respond and resolve your request, then deleted when no longer needed unless retention is legally required. You can request deletion of correspondence at the address above. Policy updates are published in the app.\n\nLibrary backups include songs, covers and song preferences, but not audio recordings. Export important recordings separately. The embedded YouTube player loads only after you choose to show videos. Loading the player can send network information before playback starts. Its wrapper page is hosted on GitHub Pages; GitHub and YouTube may receive network information under their policies. GitHub privacy policy: https://docs.github.com/site-policy/privacy-policies/github-general-privacy-statement.\n\nWhen identifying a song, an excerpt of up to 20 seconds is processed on the device and its audio fingerprint is sent to Shazam. The audio excerpt itself is not sent by this request. Song title and artist are sent to Cifra Club (cifraclub.com), E-Chords (e-chords.com), Cifras (cifras.com.br), LRCLIB, Пісенник (pisennyk.com.ua) and, when needed, lyrics.ovh to find lyrics and chords. Artwork is requested from the image URL returned by recognition. These services receive your IP address and network information. Retrieved lyrics, artwork and source links are saved on the device only when you save the song.",
   "QuickSongHint": "A title and lyrics with chords. Everything else is optional.",
   "ImportSong": "Open TXT / ChordPro",
   "FileLoading": "Please wait…",
@@ -262,12 +264,371 @@
   "AutofillRecognize": "Recognize song",
   "AutofillRecognizeMic": "Recognize with microphone",
   "AutofillRecognizeFile": "Recognize audio file",
-  "AutofillListening": "Listening for 12 seconds…",
+  "AutofillListening": "Listening…",
   "AutofillIdentifying": "Identifying song…",
   "AutofillRecognized": "Recognized: {{artist}} — {{title}}",
   "AutofillNoAudioMatch": "No song matched this audio.",
   "AutofillMicDenied": "Microphone access denied.",
   "AutofillRecognitionError": "Song recognition unavailable. Check connection and try again.",
   "AutofillReplaceIdentity": "The existing song title and artist will be replaced. Lyrics are kept until you select a replacement.",
-  "AutofillRecognitionRateLimited": "Shazam is rate-limiting requests. Try again later."
+  "AutofillRecognitionRateLimited": "Shazam is rate-limiting requests. Try again later.",
+  "AddSongTitle": "Add a song",
+  "AddSongManual": "Enter manually",
+  "AddSongManualHint": "Title, artist and lyrics",
+  "AddSongMicHint": "Identify a song playing nearby",
+  "AddSongFileHint": "Choose a recording on your device",
+  "AddSongTextHint": "Lyrics and chords from a document",
+  "AddSongListenTitle": "Discover your song",
+  "AddSongListenHint": "Tap the microphone and play a song nearby. We show the result as soon as a match is found, listening for up to 20 seconds.",
+  "AddSongFileTitle": "Opening your song",
+  "AddSongLoadingHint": "Choose a file. We will prepare the available details for editing.",
+  "AddSongStart": "Tap to start",
+  "AddSongPreparing": "Loading artwork and lyrics…",
+  "AddSongTapResult": "Tap the song to continue",
+  "AddSongEditResult": "Edit recognized song",
+  "AddSongLyricsNotice": "Lyrics found, no chords.",
+  "AddSongNoLyrics": "No lyrics or chords found.",
+  "AddSongLyricsUnavailable": "Lyrics search is temporarily unavailable.",
+  "AddSongChordsNotice": "Lyrics and chords ready.",
+  "SongContentSource": "Lyrics and chords source",
+  "GuideArticles": {
+    "start": {
+      "title": "Start playing",
+      "summary": "Add a song, tune the guitar and open its chords.",
+      "steps": [
+        "In Library, tap + and choose manual entry, recognition or TXT/ChordPro.",
+        "Review the artist, title, cover and text, then save.",
+        "Open the song. Tap a chord to choose its fingering, or open the gear for strumming and practice."
+      ],
+      "tip": "Tune each string before playing. Recognition needs internet; saved songs do not.",
+      "keywords": "start first song overview"
+    },
+    "guitar": {
+      "title": "Tune a guitar string",
+      "summary": "The selected tuning determines the target note of each string.",
+      "steps": [
+        "Allow microphone access and choose Guitar with the tuner switch.",
+        "Use Auto to detect the string, or tap a string for manual selection and its reference sound.",
+        "Play one string, mute the others and adjust it slowly until the indicator is centred and green."
+      ],
+      "tip": "Yellow means closer, red means farther away. Media volume controls the reference sound.",
+      "keywords": "guitar string auto manual red yellow green"
+    },
+    "chromatic": {
+      "title": "Use the chromatic tuner",
+      "summary": "Detect any note without restricting recognition to guitar strings.",
+      "steps": [
+        "Switch to Chromatic, then play or sing one steady note.",
+        "Follow the detected note, octave, measured frequency and centred indicator.",
+        "The wave button switches waveform/spectrum; the speaker plays the note selected on the note strip."
+      ],
+      "tip": "Octave Auto detects the octave. Choose a fixed octave when needed and return to Auto to reset.",
+      "keywords": "chromatic note octave spectrum waveform speaker"
+    },
+    "calibration": {
+      "title": "Set the reference pitch",
+      "summary": "Calibration changes which frequency the chromatic tuner considers correct.",
+      "steps": [
+        "In Chromatic, tap the tuning-fork button.",
+        "Choose 432, 440 or 442 Hz, or enter a value from 400 to 480 Hz and apply.",
+        "Use the speaker to hear a selected reference note. With Octave Auto, playback uses octave 4."
+      ],
+      "tip": "440 Hz is the usual A4 reference. This calibration applies to chromatic mode, not guitar tuning presets.",
+      "keywords": "calibration reference tuning fork 432 440 442 hz"
+    },
+    "tunings": {
+      "title": "Change the guitar tuning",
+      "summary": "Use standard tuning, a preset or your own string notes.",
+      "steps": [
+        "In Guitar mode, open the tuning button.",
+        "Choose a preset and check all six note labels.",
+        "For custom tuning, set each string note and save the tuning."
+      ],
+      "tip": "Verify the tuning before turning the pegs. A different preset changes the target notes.",
+      "keywords": "tuning standard drop open custom six strings"
+    },
+    "add": {
+      "title": "Add a song",
+      "summary": "All four entry methods are under one plus button in Library.",
+      "steps": [
+        "Tap + beside the search field.",
+        "Choose manual entry, microphone recognition, audio-file recognition or TXT/ChordPro.",
+        "Review the form, change the cover by tapping it and save."
+      ],
+      "tip": "Artist comes before song title. The save button stays available while you scroll the form.",
+      "keywords": "add plus manual cover artist title"
+    },
+    "recognize": {
+      "title": "Recognize with the microphone",
+      "summary": "Identify the original recording, then search for available text and chords.",
+      "steps": [
+        "In Library, tap +, choose microphone recognition and allow microphone access.",
+        "Tap the large listening button and play a clear original recording nearby.",
+        "When a song card appears, tap anywhere on it to open the prepared form; review and save."
+      ],
+      "tip": "The first attempt is after about 3 seconds. Difficult matches can take up to 20 seconds. A match does not guarantee lyrics or chords.",
+      "keywords": "recognize microphone listening shazam identification"
+    },
+    "audioFile": {
+      "title": "Recognize an audio file",
+      "summary": "Choose an existing recording instead of using the microphone.",
+      "steps": [
+        "Tap + in Library and choose audio-file recognition.",
+        "Select an audio file in the system picker and wait for recognition and content lookup.",
+        "The editing form opens with the information that was found. Review it before saving."
+      ],
+      "tip": "This identifies a released recording. It does not transcribe your own performance or extract chords directly from audio.",
+      "keywords": "audio file mp3 wav recognize import recording"
+    },
+    "import": {
+      "title": "Import TXT or ChordPro",
+      "summary": "Bring in a prepared song document without retyping it.",
+      "steps": [
+        "Tap + in Library and choose Open TXT / ChordPro.",
+        "Choose a TXT, PRO, CHO or CHORDPRO file.",
+        "Check the imported artist, title and text. Inline chord markers are moved above the lyrics; save the song."
+      ],
+      "tip": "Metadata can only be filled when it exists in the file. UTF-8 preserves accented letters.",
+      "keywords": "txt chordpro pro cho import encoding"
+    },
+    "editing": {
+      "title": "Edit a song comfortably",
+      "summary": "Edit metadata, cover, links and lyrics in one form.",
+      "steps": [
+        "Fill in artist and song title; tap the cover or pencil to change the image.",
+        "Open Video and links to add links. Tap the expand icon beside the text to edit full-screen.",
+        "Keep chords on a separate line above the words. Close the full-screen editor, then save."
+      ],
+      "tip": "Closing the full-screen editor returns to the same draft. Save the song to keep changes in the library.",
+      "keywords": "editing text full screen notebook cover links artist"
+    },
+    "library": {
+      "title": "Find and manage library songs",
+      "summary": "Search saved songs and organize favourites.",
+      "steps": [
+        "Type a title or artist in the search field.",
+        "Use the filter button to choose All, Recent or Favourites.",
+        "Hold a song card to open its menu: add/remove favourite or delete. Tap normally to open it."
+      ],
+      "tip": "The library search looks through saved songs. Use + and recognition to identify a new recording.",
+      "keywords": "library search filters recent favourites hold delete"
+    },
+    "reading": {
+      "title": "Read and scroll a song",
+      "summary": "Keep the lyrics visible while you play.",
+      "steps": [
+        "Open a song; its chords appear above the words.",
+        "Tap the double-down-arrow auto-scroll button to start scrolling; tap again to pause.",
+        "Open the gear and Reading to adjust text size, scroll speed, transposition and capo."
+      ],
+      "tip": "Auto-scroll moves the text. It does not start strumming audio.",
+      "keywords": "reading auto scroll speed font transpose capo"
+    },
+    "chords": {
+      "title": "Choose and hear a fingering",
+      "summary": "Preview different fretboard positions for the same chord.",
+      "steps": [
+        "Tap a highlighted chord above a lyric line.",
+        "Tap a fingering diagram to hear it and select it for this song. Browse other pages with the arrows.",
+        "Dots mark fretted strings, a circle means open and a cross means do not play. Close the window to return."
+      ],
+      "tip": "The displayed fret number is the starting fret of a higher position. Capo settings affect playback.",
+      "keywords": "chord fingering diagram position open mute barre preview"
+    },
+    "rhythm": {
+      "title": "Choose and preview a strum",
+      "summary": "Listening to a pattern and selecting it are separate actions.",
+      "steps": [
+        "Open the gear in a song, then Strum.",
+        "Use a pattern's round play button to listen; pause it with the same button. Use its select button or card to choose it.",
+        "Adjust tempo and meter. In the editor, add down/up strokes, muted hits or rests to make your own pattern."
+      ],
+      "tip": "Down strokes go from bass to treble; up strokes go the other way. Preview the pattern before choosing.",
+      "keywords": "rhythm strum down up muted rest tempo meter preview choose"
+    },
+    "practice": {
+      "title": "Practise chord changes",
+      "summary": "Practice follows the chord sequence in your song.",
+      "steps": [
+        "Open the song's gear and select Practice.",
+        "Choose a comfortable tempo and starting chord.",
+        "Start the one-minute exercise and change chords with the guitar. Slow down if changes are difficult."
+      ],
+      "tip": "You need actual chord symbols in the song. Lyrics alone cannot create a chord exercise.",
+      "keywords": "practice transitions minute tempo sequence start"
+    },
+    "easier": {
+      "title": "Find an easier way to play",
+      "summary": "Try alternate chord shapes and capo positions.",
+      "steps": [
+        "Open the gear, Reading, then Play easier.",
+        "Review the suggested capo position and chord shapes, then apply a suitable option.",
+        "Try the result. Use Undo if you prefer the previous position."
+      ],
+      "tip": "Capo fret, displayed chord shapes and transposition are different settings. Check all three when playing with a recording.",
+      "keywords": "easy simplify capo position undo transpose"
+    },
+    "record": {
+      "title": "Record a performance",
+      "summary": "Capture singing or guitar with automatic sound processing.",
+      "steps": [
+        "Open a saved song and tap its microphone/recording icon.",
+        "Tap the red button and allow microphone access. Auto-scroll starts with recording.",
+        "Tap Stop, wait until processing finishes and listen to the take in this song's recordings."
+      ],
+      "tip": "Use headphones and avoid very loud input. Processing is automatic; this is not a separate effects editor.",
+      "keywords": "record microphone effects processing stop auto scroll"
+    },
+    "takes": {
+      "title": "Play, export or delete takes",
+      "summary": "Each recording belongs to its song.",
+      "steps": [
+        "Open the song's recording window to see its takes.",
+        "Use Play to listen. Use Export/Save file and choose a location in the system dialog.",
+        "Delete unwanted takes with the delete control. Wait if a take is still processing."
+      ],
+      "tip": "Library backups do not include audio takes. Export important recordings separately.",
+      "keywords": "takes recordings export save share delete processing"
+    },
+    "backup": {
+      "title": "Create a library backup",
+      "summary": "Protect songs and preferences before reinstalling or changing phones.",
+      "steps": [
+        "Open Settings and Library backup.",
+        "Choose Save backup file and select a destination in the system dialog.",
+        "Keep a copy in a safe folder or cloud storage you can access later."
+      ],
+      "tip": "Backups include songs, artwork and song preferences. Export audio recordings separately.",
+      "keywords": "backup library copy transfer reinstall artwork"
+    },
+    "restore": {
+      "title": "Restore a backup",
+      "summary": "Import a FreeTune library backup into the app.",
+      "steps": [
+        "Open Settings and Library backup, then Open backup.",
+        "Choose the backup file and review the restoration information.",
+        "Confirm, wait for completion and check Library."
+      ],
+      "tip": "Save a backup of the current library first. TXT documents and audio files are not library backups.",
+      "keywords": "restore backup import json library merge"
+    },
+    "privacy": {
+      "title": "Use the app offline",
+      "summary": "Saved songs and local audio functions work without internet.",
+      "steps": [
+        "Tune, read saved songs, preview chords, practise and use this guide offline.",
+        "Recognition, online lyric/chord lookup and online artwork need a connection.",
+        "Read the current privacy policy in Settings for details about network requests."
+      ],
+      "tip": "Recognition sends an audio fingerprint. Lyric lookup uses title and artist. Back up local data before uninstalling.",
+      "keywords": "offline internet privacy fingerprint data permissions"
+    },
+    "language": {
+      "title": "Choose the interface language",
+      "summary": "The first launch uses a supported language from your phone.",
+      "steps": [
+        "Open Settings and Language.",
+        "Search for a language by its name and choose an available translation.",
+        "The interface and guide use the selected language. The setting is saved for future launches."
+      ],
+      "tip": "Only complete available translations can be selected. A language listed as planned is not translated yet.",
+      "keywords": "language translation english russian ukrainian search phone"
+    },
+    "noLyrics": {
+      "title": "Song identified, but text is missing",
+      "summary": "Recognition and text/chord lookup use different catalogs.",
+      "steps": [
+        "Check that the recognized title and artist are correct.",
+        "A source may contain only lyrics, lack this song, be unavailable or block requests. Other connected sources are tried automatically.",
+        "If nothing is found, keep the metadata and type the arrangement yourself or import TXT/ChordPro."
+      ],
+      "tip": "The faint Am/C example in an empty editor is a placeholder, not the recognized song. Missing chords are not invented.",
+      "keywords": "no lyrics chords not found jimmy friday may 14 placeholder lrclib guitaretab"
+    },
+    "noMic": {
+      "title": "The microphone cannot hear me",
+      "summary": "Check permission, input routing and other audio apps.",
+      "steps": [
+        "Allow microphone access for FreeTune in the phone settings.",
+        "Close other recording apps and check whether Bluetooth or a headset is using another microphone.",
+        "For tuning, play one string. For recognition, play an original released recording clearly nearby."
+      ],
+      "tip": "The tuner measures pitch. Recognition identifies a recording; singing a melody is not a reliable substitute.",
+      "keywords": "microphone permission no input tuner recognition headset"
+    },
+    "noSound": {
+      "title": "No sound or delayed sound",
+      "summary": "Check the media output before changing app settings.",
+      "steps": [
+        "Raise media volume and check Bluetooth headphones or speakers.",
+        "Tap a tuner string, chord diagram or rhythm play button. The auto-scroll button only scrolls text.",
+        "If the issue persists, reopen the app and tell support your phone model, audio output and the exact screen."
+      ],
+      "tip": "Bluetooth can add audible delay. Compare with the phone speaker or wired headphones; startup preparation can also take time.",
+      "keywords": "sound delay latency quiet volume bluetooth string chord"
+    }
+  },
+  "GuideTitle": "User guide",
+  "GuideWelcome": "Play with confidence",
+  "GuideIntro": "Choose what you want to do, or search for a question in a few words.",
+  "GuideSearch": "Search: recording, chords, no sound…",
+  "GuideQuickStart": "Get started in a minute",
+  "GuideQuickHint": "Add a song and try the essentials.",
+  "GuideExplore": "What would you like to do?",
+  "GuidePopular": "Common questions",
+  "GuideResults": "Answers found: {{count}}",
+  "GuideReset": "All topics",
+  "GuideNoResults": "No matching answers yet",
+  "GuideNoResultsHint": "Try “microphone”, “recording” or “chords”, or browse all topics.",
+  "GuideOffline": "The guide and illustrations work offline.",
+  "GuideEnlarge": "Enlarge screen illustration",
+  "GuideScreenshot": "On screen · enlarge",
+  "GuideScreenshotHint": "Interface illustration. The language and content on your screen may differ.",
+  "GuideAndroidOnly": "Microphone and audio-file recognition are currently available on Android.",
+  "GuideBackHint": "To return to the guide, tap Guide in the bottom menu.",
+  "GuideRelated": "You might also need",
+  "GuideSections": {
+    "all": "All",
+    "tuner": "Tune your guitar",
+    "library": "Add and find songs",
+    "playing": "Play and practise",
+    "recording": "Record a performance",
+    "data": "Keep your data",
+    "help": "Fix a problem"
+  },
+  "GuideSectionHints": {
+    "tuner": "Strings, chromatic mode and tunings.",
+    "library": "Manually, from the microphone or a file.",
+    "playing": "Chords, scrolling, strumming and changes.",
+    "recording": "Record, listen and export.",
+    "data": "Backups and privacy.",
+    "help": "Microphone, sound and lyric searches."
+  },
+  "GuideOpen": {
+    "tuner": "Open tuner",
+    "library": "Open library",
+    "playing": "Choose a song",
+    "recording": "Choose a song to record",
+    "data": "Open Settings",
+    "help": "Open Settings"
+  },
+  "LanguageSearch": "Search for a language",
+  "LanguageAvailable": "Available now",
+  "LanguagePlanned": "More languages",
+  "LanguagePlannedHint": "Translations are being added gradually. Languages below cannot be selected yet. If your phone language is not supported, FreeTune starts in English.",
+  "LanguagePending": "Translation in progress",
+  "LanguageNoResults": "No matching languages",
+  "LanguageSavedHint": "Your choice applies throughout FreeTune.",
+  "LibraryFilter": "Library filters",
+  "EditLyrics": "Edit chords and lyrics",
+  "CollapseEditor": "Collapse editor",
+  "SignalWaveform": "Show waveform",
+  "SignalSpectrum": "Show frequency spectrum",
+  "TunerCalibration": "Calibration",
+  "StopReferenceNote": "Stop reference note",
+  "PlayReferenceNote": "Play reference note",
+  "ReferenceNote": "Reference note: {{note}}",
+  "CalibrationHint": "Reference A4 frequency. Standard: 440 Hz. Applies only to the chromatic tuner.",
+  "ReferenceFrequency": "A4 frequency, 400 to 480 Hz",
+  "ApplyCalibration": "Apply"
 }

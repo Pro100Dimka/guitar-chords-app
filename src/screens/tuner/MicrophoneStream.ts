@@ -19,6 +19,7 @@ type NoteData = {
 
 export type AudioBufferEvent = {
   samples?: number[];
+  sampleRate?: number;
   rms: number;
   pitch: number;
   note: string;

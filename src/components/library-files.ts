@@ -1,3 +1,4 @@
+import { chordsAboveLyrics } from "../screens/song/chords";
 import {
   errorCodes,
   isErrorWithCode,
@@ -21,7 +22,7 @@ const maxBytes = 5 * 1024 * 1024;
 export const fileCanceled = (error: unknown) =>
   isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED;
 
-export async function readSongCover(uri?: string) {
+export async function readSongCover(uri?: string, rotate = !!uri) {
   let localUri: string | undefined;
   let resizedUri: string | undefined;
   try {
@@ -52,7 +53,7 @@ export async function readSongCover(uri?: string) {
       384,
       "JPEG",
       82,
-      uri ? 90 : 0,
+      rotate ? 90 : 0,
       undefined,
       false,
       { mode: "contain", onlyScaleDown: true }
@@ -67,6 +68,28 @@ export async function readSongCover(uri?: string) {
         .filter((path): path is string => !!path)
         .map((path) => FileSystem.unlink(path).catch(() => undefined))
     );
+  }
+}
+
+export async function readRemoteSongCover(url: string, signal: AbortSignal) {
+  if (!url.startsWith("https://") || signal.aborted) return "";
+  const path = `${Dirs.CacheDir}/recognized-cover-${Date.now()}.jpg`;
+  const request = FileSystem.fetchManaged(url, { path }, (bytes) => {
+    if (bytes > 5 * 1024 * 1024) void request.cancel();
+  });
+  const abort = () => {
+    void request.cancel();
+  };
+  signal.addEventListener("abort", abort, { once: true });
+  const timer = setTimeout(abort, 8000);
+  try {
+    const response = await request.result;
+    if (!response.ok || signal.aborted) return "";
+    return await readSongCover(`file://${path}`, false);
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener("abort", abort);
+    await FileSystem.unlink(path).catch(() => undefined);
   }
 }
 
@@ -108,7 +131,19 @@ export function importedSong(text: string, name: string) {
   // Leave musical directives visible for review, without silently changing pitch.
   const content = text.replace(/^\s*\{(?:title|t):[^}]+\}\s*$/gim, "").trim();
   if (!content) throw new Error("FileFormatError");
-  return { title, content };
+  const artist =
+    text.match(/^\s*\{(?:artist|a):\s*([^}]+)\}\s*$/im)?.[1]?.trim() ?? "";
+  return {
+    title,
+    content: chordsAboveLyrics(
+      content.replace(/^\s*\{(?:artist|a):[^}]+\}\s*$/gim, "").trim()
+    ),
+    fk_band: {
+      id: "",
+      name: artist,
+      search_text_lower: artist.toLocaleLowerCase()
+    }
+  };
 }
 
 interface BackupSong {
@@ -233,6 +268,8 @@ export async function restoreLibrary(songs: BackupSong[]) {
                 tuning,
                 customTuning,
                 tunerSound,
+                tunerReference,
+                tunerSpectrum,
                 chromaticOctave,
                 autoDetect,
                 stringIndex,
@@ -248,6 +285,8 @@ export async function restoreLibrary(songs: BackupSong[]) {
                     tuning,
                     customTuning,
                     tunerSound,
+                    tunerReference,
+                    tunerSpectrum,
                     chromaticOctave,
                     autoDetect,
                     stringIndex,

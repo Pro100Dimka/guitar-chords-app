@@ -324,13 +324,41 @@ export function chordShapes(chord: string): Frets[] {
     ? (roots[match[4]] + (accidentals[match[5]] ?? 0) + 12) % 12
     : undefined;
   shapes.push(...additionalShapes(pitch, quality, bass));
-  const result = shapes.filter(
-    (shape, index) =>
-      shapes.findIndex((other) => String(other) === String(shape)) === index
-  );
-  if (shapeCache.size >= 256) shapeCache.clear();
+  const seen = new Set<string>();
+  const result = shapes.filter((shape) => {
+    const key = String(shape);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  if (shapeCache.size >= 256)
+    shapeCache.delete(shapeCache.keys().next().value!);
   shapeCache.set(chord, result);
   return result;
+}
+
+export function chordsAboveLyrics(content: string) {
+  return content
+    .split(/\r?\n/)
+    .map((line) => {
+      let lyrics = "";
+      let chords = "";
+      let previous = 0;
+      for (const match of line.matchAll(/\[([^\]]+)\]/g)) {
+        if (!chordPattern.test(match[1])) continue;
+        lyrics += line.slice(previous, match.index);
+        const column = [...lyrics].length;
+        chords =
+          chords.padEnd(
+            Math.max(column, chords.length ? chords.length + 1 : 0)
+          ) + match[1];
+        previous = match.index + match[0].length;
+      }
+      if (!chords) return line;
+      lyrics += line.slice(previous);
+      return lyrics.trim() ? `${chords}\n${lyrics.trimEnd()}` : chords;
+    })
+    .join("\n");
 }
 
 export function isChordLine(line: string) {

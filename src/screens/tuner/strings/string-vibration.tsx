@@ -4,16 +4,15 @@ import {
   withRepeat,
   cancelAnimation,
   useDerivedValue,
+  useAnimatedReaction,
   Easing
 } from "react-native-reanimated";
 import {
   Circle,
   Path,
-  RadialGradient,
   Shader,
   Skia,
-  usePathInterpolation,
-  vec
+  usePathInterpolation
 } from "@shopify/react-native-skia";
 import { FC, useEffect, useMemo } from "react";
 import { StringWithVibrationProps } from "@/@interfaces";
@@ -85,19 +84,23 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
     ],
     [x, top, bottom]
   );
-  useEffect(() => {
-    if (active) {
-      progress.value = withRepeat(
-        withTiming(1, { duration: 180, easing: Easing.inOut(Easing.sin) }),
-        -1,
-        true
-      );
-    } else {
-      cancelAnimation(progress);
-      progress.value = 0;
+  useAnimatedReaction(
+    () => active && volume.value > 0.003,
+    (sounding, previous) => {
+      if (sounding === previous) return;
+      if (sounding) {
+        progress.value = withRepeat(
+          withTiming(1, { duration: 180, easing: Easing.inOut(Easing.sin) }),
+          -1,
+          true
+        );
+      } else {
+        cancelAnimation(progress);
+        progress.value = 0;
+      }
     }
-    return () => cancelAnimation(progress);
-  }, [active, progress]);
+  );
+  useEffect(() => () => cancelAnimation(progress), [progress]);
   const amplitude = useDerivedValue(() =>
     withTiming(active ? Math.min(Math.max(volume.value, 0) / 0.15, 1) : 0, {
       duration: 100
@@ -112,13 +115,7 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
       <Path path={animatedPath} style="stroke" strokeWidth={thickness}>
         <Shader source={effect!} uniforms={{ thickness, baseColor }} />
       </Path>
-      <Circle cx={x} cy={bottom} r={10}>
-        <RadialGradient
-          c={vec(x, bottom)}
-          r={10}
-          colors={["#ffffff", "#ffffff", "#949494"]}
-        />
-      </Circle>
+      <Circle cx={x} cy={bottom} r={1.5} color="#514033" />
     </>
   );
 };

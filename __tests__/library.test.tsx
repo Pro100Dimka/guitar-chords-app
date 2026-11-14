@@ -84,11 +84,11 @@ test("empty search keeps the search bar and starts only one request", async () =
   expect(screen.root.findAllByType(SearchBar)).toHaveLength(1);
 });
 
-test("suggestions join bands and bind apostrophes as data", async () => {
+test("live search joins bands and binds apostrophes as data", async () => {
   jest.useFakeTimers();
   jest.mocked(getAllItems).mockResolvedValue([]);
   await act(async () => {
-    screen = Renderer.create(<SearchBar setFilters={jest.fn()} />);
+    screen = Renderer.create(<Library />);
   });
   await act(async () =>
     screen.root.findByType(TextInput).props.onChangeText("It's")

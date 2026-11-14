@@ -1,8 +1,6 @@
 import { fromByteArray, toByteArray } from "base64-js";
-import samples from "../../assets/guitar-samples.json";
 import { performanceAudio } from "./performance-audio";
 
-export const guitarSamples = samples;
 const decode = (sample: { frequency: number; pcm: string }) => {
   const bytes = toByteArray(sample.pcm);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
@@ -14,23 +12,32 @@ const decode = (sample: { frequency: number; pcm: string }) => {
     )
   };
 };
-const decoded = samples.map(decode);
+const decoded = new Map<
+  Parameters<typeof decode>[0],
+  ReturnType<typeof decode>
+>();
 
 const previews = new Map<string, string>();
-export function prepareGuitar(notes: number[]) {
-  const key = notes.join(",");
+export function prepareGuitar(notes: number[], reference = 440) {
+  const key = `${reference}:${notes.join(",")}`;
   const cached = previews.get(key);
   if (cached) return cached;
+  const samples: typeof import("../../assets/guitar-samples.json") = require("../../assets/guitar-samples.json");
   const rate = 22050;
   const mix = new Float32Array(rate * (notes.length > 1 ? 5 : 3));
   notes.forEach((midi, string) => {
-    const frequency = 440 * 2 ** ((midi - 69) / 12);
-    const sample = decoded.reduce((best, item) =>
+    const frequency = reference * 2 ** ((midi - 69) / 12);
+    const source = samples.reduce((best, item) =>
       Math.abs(Math.log2(item.frequency / frequency)) <
       Math.abs(Math.log2(best.frequency / frequency))
         ? item
         : best
     );
+    let sample = decoded.get(source);
+    if (!sample) {
+      sample = decode(source);
+      decoded.set(source, sample);
+    }
     const step = frequency / sample.frequency;
     const offset = Math.round(string * rate * 0.016);
     const length = Math.min(
@@ -75,8 +82,13 @@ export function prepareGuitar(notes: number[]) {
   const wave = fromByteArray(bytes);
   if (previews.size >= 32) previews.delete(previews.keys().next().value!);
   previews.set(key, wave);
+  performanceAudio.prepareGuitar(key, wave);
   return wave;
 }
-export function playGuitar(notes: number[]) {
-  if (notes.length) performanceAudio.guitar(prepareGuitar(notes));
+export function playGuitar(notes: number[], reference = 440) {
+  if (notes.length)
+    performanceAudio.guitar(
+      prepareGuitar(notes, reference),
+      `${reference}:${notes.join(",")}`
+    );
 }

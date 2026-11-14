@@ -5,6 +5,7 @@ import { getAllItems } from "./database/crud";
 
 export interface SongPreferences {
   cover?: string;
+  contentSource?: { name: string; url: string; credit?: string };
   fontSize: number;
   transpose: number;
   capo: number;
@@ -37,6 +38,8 @@ interface Preferences {
   tuning: string;
   customTuning: number[];
   tunerSound: boolean;
+  tunerReference: number;
+  tunerSpectrum: boolean;
   chromaticOctave: number | null;
   autoDetect: boolean;
   stringIndex: number;
@@ -47,6 +50,7 @@ interface PreferencesStore extends Preferences {
   saveError: boolean;
   update: (patch: Partial<Omit<Preferences, "songs">>) => void;
   updateSong: (id: number, patch: Partial<SongPreferences>) => void;
+  removeSong: (id: number) => void;
 }
 let pending: ReturnType<typeof setTimeout> | undefined;
 let savingPaused = false;
@@ -57,6 +61,8 @@ export const usePreferences = create<PreferencesStore>((set) => ({
   tuning: "standard",
   customTuning: standardTuning,
   tunerSound: true,
+  tunerReference: 440,
+  tunerSpectrum: false,
   chromaticOctave: null,
   autoDetect: true,
   stringIndex: 0,
@@ -65,6 +71,14 @@ export const usePreferences = create<PreferencesStore>((set) => ({
   saveError: false,
   update: (patch) => {
     set(patch);
+    scheduleSave();
+  },
+  removeSong: (id) => {
+    set((state) => {
+      const songs = { ...state.songs };
+      delete songs[id];
+      return { songs };
+    });
     scheduleSave();
   },
   updateSong: (id, patch) => {
@@ -99,6 +113,8 @@ export function flushPreferences() {
     tuning,
     customTuning,
     tunerSound,
+    tunerReference,
+    tunerSpectrum,
     chromaticOctave,
     autoDetect,
     stringIndex,
@@ -119,6 +135,8 @@ export function flushPreferences() {
             tuning,
             customTuning,
             tunerSound,
+            tunerReference,
+            tunerSpectrum,
             chromaticOctave,
             autoDetect,
             stringIndex,
@@ -144,6 +162,7 @@ const number = (value: unknown, fallback: number, min: number, max: number) =>
     : fallback;
 export function normalizeSongPreferences(value: unknown): SongPreferences {
   const song = record(value) ? value : {};
+  const source = record(song.contentSource) ? song.contentSource : {};
   const shapes: Record<string, number> = {};
   if (record(song.shapes))
     Object.entries(song.shapes).forEach(([chord, index]) => {
@@ -156,6 +175,32 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
         shapes[chord] = index;
     });
   return {
+    contentSource:
+      typeof source.name === "string" &&
+      [
+        "LRCLIB",
+        "Пісенник",
+        "lyrics.ovh",
+        "Cifra Club",
+        "E-Chords",
+        "Cifras",
+        "GuitareTab",
+        "Shazam"
+      ].includes(source.name) &&
+      typeof source.url === "string" &&
+      source.url.length < 1000 &&
+      /^https:\/\/(?:pisennyk\.com\.ua|lrclib\.net|api\.lyrics\.ovh|www\.cifraclub\.com|www\.e-chords\.com|www\.cifras\.com\.br|www\.guitaretab\.com|www\.shazam\.com)\//.test(
+        source.url
+      )
+        ? {
+            name: source.name,
+            url: source.url,
+            ...(typeof source.credit === "string" &&
+            source.credit.length <= 2000
+              ? { credit: source.credit }
+              : {})
+          }
+        : undefined,
     cover:
       typeof song.cover === "string" &&
       song.cover.startsWith("data:image/jpeg;base64,") &&
@@ -216,6 +261,8 @@ export async function loadPreferences() {
           )
         : standardTuning,
     tunerSound: data.tunerSound !== false,
+    tunerReference: Math.round(number(data.tunerReference, 440, 400, 480)),
+    tunerSpectrum: data.tunerSpectrum === true,
     chromaticOctave:
       typeof data.chromaticOctave === "number" &&
       [1, 2, 3, 4, 5, 6].includes(data.chromaticOctave)
@@ -225,7 +272,7 @@ export async function loadPreferences() {
     stringIndex: Math.round(number(data.stringIndex, 0, 0, 5)),
     tab:
       typeof data.tab === "string" &&
-      ["tuner", "library", "settings"].includes(data.tab)
+      ["tuner", "library", "settings", "guide"].includes(data.tab)
         ? data.tab
         : "tuner"
   });

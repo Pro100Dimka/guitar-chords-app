@@ -106,6 +106,8 @@ const palette = {
     green: "#456B4C"
   },
   chromatic: {
+    wash: ["rgba(5,9,12,0.08)", "rgba(5,9,12,0.20)", "rgba(5,9,12,0.08)"],
+    controlFace: ["#283033", "#0B1012", "#141A1D"],
     ink: "#F4F3E9",
     muted: "#C0C3BE",
     brass: "#FFC52E",

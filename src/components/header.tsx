@@ -2,16 +2,17 @@
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { useNavigation } from "@react-navigation/native";
 import React from "react";
-import LinearGradient from "react-native-linear-gradient";
 import { Pressable, StyleSheet, View } from "react-native";
 import Text from "./styled-text";
 import palette from "../theme/palette";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { t } from "@/locales";
+import { useTranslation } from "react-i18next";
 
 interface HeaderProps {
-  title: string | undefined;
+  title?: string;
+  titleKey?: string;
   showBack?: boolean;
+  onBack?: () => void;
   glass?: boolean;
   icon?: string;
   children?: React.ReactNode;
@@ -19,11 +20,14 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({
   title,
+  titleKey,
   showBack = false,
+  onBack,
   glass = false,
   icon,
   children
 }) => {
+  const { t } = useTranslation();
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   return (
@@ -31,21 +35,15 @@ const Header: React.FC<HeaderProps> = ({
       style={[
         styles.container,
         glass && styles.glass,
-        { marginTop: insets.top + 8 }
+        { marginTop: insets.top }
       ]}
     >
-      <LinearGradient
-        pointerEvents="none"
-        colors={palette.finish.surfaceColors}
-        locations={palette.finish.locations}
-        style={styles.sheen}
-      />
       <View style={styles.left}>
         {showBack && (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={t("Back")}
-            onPress={() => navigation.goBack()}
+            onPress={onBack ?? (() => navigation.goBack())}
             style={styles.backButton}
           >
             <MaterialCommunityIcons
@@ -60,7 +58,7 @@ const Header: React.FC<HeaderProps> = ({
         numberOfLines={2}
         style={[styles.title, glass && styles.glassTitle]}
       >
-        {title}
+        {titleKey ? t(titleKey) : title}
       </Text>
       {icon ? (
         <MaterialCommunityIcons
@@ -77,7 +75,6 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
-  sheen: { ...StyleSheet.absoluteFillObject, borderRadius: 18 },
   glass: {
     backgroundColor: palette.glass.control,
     borderColor: palette.glass.edge
@@ -85,18 +82,16 @@ const styles = StyleSheet.create({
   glassTitle: { color: palette.glass.ink },
   viewIco: { width: 38, height: 38 },
   container: {
-    backgroundColor: palette.paper.translucent,
+    backgroundColor: palette.glass.control,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 6,
-    gap: 4,
-    marginHorizontal: 12,
-    marginBottom: 8,
-    borderRadius: 18,
+    paddingHorizontal: 12,
+    gap: 8,
+    minHeight: 52,
     paddingVertical: 4,
-    borderWidth: 1,
-    borderColor: palette.paper.line
+    borderBottomWidth: 1,
+    borderColor: palette.glass.surfaceEdge
   },
   left: { flexDirection: "row", alignItems: "center" },
   backButton: { minWidth: 44, minHeight: 44, justifyContent: "center" },

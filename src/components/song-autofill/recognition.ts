@@ -6,6 +6,12 @@ export interface RecognizedSong {
   title: string;
   artist: string;
   source: "Shazam";
+  cover?: string;
+  album?: string;
+  genre?: string;
+  lyrics?: string;
+  lyricsCredit?: string;
+  url?: string;
 }
 interface NativeRecognizer {
   recognizeMicrophone(): Promise<RecognizedSong | null>;

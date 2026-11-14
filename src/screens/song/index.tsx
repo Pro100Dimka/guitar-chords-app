@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   AppState,
   ImageBackground,
@@ -37,7 +43,13 @@ import {
 } from "@/components/preferences";
 import RequireMicAccess from "../tuner";
 import MicrophoneStream from "../tuner/MicrophoneStream";
-import { chordPattern, isChordLine, transposeChord } from "./chords";
+import {
+  chordsAboveLyrics,
+  chordPattern,
+  isChordLine,
+  songChords,
+  transposeChord
+} from "./chords";
 import { Action, ChordSheet, SongTools } from "./tools";
 
 const SongDetail: React.FC = () => {
@@ -180,69 +192,92 @@ const SongDetail: React.FC = () => {
       scroll.current?.scrollTo({ y: bounds.position, animated: false });
     }
   };
+  const startScrolling = () => {
+    const bounds = metrics.current;
+    const end = Math.max(0, bounds.content - bounds.viewport);
+    if (end > 0 && bounds.position >= end - 1) {
+      bounds.position = 0;
+      scroll.current?.scrollTo({ y: 0, animated: false });
+    }
+    setPlaying(true);
+  };
   const openTools = () => {
     setPlaying(false);
     setTools("reading");
   };
-  const renderChord = (text: string, key: number) => {
-    const displayed = transposeChord(
-      text,
-      preferences.transpose - preferences.capo
-    );
-    return (
-      <Text
-        key={key}
-        accessibilityRole="button"
-        accessibilityLabel={`${displayed}, ${t("Fingering")}`}
-        onPress={() => {
-          setPlaying(false);
-          setChord(displayed);
-        }}
-        style={styles.chord}
-      >
-        {displayed}
-      </Text>
-    );
-  };
-  const renderLine = (line: string, index: number) => {
-    const onlyChords = isChordLine(line);
-    const parts = onlyChords ? line.split(/(\s+)/) : line.split(/(\[[^\]]+\])/);
-    return (
-      <Text
-        key={index}
-        style={[
-          styles.content,
-          {
-            fontSize: preferences.fontSize,
-            lineHeight: preferences.fontSize * 1.65
-          }
-        ]}
-      >
-        {parts.map((part, i) => {
-          if (
-            onlyChords &&
-            /^ +$/.test(part) &&
-            chordPattern.test(parts[i - 1] ?? "")
-          ) {
-            const previous = parts[i - 1];
-            const shifted = transposeChord(
-              previous,
-              preferences.transpose - preferences.capo
-            );
-            return " ".repeat(
-              Math.max(1, part.length + previous.length - shifted.length)
-            );
-          }
-          const token = onlyChords ? part : part.slice(1, -1);
-          return (onlyChords || /^\[.*\]$/.test(part)) &&
-            chordPattern.test(token)
-            ? renderChord(token, i)
-            : part;
-        })}
-        {line ? "" : " "}
-      </Text>
-    );
-  };
+  const content = useMemo(() => {
+    const renderChord = (text: string, key: number) => {
+      const displayed = transposeChord(
+        text,
+        preferences.transpose - preferences.capo
+      );
+      return (
+        <Text
+          key={key}
+          accessibilityRole="button"
+          accessibilityLabel={`${displayed}, ${t("Fingering")}`}
+          onPress={() => {
+            setPlaying(false);
+            setChord(displayed);
+          }}
+          style={styles.chord}
+        >
+          {displayed}
+        </Text>
+      );
+    };
+    const renderLine = (line: string, index: number) => {
+      const onlyChords = isChordLine(line);
+      const parts = onlyChords
+        ? line.split(/(\s+)/)
+        : line.split(/(\[[^\]]+\])/);
+      return (
+        <Text
+          key={index}
+          style={[
+            styles.content,
+            {
+              fontSize: preferences.fontSize,
+              lineHeight: preferences.fontSize * 1.65
+            }
+          ]}
+        >
+          {parts.map((part, i) => {
+            if (
+              onlyChords &&
+              /^ +$/.test(part) &&
+              chordPattern.test(parts[i - 1] ?? "")
+            ) {
+              const previous = parts[i - 1];
+              const shifted = transposeChord(
+                previous,
+                preferences.transpose - preferences.capo
+              );
+              return " ".repeat(
+                Math.max(1, part.length + previous.length - shifted.length)
+              );
+            }
+            const token = onlyChords ? part : part.slice(1, -1);
+            return (onlyChords || /^\[.*\]$/.test(part)) &&
+              chordPattern.test(token)
+              ? renderChord(token, i)
+              : part;
+          })}
+          {line ? "" : " "}
+        </Text>
+      );
+    };
+    return chordsAboveLyrics(song?.content ?? "")
+      .split(/\r?\n/)
+      .map(renderLine);
+  }, [
+    song?.content,
+    preferences.transpose,
+    preferences.capo,
+    preferences.fontSize,
+    t
+  ]);
+  const previewChord = chord || songChords(song?.content ?? "")[0];
   return (
     <ImageBackground
       source={guitarBgSong}
@@ -320,8 +355,8 @@ const SongDetail: React.FC = () => {
               {!!song.band_name && (
                 <Text style={styles.metadata}>{song.band_name}</Text>
               )}
-              <Text style={styles.metadata}>{t("TapChordHint")}</Text>
-              {song.content.split(/\r?\n/).map(renderLine)}
+
+              {content}
             </View>
             {(song.youtube_music || song.youtobe_lesson) && (
               <Action
@@ -348,7 +383,7 @@ const SongDetail: React.FC = () => {
               active={focused && !tuner && !tools && !chord && !isEdit}
               onStart={() => {
                 setVideos(false);
-                setPlaying(true);
+                startScrolling();
               }}
             />
             <Action
@@ -359,8 +394,10 @@ const SongDetail: React.FC = () => {
               accessibilityLabel={playing ? t("Pause") : t("AutoScroll")}
               selected={playing}
               onPress={() => {
-                if (playing) savePosition();
-                setPlaying(!playing);
+                if (playing) {
+                  savePosition();
+                  setPlaying(false);
+                } else startScrolling();
               }}
             />
             <Action
@@ -381,13 +418,16 @@ const SongDetail: React.FC = () => {
               onClose={() => setTools(false)}
             />
           )}
-          {!!chord && (
+          {!!previewChord && (
             <ChordSheet
-              chord={chord}
-              value={preferences.shapes[chord]}
+              chord={previewChord}
+              visible={!!chord}
+              value={preferences.shapes[previewChord]}
               capo={preferences.capo}
               onChange={(index) =>
-                change({ shapes: { ...preferences.shapes, [chord]: index } })
+                change({
+                  shapes: { ...preferences.shapes, [previewChord]: index }
+                })
               }
               onClose={() => setChord("")}
             />

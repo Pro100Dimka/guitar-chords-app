@@ -175,7 +175,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         let reader = try AVAudioFile(forReading: input, commonFormat: .pcmFormatFloat32, interleaved: false)
         let format = reader.processingFormat
         guard format.channelCount == 1, reader.length > 0,
-              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 16384) else {
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 65536) else {
             throw NSError(domain: "PerformanceAudio", code: 4)
         }
         let writer = try AVAudioFile(forWriting: output, settings: [
@@ -184,12 +184,14 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         ], commonFormat: .pcmFormatFloat32, interleaved: false)
         var effect = RecordingPolish(rate: format.sampleRate)
         while reader.framePosition < reader.length {
-            try reader.read(into: buffer)
-            guard buffer.frameLength > 0, let samples = buffer.floatChannelData?[0] else {
-                throw NSError(domain: "PerformanceAudio", code: 5)
+            try autoreleasepool {
+                try reader.read(into: buffer)
+                guard buffer.frameLength > 0, let samples = buffer.floatChannelData?[0] else {
+                    throw NSError(domain: "PerformanceAudio", code: 5)
+                }
+                for index in 0..<Int(buffer.frameLength) { samples[index] = Float(effect.process(Double(samples[index]))) }
+                try writer.write(from: buffer)
             }
-            for index in 0..<Int(buffer.frameLength) { samples[index] = Float(effect.process(Double(samples[index]))) }
-            try writer.write(from: buffer)
         }
         var tail = Int(format.sampleRate)
         while tail > 0 {

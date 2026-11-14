@@ -1,6 +1,8 @@
 // src/tuner/Tuner.tsx
 import React, {
   FC,
+  Dispatch,
+  SetStateAction,
   useCallback,
   useContext,
   useEffect,
@@ -9,24 +11,25 @@ import React, {
   useState
 } from "react";
 import MicrophoneStream, { AudioBufferEvent } from "./MicrophoneStream";
-import { Canvas, CanvasRef, Group } from "@shopify/react-native-skia";
+import { Canvas, CanvasRef } from "@shopify/react-native-skia";
 import { useSharedValue, withTiming } from "react-native-reanimated";
-import Strings, {
-  NOTE_BOX_WIDTH,
-  BRIDGE_Y_RATIO,
-  NECK_EXTENSION_RATIO
-} from "./strings";
+import Strings from "./strings";
+import { guitarLayout } from "./guitar-layout";
 import NoteIndicator from "./note-indicator";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-worklets";
-import { INote, IString } from "@/@interfaces";
+import { INote, IString, ITunerConfig } from "@/@interfaces";
 import {
   Dimensions,
   View,
   StyleSheet,
   ImageBackground,
-  Pressable
+  Pressable,
+  TextInput
 } from "react-native";
+import LinearGradient from "react-native-linear-gradient";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
+import { calibratedNote, signalLevels } from "./chromatic-signal";
 import Text from "../../components/styled-text";
 import defConfig from "./config";
 import TunerButtons from "./buttons";
@@ -41,22 +44,38 @@ import { useTranslation } from "react-i18next";
 import palette from "../../theme/palette";
 import { TunerReadyContext } from "../../components/startup";
 
-const Tuner: FC = () => {
+const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const { t } = useTranslation();
   const reportReady = useContext(TunerReadyContext);
   const canvas = useRef<CanvasRef>(null);
-  const [backgroundReady, setBackgroundReady] = useState(false);
+  const [loadedBackground, setLoadedBackground] = useState("");
   const [layoutReady, setLayoutReady] = useState(false);
   const [stringsReady, setStringsReady] = useState(false);
   const [dialReady, setDialReady] = useState(false);
   const [chromaticReady, setChromaticReady] = useState(false);
+  const [controlsReady, setControlsReady] = useState(false);
   const [painted, setPainted] = useState(false);
   const [renderError, setRenderError] = useState(false);
   const [renderAttempt, setRenderAttempt] = useState(0);
   const markStringsReady = useCallback(() => setStringsReady(true), []);
   const markDialReady = useCallback(() => setDialReady(true), []);
   const markChromaticReady = useCallback(() => setChromaticReady(true), []);
+  const markControlsReady = useCallback(() => setControlsReady(true), []);
   const chromaticOctave = usePreferences((state) => state.chromaticOctave);
+  const tunerReference = usePreferences((state) => state.tunerReference);
+  const tunerSpectrum = usePreferences((state) => state.tunerSpectrum);
+  const referenceRef = useRef(tunerReference);
+  referenceRef.current = tunerReference;
+  const spectrumRef = useRef(tunerSpectrum);
+  spectrumRef.current = tunerSpectrum;
+  const signal = useSharedValue<number[]>([]);
+  const [chooseCalibration, setChooseCalibration] = useState(false);
+  const [referenceInput, setReferenceInput] = useState(String(tunerReference));
+  const [referenceNote, setReferenceNote] = useState("A");
+  const [referencePlaying, setReferencePlaying] = useState(false);
+  const referenceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
   const [chooseOctave, setChooseOctave] = useState(false);
   const customTuning = usePreferences((state) => state.customTuning);
   const tuning = usePreferences((state) => state.tuning);
@@ -72,25 +91,35 @@ const Tuner: FC = () => {
     ignoreUntil: 0
   });
   const cueTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
-  const [selectedString, setSelectedString] = useState(
-    () => usePreferences.getState().stringIndex
-  );
+  const selectedString = usePreferences((state) => state.stringIndex);
+  const instrument = usePreferences((state) => state.instrument);
+  const autoDetect = usePreferences((state) => state.autoDetect);
   const { width, height } = Dimensions.get("window");
   const [layout, setLayout] = useState({ width, height });
   const rms = useSharedValue(0);
   const note = useSharedValue<INote | null>(null);
   const [stringNotes, setStringNotes] = useState<IString[] | null>(null);
-  const [config, setConfig] = useState(() => ({
+  const config = {
     ...defConfig,
-    selectedInstrument: usePreferences.getState().instrument,
-    autoDetect: usePreferences.getState().autoDetect
-  }));
+    selectedInstrument: instrument,
+    autoDetect
+  };
+  const setConfig: Dispatch<SetStateAction<ITunerConfig>> = (update) => {
+    const next = typeof update === "function" ? update(config) : update;
+    usePreferences.getState().update({
+      instrument: next.selectedInstrument,
+      autoDetect: next.autoDetect
+    });
+  };
   const isChromatic = config.selectedInstrument === "chromatic";
-  const graphicsReady = isChromatic
-    ? chromaticReady
-    : stringsReady && dialReady;
+  const landscape = layout.width > layout.height;
+  const backgroundKey = landscape ? "guitar-landscape" : "guitar";
+  const backgroundReady = isChromatic || loadedBackground === backgroundKey;
+  const graphicsReady =
+    controlsReady && (isChromatic ? chromaticReady : stringsReady && dialReady);
   useEffect(() => {
     if (
+      !active ||
       painted ||
       renderError ||
       !backgroundReady ||
@@ -98,7 +127,7 @@ const Tuner: FC = () => {
       !graphicsReady
     )
       return;
-    let active = true;
+    let mounted = true;
     let frame = 0;
     let attempts = 0;
     const capture = async () => {
@@ -119,9 +148,9 @@ const Tuner: FC = () => {
           image.dispose();
         }
         if (!visible) throw new Error("Tuner frame is empty");
-        if (active) setPainted(true);
+        if (mounted) setPainted(true);
       } catch {
-        if (!active) return;
+        if (!mounted) return;
         if (++attempts < 3) frame = requestAnimationFrame(() => void capture());
         else setRenderError(true);
       }
@@ -130,10 +159,11 @@ const Tuner: FC = () => {
       frame = requestAnimationFrame(() => void capture());
     });
     return () => {
-      active = false;
+      mounted = false;
       cancelAnimationFrame(frame);
     };
   }, [
+    active,
     painted,
     renderError,
     backgroundReady,
@@ -148,32 +178,16 @@ const Tuner: FC = () => {
     });
     return () => cancelAnimationFrame(frame);
   }, [painted, reportReady]);
-  const landscape = layout.width > layout.height;
   const stageWidth = layout.width;
-  const stageHeight = isChromatic ? layout.height : (stageWidth * 2216) / 1024;
-  const imageTop = landscape
-    ? layout.height * 0.55 - (stageWidth * 1205) / 1024
-    : Math.min(0, layout.height - stageHeight);
-  const neckHeight = isChromatic
-    ? 0
-    : stageHeight * NECK_EXTENSION_RATIO + imageTop;
-  const bodyHeight = isChromatic
-    ? layout.height
-    : stageHeight * (1 - NECK_EXTENSION_RATIO);
+  const guitar = guitarLayout(stageWidth, layout.height);
   useEffect(() => {
-    usePreferences.getState().update({
-      instrument: config.selectedInstrument,
-      autoDetect: config.autoDetect,
-      stringIndex: selectedString
-    });
-  }, [config.selectedInstrument, config.autoDetect, selectedString]);
-  useEffect(() => {
+    if (!active) return;
     MicrophoneStream.setKeepAwake(true, "tuner");
     return () => {
       MicrophoneStream.setKeepAwake(false, "tuner");
       performanceAudio.stopPlayback();
     };
-  }, []);
+  }, [active]);
   const strings = useMemo(() => {
     const source = config.instruments[config.selectedInstrument].stringNotes;
     if (config.selectedInstrument !== "guitar" || !source) return source;
@@ -188,10 +202,41 @@ const Tuner: FC = () => {
     }));
   }, [config.selectedInstrument, config.instruments, tuning, customTuning]);
   useEffect(() => {
-    strings?.forEach((string) =>
-      prepareGuitar([(string.octave + 1) * 12 + noteNames.indexOf(string.name)])
-    );
-  }, [strings]);
+    if (!active || !painted) return;
+    if (isChromatic) {
+      const timer = setTimeout(
+        () =>
+          prepareGuitar(
+            [
+              ((chromaticOctave ?? 4) + 1) * 12 +
+                noteNames.indexOf(referenceNote)
+            ],
+            tunerReference
+          ),
+        80
+      );
+      return () => clearTimeout(timer);
+    }
+    let index = 0;
+    const warm = () => {
+      const string = strings?.[index++];
+      if (!string) return;
+      prepareGuitar([
+        (string.octave + 1) * 12 + noteNames.indexOf(string.name)
+      ]);
+      timer = setTimeout(warm, 16);
+    };
+    let timer = setTimeout(warm, 80);
+    return () => clearTimeout(timer);
+  }, [
+    strings,
+    active,
+    painted,
+    isChromatic,
+    referenceNote,
+    chromaticOctave,
+    tunerReference
+  ]);
   useEffect(() => {
     setStringNotes(
       config.autoDetect || !strings?.length
@@ -211,12 +256,36 @@ const Tuner: FC = () => {
     if (cueTimer.current !== undefined) clearTimeout(cueTimer.current);
   }, [strings, config.autoDetect, selectedString, fill, fillKey]);
   useEffect(() => {
+    if (!active) return;
     MicrophoneStream.setTargetNotes(stringNotes ?? []);
-  }, [stringNotes]);
+  }, [active, stringNotes]);
   useEffect(() => {
+    if (!active) {
+      note.value = null;
+      rms.value = 0;
+      return;
+    }
     if (isChromatic) note.value = null;
     let lastBufferAt = Date.now();
-    const id = MicrophoneStream.addListener((buffer: AudioBufferEvent) => {
+    const id = MicrophoneStream.addListener((input: AudioBufferEvent) => {
+      const calibrated = isChromatic
+        ? calibratedNote(input.pitch, referenceRef.current)
+        : null;
+      const buffer = isChromatic
+        ? {
+            ...input,
+            note: calibrated?.name ?? "Silence",
+            octave: calibrated?.octave ?? 0,
+            refFreq: calibrated?.refFreq ?? 0,
+            direction: calibrated?.direction ?? ("=" as const)
+          }
+        : input;
+      if (isChromatic)
+        signal.value = signalLevels(
+          input.samples ?? [],
+          input.sampleRate ?? 44100,
+          spectrumRef.current
+        );
       lastBufferAt = Date.now();
       rms.value = buffer.rms;
       if (
@@ -296,7 +365,7 @@ const Tuner: FC = () => {
       MicrophoneStream.removeListener(id);
       MicrophoneStream.stopRecording();
     };
-  }, [note, rms, fill, fillKey, isChromatic, chromaticOctave]);
+  }, [active, note, rms, fill, fillKey, signal, isChromatic, chromaticOctave]);
   const previewUntil = useRef(0);
   const selectString = (index: number) => {
     const string = strings?.[index];
@@ -304,28 +373,66 @@ const Tuner: FC = () => {
     previewUntil.current = Date.now() + 3100;
     if (cueTimer.current !== undefined) clearTimeout(cueTimer.current);
     playGuitar([(string.octave + 1) * 12 + noteNames.indexOf(string.name)]);
-    setSelectedString(index);
-    setConfig((previous) => ({ ...previous, autoDetect: false }));
+    usePreferences.getState().update({ stringIndex: index, autoDetect: false });
   };
-  const tapGesture = Gesture.Tap().onStart((e) => {
-    if (!strings) return;
+  const tapGesture = Gesture.Tap().onBegin((e) => {
+    if (!strings?.length || isChromatic) return;
     const { x, y } = e;
-    const bottom = neckHeight + bodyHeight * BRIDGE_Y_RATIO;
-    const spacing = stageWidth / (strings.length + 1);
-    strings.forEach((_, i) => {
-      const stringX = spacing * (i + 1);
-      const halfBox = Math.min(NOTE_BOX_WIDTH, spacing - 4) / 2;
-      const hit = Math.abs(x - stringX) < halfBox && y >= 0 && y <= bottom;
-      if (hit) runOnJS(selectString)(i);
-    });
+    const spacing = guitar.stringWidth / Math.max(1, strings.length - 1);
+    const index = Math.round((x - guitar.stringLeft) / spacing);
+    if (
+      index >= 0 &&
+      index < strings.length &&
+      Math.abs(x - guitar.stringLeft - index * spacing) <= spacing / 2 &&
+      y >= 0 &&
+      y <= Math.min(layout.height, guitar.stringBottom + 10)
+    )
+      runOnJS(selectString)(index);
   });
 
   const currString = stringNotes?.length === 1 ? stringNotes[0] : null;
-  const octaveLayout = chromaticLayout(stageWidth, bodyHeight);
+  const octaveLayout = chromaticLayout(stageWidth, layout.height);
   const selectOctave = (value: number | null) => {
     note.value = null;
     usePreferences.getState().update({ chromaticOctave: value });
     setChooseOctave(false);
+  };
+  useEffect(() => {
+    if (!active || !isChromatic) setReferencePlaying(false);
+    return () => {
+      if (referenceTimer.current !== undefined)
+        clearTimeout(referenceTimer.current);
+      performanceAudio.stopPlayback();
+    };
+  }, [active, isChromatic]);
+  const stopReference = () => {
+    previewUntil.current = Math.min(previewUntil.current, Date.now() + 180);
+    if (referenceTimer.current !== undefined)
+      clearTimeout(referenceTimer.current);
+    performanceAudio.stopPlayback();
+    setReferencePlaying(false);
+  };
+  const playReference = () => {
+    if (referencePlaying) {
+      stopReference();
+      return;
+    }
+    const name = referenceNote;
+    const octave = chromaticOctave ?? 4;
+    previewUntil.current = Date.now() + 3300;
+    note.value = null;
+    playGuitar([(octave + 1) * 12 + noteNames.indexOf(name)], tunerReference);
+    setReferencePlaying(true);
+    referenceTimer.current = setTimeout(stopReference, 3100);
+  };
+  const applyReference = (value: number) => {
+    if (!Number.isInteger(value) || value < 400 || value > 480) return;
+    stopReference();
+    note.value = null;
+    fill.value = 0;
+    tuningState.current.confirmed = "";
+    usePreferences.getState().update({ tunerReference: value });
+    setChooseCalibration(false);
   };
 
   return (
@@ -339,93 +446,169 @@ const Tuner: FC = () => {
       }}
     >
       <View
-        pointerEvents={painted ? "auto" : "none"}
-        style={[styles.flex, { width: stageWidth }, !painted && styles.hidden]}
+        pointerEvents={painted && backgroundReady ? "auto" : "none"}
+        style={[
+          styles.flex,
+          { width: stageWidth },
+          (!painted || !backgroundReady) && styles.hidden
+        ]}
       >
-        <ImageBackground
-          key={renderAttempt}
-          onLoad={() => setBackgroundReady(true)}
-          onError={() => setRenderError(true)}
-          source={require("../../../assets/images/screen-background/tuner-back-extended.png")}
-          style={[
-            styles.artwork,
-            isChromatic
-              ? octaveLayout.artwork
-              : { width: stageWidth, height: stageHeight, top: imageTop }
-          ]}
-          resizeMode="stretch"
-        />
+        {isChromatic ? (
+          <LinearGradient
+            colors={palette.chromatic.wash}
+            style={StyleSheet.absoluteFillObject}
+          />
+        ) : (
+          <ImageBackground
+            key={`${backgroundKey}:${renderAttempt}`}
+            onLoad={() => setLoadedBackground(backgroundKey)}
+            onError={() => setRenderError(true)}
+            source={
+              landscape
+                ? require("../../../assets/images/screen-background/tuner-grand-auditorium-landscape.png")
+                : require("../../../assets/images/screen-background/tuner-grand-auditorium.png")
+            }
+            style={[styles.artwork, guitar.artwork]}
+            resizeMode="stretch"
+          />
+        )}
         <GestureDetector gesture={tapGesture}>
           <Canvas ref={canvas} style={styles.flex}>
-            <Group transform={[{ translateY: neckHeight }]}>
-              {config.selectedInstrument === "guitar" ? (
-                <>
-                  <NoteIndicator
-                    onReady={markDialReady}
-                    note={note}
-                    fill={fill}
-                    currString={currString}
-                    width={stageWidth}
-                    height={bodyHeight}
-                    availableHeight={landscape ? layout.height - 80 : undefined}
-                  />
-                  <Strings
-                    onReady={markStringsReady}
-                    width={stageWidth}
-                    height={bodyHeight}
-                    neckHeight={neckHeight}
-                    rms={rms}
-                    fill={fill}
-                    fillKey={fillKey}
-                    note={note}
-                    stringNotes={strings}
-                    currString={currString}
-                  />
-                </>
-              ) : (
-                <ChromaticWheel
-                  onReady={markChromaticReady}
+            {config.selectedInstrument === "guitar" ? (
+              <>
+                <NoteIndicator
+                  onReady={markDialReady}
                   note={note}
+                  fill={fill}
+                  rms={rms}
+                  currString={currString}
                   width={stageWidth}
-                  height={bodyHeight}
+                  height={layout.height}
+                  availableHeight={
+                    landscape ? Math.max(40, layout.height - 130) : undefined
+                  }
                 />
-              )}
-            </Group>
+                <Strings
+                  onReady={markStringsReady}
+                  width={stageWidth}
+                  height={layout.height}
+                  rms={rms}
+                  fill={fill}
+                  fillKey={fillKey}
+                  note={note}
+                  stringNotes={strings}
+                  currString={currString}
+                />
+              </>
+            ) : (
+              <ChromaticWheel
+                onReady={markChromaticReady}
+                note={note}
+                fill={fill}
+                rms={rms}
+                signal={signal}
+                width={stageWidth}
+                height={layout.height}
+              />
+            )}
           </Canvas>
         </GestureDetector>
         {isChromatic && (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel={t("ChooseOctave")}
-            onPress={() => setChooseOctave(true)}
-            style={[
-              styles.octaveButton,
-              {
-                top: octaveLayout.octaveTop,
-                width: octaveLayout.octaveWidth,
-                left: octaveLayout.octaveLeft
-              }
-            ]}
-          >
-            <Text style={styles.octaveLabel}>
-              {t("OctaveButton", { value: chromaticOctave ?? t("Auto") })} ▾
-            </Text>
-          </Pressable>
+          <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
+            <View
+              style={[
+                styles.referenceOptions,
+                {
+                  top: octaveLayout.panelTop,
+                  left: octaveLayout.panelLeft,
+                  width: octaveLayout.panelWidth,
+                  height: octaveLayout.panelHeight
+                }
+              ]}
+            >
+              {noteNames.map((name) => (
+                <Pressable
+                  key={name}
+                  accessibilityRole="button"
+                  accessibilityLabel={t("ReferenceNote", { note: name })}
+                  accessibilityState={{ selected: referenceNote === name }}
+                  onPress={() => {
+                    stopReference();
+                    setReferenceNote(name);
+                  }}
+                  style={[
+                    styles.referenceNote,
+                    {
+                      width: `${100 / octaveLayout.columns}%`
+                    },
+                    referenceNote === name && styles.selectedReference
+                  ]}
+                />
+              ))}
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("ChooseOctave")}
+              onPress={() => setChooseOctave(true)}
+              style={[
+                styles.octaveButton,
+                {
+                  top: octaveLayout.octaveTop,
+                  width: octaveLayout.octaveWidth,
+                  left: octaveLayout.octaveLeft
+                }
+              ]}
+            >
+              <LinearGradient
+                colors={[
+                  palette.gold.rimLight,
+                  palette.gold.rimShade,
+                  palette.glass.control,
+                  palette.gold.center
+                ]}
+                locations={[0, 0.12, 0.5, 1]}
+                style={StyleSheet.absoluteFillObject}
+              />
+              <View pointerEvents="none" style={styles.octaveInset} />
+              <Text style={styles.octaveLabel}>
+                {t("OctaveButton", { value: chromaticOctave ?? t("Auto") })}
+              </Text>
+              <MaterialCommunityIcons
+                name="chevron-down"
+                size={18}
+                color={palette.gold.top}
+              />
+            </Pressable>
+          </View>
         )}
       </View>
       <View
-        pointerEvents={painted ? "box-none" : "none"}
+        pointerEvents={painted && backgroundReady ? "box-none" : "none"}
         style={[
           styles.controls,
-          !painted && styles.hidden,
+          (!painted || !backgroundReady) && styles.hidden,
           !isChromatic && layout.height < 420 && styles.sideControls
         ]}
       >
         <TunerButtons
+          key={renderAttempt}
           config={config}
           setConfig={setConfig}
+          tuning={tuning}
+          onReady={markControlsReady}
+          onError={() => setRenderError(true)}
           onOpenTuning={() => setChooseTuning(true)}
           compact={layout.height < 420}
+          spectrum={tunerSpectrum}
+          referencePlaying={referencePlaying}
+          onVisualization={() =>
+            usePreferences.getState().update({ tunerSpectrum: !tunerSpectrum })
+          }
+          onCalibration={() => {
+            setReferenceInput(String(tunerReference));
+            setChooseCalibration(true);
+          }}
+          onReference={playReference}
         />
       </View>
       {chooseOctave && (
@@ -453,6 +636,44 @@ const Tuner: FC = () => {
           </View>
         </Sheet>
       )}
+      {chooseCalibration && (
+        <Sheet
+          musical
+          title={t("TunerCalibration")}
+          onClose={() => setChooseCalibration(false)}
+        >
+          <Text style={styles.octaveHint}>{t("CalibrationHint")}</Text>
+          <View style={styles.calibrationRow}>
+            {[432, 440, 442].map((value) => (
+              <Action
+                key={value}
+                label={`A4 · ${value} Hz`}
+                selected={tunerReference === value}
+                onPress={() => applyReference(value)}
+              />
+            ))}
+          </View>
+          <TextInput
+            accessibilityLabel={t("ReferenceFrequency")}
+            value={referenceInput}
+            onChangeText={setReferenceInput}
+            keyboardType="number-pad"
+            maxLength={3}
+            selectTextOnFocus
+            style={styles.frequencyInput}
+          />
+          <Action
+            primary
+            label={t("ApplyCalibration")}
+            disabled={
+              !/^\d{3}$/.test(referenceInput) ||
+              Number(referenceInput) < 400 ||
+              Number(referenceInput) > 480
+            }
+            onPress={() => applyReference(Number(referenceInput))}
+          />
+        </Sheet>
+      )}
       {chooseTuning && <TuningSheet onClose={() => setChooseTuning(false)} />}
       {renderError && (
         <View style={styles.renderError} onLayout={reportReady}>
@@ -460,7 +681,7 @@ const Tuner: FC = () => {
           <Action
             label={t("Retry")}
             onPress={() => {
-              setBackgroundReady(false);
+              setLoadedBackground("");
               setRenderError(false);
               setRenderAttempt((value) => value + 1);
             }}
@@ -471,6 +692,31 @@ const Tuner: FC = () => {
   );
 };
 const styles = StyleSheet.create({
+  referenceOptions: {
+    position: "absolute",
+    flexDirection: "row",
+    flexWrap: "wrap",
+    paddingHorizontal: 8,
+    paddingVertical: 8
+  },
+  referenceNote: {
+    height: 32,
+    borderRadius: 8,
+    borderWidth: 0,
+    borderColor: palette.gold.top
+  },
+  selectedReference: { borderWidth: 1 },
+  calibrationRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  frequencyInput: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderColor: palette.glass.edge,
+    borderRadius: 16,
+    color: palette.gold.top,
+    textAlign: "center",
+    fontSize: 24,
+    padding: 10
+  },
   hidden: { opacity: 0 },
   renderError: {
     ...StyleSheet.absoluteFillObject,
@@ -483,12 +729,24 @@ const styles = StyleSheet.create({
   octaveButton: {
     position: "absolute",
     minHeight: 44,
-    borderRadius: 14,
+    borderRadius: 28,
+    overflow: "hidden",
+    flexDirection: "row",
+    gap: 6,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: palette.glass.control,
     borderWidth: 1,
     borderColor: palette.glass.edge
+  },
+  octaveInset: {
+    position: "absolute",
+    top: 1,
+    bottom: 1,
+    left: 1,
+    right: 1,
+    borderRadius: 27,
+    backgroundColor: palette.glass.control
   },
   octaveLabel: { color: palette.gold.top, fontSize: 15, fontWeight: "600" },
   octaveHint: { color: palette.glass.muted, fontSize: 16, lineHeight: 24 },

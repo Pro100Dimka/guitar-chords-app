@@ -14,7 +14,10 @@ import {
   View
 } from "react-native";
 import Text from "../../components/styled-text";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets
+} from "react-native-safe-area-context";
 import { WebView } from "react-native-webview";
 import Svg, { Circle, Line, Text as SvgText } from "react-native-svg";
 import { useTranslation } from "react-i18next";
@@ -80,10 +83,10 @@ export function Action({
         colors={
           selected || primary
             ? palette.finish.goldColors
-            : palette.finish.surfaceColors
+            : ["rgba(255,255,255,0.06)", "rgba(255,255,255,0)"]
         }
         style={[styles.actionGradient, !!icon && styles.iconGradient]}
-        locations={palette.finish.locations}
+        locations={selected || primary ? palette.finish.locations : [0, 1]}
       />
       {typeof icon === "string" ? (
         <MaterialCommunityIcons
@@ -113,18 +116,31 @@ export function Sheet({
   title,
   onClose,
   children,
-  musical = false
+  musical = false,
+  compact = false,
+  visible = true
 }: {
   title: string;
   onClose: () => void;
   children: React.ReactNode;
   musical?: boolean;
+  compact?: boolean;
+  visible?: boolean;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   return (
-    <Modal transparent animationType="slide" onRequestClose={onClose}>
-      <View style={styles.scrim}>
+    <Modal
+      visible={visible}
+      transparent
+      statusBarTranslucent
+      navigationBarTranslucent
+      supportedOrientations={["portrait", "landscape"]}
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={[styles.scrim, { paddingTop: insets.top + 8 }]}>
         <Pressable
           style={styles.backdrop}
           accessibilityLabel={t("Close")}
@@ -134,8 +150,8 @@ export function Sheet({
           edges={["bottom", "left", "right"]}
           style={[
             styles.sheet,
-            musical && styles.musicSheet,
-            musical && { width: Math.min(width - 24, 680) }
+            !compact && styles.fullSheet,
+            { width: Math.min(width - 16, 760) }
           ]}
         >
           {musical && (
@@ -155,22 +171,23 @@ export function Sheet({
             ]}
             style={StyleSheet.absoluteFillObject}
           />
-          <LinearGradient
-            colors={palette.finish.surfaceColors}
-            locations={palette.finish.locations}
-            style={styles.sheetHeader}
-          >
+          <View style={styles.sheetHeader}>
             <Text accessibilityRole="header" style={styles.sheetTitle}>
               {title}
             </Text>
-          </LinearGradient>
+            {!compact && (
+              <Action
+                compact
+                icon="close"
+                label={t("Close")}
+                onPress={onClose}
+              />
+            )}
+          </View>
           <ScrollView
             keyboardShouldPersistTaps="handled"
-            style={musical && styles.musicScroll}
-            contentContainerStyle={[
-              styles.sheetContent,
-              musical && styles.musicContent
-            ]}
+            style={compact ? styles.compactScroll : styles.musicScroll}
+            contentContainerStyle={styles.sheetContent}
           >
             {children}
           </ScrollView>
@@ -266,13 +283,15 @@ export function ChordSheet({
   chord,
   value,
   onChange,
-  onClose
+  onClose,
+  visible: opened = true
 }: {
   chord: string;
   capo?: number;
   value?: number;
   onChange: (index: number) => void;
   onClose: () => void;
+  visible?: boolean;
 }) {
   const { t } = useTranslation();
   useEffect(() => () => performanceAudio.stopPlayback(), []);
@@ -286,12 +305,11 @@ export function ChordSheet({
     132,
     (Math.min(width, 704) - 64) / (landscape ? 4 : 2) - 28
   );
-  const [page, setPage] = useState(() =>
-    Math.max(
-      0,
-      Math.floor(options.findIndex((option) => option.index === value) / 4)
-    )
+  const selectedPage = Math.max(
+    0,
+    Math.floor(options.findIndex((option) => option.index === value) / 4)
   );
+  const [page, setPage] = useState(selectedPage);
   const pageCount = Math.max(1, Math.ceil(options.length / 4));
   const currentPage = Math.min(page, pageCount - 1);
   const selectedIndex = value ?? options[0]?.index;
@@ -299,15 +317,45 @@ export function ChordSheet({
     () => options.slice(currentPage * 4, currentPage * 4 + 4),
     [options, currentPage]
   );
+  const nativePreview = performanceAudio.preparedGuitarSupported;
+  const previewKeys = visible.map(({ frets }) =>
+    `fingering:${JSON.stringify([capo, ...frets])}`
+  );
+  const previewKeysKey = JSON.stringify(previewKeys);
+  const preparedPreviews = useRef(new Set<string>());
+  const pendingPreview = useRef<string | null>(null);
+  useEffect(() => {
+    preparedPreviews.current.clear();
+    pendingPreview.current = null;
+  }, [previewKeysKey]);
+  useEffect(() => {
+    if (!opened) {
+      pendingPreview.current = null;
+      if (nativePreview) performanceAudio.stopPlayback();
+    }
+  }, [opened, nativePreview]);
   const [audition, setAudition] = useState({
     index: selectedIndex,
     request: 0
   });
+  const previousChord = useRef(chord);
+  useEffect(() => {
+    if (previousChord.current !== chord) {
+      previousChord.current = chord;
+      setPage(selectedPage);
+      setAudition({ index: 0, request: 0 });
+    } else if (!opened) {
+      setAudition((previous) => ({ ...previous, request: 0 }));
+    }
+  }, [chord, opened, selectedPage]);
   return (
-    <Sheet title={chord} onClose={onClose} musical>
+    <>
       <RhythmPlayer
         autoplay
         autoStart={
+          !nativePreview &&
+          opened &&
+          previousChord.current === chord &&
           audition.request > 0 &&
           visible.some((option) => option.index === audition.index)
         }
@@ -315,6 +363,16 @@ export function ChordSheet({
         chords={[chord]}
         capo={capo}
         fingerings={visible.map((option) => option.frets)}
+        previewKeys={nativePreview ? previewKeys : undefined}
+        onPreviewReady={(key, wave) => {
+          if (!previewKeys.includes(key)) return;
+          performanceAudio.prepareGuitar(key, wave);
+          preparedPreviews.current.add(key);
+          if (opened && pendingPreview.current === key) {
+            pendingPreview.current = null;
+            performanceAudio.playPreparedGuitar(key);
+          }
+        }}
         activeFingering={Math.max(
           0,
           visible.findIndex((option) => option.index === audition.index)
@@ -323,95 +381,103 @@ export function ChordSheet({
         meter={4}
         tempo={68}
       />
-      {options.length === 0 && (
-        <Text style={styles.description}>{t("NoFingering")}</Text>
-      )}
-      <View style={styles.shapes}>
-        {visible.map(({ frets, index, position, label }) => (
-          <Pressable
-            key={String(frets)}
-            accessibilityRole="button"
-            accessibilityLabel={`${t("Fingering")} ${index + 1}: ${frets.map((fret) => fret ?? "×").join(", ")}`}
-            accessibilityState={{ selected: selectedIndex === index }}
-            onPress={() => {
-              onChange(index);
-              setAudition((previous) => ({
-                index,
-                request: previous.request + 1
-              }));
-            }}
-            style={[
-              styles.shape,
-              landscape && styles.landscapeShape,
-              selectedIndex === index && styles.chordSelected
-            ]}
-          >
-            <LinearGradient
-              pointerEvents="none"
-              colors={palette.finish.surfaceColors}
-              locations={palette.finish.locations}
-              style={styles.shapeGradient}
-            />
-            <Text style={styles.positionLabel}>
-              {position === 0
-                ? t("OpenPosition")
-                : t("PositionFret", {
-                    fret: position
-                  })}
-            </Text>
-            <Diagram
-              frets={frets}
-              width={diagramWidth}
-              selected={selectedIndex === index}
-            />
-            <Text style={[styles.actionText, styles.glassText]}>
-              {label}
-              {selectedIndex === index ? " ✓" : ""}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
-      {pageCount > 1 && (
-        <View style={styles.pages}>
-          <Action
-            glass
-            icon="chevron-left"
-            label={t("PreviousShapes")}
-            disabled={currentPage === 0}
-            onPress={() => setPage(currentPage - 1)}
-          />
-          <View
-            style={styles.pageDots}
-            accessibilityLabel={`${currentPage + 1} / ${pageCount}`}
-          >
-            {Array.from({ length: Math.min(5, pageCount) }, (_, i) => {
-              const index =
-                Math.min(
-                  Math.max(0, currentPage - 2),
-                  Math.max(0, pageCount - 5)
-                ) + i;
-              return (
-                <View
-                  key={index}
-                  style={[
-                    styles.pageDot,
-                    index === currentPage && styles.pageDotActive
-                  ]}
-                />
-              );
-            })}
-          </View>
-          <Action
-            glass
-            icon="chevron-right"
-            label={t("NextShapes")}
-            disabled={currentPage + 1 === pageCount}
-            onPress={() => setPage(currentPage + 1)}
-          />
+      <Sheet title={chord} onClose={onClose} musical visible={opened}>
+        {options.length === 0 && (
+          <Text style={styles.description}>{t("NoFingering")}</Text>
+        )}
+        <View style={styles.shapes}>
+          {visible.map(({ frets, index, position, label }, visibleIndex) => (
+            <Pressable
+              key={String(frets)}
+              accessibilityRole="button"
+              accessibilityLabel={`${t("Fingering")} ${index + 1}: ${frets.map((fret) => fret ?? "×").join(", ")}`}
+              accessibilityState={{ selected: selectedIndex === index }}
+              onPressIn={() => {
+                if (nativePreview) {
+                  const key = previewKeys[visibleIndex];
+                  pendingPreview.current = key;
+                  if (preparedPreviews.current.has(key)) {
+                    pendingPreview.current = null;
+                    performanceAudio.playPreparedGuitar(key);
+                  }
+                }
+                setAudition((previous) => ({
+                  index,
+                  request: previous.request + 1
+                }));
+              }}
+              onPress={() => onChange(index)}
+              style={[
+                styles.shape,
+                landscape && styles.landscapeShape,
+                selectedIndex === index && styles.chordSelected
+              ]}
+            >
+              <LinearGradient
+                pointerEvents="none"
+                colors={["rgba(255,255,255,0.035)", "rgba(255,255,255,0)"]}
+                style={styles.shapeGradient}
+              />
+              <Text style={styles.positionLabel}>
+                {position === 0
+                  ? t("OpenPosition")
+                  : t("PositionFret", {
+                      fret: position
+                    })}
+              </Text>
+              <Diagram
+                frets={frets}
+                width={diagramWidth}
+                selected={selectedIndex === index}
+              />
+              <Text style={[styles.actionText, styles.glassText]}>
+                {label}
+                {selectedIndex === index ? " ✓" : ""}
+              </Text>
+            </Pressable>
+          ))}
         </View>
-      )}
-      <Text style={styles.description}>{t("FingeringHint")}</Text>
-    </Sheet>
+        {pageCount > 1 && (
+          <View style={styles.pages}>
+            <Action
+              glass
+              icon="chevron-left"
+              label={t("PreviousShapes")}
+              disabled={currentPage === 0}
+              onPress={() => setPage(currentPage - 1)}
+            />
+            <View
+              style={styles.pageDots}
+              accessibilityLabel={`${currentPage + 1} / ${pageCount}`}
+            >
+              {Array.from({ length: Math.min(5, pageCount) }, (_, i) => {
+                const index =
+                  Math.min(
+                    Math.max(0, currentPage - 2),
+                    Math.max(0, pageCount - 5)
+                  ) + i;
+                return (
+                  <View
+                    key={index}
+                    style={[
+                      styles.pageDot,
+                      index === currentPage && styles.pageDotActive
+                    ]}
+                  />
+                );
+              })}
+            </View>
+            <Action
+              glass
+              icon="chevron-right"
+              label={t("NextShapes")}
+              disabled={currentPage + 1 === pageCount}
+              onPress={() => setPage(currentPage + 1)}
+            />
+          </View>
+        )}
+      </Sheet>
+    </>
   );
 }
 
@@ -510,7 +576,6 @@ export function SongTools({
               ))}
             </View>
           )}
-          {!easier && <Text style={styles.description}>{t("CapoHint")}</Text>}
           <Action
             glass
             label={t(easier ? "BackToReading" : "PlayEasier")}
@@ -552,7 +617,6 @@ function EasierChords({
   const options = easierPositions(chords, value.transpose, value.capo);
   return (
     <>
-      <Text style={styles.description}>{t("EasierHint")}</Text>
       <Text style={styles.label}>{t("CurrentCapo", { capo: value.capo })}</Text>
       {!options.length && (
         <Text style={styles.description}>
@@ -615,9 +679,6 @@ function TransitionPractice({
   const ordered = [...sequence.slice(start), ...sequence.slice(0, start)];
   return (
     <>
-      <Text style={styles.description}>
-        {t("FullPracticeHint", { count: sequence.length })}
-      </Text>
       <RhythmPlayer
         pattern={value.strum || "D-D-D-D-"}
         meter={value.strum ? value.strumMeter : 4}
@@ -656,7 +717,6 @@ function TransitionPractice({
         ))}
       </View>
       <Text style={styles.description}>{sequence.join(" → ")}</Text>
-      <Text style={styles.description}>{t("PracticePrivateHint")}</Text>
     </>
   );
 }
@@ -708,12 +768,16 @@ function RhythmPlayer({
   capo = 0,
   shapes = {},
   fingerings,
+  previewKeys,
+  onPreviewReady,
   activeFingering = 0,
   stroke
 }: {
   autoplay?: boolean;
   stroke?: number;
   fingerings?: Frets[];
+  previewKeys?: string[];
+  onPreviewReady?: (key: string, wave: string) => void;
   activeFingering?: number;
   autoStart?: boolean;
   onStopped?: () => void;
@@ -728,8 +792,13 @@ function RhythmPlayer({
 }) {
   const { t } = useTranslation();
   const [active, setActive] = useState(AppState.currentState === "active");
+  const [canPrepare, setCanPrepare] = useState(false);
   const web = useRef<WebView>(null);
   const ready = useRef(false);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setCanPrepare(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
   useEffect(() => {
     const listener = AppState.addEventListener("change", (state) =>
       setActive(state === "active")
@@ -742,6 +811,7 @@ function RhythmPlayer({
   const progressionKey = progression.join(" ");
   const shapesKey = JSON.stringify(shapes);
   const fingeringsKey = JSON.stringify(fingerings ?? null);
+  const previewKeysKey = JSON.stringify(previewKeys ?? []);
   const frequencies = useMemo(() => {
     const selected: Record<string, number> = JSON.parse(shapesKey);
     const positions: (Frets | undefined)[] =
@@ -769,7 +839,22 @@ function RhythmPlayer({
       );
     });
   }, [progressionKey, shapesKey, fingeringsKey, capo]);
-  const bank = useMemo(() => acousticBank(frequencies.flat()), [frequencies]);
+  const bank = useMemo(
+    () => (canPrepare ? acousticBank(frequencies.flat()) : null),
+    [frequencies, canPrepare]
+  );
+  const instrument = useMemo(
+    () =>
+      bank
+        ? JSON.stringify({
+            chords: progressionKey.split(" "),
+            frequencies,
+            previewKeys: JSON.parse(previewKeysKey),
+            bank
+          })
+        : "",
+    [bank, frequencies, progressionKey, previewKeysKey]
+  );
   const labels = JSON.stringify({
     play: t(practice ? "StartPractice" : "ListenRhythm"),
     stop: t("Pause"),
@@ -788,14 +873,13 @@ function RhythmPlayer({
   });
   const preview = useMemo(
     () => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{background:transparent}body{margin:0;background:transparent;font-family:system-ui;color:${palette.glass.ink}}button{width:100%;height:48px;border:1px solid ${palette.glass.edge};border-radius:14px;background:${palette.glass.play};color:${palette.gold.ink};box-shadow:0 0 12px #ffb00077,inset 0 1px 1px #fff9c9;border-color:#ffe59b;background:linear-gradient(#fff2a6,#ffd65a 16%,#ffbc08 48%,#ffaa00 52%,#ffd34a);font:600 19px system-ui}#count{height:28px;line-height:28px;text-align:center;font-size:13px}${compact ? "button{width:44px;height:44px;border-radius:50%;margin:2px;box-shadow:0 0 2px #ffb00077,inset 0 1px 1px #fff9c9}#count{display:none}" : ""}</style></head><body><button id="play"></button><div id="count"></div><script>
-    let context,engine,timer,playing=false,step=0,next=0,start=0,preparing,playToken=0,lastChord=-1,singleStroke=false,activeFingering=0;
+    let context,engine,timer,playing=false,step=0,next=0,start=0,preparing=Promise.resolve(),playToken=0,lastChord=-1,singleStroke=false,activeFingering=0,loading=true,wantsPlay=false,instrumentToken=0;
     let pattern='D-D-D-D-',tempo=80,meter=4,practice=false;
-    const chords=${JSON.stringify(progressionKey.split(" "))},frequencies=${JSON.stringify(frequencies)};
+    let chords=[],frequencies=[];
     const labels=${labels};
     const button=document.getElementById('play'), count=document.getElementById('count');button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);
-    function stop(){playToken++;playing=false;clearTimeout(timer);engine?.stop();button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);count.textContent='';}
+    function stop(){playToken++;playing=false;wantsPlay=false;clearTimeout(timer);engine?.stop();button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);count.textContent='';}
     const createAcousticPlayer=${acousticEngine};
-    const audioBank=${JSON.stringify(bank)};
     function tick(){
       if(!playing)return;const now=context.currentTime;
       if(practice&&now-start>=60){stop();count.textContent=labels.done;return;}
@@ -815,49 +899,76 @@ function RhythmPlayer({
       count.textContent=chords[chordIndex]+' · '+beat+(practice?' · '+Math.max(0,60-Math.floor(elapsed))+' '+labels.seconds:'');
       timer=setTimeout(tick,20);
     }
-    function prepareAudio(){if(!context){context=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});engine=createAcousticPlayer(context,audioBank);preparing=engine.ready;}return preparing;}
+    function prepareAudio(){if(!context){context=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});engine=createAcousticPlayer(context);}return preparing;}
+    async function prepareFingerings(data,token){
+      const remaining=new Set(data.previewKeys.map((_,index)=>index));
+      while(remaining.size&&token===instrumentToken){
+        const index=remaining.has(activeFingering)?activeFingering:remaining.values().next().value;
+        remaining.delete(index);
+        const wave=await engine.renderPreview(data.frequencies[index]);
+        if(token!==instrumentToken)return;
+        window.ReactNativeWebView?.postMessage(JSON.stringify({type:'fingering',key:data.previewKeys[index],wave}));
+        await new Promise(resolve=>setTimeout(resolve,0));
+      }
+    }
     async function play(){
-      const token=++playToken;button.disabled=true;
+      const token=++playToken;wantsPlay=true;button.disabled=true;
       try{
         const prepared=prepareAudio();await context.resume();await prepared;
         if(token!==playToken||document.hidden)return;
-        step=0;lastChord=-1;start=context.currentTime+.035;next=start;playing=true;
+        step=0;lastChord=-1;start=context.currentTime+.015;next=start;playing=true;
         button.textContent=${compact ? JSON.stringify("❚❚") : "labels.stop"};button.setAttribute('aria-label',labels.stop);tick();
       }catch(e){stop();window.ReactNativeWebView?.postMessage('stopped');button.textContent=${compact ? JSON.stringify("!") : "labels.error"};button.setAttribute('aria-label',labels.error);}
       finally{if(token===playToken||!playing)button.disabled=false;}
     }
-    window.configurePlayer=config=>{
-      const resume=config.requested===null?playing:config.requested;
-      stop();pattern=config.pattern;tempo=config.tempo;meter=config.meter;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
-      if(resume)play();
+    window.loadInstrument=data=>{
+      const resume=playing||wantsPlay,token=++instrumentToken;
+      stop();wantsPlay=resume;loading=true;chords=data.chords;frequencies=data.frequencies;
+      prepareAudio();preparing=engine.loadBank(data.bank);
+      preparing.then(()=>{
+        if(token!==instrumentToken)return;loading=false;
+        if(data.previewKeys.length)prepareFingerings(data,token).catch(()=>window.ReactNativeWebView?.postMessage('stopped'));
+        if(wantsPlay)play();
+      }).catch(()=>{if(token!==instrumentToken)return;loading=false;stop();window.ReactNativeWebView?.postMessage('stopped');});
     };
-    button.onclick=()=>{if(playing){stop();return;}play();};
-    prepareAudio().then(()=>window.ReactNativeWebView?.postMessage('ready')).catch(()=>window.ReactNativeWebView?.postMessage('stopped'));
+    window.configurePlayer=config=>{
+      const resume=config.requested===null?(playing||wantsPlay):config.requested;
+      stop();pattern=config.pattern;tempo=config.tempo;meter=config.meter;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
+      wantsPlay=resume;if(resume&&!loading)play();
+    };
+    button.onclick=()=>{if(playing||wantsPlay){stop();return;}if(loading){wantsPlay=true;return;}play();};
+    prepareAudio();window.ReactNativeWebView?.postMessage('ready');
     document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();window.ReactNativeWebView?.postMessage('stopped');}});
     window.addEventListener('pagehide',()=>{stop();context?.close().catch(()=>{});});
   </script></body></html>`,
-    [bank, frequencies, progressionKey, labels, compact]
+    [labels, compact]
   );
   useEffect(() => {
     ready.current = false;
   }, [preview]);
+  useEffect(() => {
+    if (ready.current && instrument)
+      web.current?.injectJavaScript(
+        `window.loadInstrument(${instrument});true;`
+      );
+  }, [instrument]);
   useEffect(() => {
     if (ready.current)
       web.current?.injectJavaScript(
         `window.configurePlayer(${playConfig});true;`
       );
   }, [playConfig]);
+  const source = useMemo(() => ({ html: preview }), [preview]);
   return (
     <View style={autoplay ? styles.hiddenPreview : undefined}>
       {active && (
         <WebView
           ref={web}
-          key={`${capo}-${progressionKey}-${shapesKey}-${fingeringsKey}`}
           onLoadStart={() => {
             ready.current = false;
           }}
           originWhitelist={["about:blank"]}
-          source={{ html: preview }}
+          source={source}
           style={
             autoplay
               ? styles.hiddenPreview
@@ -869,19 +980,27 @@ function RhythmPlayer({
           javaScriptEnabled
           mediaPlaybackRequiresUserAction={!autoplay}
           onMessage={({ nativeEvent }) => {
+            if (nativeEvent.data.startsWith("{")) {
+              try {
+                const message = JSON.parse(nativeEvent.data);
+                if (message.type === "fingering" &&
+                    typeof message.key === "string" &&
+                    typeof message.wave === "string" &&
+                    message.wave.length <= 8000000)
+                  onPreviewReady?.(message.key, message.wave);
+              } catch {}
+              return;
+            }
             if (nativeEvent.data === "ready") {
               ready.current = true;
               web.current?.injectJavaScript(
-                `window.configurePlayer(${playConfig});true;`
+                `${instrument ? `window.loadInstrument(${instrument});` : ""}window.configurePlayer(${playConfig});true;`
               );
             }
             if (nativeEvent.data === "stopped") onStopped?.();
           }}
           onShouldStartLoadWithRequest={({ url }) => url === "about:blank"}
         />
-      )}
-      {!practice && !compact && !autoplay && (
-        <Text style={styles.description}>{t("RhythmPreview")}</Text>
       )}
     </View>
   );
@@ -921,7 +1040,6 @@ function RhythmEditor({
             key={item.id}
             style={[
               styles.rhythmCard,
-              styles.rhythmHeading,
               preset?.id === item.id && styles.rhythmCardSelected
             ]}
           >
@@ -938,18 +1056,32 @@ function RhythmEditor({
               }}
               style={[styles.rhythmRows, styles.rhythmChoice]}
             >
-              <View style={styles.rhythmHeading}>
+              <View style={[styles.rhythmHeading, styles.rhythmCardTitle]}>
                 <Text style={styles.label}>{t(item.title)}</Text>
                 <Text style={styles.positionLabel}>{item.meter}/4</Text>
               </View>
               <RhythmGrid pattern={item.pattern} meter={item.meter} />
             </Pressable>
-            <Action
-              primary
-              icon={audition === item.id ? "pause" : "play"}
-              label={`${t(audition === item.id ? "Pause" : "ListenRhythm")}: ${t(item.title)}`}
-              onPress={() => setAudition(audition === item.id ? "" : item.id)}
-            />
+            <View style={styles.rhythmControls}>
+              <Action
+                primary
+                icon={audition === item.id ? "pause" : "play"}
+                label={`${t(audition === item.id ? "Pause" : "ListenRhythm")}: ${t(item.title)}`}
+                onPress={() => setAudition(audition === item.id ? "" : item.id)}
+              />
+              <Action
+                icon={preset?.id === item.id ? "check-circle" : "check"}
+                selected={preset?.id === item.id}
+                label={`${t("ChooseRhythm")}: ${t(item.title)}`}
+                onPress={() =>
+                  onChange({
+                    strum: item.pattern,
+                    strumMeter: item.meter,
+                    strumPreset: item.id
+                  })
+                }
+              />
+            </View>
           </View>
         ))}
         <RhythmPlayer
@@ -963,7 +1095,7 @@ function RhythmEditor({
           shapes={value.shapes}
           onStopped={() => setAudition("")}
         />
-        <Text style={styles.description}>{t("RhythmCatalogHint")}</Text>
+
         <Action
           glass
           label={t("CustomRhythm")}
@@ -995,7 +1127,7 @@ function RhythmEditor({
           onPress={() => setBrowsing(true)}
         />
       </View>
-      <Text style={styles.description}>{t("RhythmPersonalHint")}</Text>
+
       {value.strum ? (
         <RhythmGrid pattern={value.strum} meter={value.strumMeter} />
       ) : (
@@ -1027,7 +1159,7 @@ function RhythmEditor({
           onPress={() => onChange({ tempo: Math.min(200, value.tempo + 5) })}
         />
       </View>
-      <Text style={styles.description}>{t("PracticeTempo")}</Text>
+
       <Action
         glass
         label={t("EditRhythm")}
@@ -1050,7 +1182,7 @@ function RhythmEditor({
           </View>
           <View style={styles.divider} />
           <Text style={styles.label}>{t("EditRhythm")}</Text>
-          <Text style={styles.description}>{t("StrumHint")}</Text>
+
           <View style={styles.row}>
             {Object.entries(rhythmSymbols).map(([symbol, label]) => (
               <Action
@@ -1072,7 +1204,6 @@ function RhythmEditor({
               }
             />
           </View>
-          <Text style={styles.description}>{t("RhythmPaddingHint")}</Text>
         </>
       )}
     </>
@@ -1166,31 +1297,30 @@ export const styles = StyleSheet.create({
     backgroundColor: palette.gold.top
   },
   sheetHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
     paddingHorizontal: 20,
-    paddingVertical: 18,
+    paddingVertical: 10,
+    backgroundColor: palette.glass.control,
     borderBottomWidth: 1,
     borderColor: palette.glass.surfaceEdge
   },
-  sheetTitle: { color: palette.glass.ink, fontSize: 21, fontWeight: "600" },
+  sheetTitle: {
+    flex: 1,
+    color: palette.glass.ink,
+    fontSize: 21,
+    fontWeight: "600"
+  },
   shapeGradient: { ...StyleSheet.absoluteFillObject, borderRadius: 14 },
   glassText: { color: palette.glass.ink },
-  musicSheet: {
-    alignSelf: "center",
-    height: "94%",
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: palette.glass.edge,
-    overflow: "hidden",
-    margin: 12,
-    padding: 0,
-    gap: 0,
-    backgroundColor: palette.colors.transparent
-  },
+  fullSheet: { height: "100%" },
+  compactScroll: { flexGrow: 0, flexShrink: 1 },
   musicScroll: {
+    flex: 1,
     borderWidth: 0,
     backgroundColor: palette.colors.transparent
   },
-  musicContent: { padding: 20, paddingBottom: 48, gap: 20 },
   glassAction: {
     backgroundColor: palette.glass.control,
     borderColor: palette.glass.edge,
@@ -1198,7 +1328,15 @@ export const styles = StyleSheet.create({
   },
   positionLabel: { color: palette.glass.muted, fontSize: 12, marginBottom: 4 },
   rhythmRows: { gap: 8 },
-  rhythmChoice: { flex: 1, minWidth: 0 },
+  rhythmChoice: { minWidth: 0 },
+  rhythmCardTitle: { paddingRight: 108 },
+  rhythmControls: {
+    position: "absolute",
+    top: 16,
+    right: 16,
+    flexDirection: "row",
+    gap: 8
+  },
   beats: { flexDirection: "row", gap: 3 },
   beat: {
     flex: 1,
@@ -1263,19 +1401,22 @@ export const styles = StyleSheet.create({
   pressed: { opacity: 0.78 },
   scrim: {
     flex: 1,
+    paddingBottom: 8,
     justifyContent: "flex-end",
     backgroundColor: palette.finish.scrim
   },
   backdrop: { ...StyleSheet.absoluteFillObject },
   sheet: {
-    maxHeight: "94%",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
+    alignSelf: "center",
+    maxHeight: "100%",
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: palette.glass.surfaceEdge,
+    overflow: "hidden",
     backgroundColor: palette.paper.background,
-    padding: 20,
-    gap: 16
+    padding: 0
   },
-  sheetContent: { gap: 16, paddingBottom: 20 },
+  sheetContent: { gap: 16, padding: 20, paddingBottom: 28 },
   row: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
   title: {
     flexBasis: 0,

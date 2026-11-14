@@ -1,17 +1,17 @@
 {
-  "build": 7,
+  "build": 10,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
-  "design_changes": false,
+  "design_changes": true,
   "checks": {
     "javascript": {
-      "suites": 10,
-      "tests": 46,
-      "status": "passed; includes new string playback order and rhythm switching regression"
+      "suites": 13,
+      "tests": 80,
+      "status": "Historical 80-test run before subsequent provider, guide and preview-audio changes. No new automated tests were run for the guide/audio revision or versionCode 10 packaging."
     },
-    "typescript": "passed",
-    "eslint": "passed",
-    "sqlite": "passed: CRUD, bound search, rollback, legacy adoption, repeat migration and newer schema rejection",
+    "typescript": "passed after the current source and regression-check changes",
+    "eslint": "passed for changed production guitar-audio, tuner and song sources",
+    "sqlite": "passed again: CRUD, bound search, rollback, legacy adoption, repeat migration and newer schema rejection",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
@@ -28,12 +28,321 @@
       "recordings": 250,
       "status": "250 recordings and room impulse decoded successfully; physical playback pending"
     },
-    "android_bundle": "passed: release AAB and both APK architectures built; Android lint 0 errors, 28 warnings; ZIP integrity; new 250 samples included, old bank absent; 21 arm64 libraries have >=16 KB ELF alignment; APK ZIP alignment verified. Physical-device and Google Play processing checks remain pending.",
-    "ios_javascript": "passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
+    "android_bundle": "Historical candidate only: passed: release AAB and both APK architectures built; Android lint 0 errors, 28 warnings; ZIP integrity; new 250 samples included, old bank absent; 21 arm64 libraries have >=16 KB ELF alignment; APK ZIP alignment verified. Physical-device and Google Play processing checks remain pending.",
+    "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "not run: requires macOS/Xcode",
     "device_tests": "owner to perform",
     "store_billing": "store product configuration and sandbox tests not verified",
-    "recording_polish": "passed: silence, rumble, gain, compression, limiting and room decay at 22050, 44100 and 48000 Hz; actual codec/device verification pending"
+    "recording_polish": "passed: silence, rumble, gain, compression, limiting and room decay at 22050, 44100 and 48000 Hz; actual codec/device verification pending",
+    "android_startup_review": {
+      "status": "investigated; physical cold-start verification pending",
+      "old_emulator_profile": "2048 MiB RAM, userdata on E: HDD; startup ANR while loading React Native libraries",
+      "evidence": {
+        "io_pressure_some_avg10": 97.97,
+        "io_pressure_full_avg10": 72.55,
+        "cpu_iowait_percent": 70,
+        "other_affected_processes": [
+          "Google Play services",
+          "Android Settings",
+          "media provider",
+          "Play Store"
+        ]
+      },
+      "repeat_profile": "Same saved candidate on the same HDD with 4096 MiB RAM; first activity launch after boot 23270 ms, subsequent launch 932 ms; no ANR recorded during that boot. These are emulator activity timings, not phone UI-ready timings.",
+      "interpretation": "Evidence points to boot-time storage contention and paging. More RAM prevents the observed ANR in this repeat but does not eliminate the HDD cold-read delay. No speculative application-threading change was made."
+    },
+    "content_lookup": {
+      "status": "focused fixtures and live source execution passed; not packaged",
+      "regression_cases": [
+        "canonical apostrophe URLs",
+        "LRCLIB fallback after mismatched nonempty results",
+        "cancelled crawl-delay reservations",
+        "crawl-delay preservation after a real request",
+        "partial failure versus healthy no-match",
+        "complete outage and cancellation",
+        "matching title and artist from one music metadata node"
+      ],
+      "live_cases": [
+        {
+          "track": "I Will Survive",
+          "artist": "Gloria Gaynor",
+          "source": "Cifra Club",
+          "has_chords": true
+        },
+        {
+          "track": "Broken",
+          "artist": "Seether",
+          "source": "Cifra Club",
+          "has_chords": true
+        },
+        {
+          "track": "I Will Survive",
+          "artist": "Gloria Gaynor",
+          "source": "Пісенник",
+          "has_chords": true,
+          "primary_failure": "simulated 503 from Cifra Club",
+          "elapsed_ms": 10560
+        },
+        {
+          "track": "Don't Look Back in Anger",
+          "artist": "Oasis",
+          "source": "Cifra Club",
+          "has_chords": true
+        }
+      ],
+      "remaining_limitation": "E-Chords and Cifras returned Cloudflare 403 challenge pages. No bypass attempted. Coverage and third-party permissions are not guaranteed."
+    },
+    "recording_device_history": "Earlier API 36 emulator run produced a decodable 295.951474-second AAC stereo recording at 44100 Hz, peak -9.672945 dBFS. Final saved UI appeared about 500 ms after Stop. This review did not rebuild or rerun the recorder.",
+    "release_fragment_restoration": {
+      "status": "Source correction passed isolated R8 checks; both actual versionCode 8 APKs preserve ScreenFragment and ScreenStackFragment names. Activity recreation on the new phone candidate remains to verify.",
+      "observed": "The saved minified candidate crashed when the system font size changed with navigation fragments present.",
+      "cause": "R8 renamed ScreenFragment and ScreenStackFragment; RNScreensFragmentFactory matches the original package prefix.",
+      "change": "Keep original names only for screen-library Fragment subclasses in app ProGuard rules.",
+      "proof": "Actual installed-library factory with deterministic Fragment stubs was compiled and obfuscated: both restoration attempts failed before the project rule and both passed with the rule. This is not a complete Android lifecycle test.",
+      "supersedes": "Earlier broad statements that activity recreation was fully verified do not cover this failing font-scale case."
+    },
+    "recording_device_review": {
+      "platform": "Saved Android API 36 x86_64 candidate in emulator; not a new APK",
+      "input_seconds": 240,
+      "injection_wall_seconds": 239.927,
+      "stop_to_settled_ui_ms": 798,
+      "output_seconds": 242.137687,
+      "codec": "AAC",
+      "rate": 44100,
+      "channels": 2,
+      "peak_dbfs": -10.129723,
+      "decode": "Complete decode; no NaN or infinite PCM values",
+      "limits": "Additional duration includes capture lead-in and effect tail. Input/output correlation confirms injected content. This does not certify subjective sound quality, timing on a physical phone, or the iOS recording path."
+    },
+    "production_audio_render": {
+      "status": "passed",
+      "engine": "Actual acousticEngine in Chromium OfflineAudioContext",
+      "cases": 32,
+      "coverage": "24 major/minor chords with transitions, and all eight built-in rhythms on Am/C/G/Em",
+      "clipped_samples": 0,
+      "highest_peak_dbfs": -5.13,
+      "limits": "Offline rendering does not measure speaker quality, mobile scheduling or tap-to-sound latency. Sound parameters and sample data were not changed."
+    },
+    "android_tuner_runtime": {
+      "status": "Passed bounded runtime checks on the saved Android API 36 candidate",
+      "scope": "Historical saved API 36 candidate. The completed endurance and six-note checks do not cover the new versionCode 8 phone APKs.",
+      "continuous_capture": {
+        "total_stream_seconds": 636,
+        "constant_A4_seconds": 600,
+        "stream_wall_seconds": 636.365,
+        "errors": 0,
+        "screenshots": 14,
+        "A4_displayed_hz_at_checkpoints": [
+          440,
+          439.8,
+          439.9,
+          439.8,
+          440
+        ]
+      },
+      "notes": "Chromatic and guitar-auto modes both identified E2, A2, D3, G3, B3 and E4 with the correct octaves.",
+      "deviation": "Chromatic +45 cents and -45 cents moved to opposite sides with red indication; +15 cents produced intermediate yellow-green indication.",
+      "responsiveness_after_endurance": "The unchanged capture then correctly followed E2 and E4, ruling out a frozen A4 reading at the final checkpoint.",
+      "resume": "Correct A4 after Home/return and correct A2 after display sleep/wake. Capture readiness was checked again before each stream.",
+      "crash_log": "Android crash buffer empty after these checks; application PID remained 3968.",
+      "limits": "Screenshot checkpoints do not measure continuous frame timing or prove physical-device accuracy, long-term voice handling, iOS operation or future-candidate lifecycle behavior.",
+      "synthetic_source_checks": "270 signals, 180 string transitions, 12 decay/drift sequences and 200 capture cycles passed using deterministic device stubs."
+    },
+    "source_performance_changes": [
+      "Do not evaluate the 4.3 MB tuner audio bank when importing tuner controls.",
+      "Prepare string previews only after the active tuner has painted its complete frame.",
+      "Defer the rhythm/fingering audio bank until the modal controls have mounted.",
+      "At the end of a song, starting recording or auto-scroll returns to the beginning; middle positions are preserved."
+    ],
+    "ios_orientation_source": "iPhone Info.plist now permits both landscape orientations; shared sheets permit portrait/landscape. Property list parsed, native compilation/runtime not run.",
+    "localization_coverage": {
+      "complete": [
+        "en",
+        "ru",
+        "ua"
+      ],
+      "matching_top_level_keys": 325,
+      "language_catalog_entries": 184,
+      "remaining_catalog_entries": 181,
+      "status": "Complete translations remain gradual as agreed; unimplemented languages are not selectable.",
+      "matching_leaf_fields": 480
+    },
+    "temporary_cleanup": {
+      "reclaimed_bytes": 0,
+      "reason": "Automatic approval review rejected recursive cache removal; no alternative deletion attempted.",
+      "remaining": [
+        {
+          "path": "E:\\CodexTemp\\freetune-final-audit\\jest-cache",
+          "bytes": 48992794
+        },
+        {
+          "path": "E:\\CodexTemp\\freetune-final-audit\\chrome-cache",
+          "bytes": 1905176
+        },
+        {
+          "path": "E:\\CodexTemp\\freetune-final-audit\\chrome-audio",
+          "bytes": 47874399
+        }
+      ]
+    },
+    "emulator_profile": {
+      "avd": "FreeTune_API36",
+      "ram_setting": "4G persisted in existing config.ini while emulator was stopped",
+      "restored": "Verified 1080x2400 at 420 dpi, font_scale=1.0, automatic rotation enabled. Changes were applied with FreeTune stopped."
+    },
+    "emulator_audio_harness": {
+      "status": "Corrected and smoke-tested before endurance run",
+      "precondition": "Inject only after the application owns an active input track and at least 0.5 seconds of captured frames advance. One paced injector; do not change capture ownership during injection.",
+      "smoke_result": "8-second A4 stream completed; screenshot showed A4, 440.0 Hz and green indication.",
+      "earlier_failure": "An earlier injection began before application capture and the emulator host exited with access violation 0xC0000005 in qemu-system-x86_64.exe. This is a harness/SDK failure, not an observed FreeTune Java/Kotlin crash.",
+      "launch": "The owner subsequently authorized autonomous restart. Existing AVD restarted with a waiting parent session; no SDK installation or new application build."
+    },
+    "recording_list_recovery": {
+      "status": "Reproduced before the source fix; regression check passed afterward",
+      "cause": "Android creates a zero-byte final-name placeholder while writing the processing file. An interrupted process can leave the placeholder in the native list without an active processing operation.",
+      "change": "Shared recording bridge excludes empty inactive takes and retains empty takes that are currently processing. No recordings are deleted.",
+      "scope": "Included in versionCode 8 Android phone APKs; physical-device verification pending."
+    },
+    "backup_commit_boundary": {
+      "status": "Passed success and simulated transaction-failure cases",
+      "confirmed": "Imported cover, favorite and chord shape preferences become visible only after successful database commit. Existing favorite and tempo preferences remain unchanged after commit failure.",
+      "limits": "State/transaction callback regression tests, not a physical disk-full or power-loss test."
+    },
+    "chromatic_redesign": {
+      "status": "Packaged in versionCode 8 Android phone APKs; static verification passed; phone runtime checks pending.",
+      "design": "Standalone dark chromatic face, metallic gold rim, circular controls; guitar mode artwork and default pitch references retained.",
+      "controls": [
+        "Microphone waveform/frequency spectrum display; note estimation unchanged by display mode",
+        "A4 reference 400-480 Hz, presets 432/440/442, saved locally; applied only to chromatic note mapping",
+        "Acoustic reference preview for selected note and octave (Auto uses octave 4); output follows calibration; microphone readings ignored during preview"
+      ],
+      "signal": "Android and iOS source export at most 256 averaged samples when no guitar target is active. A windowed 32-band Goertzel display uses actual samples; no FFT/network dependency.",
+      "verification": "77 JavaScript tests, TypeScript and changed-source ESLint passed. Android Kotlin pitch/capture suite passed after telemetry changes. Offscreen component renders at 390x700 and 780x320; six layout bounds checks passed.",
+      "limits": "Previews use a native-control layout adapter. New ARM phone APKs built and verified; no new native emulator run, phone check or native iOS compilation.",
+      "theme_review": {
+        "scope": "Visual polish of chromatic mode only",
+        "matched_to": [
+          "Existing library and song screens",
+          "Shared gold background, glass controls, gold finish and Manrope typography"
+        ],
+        "changes": [
+          "Shared application background visible through a transparent wash",
+          "Manrope for chromatic note, octave, frequency and pitch-strip labels",
+          "Thinner metallic rim and controlled highlights",
+          "Shared gold gradients and glass surfaces",
+          "Selected spectrum and reference-playback controls use the application gold selected state"
+        ],
+        "verification": "Manual offscreen render review in portrait and landscape, red off-pitch state, six layout bounds checks, TypeScript and changed-source ESLint passed. No new Jest cases or rerun for this purely visual change.",
+        "limits": "Native-control layout adapter used for previews; no APK/AAB, phone or iOS runtime verification. Detection, calibration, signal calculation and guitar-mode styling were not changed."
+      }
+    },
+    "android_phone_apks": {
+      "date": "2026-11-14",
+      "versionName": "1.0",
+      "versionCode": 8,
+      "purpose": "Standalone phone testing, not store submission",
+      "tests": "13 suites, 77 tests passed on current source",
+      "runtime": "Physical phone checks pending; no new AAB or native iOS archive",
+      "apks": [
+        {
+          "path": "E:\\Releases\\FreeTune\\FreeTune-chromatic-premium-2026-11-14-armeabi-v7a.apk",
+          "abi": "armeabi-v7a",
+          "versionCode": 8,
+          "bytes": 89577378,
+          "sha256": "13547fe43f08291074da6f78ad8de5ccdfa8bf5a9154351987611b634257ff35",
+          "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+          "bundleSha256": "d6918335db90b9c56f3211f09fe4ea5b72b62ff72e152c7c6272fbc78d3fdf8e",
+          "standaloneHermes": true,
+          "latestChromaticStrings": true,
+          "manropeAssets": [
+            "assets/fonts/Manrope-OFL.txt",
+            "assets/fonts/Manrope-Regular.ttf",
+            "assets/fonts/Manrope-SemiBold.ttf"
+          ],
+          "nativeLibraries": 22,
+          "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+          "navigationFragmentNames": "preserved",
+          "zipIntegrity": "passed"
+        },
+        {
+          "path": "E:\\Releases\\FreeTune\\FreeTune-chromatic-premium-2026-11-14-arm64-v8a.apk",
+          "abi": "arm64-v8a",
+          "versionCode": 8,
+          "bytes": 100409278,
+          "sha256": "f50f1e6587f97b0b4f375e3f5656afbceebb8e7242e79a294f92f5a17a72d961",
+          "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+          "bundleSha256": "d6918335db90b9c56f3211f09fe4ea5b72b62ff72e152c7c6272fbc78d3fdf8e",
+          "standaloneHermes": true,
+          "latestChromaticStrings": true,
+          "manropeAssets": [
+            "assets/fonts/Manrope-OFL.txt",
+            "assets/fonts/Manrope-Regular.ttf",
+            "assets/fonts/Manrope-SemiBold.ttf"
+          ],
+          "nativeLibraries": 22,
+          "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+          "navigationFragmentNames": "preserved",
+          "zipIntegrity": "passed"
+        }
+      ]
+    },
+    "recognition_lyrics_fallback": {
+      "status": "Source fix verified; not included in existing APKs",
+      "behavior": "Forward optional recognition lyrics and credit; fill an empty draft if external providers have no content. Preserve manual content and prefer real external arrangements.",
+      "verification": "Regression failed before fix and passed after it; 80 tests, TypeScript, ESLint and Android Kotlin compilation passed.",
+      "reported_case": "Jimmy / Friday May 14 returned no usable content from current providers, with two providers returning 403. Optional lyrics in the original recognition response remain unverified.",
+      "control_case": "Seether / Broken returned a real Cifra Club arrangement with chords through current source code."
+    },
+    "chord_provider_failover": {
+      "status": "Included in versionCode 9 phone APKs; 30 targeted tests across four suites, TypeScript and production-source ESLint passed",
+      "canonical_artist": "Eagles uses the-eagles on Cifra Club",
+      "backup_source": "GuitareTab, verified structured identity and same-origin chart discovery",
+      "live_primary": "Hotel California: real Cifra Club arrangement",
+      "live_primary_outage": "With Cifra Club simulated as HTTP 503: four real GuitareTab arrangements; Metallica returned real Pisennyk arrangement",
+      "external_blockers": "E-Chords and Cifras remain Cloudflare HTTP 403 on this network; backoff added, no challenge bypass",
+      "scope": "Windows Node live HTTP checks; physical phone pending"
+    },
+    "phone_apk_v9": {
+      "status": "passed",
+      "version_code": 9,
+      "signing": "Same test certificate as preceding sideload APKs",
+      "checks": [
+        "APK signature and SHA-256",
+        "ZIP integrity",
+        "16 KB ZIP alignment and ARM64 ELF alignment",
+        "Embedded production Hermes matches current source bundle",
+        "Current chord-provider and chromatic strings embedded",
+        "Native recognition lyrics key present in DEX",
+        "Navigation fragment names preserved"
+      ],
+      "verification": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc9-verification.json",
+      "physical_device": "not checked in this build task"
+    },
+    "preview_audio_and_guide": {
+      "status": "Included in versionCode 10 phone APKs; physical-device latency not measured",
+      "guide": "All 25 articles rewritten in English, Russian and Ukrainian; tuner illustrations refreshed; explicit return action",
+      "android_audio": "Prepared PCM and idle AudioTrack cache: at most 32 PCM entries and 8 ready tracks. Key-only preview commands. Existing attack and crossfade retained.",
+      "chord_previews": "Web Audio player stays mounted outside the fingering modal; preparation starts with the song and is retained after closing; touch-down auditions precede selection persistence.",
+      "verification": "TypeScript, production-source ESLint and Android Kotlin compilation; no new automated tests run for this task",
+      "physical_latency": "Not measured; no millisecond guarantee; Bluetooth output adds its own latency",
+      "ios": "Existing playback fallback retained; native iOS build not verified"
+    },
+    "phone_apk_v10": {
+      "status": "passed",
+      "version_code": 10,
+      "signing": "Same test certificate as earlier sideload APKs",
+      "checks": [
+        "Signature and copied-file SHA-256",
+        "ZIP integrity and 16 KB ZIP alignment",
+        "ARM64 ELF segment alignment",
+        "Current production Hermes bundle hash",
+        "Prepared native playback methods in DEX",
+        "Updated guide text and both tuner images",
+        "Preserved navigation fragment names"
+      ],
+      "verification": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc10-verification.json",
+      "physical_device": "not checked in this build task"
+    }
   },
   "privacy_forms_draft": [
     {
@@ -48,7 +357,7 @@
     },
     {
       "data": "YouTube/GitHub player traffic",
-      "flow": "Embedded wrapper loads on opening a song with a video URL. Third parties receive network/device information; cookies may be processed.",
+      "flow": "The user explicitly opens videos before the controlled embedded player loads. GitHub/YouTube can then receive network/device information and process cookies, including before playback starts.",
       "declaration": "Unresolved: confirm current provider practices and platform definitions before completing privacy labels. Do not blanket-declare no data collected."
     },
     {
@@ -60,9 +369,20 @@
       "data": "Support email",
       "flow": "Only if a user contacts the developer; email and message used for correspondence.",
       "declaration": "Document retention and deletion handling as in the privacy policy."
+    },
+    {
+      "data": "Song-recognition fingerprint",
+      "flow": "Android computes a signature locally and sends signature, excerpt duration and timing to the unofficial Shazam endpoint on user-started recognition. Raw PCM and audio files are not sent by that request. Request UUIDs are newly generated, not a stored device identifier. No location permission or measured coordinates are used.",
+      "declaration": "Treat this as an off-device transfer requiring a Data safety review. Do not assert no collection solely because the signature is derived locally. Confirm the appropriate audio/content category and service retention; ephemeral processing is not established."
+    },
+    {
+      "data": "Song title, artist and artwork requests",
+      "flow": "Identified title and artist are queried against chord/lyric providers. Artwork is downloaded from the recognition-result HTTPS URL. Providers receive IP/network information. Only selected content is stored locally after Save.",
+      "declaration": "Review optional app-functionality collection and user-initiated transfer exceptions against provider practices. The draft is not a completed or submitted Data safety form."
     }
   ],
   "phone_checklist": [
+    "After a full phone reboot, wait for normal system readiness, then record first launch, a force-stopped relaunch, visible UI-ready time and any ANR. Repeat without background downloads. Report exact phone model/OS.",
     "Tune every string with deliberate sharp/flat offsets, then let it decay. Check octave stability.",
     "Run tuner for 10 minutes including sustained voice; switch guitar/chromatic and selected octaves.",
     "Lock/unlock, background/return and interrupt audio. Check recovery and microphone release.",
@@ -73,7 +393,8 @@
     "Record while auto-scrolling; replay/export/delete. Check loud and quiet performances. Recordings are not in library backup.",
     "Deny microphone permission, then enable it in device settings. Test offline mode.",
     "Check portrait/landscape, large text and keyboard on a small phone. No overlap or unreachable controls.",
-    "When accounts exist, verify purchases, cancellation, pending state and recovery through store sandbox."
+    "When accounts exist, verify purchases, cancellation, pending state and recovery through store sandbox.",
+    "Recognize an international song; verify artist/title identity, complete lyrics/chords when available, apostrophes/remaster suffixes, retry after cancellation, a healthy no-match, airplane mode and blocked/slow providers. Never replace reviewed text with a late response."
   ],
   "outstanding": [
     {
@@ -95,6 +416,10 @@
     {
       "item": "Store screenshots and forms",
       "action": "Capture final device screens, review data-safety/age-rating/rights answers. Do not submit preview collages as genuine device screenshots."
+    },
+    {
+      "item": "External recognition and content providers",
+      "action": "Verify provider availability, automated-access/content permissions and privacy disclosures before publication. The unofficial Shazam endpoint has no contractual availability guarantee. Do not claim that every song has lyrics or chords."
     }
   ],
   "signing": {
@@ -109,24 +434,54 @@
     "https://developer.android.com/guide/practices/page-sizes",
     "https://developer.apple.com/app-store/app-privacy-details/",
     "https://developer.apple.com/app-store/review/guidelines/",
-    "https://github.com/facebookincubator/Meta-open-sound/tree/main/systems/instruments/meta-steel-guitar"
+    "https://github.com/facebookincubator/Meta-open-sound/tree/main/systems/instruments/meta-steel-guitar",
+    "https://support.google.com/googleplay/android-developer/answer/9859152?hl=en",
+    "https://support.google.com/googleplay/android-developer/answer/9866151?hl=en-NG",
+    "https://support.google.com/googleplay/android-developer/answer/10787469?hl=en",
+    "https://support.google.com/googleplay/android-developer/answer/14151465?hl=en"
   ],
   "artifacts": {
     "aab": {
       "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc7.aab",
       "bytes": 97296005,
-      "sha256": "24a55050e0a248391ba0a9c440e0d9e19038851e10c15628b68d54e59cdbb5dd"
+      "sha256": "24a55050e0a248391ba0a9c440e0d9e19038851e10c15628b68d54e59cdbb5dd",
+      "version_code": 7
     },
     "apk_arm64": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc7-arm64-v8a.apk",
-      "bytes": 95647453,
-      "sha256": "002efd43a0073d75531ce1cb3f1aec93e1e9501a80a1bb4a44e7b5bd28c45c40"
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc10-arm64-v8a.apk",
+      "bytes": 101337582,
+      "sha256": "3db6bd917ab80e8c3d5b65d29c4b6d1bb993fb566b2c6da23ef0e7d66a2a2f2b",
+      "version_code": 10
     },
     "apk_arm32": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc7-armeabi-v7a.apk",
-      "bytes": 84928263,
-      "sha256": "415adae5008e813970df9a8c762a57e147a0ee463d5357194a26cee42e8cae67"
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc10-armeabi-v7a.apk",
+      "bytes": 90505682,
+      "sha256": "0353a01d9e3345053bb399ed6ccf95f38dfa78018722506624f7932c204b148e",
+      "version_code": 10
     },
-    "version_code": 7
+    "version_code": 10
+  },
+  "reviewed_on": "2026-11-14",
+  "review_scope": "Source performance and scrolling fixes, minified-fragment restoration investigation, emulator recording and UI measurements, production Web Audio rendering and store-material preparation. No new APK/AAB.",
+  "artifact_scope": "VersionCode 10 ARM64 and ARM32 phone APKs include all current source changes: full 25-topic guide revision in three languages, refreshed tuner illustrations, prepared native string playback, persistent fingering player and touch-down auditions, chromatic tuner and prior song lookup fixes. Fresh production Hermes and native app code are included. APKs retain the preceding sideload test certificate. The listed AAB remains historical versionCode 7. No new store bundle, native iOS archive or physical-device latency verification is claimed.",
+  "google_play_preparation": {
+    "status": "draft materials, not submitted",
+    "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
+    "new_personal_accounts": "If the account is subject to the current personal-account requirement, at least 12 opted-in closed testers must remain continuously opted in for 14 days before requesting production access. Confirm the actual dashboard requirement.",
+    "public_urls": "Prepared a manual GitHub Pages workflow that publishes only privacy.html, support.html and a support index. It has not been pushed, run or deployed. No public URLs are claimed.",
+    "graphics": "512x512 icon, localized 1024x500 feature graphics and actual 1080x1920 emulator screenshots are prepared separately for review. Refresh captures against the final candidate before submission.",
+    "pending_owner_answers": [
+      "Target audience age groups and IARC answers",
+      "Provider rights and retention review for Data safety",
+      "Public hosting URLs",
+      "Store support-product configuration and sandbox purchase results"
+    ],
+    "sources": [
+      "https://support.google.com/googleplay/android-developer/answer/9859152?hl=en",
+      "https://support.google.com/googleplay/android-developer/answer/9866151?hl=en-NG",
+      "https://support.google.com/googleplay/android-developer/answer/10787469?hl=en",
+      "https://support.google.com/googleplay/android-developer/answer/14151465?hl=en"
+    ],
+    "target_audience": "13-15, 16-17 and 18+ recommended as a draft after the owner requested advice; IARC remains unassigned and nothing is submitted."
   }
 }

@@ -26,7 +26,7 @@ export default function SongRecorder({
   active: boolean;
   onStart: () => void;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -208,12 +208,13 @@ export default function SongRecorder({
             }
           }}
         >
-          <Text style={styles.hint}>{t("RecordingLocalHint")}</Text>
           {!takes.length && recordControl}
           {takes.map((take) => (
             <View key={take.path} style={styles.card}>
               <Text style={styles.title}>
-                {new Date(take.date).toLocaleString()}
+                {new Date(take.date).toLocaleString(
+                  i18n.language === "ua" ? "uk" : i18n.language
+                )}
               </Text>
               {take.processing && (
                 <Text style={styles.hint}>{t("RecordingProcessing")}</Text>
@@ -284,7 +285,6 @@ export default function SongRecorder({
             </View>
           ))}
           {!!takes.length && recordControl}
-          <Text style={styles.hint}>{t("RecordPerformanceHint")}</Text>
         </Sheet>
       )}
     </View>

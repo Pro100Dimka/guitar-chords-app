@@ -1,7 +1,7 @@
 {
   "app_id": "com.freetune",
   "version": "1.0",
-  "build": 6,
+  "build": 7,
   "category": "Music & Audio / Music",
   "price": "Free",
   "contact": {
@@ -11,24 +11,24 @@
   "localizations": {
     "ru": {
       "title": "FreeTune: тюнер и аккорды",
-      "short_description": "Настраивайте гитару, храните песни, изучайте аккорды и записывайте исполнение.",
-      "description": "FreeTune помогает настроить гитару и играть любимые песни.\n\n• Гитарный и хроматический тюнер, готовые и собственные строи.\n• Личная библиотека песен: текст, аккорды, обложки и ссылки на видео.\n• Аппликатуры по грифу, транспонирование и каподастр.\n• Каталог боёв с прослушиванием и практика последовательности аккордов.\n• Автопрокрутка текста и запись исполнения на устройстве.\n• Импорт TXT и ChordPro, резервная копия библиотеки.\n\nОсновные функции работают без интернета. Для видео и добровольной поддержки через магазин нужно подключение. Реклама и обязательная регистрация отсутствуют.\n\nПесни добавляет пользователь. Аудиозаписи экспортируются отдельно от резервной копии библиотеки."
+      "short_description": "Настраивайте гитару, храните песни, изучайте аккорды и записывайте исполнение",
+      "description": "FreeTune помогает настроить гитару и играть любимые песни.\n\n• Гитарный и хроматический тюнер, готовые и собственные строи.\n• Личная библиотека песен: текст, аккорды, обложки и ссылки на видео.\n• Аппликатуры по грифу, транспонирование и каподастр.\n• Каталог боёв с прослушиванием и практика последовательности аккордов.\n• Автопрокрутка текста и запись исполнения на устройстве.\n• Импорт TXT и ChordPro, резервная копия библиотеки.\n• Распознавание песни с микрофона или аудиофайла, поиск обложки, текста и аккордов.\n• Инструкция с поиском по вопросам и разделам.\n\nОсновные функции работают без интернета. Распознавание, поиск текста и обложек, видео и добровольная поддержка через магазин требуют подключения. Найти текст и аккорды удаётся не для каждой песни: это зависит от доступных источников. Реклама и обязательная регистрация отсутствуют.\n\nПесни добавляет пользователь. Аудиозаписи экспортируются отдельно от резервной копии библиотеки."
     },
     "uk": {
       "title": "FreeTune: тюнер і акорди",
-      "short_description": "Налаштовуйте гітару, зберігайте пісні, вивчайте акорди й записуйте виконання.",
-      "description": "FreeTune допомагає налаштувати гітару та грати улюблені пісні.\n\n• Гітарний і хроматичний тюнер, готові й власні строї.\n• Особиста бібліотека: текст, акорди, обкладинки й відеопосилання.\n• Аплікатури по грифу, транспонування й каподастр.\n• Каталог боїв із прослуховуванням і практика акордів пісні.\n• Автопрокрутка тексту й запис виконання на пристрої.\n• Імпорт TXT та ChordPro, резервна копія бібліотеки.\n\nОсновні функції працюють без інтернету. Відео та добровільна підтримка через магазин потребують з’єднання. Без реклами й обов’язкової реєстрації.\n\nПісні додає користувач. Аудіозаписи експортуються окремо від резервної копії бібліотеки."
+      "short_description": "Налаштовуйте гітару, зберігайте пісні, вивчайте акорди й записуйте виконання",
+      "description": "FreeTune допомагає налаштувати гітару та грати улюблені пісні.\n\n• Гітарний і хроматичний тюнер, готові й власні строї.\n• Особиста бібліотека: текст, акорди, обкладинки й відеопосилання.\n• Аплікатури по грифу, транспонування й каподастр.\n• Каталог боїв із прослуховуванням і практика акордів пісні.\n• Автопрокрутка тексту й запис виконання на пристрої.\n• Імпорт TXT та ChordPro, резервна копія бібліотеки.\n• Розпізнавання пісні з мікрофона або аудіофайлу, пошук обкладинки, тексту й акордів.\n• Інструкція з пошуком за питаннями та розділами.\n\nОсновні функції працюють без інтернету. Розпізнавання, пошук тексту й обкладинок, відео та добровільна підтримка через магазин потребують з’єднання. Текст і акорди знаходяться не для кожної пісні: це залежить від доступних джерел. Без реклами й обов’язкової реєстрації.\n\nПісні додає користувач. Аудіозаписи експортуються окремо від резервної копії бібліотеки."
     },
     "en": {
       "title": "FreeTune: Tuner & Chords",
-      "short_description": "Tune your guitar, organize songs, explore chords and record your performances.",
-      "description": "FreeTune helps you tune your guitar and play your favorite songs.\n\n• Guitar and chromatic tuners, preset and custom tunings.\n• Your song library with lyrics, chords, covers and video links.\n• Chord fingerings across the neck, transposition and capo settings.\n• Strumming patterns with playback and chord-sequence practice.\n• Auto-scrolling lyrics and local performance recording.\n• TXT and ChordPro import, plus library backup.\n\nCore features work offline. Videos and optional store-based developer support require an internet connection. No ads or mandatory account.\n\nUsers add their own songs. Export audio recordings separately from library backups."
+      "short_description": "Tune your guitar, organize songs, explore chords and record your performances",
+      "description": "FreeTune helps you tune your guitar and play your favorite songs.\n\n• Guitar and chromatic tuners, preset and custom tunings.\n• Your song library with lyrics, chords, covers and video links.\n• Chord fingerings across the neck, transposition and capo settings.\n• Strumming patterns with playback and chord-sequence practice.\n• Auto-scrolling lyrics and local performance recording.\n• TXT and ChordPro import, plus library backup.\n• Identify songs from the microphone or an audio file and look up artwork, lyrics and chords.\n• A searchable guide to features and common questions.\n\nCore features work offline. Recognition, lyric and artwork lookup, videos and optional store-based developer support require an internet connection. Lyrics and chords are not available for every song and depend on external sources. No ads or mandatory account.\n\nUsers add their own songs. Export audio recordings separately from library backups."
     }
   },
   "privacy_url": null,
   "support_url": null,
   "public_submission_ready": false,
-  "reviewer_notes": "No login is required. Allow microphone access for tuning or recording. Add a song with Am, C, G and Em on a chord line and original sample lyrics. Tap a chord to preview fingerings. Open song settings for rhythm playback and practice. Recording is local and starts only on user action. Library backups exclude recordings. The consumable freetune_support is optional and unlocks no features. Configure and test it in each store before review. Guitar playback uses Meta Steel Guitar recordings under CC0; attribution is available in the app. Physical-device and store purchase verification remain pending.",
+  "reviewer_notes": "No login is required. Microphone access is optional and used for tuning, user-started performance recording, and microphone song recognition. Android library > Add offers manual entry, microphone recognition, audio-file recognition and TXT/ChordPro import. Recognition and content lookup need a network connection; external services can be unavailable or return no match. Retrieved content is reviewed in the song form before saving. Imported and recognized chords appear above the lyrics. Tap a chord to preview fingerings. Open song settings for rhythm playback and practice. Local recording starts only on user action. Recordings are exported separately from library backups. YouTube players load only after Show videos is selected. The optional consumable freetune_support unlocks no features; its store configuration and sandbox verification remain pending. Guitar playback uses Meta Steel Guitar recordings under CC0. Physical-device verification and final store configuration remain required.",
   "screenshot_plan": [
     "Guitar tuner with input",
     "Chromatic tuner with input",
@@ -39,5 +39,18 @@
     "Practice",
     "Local recording list"
   ],
-  "screenshot_note": "Capture actual final builds on Android and iPhone. Existing collages are design previews, not verified store screenshots. Do not include commercial lyrics, performers or artwork without appropriate rights."
+  "screenshot_note": "Use actual emulator or device captures with original demonstration content. The prepared graphics use captures from the last verified emulator candidate. Current lookup fixes have not been packaged, as requested. Refresh and review captures against the final release candidate before submission. The review collage is not an upload screenshot. Do not include commercial song lyrics, artists or artwork without appropriate rights.",
+  "prepared_on": "2026-11-14",
+  "preparation_scope": "Listing and review materials only. No new APK or Android App Bundle created. Nothing submitted to a store.",
+  "target_audience_draft": {
+    "age_groups": [
+      "13-15",
+      "16-17",
+      "18+"
+    ],
+    "status": "recommended for owner review, not submitted",
+    "basis": "General guitar tuning and song practice for teenagers and adults. External lyrics and videos require a separate content-rating review.",
+    "content_rating": "IARC questionnaire not completed; no rating assigned",
+    "source": "https://support.google.com/googleplay/android-developer/answer/9867159?hl=en"
+  }
 }

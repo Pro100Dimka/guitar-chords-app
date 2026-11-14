@@ -134,6 +134,13 @@ class MicrophoneStream: RCTEventEmitter {
             let pitch = self.smoothPitch(rawPitch)
             var noteData = self.frequencyToNoteData(pitch)
             noteData["rms"] = Double(rms)
+            if self.targetNotes.isEmpty {
+                let step = max(1, min(floatData.count, 1024) / 256)
+                noteData["samples"] = (0..<min(256, floatData.count / step)).map { index in
+                    (0..<step).reduce(0.0) { $0 + Double(floatData[index * step + $1]) } / Double(step)
+                }
+                noteData["sampleRate"] = buffer.format.sampleRate / Double(step)
+            }
             self.sendEvent("onAudioBuffer", body: noteData)
         }
 

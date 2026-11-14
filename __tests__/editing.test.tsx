@@ -4,8 +4,10 @@ import {
   TextInput,
   TouchableOpacity,
   FlatList,
+  ScrollView,
   Text,
-  AppState
+  AppState,
+  NativeModules
 } from "react-native";
 import Select from "../src/components/fields/api-select";
 import Song from "../src/screens/song";
@@ -21,6 +23,7 @@ import {
   PerformanceEvent
 } from "../src/components/performance-audio";
 import * as crud from "../src/components/database/crud";
+import * as acousticPlayer from "../src/components/acoustic-player";
 jest.mock("../src/screens/tuner", () => () => null);
 jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
   setKeepAwake: jest.fn()
@@ -33,7 +36,9 @@ jest.mock("../src/components/database/crud", () => ({
   createItem: jest.fn(),
   updateItem: jest.fn()
 }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: String, i18n: { language: "en" } })
+}));
 jest.mock("../src/locales", () => ({ t: String }));
 jest.mock("@react-navigation/native", () => ({
   useIsFocused: () => true,
@@ -55,6 +60,37 @@ jest.mock(
       children
 );
 let screen: Renderer.ReactTestRenderer | undefined;
+
+test("recording list hides empty interrupted takes while retaining active processing", async () => {
+  const previous = NativeModules.PerformanceAudio;
+  const saved = { path: "saved.m4a", date: 3, bytes: 2048 };
+  const processing = {
+    path: "processing.m4a",
+    date: 2,
+    bytes: 0,
+    processing: true
+  };
+  NativeModules.PerformanceAudio = {
+    addListener: jest.fn(),
+    removeListeners: jest.fn(),
+    listTakes: jest
+      .fn()
+      .mockResolvedValue([
+        saved,
+        processing,
+        { path: "interrupted.m4a", date: 1, bytes: 0, processing: false }
+      ])
+  };
+  try {
+    const { performanceAudio: actual } = jest.requireActual<
+      typeof import("../src/components/performance-audio")
+    >("../src/components/performance-audio");
+    await expect(actual.list(1)).resolves.toEqual([saved, processing]);
+  } finally {
+    NativeModules.PerformanceAudio = previous;
+  }
+});
+
 beforeEach(() => {
   jest
     .spyOn(AppState, "addEventListener")
@@ -85,12 +121,70 @@ test("starting a recording enables lyric scrolling and allows an independent pau
   expect(scrollButton().props.selected).toBe(false);
   expect(screen!.root.findByType(SongRecorder).props.active).toBe(true);
 });
+
+test.each([
+  { position: 300, expected: 300 },
+  { position: 1200, expected: 0 }
+])(
+  "recording resumes scrolling from $expected when saved at $position",
+  async ({ position, expected }) => {
+    jest.useFakeTimers();
+    jest
+      .mocked(crud.getAllItems)
+      .mockResolvedValue([
+        { id: 1, title: "Song", content: "Am\nOriginal words" }
+      ]);
+    await act(async () => {
+      screen = Renderer.create(<Song />);
+    });
+    const scroll = screen!.root.findByType(ScrollView);
+    const scrollTo = jest.spyOn(scroll.instance, "scrollTo");
+    await act(async () => {
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 400 } } });
+      scroll.props.onContentSizeChange(360, 1600);
+      scroll.props.onScroll({
+        nativeEvent: { contentOffset: { y: position } }
+      });
+    });
+    scrollTo.mockClear();
+    await act(async () =>
+      screen!.root.findByType(SongRecorder).props.onStart()
+    );
+    await act(async () => jest.advanceTimersByTime(32));
+    expect(scrollTo).toHaveBeenCalledWith({ y: expected, animated: false });
+    expect(
+      screen!.root
+        .findAllByType(Action)
+        .find((button) => button.props.label === "ScrollLyrics")!.props.selected
+    ).toBe(true);
+  }
+);
 afterEach(async () => {
   if (screen) await act(async () => screen!.unmount());
   screen = undefined;
   jest.resetAllMocks();
   jest.restoreAllMocks();
   jest.useRealTimers();
+});
+
+test("opening song tools mounts the controls before preparing the audio bank", async () => {
+  jest.useFakeTimers();
+  const bank = jest.spyOn(acousticPlayer, "acousticBank");
+  await act(async () => {
+    screen = Renderer.create(
+      <SongTools
+        initialTab="rhythm"
+        content="Am\nOriginal words"
+        value={defaultSongPreferences}
+        onChange={() => {}}
+        onClose={() => {}}
+      />
+    );
+  });
+  expect(screen!.root.findAllByType(RhythmGrid)).toHaveLength(rhythms.length);
+  expect(bank).not.toHaveBeenCalled();
+  await act(async () => jest.advanceTimersByTime(32));
+  expect(bank).toHaveBeenCalledTimes(1);
 });
 test("each rhythm can be selected once through its full pattern and applied", async () => {
   const change = jest.fn();
@@ -122,9 +216,7 @@ test("each rhythm can be selected once through its full pattern and applied", as
   const previews = () =>
     screen!.root
       .findAllByType(Action)
-      .filter(
-        (node) => node.props.icon === "play" || node.props.icon === "pause"
-      );
+      .filter((node) => ["play", "pause"].includes(node.props.icon));
   expect(previews()).toHaveLength(rhythms.length);
   for (let index = 0; index < rhythms.length; index++) {
     await act(async () => previews()[index].props.onPress());
@@ -235,6 +327,11 @@ test("each rhythm can be selected once through its full pattern and applied", as
   });
   for (let i = 0; i < 20; i++) await Promise.resolve();
   expect(window.ReactNativeWebView.postMessage).toHaveBeenCalledWith("ready");
+  const initialization = injectJavaScript.mock.calls.find(([script]) =>
+    script.startsWith("window.loadInstrument(")
+  )![0];
+  require("node:vm").runInNewContext(initialization.split(";")[0], { window });
+  for (let i = 0; i < 20; i++) await Promise.resolve();
   window.configurePlayer({
     stroke: null,
     activeFingering: 0,
@@ -251,14 +348,11 @@ test("each rhythm can be selected once through its full pattern and applied", as
   expect(sampleCount).toBeGreaterThanOrEqual(4);
   const down = sources.slice(0, sampleCount);
   const up = sources.slice(sampleCount, sampleCount + 3);
-  expect(down.map((voice) => voice.buffer)).toEqual(
-    decoded.slice(1 + sampleCount)
-  );
+  const medium = decoded.filter((_, index) => index > 0 && index % 2 === 0);
+  const soft = decoded.filter((_, index) => index % 2 === 1);
+  expect(down.map((voice) => voice.buffer)).toEqual(medium);
   expect(up.map((voice) => voice.buffer)).toEqual(
-    decoded
-      .slice(1, 1 + sampleCount)
-      .reverse()
-      .slice(0, 3)
+    [...soft].reverse().slice(0, 3)
   );
   for (const stroke of [down, up]) {
     const times = stroke.map((voice) => voice.start.mock.calls[0][0]);
@@ -281,7 +375,7 @@ test("each rhythm can be selected once through its full pattern and applied", as
   expect(AudioContext).toHaveBeenCalledTimes(1);
   expect(decoded).toHaveLength(decodeCount);
   expect(previous.every((voice) => voice.stop.mock.calls.length)).toBe(true);
-  expect(sources[previous.length].buffer).toBe(decoded[sampleCount]);
+  expect(sources[previous.length].buffer).toBe(soft.at(-1));
   window.configurePlayer({
     stroke: null,
     activeFingering: 0,

@@ -15,6 +15,7 @@ import palette from "../../theme/palette";
 import { useNavigation } from "@react-navigation/native";
 import { NavigationProp } from "../../router";
 import { deleteItem } from "@/components/database/crud";
+import { usePreferences } from "@/components/preferences";
 interface ISongModalProps {
   setIsEdit: (_: boolean) => void;
   songId: number;
@@ -31,6 +32,7 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
       async () => {
         await deleteItem({ tableName: "songs", filters: `id =${songId}` })
           .then(() => {
+            usePreferences.getState().removeSong(songId);
             navigation.navigate("Tabs", { screen: "library" });
             Alert.alert(t`ElementDeleted`);
           })

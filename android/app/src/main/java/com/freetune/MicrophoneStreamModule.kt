@@ -298,6 +298,17 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
                     val map = Arguments.createMap()
                     map.putDouble("rms", rms)
                     map.merge(noteData)
+                    if (targetNotes.isEmpty()) {
+                        val step = maxOf(1, minOf(read, 1024) / 256)
+                        val samples = Arguments.createArray()
+                        repeat(minOf(256, read / step)) { index ->
+                            var value = 0.0
+                            repeat(step) { value += buffer[index * step + it] / 32768.0 }
+                            samples.pushDouble(value / step)
+                        }
+                        map.putArray("samples", samples)
+                        map.putDouble("sampleRate", sampleRate.toDouble() / step)
+                    }
 
                     sendEvent("onAudioBuffer", map)
                 }

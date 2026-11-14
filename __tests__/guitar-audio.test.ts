@@ -2,6 +2,24 @@ import { toByteArray } from "base64-js";
 import { prepareGuitar } from "../src/components/guitar-audio";
 import { chordShapes, guitarMidi } from "../src/screens/song/chords";
 
+test("loading tuner controls does not load the audio bank before it is needed", () => {
+  const load = jest.fn(() =>
+    jest.requireActual("../assets/guitar-samples.json")
+  );
+  jest.doMock("../assets/guitar-samples.json", load);
+  try {
+    jest.isolateModules(() => {
+      const guitar = require("../src/components/guitar-audio");
+      expect(load).not.toHaveBeenCalled();
+      guitar.prepareGuitar([40]);
+      guitar.prepareGuitar([45]);
+      expect(load).toHaveBeenCalledTimes(1);
+    });
+  } finally {
+    jest.dontMock("../assets/guitar-samples.json");
+  }
+});
+
 test.each(["F", "Am", "Cmaj7", "D/F#"])(
   "%s fingerings produce distinct audio without clipped PCM",
   (chord) => {

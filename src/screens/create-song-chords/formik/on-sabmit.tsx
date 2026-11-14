@@ -1,6 +1,5 @@
 import { NavigationProp } from "@/router";
 import { t } from "../../../locales";
-import initialValues from "./initial-values";
 import { Alert } from "react-native";
 import {
   createItem,
@@ -13,7 +12,7 @@ import { usePreferences } from "../../../components/preferences";
 
 const onSabmit = async (
   actions: FormikHelpers<FormValues>,
-  { fk_band, id, cover, ...values }: typeof initialValues,
+  { fk_band, id, cover, contentSource, ...values }: FormValues,
   navigation: NavigationProp,
   setIsEdit?: (_: boolean) => void
 ) => {
@@ -49,7 +48,7 @@ const onSabmit = async (
         },
         filters: `id = ${id}`
       });
-      usePreferences.getState().updateSong(id, { cover });
+      usePreferences.getState().updateSong(id, { cover, contentSource });
       Alert.alert(t`ElementChanged`);
       if (setIsEdit) setIsEdit(false);
       return;
@@ -62,7 +61,7 @@ const onSabmit = async (
         band_id: bandId
       }
     });
-    usePreferences.getState().updateSong(insertId, { cover });
+    usePreferences.getState().updateSong(insertId, { cover, contentSource });
     Alert.alert(t`ElementAdded`);
     navigation.navigate("Song", { id: insertId.toString() });
     actions.resetForm();

@@ -4,27 +4,30 @@ import android.media.AudioManager
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
+import android.media.AudioRecord
 import android.media.MediaPlayer
 import android.media.MediaRecorder
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
-import android.media.MediaExtractor
 import android.media.MediaFormat
 import android.media.MediaMuxer
 import android.content.Context
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.io.File
-import java.nio.ByteOrder
 import java.util.concurrent.Executors
 import java.util.concurrent.ConcurrentHashMap
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 
 class PerformanceAudio(private val context: ReactApplicationContext) :
     ReactContextBaseJavaModule(context), LifecycleEventListener {
-    private var recorder: MediaRecorder? = null
+    private var recorder: PolishedRecorder? = null
     private var player: MediaPlayer? = null
     private var cue: MediaPlayer? = null
     private var guitar: AudioTrack? = null
+    private val guitarPcm = linkedMapOf<String, ByteArray>()
+    private val preparedGuitars = linkedMapOf<String, AudioTrack>()
     private var take: File? = null
     private var lastTake: String? = null
     private val processing = ConcurrentHashMap.newKeySet<String>()
@@ -46,33 +49,54 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     }
     @ReactMethod @Synchronized
     fun startTake(songId: String, promise: Promise) {
-        if (!songId.matches(Regex("[1-9][0-9]*")) || recorder != null) { promise.reject("RECORDING_BUSY", "Recording unavailable"); return }
+        if (!songId.matches(Regex("[1-9][0-9]*")) || recorder != null || processing.isNotEmpty()) { promise.reject("RECORDING_BUSY", "Recording unavailable"); return }
         stopPlayback()
         val file = File(directory, "song-${songId}-${System.currentTimeMillis()}.m4a")
-        val capture = MediaRecorder()
+        var capture: PolishedRecorder? = null
         try {
             focus()
-            capture.setAudioSource(MediaRecorder.AudioSource.MIC)
-            capture.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            capture.setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            capture.setAudioEncodingBitRate(128000)
-            capture.setAudioSamplingRate(44100)
-            capture.setAudioChannels(1)
-            capture.setMaxDuration(30 * 60 * 1000)
-            capture.setMaxFileSize(50L * 1024 * 1024)
-            capture.setOutputFile(file.absolutePath)
-            capture.setOnInfoListener { _, what, _ ->
-                if (what in listOf(MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED, MediaRecorder.MEDIA_RECORDER_INFO_MAX_FILESIZE_REACHED)) finishTake()
-            }
-            capture.setOnErrorListener { _, _, _ -> finishTake(); emit("error") }
-            capture.prepare()
-            capture.start()
+            val recording = PolishedRecorder()
+            capture = recording
+            check(file.createNewFile())
             take = file
-            recorder = capture
+            recorder = recording
             lastTake = null
-            promise.resolve(file.absolutePath)
+            worker.execute {
+                val output = File(directory, file.nameWithoutExtension + ".processing.m4a")
+                var state = "saved"
+                var began = false
+                try {
+                    android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
+                    recording.write(output, {
+                        began = true
+                        promise.resolve(file.absolutePath)
+                    }) {
+                        synchronized(this) { if (recorder === recording) finishTake() }
+                    }
+                    check(output.length() > 0 && output.renameTo(file))
+                } catch (error: Exception) {
+                    file.delete()
+                    state = "error"
+                    if (!began) promise.reject("RECORDING_FAILED", error)
+                } finally {
+                    recording.release()
+                    output.delete()
+                    synchronized(this) {
+                        if (recorder === recording) {
+                            recorder = null
+                            take = null
+                            audioManager.abandonAudioFocus(focusListener)
+                        }
+                        if (state == "error" && lastTake == file.absolutePath) lastTake = null
+                    }
+                    processing.remove(file.absolutePath)
+                    if (began) emit(state, file.absolutePath)
+                }
+            }
         } catch (error: Exception) {
-            capture.release()
+            capture?.release()
+            recorder = null
+            take = null
             file.delete()
             audioManager.abandonAudioFocus(focusListener)
             promise.reject("RECORDING_FAILED", error)
@@ -83,15 +107,13 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         val file = take
         recorder = null
         take = null
-        try {
-            capture.stop()
-            lastTake = file?.absolutePath
-            if (file != null) polish(file)
-        } catch (_: Exception) {
-            file?.delete()
-            lastTake = null
-            emit("error")
-        } finally { capture.release(); audioManager.abandonAudioFocus(focusListener) }
+        lastTake = file?.absolutePath
+        if (file != null) {
+            processing.add(file.absolutePath)
+            emit("processing", file.absolutePath)
+        }
+        capture.stop()
+        audioManager.abandonAudioFocus(focusListener)
         return lastTake
     }
     @ReactMethod fun stopTake(promise: Promise) { promise.resolve(finishTake()) }
@@ -149,8 +171,48 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             start()
         }
     }
+    private fun guitarTrack(bytes: ByteArray): AudioTrack {
+        val header = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+        val rate = header.getInt(24)
+        val channels = header.getShort(22).toInt()
+        require(rate in listOf(22050, 44100, 48000) && channels in listOf(1, 2) && header.getShort(34).toInt() == 16)
+        val track = AudioTrack.Builder()
+            .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
+            .setAudioFormat(AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(if (channels == 2) AudioFormat.CHANNEL_OUT_STEREO else AudioFormat.CHANNEL_OUT_MONO).build())
+            .setTransferMode(AudioTrack.MODE_STATIC)
+            .setBufferSizeInBytes(bytes.size - 44)
+            .apply { if (android.os.Build.VERSION.SDK_INT >= 26) setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY) }
+            .build()
+        try {
+            check(track.write(bytes, 44, bytes.size - 44) == bytes.size - 44)
+            return track
+        } catch (error: Exception) { track.release(); throw error }
+    }
+    @ReactMethod @Synchronized fun prepareGuitar(key: String, wave: String) {
+        if (key.length > 256 || wave.length > 8_000_000) return
+        try {
+            val bytes = guitarPcm[key] ?: android.util.Base64.decode(wave, android.util.Base64.DEFAULT).also {
+                require(it.size > 44)
+                guitarPcm[key] = it
+            }
+            if (!preparedGuitars.containsKey(key)) preparedGuitars[key] = guitarTrack(bytes)
+            while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
+            while (guitarPcm.size > 32 || guitarPcm.values.sumOf { it.size.toLong() } > 32L * 1024 * 1024) {
+                val oldest = guitarPcm.keys.first()
+                guitarPcm.remove(oldest)
+                preparedGuitars.remove(oldest)?.release()
+            }
+        } catch (_: Exception) { preparedGuitars.remove(key)?.release(); guitarPcm.remove(key) }
+    }
     @ReactMethod @Synchronized fun playGuitar(wave: String) {
-        if (recorder != null || wave.length > 400000) return
+        val key = wave.hashCode().toString()
+        prepareGuitar(key, wave)
+        playPreparedGuitar(key)
+    }
+    @ReactMethod @Synchronized fun playPreparedGuitar(key: String) {
+        if (recorder != null) return
+        val bytes = guitarPcm[key] ?: return
+        val prepared = try { preparedGuitars.remove(key) ?: guitarTrack(bytes) } catch (_: Exception) { return }
         val previous = guitar
         guitar = null
         if (previous != null) {
@@ -172,64 +234,55 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         }
         stopPlayback()
         try {
-            val bytes = android.util.Base64.decode(wave, android.util.Base64.DEFAULT)
-            require(bytes.size > 44)
-            guitar = AudioTrack.Builder()
-                .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
-                .setAudioFormat(AudioFormat.Builder().setSampleRate(22050).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
-                .setTransferMode(AudioTrack.MODE_STATIC)
-                .setBufferSizeInBytes(bytes.size - 44)
-                .build()
-            check(guitar?.write(bytes, 44, bytes.size - 44) == bytes.size - 44)
-            guitar?.play()
-        } catch (_: Exception) { guitar?.release(); guitar = null }
-    }
-    private fun polish(file: File) {
-        processing.add(file.absolutePath)
-        emit("processing", file.absolutePath)
-        worker.execute {
-            val output = File(directory, file.nameWithoutExtension + ".processing.m4a")
-            var state = "saved"
-            try {
-                runCatching { android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_FOREGROUND) }
-                val date = file.lastModified()
-                renderPolished(file, output)
-                require(output.length() > 0)
-                check(output.renameTo(file))
-                file.setLastModified(date)
-            } catch (_: Exception) {
-                state = "processingFailed"
-            } finally {
-                output.delete()
-                processing.remove(file.absolutePath)
-                emit(state, file.absolutePath)
-            }
+            guitar = prepared
+            prepared.play()
+        } catch (_: Exception) { guitar?.release(); guitar = null; return }
+        runCatching {
+            preparedGuitars[key] = guitarTrack(bytes)
+            while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
         }
     }
+    override fun onHostResume() {}
+    override fun onHostPause() { finishTake(); stopPlayback() }
+    @Synchronized private fun clearGuitars() {
+        preparedGuitars.values.forEach { it.release() }
+        preparedGuitars.clear(); guitarPcm.clear()
+    }
+    override fun onHostDestroy() { finishTake(); stopPlayback() }
+    override fun invalidate() { finishTake(); stopPlayback(); clearGuitars(); worker.shutdown(); context.removeLifecycleEventListener(this); super.invalidate() }
+    @ReactMethod fun addListener(name: String) {}
+    @ReactMethod fun removeListeners(count: Int) {}
+}
 
-    private fun renderPolished(input: File, output: File) {
-        val extractor = MediaExtractor()
-        var decoder: MediaCodec? = null
-        var encoder: MediaCodec? = null
+private class PolishedRecorder {
+    private val rate = 44100
+    private val capture = AudioRecord.Builder()
+        .setAudioSource(MediaRecorder.AudioSource.MIC)
+        .setAudioFormat(AudioFormat.Builder().setSampleRate(rate)
+            .setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_IN_MONO).build())
+        .setBufferSizeInBytes(maxOf(rate, AudioRecord.getMinBufferSize(rate, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT) * 4))
+        .build()
+    @Volatile private var stopped = false
+
+    @Synchronized private fun start() {
+        check(!stopped)
+        check(capture.state == AudioRecord.STATE_INITIALIZED)
+        capture.startRecording()
+        check(capture.recordingState == AudioRecord.RECORDSTATE_RECORDING)
+    }
+    @Synchronized fun stop() {
+        stopped = true
+        runCatching { capture.stop() }
+    }
+    fun release() { stop(); capture.release() }
+
+    fun write(output: File, onStarted: () -> Unit, onCaptured: () -> Unit) {
+        val effect = RecordingPolish(rate)
+        val writer = MediaCodec.createEncoderByType("audio/mp4a-latm")
         var muxer: MediaMuxer? = null
         var muxing = false
         try {
-            extractor.setDataSource(input.absolutePath)
-            val track = (0 until extractor.trackCount).first { extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true }
-            extractor.selectTrack(track)
-            val format = extractor.getTrackFormat(track)
-            val rate = format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
-            require(format.getInteger(MediaFormat.KEY_CHANNEL_COUNT) == 1)
-            val outputChannels = 2
-            val pcmFrameBytes = outputChannels * 2
-            val effect = RecordingPolish(rate)
-            val reader = MediaCodec.createDecoderByType(format.getString(MediaFormat.KEY_MIME)!!)
-            decoder = reader
-            reader.configure(format, null, null, 0)
-            reader.start()
-            val writer = MediaCodec.createEncoderByType("audio/mp4a-latm")
-            encoder = writer
-            writer.configure(MediaFormat.createAudioFormat("audio/mp4a-latm", rate, outputChannels).apply {
+            writer.configure(MediaFormat.createAudioFormat("audio/mp4a-latm", rate, 2).apply {
                 setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC)
                 setInteger(MediaFormat.KEY_BIT_RATE, 192000)
                 setInteger(MediaFormat.KEY_MAX_INPUT_SIZE, 16384)
@@ -237,130 +290,95 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             writer.start()
             val container = MediaMuxer(output.absolutePath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4)
             muxer = container
-            var outputTrack = -1
+            var track = -1
             var encodedEnd = false
-            val encodedInfo = MediaCodec.BufferInfo()
+            var samples = 0L
             var lastProgress = System.nanoTime()
-            fun guardProgress() { check(System.nanoTime() - lastProgress < 30_000_000_000L) { "Audio processing stalled" } }
+            val info = MediaCodec.BufferInfo()
+            fun guardProgress() { check(System.nanoTime() - lastProgress < 30_000_000_000L) { "Audio encoding stalled" } }
             fun drain() {
                 while (true) {
-                    val index = writer.dequeueOutputBuffer(encodedInfo, 0)
+                    val index = writer.dequeueOutputBuffer(info, 0)
                     if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                        outputTrack = container.addTrack(writer.outputFormat)
+                        track = container.addTrack(writer.outputFormat)
                         container.start()
                         muxing = true
                     } else if (index >= 0) {
-                        val buffer = writer.getOutputBuffer(index)!!
-                        if (encodedInfo.size > 0 && encodedInfo.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
+                        if (info.size > 0 && info.flags and MediaCodec.BUFFER_FLAG_CODEC_CONFIG == 0) {
                             check(muxing)
-                            buffer.position(encodedInfo.offset)
-                            buffer.limit(encodedInfo.offset + encodedInfo.size)
-                            container.writeSampleData(outputTrack, buffer, encodedInfo)
+                            val bytes = writer.getOutputBuffer(index)!!
+                            bytes.position(info.offset)
+                            bytes.limit(info.offset + info.size)
+                            container.writeSampleData(track, bytes, info)
                         }
-                        encodedEnd = encodedInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
+                        encodedEnd = info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
                         writer.releaseOutputBuffer(index, false)
                         lastProgress = System.nanoTime()
                     } else break
                 }
             }
-            var samples = 0L
             fun encode(bytes: ByteArray?, size: Int = bytes?.size ?: 0, end: Boolean = false) {
                 var offset = 0
                 while (true) {
                     drain()
                     guardProgress()
-                    val index = writer.dequeueInputBuffer(10000)
+                    val index = writer.dequeueInputBuffer(1000)
                     if (index < 0) continue
                     val buffer = writer.getInputBuffer(index)!!
                     buffer.clear()
-                    val count = minOf(size - offset, buffer.remaining() / pcmFrameBytes * pcmFrameBytes)
+                    val count = minOf(size - offset, buffer.remaining() / 4 * 4)
+                    check(count > 0 || end)
                     if (bytes != null) buffer.put(bytes, offset, count)
                     writer.queueInputBuffer(index, 0, count, samples * 1_000_000 / rate, if (end) MediaCodec.BUFFER_FLAG_END_OF_STREAM else 0)
-                    samples += count / pcmFrameBytes
+                    samples += count / 4
                     offset += count
                     lastProgress = System.nanoTime()
                     if (end || offset >= size) break
                 }
             }
-            var inputEnd = false
-            var decodedEnd = false
-            var outputPcm = ByteArray(0)
-            val info = MediaCodec.BufferInfo()
-            while (!decodedEnd) {
-                guardProgress()
-                if (!inputEnd) {
-                    val index = reader.dequeueInputBuffer(10000)
-                    if (index >= 0) {
-                        val buffer = reader.getInputBuffer(index)!!
-                        val size = extractor.readSampleData(buffer, 0)
-                        inputEnd = size < 0
-                        reader.queueInputBuffer(index, 0, maxOf(0, size), if (inputEnd) 0 else extractor.sampleTime, if (inputEnd) MediaCodec.BUFFER_FLAG_END_OF_STREAM else 0)
-                        if (!inputEnd) extractor.advance()
-                    }
+            val pcm = ByteArray(16384)
+            var size = 0
+            fun append(left: Int, right: Int) {
+                if (size == pcm.size) { encode(pcm, size); size = 0 }
+                pcm[size++] = left.toByte()
+                pcm[size++] = (left shr 8).toByte()
+                pcm[size++] = right.toByte()
+                pcm[size++] = (right shr 8).toByte()
+            }
+            val input = ShortArray(2048)
+            var captured = 0L
+            start()
+            onStarted()
+            while (!stopped && captured < rate * 30L * 60 && output.length() < 50L * 1024 * 1024) {
+                val count = capture.read(input, 0, input.size, AudioRecord.READ_BLOCKING)
+                if (count < 0 && stopped) break
+                check(count > 0) { "Microphone capture failed: $count" }
+                for (index in 0 until count) {
+                    val stereo = effect.processStereo(input[index] / 32768.0)
+                    append((stereo shr 16).toInt().toShort().toInt(), stereo.toShort().toInt())
                 }
-                val index = reader.dequeueOutputBuffer(info, 10000)
-                if (index == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
-                    val pcm = reader.outputFormat
-                    require(pcm.getInteger(MediaFormat.KEY_CHANNEL_COUNT) == 1 && pcm.getInteger(MediaFormat.KEY_SAMPLE_RATE) == rate)
-                    require(!pcm.containsKey(MediaFormat.KEY_PCM_ENCODING) || pcm.getInteger(MediaFormat.KEY_PCM_ENCODING) == AudioFormat.ENCODING_PCM_16BIT)
-                } else if (index >= 0) {
-                    val buffer = reader.getOutputBuffer(index)!!.order(ByteOrder.LITTLE_ENDIAN)
-                    buffer.position(info.offset)
-                    buffer.limit(info.offset + info.size)
-                    val requiredSize = info.size * outputChannels
-                    if (outputPcm.size < requiredSize) outputPcm = ByteArray(requiredSize)
-                    var sample = info.offset
-                    val end = info.offset + info.size
-                    var output = 0
-                    while (sample + 1 < end) {
-                        val stereo = effect.processStereo(buffer.getShort(sample) / 32768.0)
-                        val left = (stereo shr 16).toInt().toShort().toInt()
-                        val right = stereo.toShort().toInt()
-                        outputPcm[output++] = left.toByte()
-                        outputPcm[output++] = (left shr 8).toByte()
-                        outputPcm[output++] = right.toByte()
-                        outputPcm[output++] = (right shr 8).toByte()
-                        sample += 2
-                    }
-                    if (output > 0) encode(outputPcm, output)
-                    decodedEnd = info.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM != 0
-                    reader.releaseOutputBuffer(index, false)
-                    lastProgress = System.nanoTime()
-                }
+                captured += count
                 drain()
             }
-            var tail = rate
-            val tailBytes = java.nio.ByteBuffer.allocate(4096 * pcmFrameBytes).order(ByteOrder.LITTLE_ENDIAN)
-            while (tail > 0) {
-                val frames = minOf(tail, 4096)
-                tailBytes.clear()
-                repeat(frames) { index ->
-                    val stereo = effect.processStereo(0.0)
-                    val fade = minOf(1.0, (tail - index - 1) / (rate * .08))
-                    tailBytes.putShort(((stereo shr 16).toInt().toShort() * fade).toInt().toShort())
-                    tailBytes.putShort((stereo.toShort() * fade).toInt().toShort())
-                }
-                encode(tailBytes.array(), frames * pcmFrameBytes)
-                tail -= frames
+            stop()
+            onCaptured()
+            check(captured > 0)
+            for (index in 0 until rate) {
+                val stereo = effect.processStereo(0.0)
+                val fade = minOf(1.0, (rate - index - 1) / (rate * .08))
+                append(((stereo shr 16).toInt().toShort() * fade).toInt(), (stereo.toShort() * fade).toInt())
             }
+            if (size > 0) encode(pcm, size)
             encode(null, end = true)
             while (!encodedEnd) { drain(); guardProgress(); Thread.sleep(2) }
-            check(samples > 0 && muxing)
+            check(muxing)
             container.stop()
             muxing = false
         } finally {
-            runCatching { decoder?.stop() }; decoder?.release()
-            runCatching { encoder?.stop() }; encoder?.release()
+            runCatching { writer.stop() }
+            writer.release()
             if (muxing) runCatching { muxer?.stop() }
             muxer?.release()
-            extractor.release()
         }
     }
-
-    override fun onHostResume() {}
-    override fun onHostPause() { finishTake(); stopPlayback() }
-    override fun onHostDestroy() { finishTake(); stopPlayback() }
-    override fun invalidate() { finishTake(); stopPlayback(); worker.shutdown(); context.removeLifecycleEventListener(this); super.invalidate() }
-    @ReactMethod fun addListener(name: String) {}
-    @ReactMethod fun removeListeners(count: Int) {}
 }

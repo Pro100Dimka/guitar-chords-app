@@ -15,6 +15,7 @@ const RequireMicAccess: FC = () => {
   const isFocused = useIsFocused();
   const reportReady = useContext(TunerReadyContext);
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
+  const [canRecord, setCanRecord] = useState(false);
   const [appState, setAppState] = useState(AppState.currentState ?? "active");
   const openAppSettings = async () =>
     Platform.OS === "ios"
@@ -23,34 +24,38 @@ const RequireMicAccess: FC = () => {
   useEffect(() => {
     let mounted = true;
     let pending = false;
-    const refreshPermission = async (requestPermission: boolean) => {
+    const refreshPermission = async (request: boolean) => {
       if (pending) return;
       pending = true;
       try {
-        const granted = await checkMicPermission(requestPermission);
-        if (mounted) setHasPermission(granted);
+        const granted = await checkMicPermission(request);
+        if (mounted) {
+          setHasPermission(granted);
+          setCanRecord(granted);
+        }
       } catch (error) {
         console.error("Microphone permission check failed:", error);
-        if (mounted) setHasPermission(false);
         if (mounted) setHasPermission(false);
       } finally {
         pending = false;
       }
     };
-    void refreshPermission(true);
+    void refreshPermission(isFocused && AppState.currentState === "active");
     const subscription = AppState.addEventListener("change", (state) => {
       setAppState(state);
-      if (state !== "active") setHasPermission(null);
-      if (state === "active") void refreshPermission(false);
+      if (state === "active") {
+        setCanRecord(false);
+        void refreshPermission(false);
+      }
     });
     return () => {
       mounted = false;
       subscription.remove();
     };
-  }, []);
+  }, [isFocused]);
 
-  if (!isFocused || appState !== "active" || hasPermission === null)
-    return null;
+  if (hasPermission === null) return null;
+  if (!hasPermission && (!isFocused || appState !== "active")) return null;
   return !hasPermission ? (
     <View style={styles.container} onLayout={reportReady}>
       <MaterialCommunityIcons
@@ -66,7 +71,7 @@ const RequireMicAccess: FC = () => {
       />
     </View>
   ) : (
-    <Tuner />
+    <Tuner active={isFocused && appState === "active" && canRecord} />
   );
 };
 

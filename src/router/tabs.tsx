@@ -16,6 +16,7 @@ const TabLayout = () => {
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={layout.container}>
       <Tab.Navigator
+        detachInactiveScreens={false}
         initialRouteName={usePreferences.getState().tab}
         screenListeners={({ route }) => ({
           focus: () => usePreferences.getState().update({ tab: route.name })
@@ -52,7 +53,7 @@ const TabLayout = () => {
             key={name}
             name={name}
             component={screens[name].component}
-            options={{ title: t(name) }}
+            options={{ title: t(screens[name].title ?? name), lazy: name !== "tuner" }}
           />
         ))}
       </Tab.Navigator>

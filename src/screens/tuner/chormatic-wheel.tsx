@@ -1,428 +1,276 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  Circle,
-  Oval,
   BlurMask,
-  RoundedRect,
-  Text,
+  Circle,
   Group,
-  Line,
-  SweepGradient,
   LinearGradient,
-  Shadow,
+  RoundedRect,
+  SkFont,
+  Text,
   useFont,
   vec
 } from "@shopify/react-native-skia";
-import {
-  SharedValue,
-  useAnimatedReaction,
-  useDerivedValue,
-  withTiming
-} from "react-native-reanimated";
-import { runOnJS } from "react-native-worklets";
-import { useTranslation } from "react-i18next";
+import { SharedValue, useDerivedValue } from "react-native-reanimated";
 import { INote } from "@/@interfaces";
 import palette from "@/theme/palette";
-import fontFamilies from "../../../assets/fonts/index";
+import fontFamilies from "../../../assets/fonts";
+import CurrentNote from "./note-indicator/current-note";
+import { noteNames } from "./tunings";
 
-const notes = ["C", "C#", "D", "D#", "E", "F", "F#", "G", "G#", "A", "A#", "B"];
 export function chromaticLayout(width: number, height: number) {
   const landscape = width > height;
-  const scale = Math.max(
-    0.25,
-    landscape
-      ? Math.min(height / 380, width / 800, 1.4)
-      : Math.min(width / 410, height / 690, (height * 0.57 - 52) / 324, 1.4)
+  const panelWidth = landscape ? Math.max(120, width * 0.4 - 66) : width - 32;
+  const columns = panelWidth < 260 ? 6 : 12;
+  const panelHeight = columns === 6 ? 80 : 48;
+  const diameter = Math.max(
+    80,
+    Math.min(
+      landscape ? width * 0.52 : width - 40,
+      height - (landscape ? 40 : columns === 6 ? 236 : 204)
+    )
   );
-  const centerY = height * (landscape ? 0.48 : 0.43);
-  const stripWidth = landscape
-    ? Math.min(240, width * 0.28) / scale
-    : Math.min((width - 32) / scale, 320);
-  const panelX = landscape ? (width * 0.33) / scale : 0;
-  const panelY = landscape ? (height * 0.55 - centerY) / scale - 246 : 0;
-  const artworkScale = Math.max(scale * 0.82, width / 1024);
+  const hole = {
+    x: landscape ? (width * 0.58 - diameter) / 2 : (width - diameter) / 2,
+    y: landscape
+      ? (height - diameter) / 2
+      : Math.max(64, (height - 160 - diameter) / 2),
+    width: diameter,
+    height: diameter
+  };
+  const panelLeft = landscape ? width * 0.59 : 16;
+  const panelTop = landscape
+    ? (height - panelHeight - 76) / 2
+    : hole.y + diameter + 22;
   return {
-    scale,
-    centerY,
-    stripWidth,
-    panelX,
-    panelY,
-    artworkScale,
-    artwork: {
-      width: 1024 * artworkScale,
-      height: 2216 * artworkScale,
-      left: width / 2 - 518 * artworkScale,
-      top: centerY - 1205 * artworkScale
-    },
-    octaveTop: centerY + (324 + panelY) * scale,
-    octaveWidth: stripWidth * scale - 20,
-    octaveLeft: width / 2 + panelX * scale - (stripWidth * scale - 20) / 2
+    hole,
+    panelWidth,
+    panelHeight,
+    panelLeft,
+    panelTop,
+    columns,
+    octaveTop: panelTop + panelHeight + 18,
+    octaveLeft: panelLeft + panelWidth * 0.15,
+    octaveWidth: panelWidth * 0.7
   };
 }
-const { ink, muted } = palette.chromatic;
 
-interface ChromaticWheelProps {
-  note: SharedValue<INote | null>;
-  width: number;
-  height: number;
-  onReady?: () => void;
-}
-
-const ChromaticWheel: React.FC<ChromaticWheelProps> = ({
+export default function ChromaticWheel({
   note,
+  fill,
+  rms,
+  signal,
   width,
   height,
   onReady
-}) => {
-  const { t } = useTranslation();
-  const [currentNote, setCurrentNote] = useState<INote | null>(null);
-  const small = useFont(fontFamilies.Roboto[1], 13);
-  const label = useFont(fontFamilies.Roboto[0], 21);
-  const number = useFont(fontFamilies.Roboto[1], 18);
-  const octaveFont = useFont(fontFamilies.Roboto[0], 25);
-  const main = useFont(fontFamilies.Roboto[1], 80);
+}: {
+  note: SharedValue<INote | null>;
+  fill: SharedValue<number>;
+  rms: SharedValue<number>;
+  signal: SharedValue<number[]>;
+  width: number;
+  height: number;
+  onReady?: () => void;
+}) {
+  const font = useFont(fontFamilies.Manrope[1], 12);
+  const [faceReady, setFaceReady] = useState(false);
+  const markFaceReady = useCallback(() => setFaceReady(true), []);
   useEffect(() => {
-    if (small && label && number && octaveFont && main) onReady?.();
-  }, [small, label, number, octaveFont, main, onReady]);
-  const { scale, centerY, stripWidth, artworkScale, panelX, panelY } =
-    chromaticLayout(width, height);
-  const spacing = (stripWidth - 16) / notes.length;
-
-  useAnimatedReaction(
-    () => {
-      const value = note.value;
-      if (
-        !value ||
-        value.pitch <= 0 ||
-        value.refFreq <= 0 ||
-        !Number.isFinite(value.pitch)
-      )
-        return null;
-      return value;
-    },
-    (next, previous) => {
-      if (
-        next?.name !== previous?.name ||
-        next?.octave !== previous?.octave ||
-        next?.pitch !== previous?.pitch ||
-        next?.refFreq !== previous?.refFreq
-      ) {
-        runOnJS(setCurrentNote)(next);
-      }
-    }
-  );
-  const deviation = useDerivedValue(() => {
-    const value = note.value;
-    return value &&
-      value.pitch > 0 &&
-      value.refFreq > 0 &&
-      Number.isFinite(value.pitch)
-      ? 1200 * Math.log2(value.pitch / value.refFreq)
-      : 0;
-  });
-  const angle = useDerivedValue(() =>
-    withTiming(
-      ((Math.max(-50, Math.min(50, deviation.value)) / 50) * Math.PI) / 3 -
-        Math.PI / 2,
-      { duration: 110 }
-    )
-  );
-  const needleStart = useDerivedValue(() =>
-    vec(Math.cos(angle.value) * 78, Math.sin(angle.value) * 78)
-  );
-  const needleEnd = useDerivedValue(() =>
-    vec(Math.cos(angle.value) * 148, Math.sin(angle.value) * 148)
-  );
-  const haloX = useDerivedValue(() => Math.cos(angle.value) * 141);
-  const haloY = useDerivedValue(() => Math.sin(angle.value) * 141);
-  const indicatorColor = useDerivedValue(() =>
-    Math.abs(deviation.value) <= 5 ? "#9DFF29" : "#FFBE25"
-  );
-  const indicatorOpacity = useDerivedValue(() =>
-    withTiming(
-      note.value && note.value.pitch > 0 && note.value.refFreq > 0 ? 1 : 0,
-      { duration: 150 }
-    )
-  );
-
-  if (!small || !label || !number || !octaveFont || !main) return null;
-  const deviationCents = currentNote
-    ? 1200 * Math.log2(currentNote.pitch / currentNote.refFreq)
-    : 0;
-  const cents = Math.round(deviationCents);
-  const inTune = Math.abs(deviationCents) <= 5;
-  const name = currentNote?.name.charAt(0) ?? "-";
-  const accidental = currentNote?.name.includes("#") ? "#" : "";
-  const octave = currentNote ? String(currentNote.octave) : "";
-  const noteWidth =
-    main.getTextWidth(name) +
-    (octave
-      ? Math.max(
-          octaveFont.getTextWidth(octave),
-          octaveFont.getTextWidth(accidental)
-        ) + 5
-      : 0);
-  const frequency = currentNote
-    ? `${currentNote.pitch.toFixed(2)} Hz`
-    : t("TunerPlayNote");
-  const status = t(
-    !currentNote
-      ? "TunerListening"
-      : inTune
-        ? "TunerInTune"
-        : cents < 0
-          ? "TunerTuneUp"
-          : "TunerTuneDown"
-  );
+    if (font && faceReady) onReady?.();
+  }, [font, faceReady, onReady]);
+  const layout = chromaticLayout(width, height);
+  const cx = layout.hole.x + layout.hole.width / 2;
+  const cy = layout.hole.y + layout.hole.height / 2;
+  const radius = layout.hole.width / 2;
+  const spacing = (layout.panelWidth - 16) / layout.columns;
   return (
-    <Group
-      transform={[
-        { translateX: width / 2 },
-        { translateY: centerY },
-        { scale }
-      ]}
-    >
-      <Group
-        clip={{
-          x: -width / scale,
-          y: (-221 * artworkScale) / scale,
-          width: (2 * width) / scale,
-          height: (500 * artworkScale) / scale
-        }}
+    <Group>
+      <Circle
+        cx={cx}
+        cy={cy}
+        r={radius + 9}
+        color={palette.gold.glow}
+        opacity={0.12}
       >
-        <Oval
-          x={(-274 * artworkScale) / scale}
-          y={(-250 * artworkScale) / scale}
-          width={(548 * artworkScale) / scale}
-          height={(500 * artworkScale) / scale}
-          color={palette.guitarDial.center}
-        />
-      </Group>
-      <Circle cx={0} cy={3} r={148} color="#080C0E">
-        <Shadow dx={0} dy={4} blur={9} color="rgba(255,157,0,0.25)" />
+        <BlurMask blur={14} />
       </Circle>
+      <Circle cx={cx} cy={cy} r={radius + 13} color={palette.glass.control} />
       <Circle
-        cx={0}
-        cy={0}
-        r={145}
+        cx={cx}
+        cy={cy}
+        r={radius + 10}
         style="stroke"
         strokeWidth={1}
-        color="#5F4B0D"
+        color={palette.finish.edge}
       />
-      <Circle cx={0} cy={0} r={141} style="stroke" strokeWidth={4}>
-        <SweepGradient
-          c={vec(0, 0)}
-          colors={[
-            "#FF3106",
-            "#9D4903",
-            "#6B4807",
-            "#FFC913",
-            "#E5E71C",
-            "#8EFF05",
-            "#FFC01B",
-            "#FF3106"
-          ]}
-          positions={[0, 0.16, 0.35, 0.5, 0.65, 0.75, 0.86, 1]}
-        />
-      </Circle>
-      <Circle cx={0} cy={0} r={136}>
+      <Circle cx={cx} cy={cy} r={radius + 5} style="stroke" strokeWidth={4.5}>
         <LinearGradient
-          start={vec(0, -136)}
-          end={vec(0, 136)}
-          colors={["#0B1518", "#010304"]}
+          start={vec(cx - radius, cy - radius)}
+          end={vec(cx + radius, cy + radius)}
+          colors={[
+            palette.glass.control,
+            palette.gold.rimLight,
+            palette.gold.rimShade,
+            palette.paper.soft,
+            palette.gold.center,
+            palette.gold.rimLight
+          ]}
+          positions={[0, 0.17, 0.3, 0.58, 0.8, 1]}
         />
       </Circle>
       <Circle
-        cx={0}
-        cy={0}
-        r={134}
+        cx={cx}
+        cy={cy}
+        r={radius + 1}
         style="stroke"
-        strokeWidth={1}
-        color="#604408"
+        strokeWidth={0.8}
+        color={palette.gold.rimLight}
+        opacity={0.8}
       />
-      {Array.from({ length: 61 }, (_, i) => {
-        const a = -Math.PI / 6 + ((i / 60) * Math.PI * 4) / 3;
-        return (
-          <Line
-            key={`lower-${i}`}
-            p1={vec(
-              Math.cos(a) * (i % 5 === 0 ? 114 : 122),
-              Math.sin(a) * (i % 5 === 0 ? 114 : 122)
-            )}
-            p2={vec(Math.cos(a) * 130, Math.sin(a) * 130)}
-            color={i < 15 ? "#CA3D06" : "#A47E12"}
-            strokeWidth={1}
+      {[-1, 1].map((side) => (
+        <Group key={side}>
+          <Circle
+            cx={cx + side * (radius + 5) * 0.66}
+            cy={cy + side * (radius + 5) * 0.75}
+            r={5}
+            color={palette.gold.glow}
+            opacity={0.36}
+          >
+            <BlurMask blur={7} />
+          </Circle>
+          <Circle
+            cx={cx + side * (radius + 5) * 0.66}
+            cy={cy + side * (radius + 5) * 0.75}
+            r={0.9}
+            color={palette.gold.rimLight}
           />
-        );
-      })}
-      {Array.from({ length: 41 }, (_, i) => {
-        const a = (-Math.PI * 5) / 6 + ((i / 40) * Math.PI * 2) / 3;
-        const inner = i % 5 === 0 ? 112 : 120;
-        return (
-          <Line
-            key={i}
-            p1={vec(Math.cos(a) * inner, Math.sin(a) * inner)}
-            p2={vec(Math.cos(a) * 130, Math.sin(a) * 130)}
-            color={
-              Math.abs(i - 20) <= 7 ? "#9DFF29" : i > 27 ? "#FF640A" : "#EFCF15"
-            }
-            strokeWidth={i === 20 ? 2 : 1}
-          />
-        );
-      })}
-      {[-50, -25, 0, 25, 50].map((value) => {
-        const a = ((value / 50) * Math.PI) / 3 - Math.PI / 2;
-        const text = value > 0 ? `+${value}` : String(value);
-        const radius = value === 0 ? 155 : 170;
-        return (
-          <Text
-            key={value}
-            x={Math.cos(a) * radius - number.getTextWidth(text) / 2}
-            y={Math.sin(a) * radius + 5}
-            text={text}
-            font={number}
-            color={ink}
-          />
-        );
-      })}
-      <Group opacity={indicatorOpacity}>
-        <Line
-          p1={needleStart}
-          p2={needleEnd}
-          color={indicatorColor}
-          strokeWidth={14}
-          opacity={0.65}
-        >
-          <BlurMask blur={12} style="normal" />
-        </Line>
-        <Circle
-          cx={haloX}
-          cy={haloY}
-          r={10}
-          color={indicatorColor}
-          opacity={0.85}
-        >
-          <BlurMask blur={8} style="normal" />
-        </Circle>
-        <Line
-          p1={needleStart}
-          p2={needleEnd}
-          color={indicatorColor}
-          strokeWidth={7}
-        >
-          <BlurMask blur={3} style="normal" />
-        </Line>
-        <Line
-          p1={needleStart}
-          p2={needleEnd}
-          color={indicatorColor}
-          strokeWidth={4}
-        />
-        <Line
-          p1={needleStart}
-          p2={needleEnd}
-          color="#F5FFE9"
-          strokeWidth={1.7}
-        />
-      </Group>
-      <Text x={-noteWidth / 2} y={18} text={name} font={main} color={ink} />
-      <Text
-        x={-noteWidth / 2 + main.getTextWidth(name) + 5}
-        y={-24}
-        text={accidental}
-        font={octaveFont}
-        color={ink}
+        </Group>
+      ))}
+      <CurrentNote
+        note={note}
+        fill={fill}
+        rms={rms}
+        signal={signal}
+        width={width}
+        height={height}
+        face={layout.hole}
+        onReady={markFaceReady}
       />
-      <Text
-        x={-noteWidth / 2 + main.getTextWidth(name) + 5}
-        y={16}
-        text={octave}
-        font={octaveFont}
-        color={ink}
-      />
-      <Text
-        x={-label.getTextWidth(frequency) / 2}
-        y={89}
-        text={frequency}
-        font={label}
-        color={ink}
-      />
-      <Group transform={[{ translateX: panelX }, { translateY: panelY }]}>
-        {width > height && (
+      {font && (
+        <Group
+          transform={[
+            { translateX: layout.panelLeft },
+            { translateY: layout.panelTop }
+          ]}
+        >
           <RoundedRect
-            x={-stripWidth / 2}
-            y={250}
-            width={stripWidth}
-            height={68}
-            r={12}
-            color="rgba(8,11,11,0.85)"
-          />
-        )}
-        {width <= height && (
-          <>
-            <RoundedRect
-              x={-stripWidth / 2}
-              y={246}
-              width={stripWidth}
-              height={78 + 52 / scale}
-              r={16}
-              color={palette.chromatic.panel}
+            x={0}
+            y={0}
+            width={layout.panelWidth}
+            height={layout.panelHeight}
+            r={24}
+            color={palette.glass.control}
+          >
+            <LinearGradient
+              start={vec(0, 0)}
+              end={vec(0, layout.panelHeight)}
+              colors={palette.chromatic.controlFace}
             />
-            <RoundedRect
-              x={-stripWidth / 2}
-              y={246}
-              width={stripWidth}
-              height={78 + 52 / scale}
-              r={16}
-              style="stroke"
-              strokeWidth={1}
-              color={palette.chromatic.border}
-            />
-          </>
-        )}
-        <Text
-          x={-small.getTextWidth(status) / 2}
-          y={270}
-          text={status}
-          font={small}
-          color={ink}
-        />
-        {notes.map((item, i) => {
-          const x = -stripWidth / 2 + 8 + spacing * i;
-          const active = currentNote?.name === item;
-          return (
-            <Group key={item}>
-              {active && (
-                <RoundedRect
-                  x={x + 1}
-                  y={282}
-                  width={spacing - 2}
-                  height={30}
-                  r={7}
-                  color={palette.chromatic.selected}
-                />
-              )}
-              <Text
-                x={x + (spacing - small.getTextWidth(item)) / 2}
-                y={302}
-                text={item}
-                font={small}
-                color={active ? palette.gold.ink : muted}
-              />
-            </Group>
-          );
-        })}
-        {width <= height && (
-          <Line
-            p1={vec(-stripWidth / 2 + 20, 322)}
-            p2={vec(stripWidth / 2 - 20, 322)}
-            color={palette.glass.edge}
+          </RoundedRect>
+          <RoundedRect
+            x={0}
+            y={0}
+            width={layout.panelWidth}
+            height={layout.panelHeight}
+            r={24}
+            style="stroke"
             strokeWidth={1}
-          />
-        )}
-      </Group>
+          >
+            <LinearGradient
+              start={vec(0, 0)}
+              end={vec(layout.panelWidth, layout.panelHeight)}
+              colors={[
+                palette.glass.edge,
+                palette.gold.rimLight,
+                palette.glass.control,
+                palette.gold.rimShade
+              ]}
+            />
+          </RoundedRect>
+          {noteNames.map((name, index) => (
+            <PitchName
+              key={name}
+              note={note}
+              name={name}
+              font={font}
+              x={8 + spacing * (index % layout.columns)}
+              y={8 + Math.floor(index / layout.columns) * 32}
+              width={spacing}
+            />
+          ))}
+        </Group>
+      )}
     </Group>
   );
-};
+}
 
-export default ChromaticWheel;
+function PitchName({
+  note,
+  name,
+  font,
+  x,
+  y,
+  width
+}: {
+  note: SharedValue<INote | null>;
+  name: string;
+  font: SkFont;
+  x: number;
+  y: number;
+  width: number;
+}) {
+  const active = useDerivedValue(() =>
+    note.value?.name === name && (note.value?.pitch ?? 0) > 0 ? 1 : 0
+  );
+  const color = useDerivedValue(() =>
+    active.value ? palette.gold.ink : palette.glass.muted
+  );
+  const glow = useDerivedValue(() => active.value * 0.36);
+  return (
+    <Group>
+      <RoundedRect
+        x={x + 1}
+        y={y}
+        width={width - 2}
+        height={23}
+        r={6}
+        opacity={glow}
+        color={palette.gold.glow}
+      >
+        <BlurMask blur={5} />
+      </RoundedRect>
+      <RoundedRect
+        x={x + 1}
+        y={y}
+        width={width - 2}
+        height={23}
+        r={6}
+        opacity={active}
+        color={palette.glass.accent}
+      >
+        <LinearGradient
+          start={vec(0, y)}
+          end={vec(0, y + 23)}
+          colors={palette.finish.goldColors}
+          positions={palette.finish.locations}
+        />
+      </RoundedRect>
+      <Text
+        x={x + (width - font.getTextWidth(name)) / 2}
+        y={y + 16}
+        text={name}
+        font={font}
+        color={color}
+      />
+    </Group>
+  );
+}
