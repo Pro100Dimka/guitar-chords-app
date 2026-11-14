@@ -1,13 +1,13 @@
 {
-  "build": 12,
+  "build": 13,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
   "checks": {
     "javascript": {
       "suites": 16,
-      "tests": 139,
-      "status": "Passed full local run after the nine follow-up fixes; source CI pending."
+      "tests": 140,
+      "status": "Passed full local run and main CI, including Android/iOS cover cancellation cases. TypeScript, ESLint and actual SQLite integration also passed."
     },
     "typescript": "Passed tsc --noEmit locally and in CI.",
     "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
@@ -20,7 +20,9 @@
       "capture_cycles": 200,
       "status": "Passed deterministic hardware-stub checks including all 24 added calibration-edge cases.",
       "permission_denial": "passed: denied microphone permission returns without capture; normal capture works after permission is restored",
-      "calibration_edge_cases": 24
+      "calibration_edge_cases": 24,
+      "full_register_combinations": 336,
+      "full_register_frames": 3360
     },
     "audio_bank": {
       "source": "Meta Steel Guitar",
@@ -29,7 +31,7 @@
       "recordings": 250,
       "status": "250 recordings and room impulse decoded successfully; physical playback pending"
     },
-    "android_bundle": "VersionCode 12 ARM64 and ARM32 phone APKs assembled successfully. Release lint passed. Signature, archive integrity, exact current Hermes bundle, native unsupported-recognition handling, third-party notices, ZIP alignment and ARM64 ELF alignment verified. The AAB remains historical.",
+    "android_bundle": "VersionCode 13 ARM64 and ARM32 APKs assembled successfully. Release lint passed; final current Hermes bundle, capture-controls property, signing, archive integrity, native methods, third-party notices, ZIP alignment and ARM64 ELF alignment verified. No current AAB was built.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "not run: requires macOS/Xcode",
     "device_tests": "owner to perform",
@@ -415,17 +417,43 @@
     },
     "followup_review_regressions": {
       "reviewed_base": "f626a248640bbcff65b4c3a935f3d40f82e16a7a",
-      "status": "All local checks passed; CI and versionCode 13 APK packaging pending.",
+      "status": "All local checks, implementation CI and final versionCode 13 APK verification passed.",
       "chords": "One delimiter-preserving chord-line parser now drives normalization, transposition, rendering and practice. Bar-separated capo imports and clickable edge chords covered.",
       "pitch": "Reproduced 22 failing combinations in the actual Kotlin estimator/smoother. Short-period correlation refinement plus spectral fundamental support passed all 336 combinations / 3360 frames, the existing 270 accuracy cases, 24 calibration cases, 180 transitions, 12 decay/drift sequences, 10 WAV checks and 200 capture cycles. Platform and codec are deterministic stubs, not physical microphone measurements. Swift source updated; iOS execution unavailable.",
       "recording": "Actual Song and recorder component start a take; reading settings preserve capture, and unmount still stops it. Controls availability is separate from capture ownership.",
       "nullable_edit": "Actual SQLite NULL video fields reproduced blocked editing. Save and editor hydration normalize optional links; the persisted title and links are verified after update.",
       "preview": "Deferred native preparation after actual ChordSheet unmount cannot start playback.",
       "tuning": "Source tuning is visible in the existing editor notice and song metadata styles.",
-      "cover": "Native cover actions are limited to three with explicit Android cancellation enabled.",
+      "cover": "Android cover actions are limited to three and allow native cancellation; the iOS Cancel action is retained. Both platform branches passed component regressions.",
       "restore_delete": "After successful restore, the persisted preference cache is synchronized. Actual SQLite restore/delete/reload removes all cover/settings chunks. Existing rollback checks pass.",
       "attribution": "Interrupted enrichment retains Shazam lyrics, URL and attribution together in the editable draft.",
-      "scope": "No design restyling; existing styles reused for necessary tuning metadata. No manual lyric-search button added."
+      "scope": "No design restyling; existing styles reused for necessary tuning metadata. No manual lyric-search button added.",
+      "ci": {
+        "implementation_commit": "c99952396c9a10d787224979f2e9cb071dc80391",
+        "javascript": {
+          "status": "success",
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43636560269"
+        },
+        "native": {
+          "status": "success",
+          "commit": "17fdba0020ad2fdd5d3a9c7d0197000f543b5128",
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43636069335"
+        }
+      },
+      "temporary_cleanup": {
+        "reclaimed_bytes": 0,
+        "reason": "Local deletion policy rejected cleanup with blocked by policy and no more specific reason. No alternative deletion attempted.",
+        "remaining": [
+          {
+            "path": "E:/CodexTemp/freetune-final-audit/native-rc13/native-check.jar",
+            "bytes": 79922
+          },
+          {
+            "path": "E:/CodexTemp/freetune-final-audit/native-rc13/PolishedRecorder.kt",
+            "bytes": 6285
+          }
+        ]
+      }
     }
   },
   "privacy_forms_draft": [
@@ -535,22 +563,22 @@
       "status": "historical_only_not_current_distribution_bundle"
     },
     "apk_arm64": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc12-arm64-v8a.apk",
-      "bytes": 101367115,
-      "sha256": "b17fd867523805a652a6af5673ba551e3c7f93852b380133db84793aeb8bfb16",
-      "version_code": 12
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc13-arm64-v8a.apk",
+      "bytes": 101367551,
+      "sha256": "6577c09f3a4230814b02fc9a116e22bb0918e0b148b191e850b67a77796b6056",
+      "version_code": 13
     },
     "apk_arm32": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc12-armeabi-v7a.apk",
-      "bytes": 90535215,
-      "sha256": "51711dfeff67b501d56adf73263b836b051500844b3dcd80c5a483b0a74ec77a",
-      "version_code": 12
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc13-armeabi-v7a.apk",
+      "bytes": 90535651,
+      "sha256": "1853bbcf6e7f9a74ba423e16291cbc90a6e034a71284fdb37afccdc9f8fbb6da",
+      "version_code": 13
     },
-    "version_code": 12
+    "version_code": 13
   },
   "reviewed_on": "2026-11-14",
-  "review_scope": "Main-branch release review: bounded preference storage and legacy migration, backup compatibility, recording-aware deletion and navigation, provider chord/capo/version handling, calibrated pitch edges, pending purchases, video links, ABI coverage and main/PR checks. No design change or manual lookup button.",
-  "artifact_scope": "VersionCode 12 phone APKs contain all implementation changes from 32d1d95 and retain the previous sideload certificate. Later changes add test coverage and verification documentation only. Installation over the preceding test APK is supported. Physical-device recording and subjective listening, iOS native execution and store submission remain unverified. The listed AAB remains historical versionCode 7.",
+  "review_scope": "Nine follow-up correctness defects: delimiter-preserving chord parsing, high-register pitch selection, recording capture ownership, legacy nullable links, preview ownership, visible tuning metadata, platform-safe cover cancellation, restored-preference cleanup and early text attribution. Bank documentation corrected; historical AAB explicitly excluded from current distribution.",
+  "artifact_scope": "VersionCode 13 phone APKs contain all implementation changes through c999523 and retain the preceding sideload certificate. A fresh Hermes bundle including both cover-dialog platform branches is verified inside each APK. Later documentation-only changes do not alter app code. Physical microphones, Bluetooth, native iOS execution and store submission remain unverified. The AAB listed in artifacts is historical versionCode 7 and does not contain current fixes.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
