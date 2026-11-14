@@ -11,9 +11,9 @@ import { FormValues } from "..";
 import { usePreferences } from "../../../components/preferences";
 
 const onSabmit = async (
-  actions: FormikHelpers<FormValues>,
+  _actions: FormikHelpers<FormValues>,
   { fk_band, id, cover, contentSource, ...values }: FormValues,
-  navigation: NavigationProp,
+  navigation: Pick<NavigationProp, "replace">,
   setIsEdit?: (_: boolean) => void
 ) => {
   try {
@@ -63,8 +63,7 @@ const onSabmit = async (
     });
     usePreferences.getState().updateSong(insertId, { cover, contentSource });
     Alert.alert(t`ElementAdded`);
-    navigation.navigate("Song", { id: insertId.toString() });
-    actions.resetForm();
+    navigation.replace("Song", { id: insertId.toString() });
   } catch (err) {
     console.error(err);
     Alert.alert(t`ErrorSavingSong`);

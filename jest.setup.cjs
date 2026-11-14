@@ -41,6 +41,10 @@ jest.mock("./src/components/performance-audio", () => ({
     stopPlayback: jest.fn(),
     success: jest.fn(),
     guitar: jest.fn(),
+    prepareGuitar: jest.fn(),
+    preparedFingeringSupported: false,
+    prepareFingering: jest.fn().mockResolvedValue(true),
+    playPreparedGuitar: jest.fn(),
     listen: () => ({ remove() {} })
   }
 }));

@@ -14,7 +14,12 @@ import Song from "../src/screens/song";
 import Editor from "../src/screens/create-song-chords";
 import Menu from "../src/screens/song/header-modal";
 import SongRecorder from "../src/screens/song/recorder";
-import { Action, SongTools, RhythmGrid } from "../src/screens/song/tools";
+import {
+  Action,
+  SongTools,
+  RhythmGrid,
+  ChordSheet
+} from "../src/screens/song/tools";
 import { defaultSongPreferences } from "../src/components/preferences";
 import { WebView } from "react-native-webview";
 import { rhythms } from "../src/screens/song/rhythms";
@@ -24,6 +29,10 @@ import {
 } from "../src/components/performance-audio";
 import * as crud from "../src/components/database/crud";
 import * as acousticPlayer from "../src/components/acoustic-player";
+import { chordsAboveLyrics } from "../src/screens/song/chords";
+import { Formik, FormikProps } from "formik";
+import onSubmit from "../src/screens/create-song-chords/formik/on-sabmit";
+import initialSong from "../src/screens/create-song-chords/formik/initial-values";
 jest.mock("../src/screens/tuner", () => () => null);
 jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
   setKeepAwake: jest.fn()
@@ -60,6 +69,102 @@ jest.mock(
       children
 );
 let screen: Renderer.ReactTestRenderer | undefined;
+
+test("long chord labels keep subsequent chords aligned with their lyric words", () => {
+  const output = chordsAboveLyrics("[Cmaj7]I [D]go");
+  const [chords, words] = output.split("\n");
+  expect(chords.indexOf("D")).toBe(words.indexOf("go"));
+  expect(words.replace(/ +/g, " ")).toBe("I go");
+  expect(chordsAboveLyrics(output)).toBe(output);
+});
+
+test("late preparation of an earlier fingering cannot replace the latest tap", async () => {
+  jest.replaceProperty(performanceAudio, "preparedFingeringSupported", true);
+  jest
+    .mocked(performanceAudio.prepareFingering)
+    .mockImplementation(async (_key, wave) => !!wave);
+  await act(async () => {
+    screen = Renderer.create(
+      <ChordSheet chord="Am" onChange={() => {}} onClose={() => {}} />
+    );
+  });
+  const cards = screen!.root.findAll(
+    (node) =>
+      typeof node.props.onPressIn === "function" &&
+      String(node.props.accessibilityLabel).startsWith("Fingering ")
+  );
+  expect(cards.length).toBeGreaterThanOrEqual(2);
+  const key = (index: number) =>
+    "fingering:" +
+    JSON.stringify([
+      0,
+      ...String(cards[index].props.accessibilityLabel)
+        .split(": ")[1]
+        .split(", ")
+        .map((fret) => (fret === "×" ? null : Number(fret)))
+    ]);
+  const first = key(0),
+    second = key(1);
+  expect(first).not.toBe(second);
+  await act(async () =>
+    jest.mocked(AppState.addEventListener).mock.calls.at(-1)![1]("active")
+  );
+  await act(async () => {
+    cards[0].props.onPressIn();
+    cards[1].props.onPressIn();
+  });
+  const web = screen!.root.findByType(WebView);
+  await act(async () =>
+    web.props.onMessage({
+      nativeEvent: {
+        data: JSON.stringify({ type: "fingering", key: first, wave: "AAAA" })
+      }
+    })
+  );
+  expect(performanceAudio.playPreparedGuitar).not.toHaveBeenCalled();
+  await act(async () =>
+    web.props.onMessage({
+      nativeEvent: {
+        data: JSON.stringify({ type: "fingering", key: second, wave: "AAAA" })
+      }
+    })
+  );
+  expect(performanceAudio.playPreparedGuitar).toHaveBeenCalledTimes(1);
+  expect(performanceAudio.playPreparedGuitar).toHaveBeenCalledWith(second);
+});
+
+test("saving an imported draft replaces the form route instead of retaining a reusable new-song draft", async () => {
+  jest.mocked(crud.createItem).mockResolvedValue({
+    insertId: 73,
+    rowsAffected: 1,
+    rows: { length: 0, item: jest.fn() }
+  });
+  const navigation = { navigate: jest.fn(), replace: jest.fn() };
+  let form!: FormikProps<typeof initialSong>;
+  await act(async () => {
+    screen = Renderer.create(
+      <Formik
+        initialValues={{
+          ...initialSong,
+          title: "Imported",
+          content: "Am\nWords"
+        }}
+        onSubmit={(values, actions) => onSubmit(actions, values, navigation)}
+      >
+        {(value) => {
+          form = value;
+          return null;
+        }}
+      </Formik>
+    );
+  });
+  await act(async () => {
+    await form.submitForm();
+  });
+  expect(navigation.replace).toHaveBeenCalledWith("Song", { id: "73" });
+  expect(navigation.navigate).not.toHaveBeenCalled();
+  expect(crud.createItem).toHaveBeenCalledTimes(1);
+});
 
 test("recording list hides empty interrupted takes while retaining active processing", async () => {
   const previous = NativeModules.PerformanceAudio;

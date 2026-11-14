@@ -25,7 +25,11 @@ export const performanceAudio = {
   success: () => native.playSuccess(),
   prepareGuitar: (key: string, wave: string) =>
     native.prepareGuitar?.(key, wave),
-  preparedGuitarSupported: !!(native.prepareGuitar && native.playPreparedGuitar),
+  preparedFingeringSupported: !!(
+    native.prepareFingering && native.playPreparedGuitar
+  ),
+  prepareFingering: (key: string, wave: string): Promise<boolean> =>
+    native.prepareFingering(key, wave),
   playPreparedGuitar: (key: string) => native.playPreparedGuitar?.(key),
   guitar: (wave: string, key?: string) =>
     key && native.prepareGuitar && native.playPreparedGuitar

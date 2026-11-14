@@ -112,7 +112,8 @@ export const acousticEngine = `function createAcousticPlayer(audio, prepared) {
       const sample=buffers.reduce((best,item)=>distance(item)<distance(best)?item:best);
       duration=Math.max(duration,sample.medium.duration/Math.pow(2,(midi-sample.midi)/12));
     });
-    const rate=audio.sampleRate,offline=new OfflineAudioContext(2,Math.ceil((duration+.1+1.7)*rate),rate);
+    const rate=[22050,44100,48000].includes(audio.sampleRate)?audio.sampleRate:44100;
+    const offline=new OfflineAudioContext(2,Math.ceil((duration+.1+1.7)*rate),rate);
     const engine=createAcousticPlayer(offline,{buffers:buffers.slice(),impulse:room.buffer,wetGain:wet.gain.value});
     engine.stroke(notes,'D',0,0,false,'D-------');
     const rendered=await offline.startRendering(),length=rendered.length;

@@ -53,7 +53,10 @@ const TabLayout = () => {
             key={name}
             name={name}
             component={screens[name].component}
-            options={{ title: t(screens[name].title ?? name), lazy: name !== "tuner" }}
+            options={{
+              title: t(screens[name].title ?? name),
+              lazy: name !== "tuner"
+            }}
           />
         ))}
       </Tab.Navigator>

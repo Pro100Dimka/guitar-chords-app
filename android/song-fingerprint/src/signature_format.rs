@@ -153,3 +153,24 @@ impl Fingerprint {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn signature_matches_wire_fixture_with_crc_padding_and_large_frame_delta() {
+        let fingerprint = Fingerprint {
+            sample_rate_hz: 16_000,
+            sample_count: 192_000,
+            peaks_by_band: HashMap::from([(FrequencyBand::Hz1450To3500, vec![
+                FrequencyPeak { frame: 7, magnitude: 1234, refined_bin: 20480 },
+                FrequencyPeak { frame: 300, magnitude: 4321, refined_bin: 25600 },
+            ])]),
+        };
+        assert_eq!(fingerprint.to_data_uri(), concat!(
+            "data:audio/vnd.shazam.sig;base64,",
+            "gCX+yhRGnBUgAAAAAJwRlAAAAAAAAAAAAAAAAAAAABgAAAAAAAAAAAD9AgAAAHwAAAAAQCAAAABCAANgDwAAAAfSBABQ/ywBAAAA4RAAZAA="
+        ));
+    }
+}
+

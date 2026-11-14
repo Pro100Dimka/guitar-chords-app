@@ -233,3 +233,29 @@ pub fn fingerprint_samples(samples: &[i16]) -> Fingerprint {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn silence_has_no_peaks_and_preserves_capture_duration() {
+        let signature = fingerprint_samples(&vec![0; 192_000]);
+        assert_eq!(signature.sample_rate_hz, 16_000);
+        assert_eq!(signature.sample_count, 192_000);
+        assert_eq!(signature.duration_ms(), 12_000);
+        assert!(signature.peaks_by_band.values().all(Vec::is_empty));
+    }
+
+    #[test]
+    fn fixed_pcm_produces_repeatable_nonempty_fingerprints() {
+        let mut seed = 78u32;
+        let samples: Vec<i16> = (0..192_000).map(|_| {
+            seed = seed.wrapping_mul(1_664_525).wrapping_add(1_013_904_223);
+            (seed >> 16) as i16
+        }).collect();
+        let first = fingerprint_samples(&samples);
+        assert!(first.peaks_by_band.values().any(|peaks| !peaks.is_empty()));
+        assert_eq!(first.to_data_uri(), fingerprint_samples(&samples).to_data_uri());
+    }
+}
+

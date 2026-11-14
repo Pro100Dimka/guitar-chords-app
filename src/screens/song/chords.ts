@@ -348,10 +348,9 @@ export function chordsAboveLyrics(content: string) {
         if (!chordPattern.test(match[1])) continue;
         lyrics += line.slice(previous, match.index);
         const column = [...lyrics].length;
-        chords =
-          chords.padEnd(
-            Math.max(column, chords.length ? chords.length + 1 : 0)
-          ) + match[1];
+        const target = Math.max(column, chords.length ? chords.length + 1 : 0);
+        lyrics += " ".repeat(target - column);
+        chords = chords.padEnd(target) + match[1];
         previous = match.index + match[0].length;
       }
       if (!chords) return line;

@@ -349,6 +349,44 @@ describe("content provider failover", () => {
     ).toBe(true);
   });
 
+  it("does not wait for a crawl slot when Pisennyk is already in cooldown", async () => {
+    request.mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.includes("pisennyk.com.ua"))
+        return new Response("", { status: 403 });
+      if (value.includes("lrclib.net"))
+        return new Response(
+          JSON.stringify([
+            {
+              id: 1,
+              trackName: "Sample",
+              artistName: artist,
+              plainLyrics: "Original words"
+            }
+          ])
+        );
+      return response(value);
+    });
+    const first = lookup("Sample", artist);
+    await jest.advanceTimersByTimeAsync(0);
+    await first;
+    request.mockClear();
+    let done = false;
+    const second = lookup("Sample", artist).then((value) => {
+      done = true;
+      return value;
+    });
+    await jest.advanceTimersByTimeAsync(0);
+    expect(done).toBe(true);
+    expect(
+      request.mock.calls.some(([url]) =>
+        String(url).includes("pisennyk.com.ua")
+      )
+    ).toBe(false);
+    await jest.advanceTimersByTimeAsync(10000);
+    await second;
+  });
+
   it.each([
     ["Sample", artist],
     ["Весна", "Виконавець"]

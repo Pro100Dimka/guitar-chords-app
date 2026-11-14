@@ -209,6 +209,10 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         prepareGuitar(key, wave)
         playPreparedGuitar(key)
     }
+    @ReactMethod @Synchronized fun prepareFingering(key: String, wave: String, promise: Promise) {
+        if (wave.isNotEmpty() || guitarPcm.containsKey(key)) prepareGuitar(key, wave)
+        promise.resolve(preparedGuitars.containsKey(key))
+    }
     @ReactMethod @Synchronized fun playPreparedGuitar(key: String) {
         if (recorder != null) return
         val bytes = guitarPcm[key] ?: return
@@ -351,7 +355,7 @@ private class PolishedRecorder {
             onStarted()
             while (!stopped && captured < rate * 30L * 60 && output.length() < 50L * 1024 * 1024) {
                 val count = capture.read(input, 0, input.size, AudioRecord.READ_BLOCKING)
-                if (count < 0 && stopped) break
+                if (count <= 0 && stopped) break
                 check(count > 0) { "Microphone capture failed: $count" }
                 for (index in 0 until count) {
                     val stereo = effect.processStereo(input[index] / 32768.0)

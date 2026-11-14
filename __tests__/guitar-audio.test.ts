@@ -1,6 +1,22 @@
 import { toByteArray } from "base64-js";
 import { prepareGuitar } from "../src/components/guitar-audio";
+import { playGuitar } from "../src/components/guitar-audio";
+import { performanceAudio } from "../src/components/performance-audio";
 import { chordShapes, guitarMidi } from "../src/screens/song/chords";
+
+test("a JS-cached string is prepared again before native playback after cache eviction", () => {
+  prepareGuitar([40]);
+  jest.mocked(performanceAudio.prepareGuitar).mockClear();
+  playGuitar([40]);
+  expect(performanceAudio.prepareGuitar).toHaveBeenCalledWith(
+    "440:40",
+    expect.any(String)
+  );
+  expect(performanceAudio.guitar).toHaveBeenCalledWith(
+    expect.any(String),
+    "440:40"
+  );
+});
 
 test("loading tuner controls does not load the audio bank before it is needed", () => {
   const load = jest.fn(() =>

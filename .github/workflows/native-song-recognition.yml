@@ -7,9 +7,14 @@ on:
     branches: [feature/song-autofill]
     paths:
       - android/song-fingerprint/**
-      - android/app/src/main/java/com/freetune/SongRecognitionModule.kt
-      - android/app/src/main/java/com/freetune/SongFingerprint.kt
-      - android/app/build.gradle
+      - android/app/src/main/**
+      - android/*.gradle
+      - android/gradle/**
+      - android/gradle.properties
+      - android/app/*.gradle
+      - android/app/proguard-rules.pro
+      - __tests__/native/**
+      - test-native.ps1
       - .github/workflows/native-song-recognition.yml
       - scripts/verify-shazam.cjs
   workflow_dispatch:
@@ -35,6 +40,10 @@ jobs:
           cargo install cargo-ndk --locked
       - name: Native host fingerprint compilation
         run: cargo test --manifest-path android/song-fingerprint/Cargo.toml
+      - name: Deterministic capture, recording stop and audio checks
+        run: |
+          KOTLIN_BIN=$(readlink -f "$(command -v kotlinc)")
+          pwsh ./test-native.ps1 -KotlinLib "$(dirname "$KOTLIN_BIN")/../lib" -OutputDirectory "$RUNNER_TEMP/freetune-native-checks"
       - name: Install audio decoder for CI-only test clips
         run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
       - name: Download public-domain recordings (not committed)

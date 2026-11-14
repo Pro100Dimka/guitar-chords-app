@@ -1,0 +1,166 @@
+import React from "react";
+import Renderer, { act } from "react-test-renderer";
+import {
+  AppState,
+  AccessibilityInfo,
+  NativeModules,
+  Platform
+} from "react-native";
+import { pick } from "@react-native-documents/picker";
+import checkMicPermission from "../src/components/permissions";
+import {
+  recognizeMicrophone,
+  recognizeAudioFile
+} from "../src/components/song-autofill/recognition";
+import { lookupSongContent } from "../src/components/song-autofill/lyrics";
+import RecognizeSong from "../src/screens/recognize-song";
+
+jest.mock("../src/components/permissions", () => jest.fn());
+jest.mock("../src/components/song-autofill/lyrics", () => ({
+  lookupSongContent: jest.fn()
+}));
+jest.mock("../src/components/library-files", () => ({
+  readRemoteSongCover: jest.fn().mockResolvedValue(""),
+  fileCanceled: () => false,
+  importedSong: jest.fn(),
+  readLibraryFile: jest.fn()
+}));
+jest.mock("@react-navigation/native", () => ({
+  useRoute: () => ({ params: { mode: "mic" } }),
+  useNavigation: () => mockNavigation,
+  useFocusEffect: (callback: () => void) =>
+    require("react").useEffect(callback, [callback])
+}));
+jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
+const mockNavigation = { replace: jest.fn() };
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  const promise = new Promise<T>((done) => {
+    resolve = done;
+  });
+  return { promise, resolve };
+}
+let screen: Renderer.ReactTestRenderer | undefined;
+const previousNative = NativeModules.SongRecognition;
+beforeEach(() => {
+  jest.replaceProperty(Platform, "OS", "android");
+  NativeModules.SongRecognition = {
+    recognizeMicrophone: jest
+      .fn()
+      .mockResolvedValue({
+        title: "Track",
+        artist: "Artist",
+        source: "Shazam"
+      }),
+    recognizeFile: jest.fn(),
+    cancel: jest.fn().mockResolvedValue(undefined)
+  };
+  jest.mocked(checkMicPermission).mockResolvedValue(true);
+  jest
+    .spyOn(AccessibilityInfo, "isReduceMotionEnabled")
+    .mockResolvedValue(true);
+});
+afterEach(async () => {
+  if (screen) await act(async () => screen!.unmount());
+  screen = undefined;
+  NativeModules.SongRecognition = previousNative;
+  jest.restoreAllMocks();
+  jest.clearAllMocks();
+});
+test("cancelling while microphone permission is pending prevents native capture", async () => {
+  const permission = deferred<boolean>();
+  jest.mocked(checkMicPermission).mockReturnValue(permission.promise);
+  const abort = new AbortController();
+  const result = recognizeMicrophone(abort.signal).catch((error) => error);
+  abort.abort();
+  permission.resolve(true);
+  expect(await result).toEqual(new Error("Cancelled"));
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).not.toHaveBeenCalled();
+});
+test("cancelling while the file picker is pending prevents native recognition", async () => {
+  const file = deferred<Awaited<ReturnType<typeof pick>>>();
+  jest.mocked(pick).mockReturnValue(file.promise);
+  const abort = new AbortController();
+  const result = recognizeAudioFile(abort.signal).catch((error) => error);
+  abort.abort();
+  file.resolve([
+    {
+      uri: "content://recording",
+      name: "track.wav",
+      type: "audio/wav",
+      size: 1234,
+      isVirtual: false,
+      hasRequestedType: true,
+      nativeType: "audio/wav",
+      convertibleToMimeTypes: null,
+      error: null
+    }
+  ]);
+  expect(await result).toEqual(new Error("Cancelled"));
+  expect(NativeModules.SongRecognition.recognizeFile).not.toHaveBeenCalled();
+});
+test("an already cancelled operation never opens permission or file dialogs", async () => {
+  const abort = new AbortController();
+  abort.abort();
+  await expect(recognizeMicrophone(abort.signal)).rejects.toThrow("Cancelled");
+  await expect(recognizeAudioFile(abort.signal)).rejects.toThrow("Cancelled");
+  expect(checkMicPermission).not.toHaveBeenCalled();
+  expect(pick).not.toHaveBeenCalled();
+});
+test("backgrounding during enrichment keeps an editable metadata draft and ignores late lyrics", async () => {
+  const lyrics = deferred<Awaited<ReturnType<typeof lookupSongContent>>>();
+  jest.mocked(lookupSongContent).mockReturnValue(lyrics.promise);
+  let background!: (state: "background") => void;
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      background = listener;
+      return { remove: jest.fn() };
+    });
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (x) =>
+          x.props.accessibilityLabel === "AddSongStart" &&
+          typeof x.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  await act(async () => background("background"));
+  const card = () =>
+    screen!.root.find(
+      (x) =>
+        x.props.accessibilityLabel === "AddSongEditResult" &&
+        typeof x.props.onPress === "function"
+    );
+  expect(card().props.disabled).toBe(false);
+  await act(async () => card().props.onPress());
+  expect(mockNavigation.replace).toHaveBeenCalledWith(
+    "createSong",
+    expect.objectContaining({
+      draft: expect.objectContaining({
+        title: "Track",
+        fk_band: expect.objectContaining({ name: "Artist" })
+      })
+    })
+  );
+  await act(async () =>
+    lyrics.resolve([
+      {
+        id: 1,
+        title: "Track",
+        artist: "Artist",
+        content: "Late words",
+        source: "LRCLIB",
+        album: "",
+        duration: null
+      }
+    ])
+  );
+  expect(mockNavigation.replace).toHaveBeenCalledTimes(1);
+});

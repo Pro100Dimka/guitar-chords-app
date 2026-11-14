@@ -14,6 +14,7 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
+        id: dependencies
       - name: Live LRCLIB smoke test (public metadata only)
         continue-on-error: true
         run: |
@@ -40,6 +41,8 @@ jobs:
       - name: Jest
         run: npm test -- --runInBand
       - name: TypeScript
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: npx tsc --noEmit
       - name: ESLint
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' }}
         run: npm run lint -- --max-warnings 0

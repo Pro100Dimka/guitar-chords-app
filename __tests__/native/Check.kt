@@ -208,6 +208,7 @@ fun main(args: Array<String>) {
     }
     println("Seven synthetic guitar/reference tones detected within 10 cents.")
     println("Native Kotlin source passed 200 start/stop cycles, idempotent calls, no overlapping readers, silence RMS, and release checks with deterministic device stubs.")
-    checkAccuracy(module, File(args.single()))
+    checkAccuracy(module, File(args[0]))
+    checkRecorderStop(File(args[1]))
     } finally { module.invalidate() }
 }

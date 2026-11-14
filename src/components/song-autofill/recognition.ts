@@ -23,16 +23,24 @@ const native = (): NativeRecognizer => {
     throw new Error("RecognitionUnsupported");
   return NativeModules.SongRecognition as NativeRecognizer;
 };
-export async function recognizeMicrophone(): Promise<RecognizedSong | null> {
-  if (!(await checkMicPermission(true)))
-    throw new Error("MicrophonePermissionDenied");
+export async function recognizeMicrophone(
+  signal?: AbortSignal
+): Promise<RecognizedSong | null> {
+  if (signal?.aborted) throw new Error("Cancelled");
+  const granted = await checkMicPermission(true);
+  if (signal?.aborted) throw new Error("Cancelled");
+  if (!granted) throw new Error("MicrophonePermissionDenied");
   return native().recognizeMicrophone();
 }
-export async function recognizeAudioFile(): Promise<RecognizedSong | null> {
+export async function recognizeAudioFile(
+  signal?: AbortSignal
+): Promise<RecognizedSong | null> {
+  if (signal?.aborted) throw new Error("Cancelled");
   const [file] = await pick({
     type: [types.audio],
     allowMultiSelection: false
   });
+  if (signal?.aborted) throw new Error("Cancelled");
   if (!file?.uri) throw new Error("FileUnavailable");
   // Read the original content:// through Android's ContentResolver; never delete it.
   return native().recognizeFile(file.uri);

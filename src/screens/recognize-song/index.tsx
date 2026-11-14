@@ -139,8 +139,8 @@ export default function RecognizeSong() {
         return;
       }
       const result = await (mode === "mic"
-        ? recognizeMicrophone()
-        : recognizeAudioFile());
+        ? recognizeMicrophone(abort.signal)
+        : recognizeAudioFile(abort.signal));
       if (request !== generation.current) return;
       if (!result) {
         setMessage(t("AutofillNoAudioMatch"));
@@ -153,6 +153,10 @@ export default function RecognizeSong() {
         result.title,
         result.artist,
         result.lyrics
+      );
+      setDraft(next);
+      setLyricsNotice(
+        next.content ? "AddSongLyricsNotice" : "AddSongLyricsUnavailable"
       );
       const [lyrics, cover] = await Promise.all([
         lookupSongContent(result.title, result.artist, abort.signal).then(

@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import LinearGradient from "react-native-linear-gradient";
 import {
@@ -317,17 +323,33 @@ export function ChordSheet({
     () => options.slice(currentPage * 4, currentPage * 4 + 4),
     [options, currentPage]
   );
-  const nativePreview = performanceAudio.preparedGuitarSupported;
-  const previewKeys = visible.map(({ frets }) =>
-    `fingering:${JSON.stringify([capo, ...frets])}`
+  const nativePreview = performanceAudio.preparedFingeringSupported;
+  const previewKeys = visible.map(
+    ({ frets }) => `fingering:${JSON.stringify([capo, ...frets])}`
   );
   const previewKeysKey = JSON.stringify(previewKeys);
   const preparedPreviews = useRef(new Set<string>());
   const pendingPreview = useRef<string | null>(null);
+  const playWhenReady = useCallback((key: string, prepared: boolean) => {
+    if (!prepared) return;
+    preparedPreviews.current.add(key);
+    if (pendingPreview.current === key) {
+      pendingPreview.current = null;
+      performanceAudio.playPreparedGuitar(key);
+    }
+  }, []);
   useEffect(() => {
     preparedPreviews.current.clear();
     pendingPreview.current = null;
-  }, [previewKeysKey]);
+    if (!nativePreview) return;
+    const keys: string[] = JSON.parse(previewKeysKey);
+    keys.forEach((key) => {
+      void performanceAudio
+        .prepareFingering(key, "")
+        .then((prepared) => playWhenReady(key, prepared))
+        .catch(() => preparedPreviews.current.delete(key));
+    });
+  }, [previewKeysKey, nativePreview, playWhenReady]);
   useEffect(() => {
     if (!opened) {
       pendingPreview.current = null;
@@ -366,12 +388,10 @@ export function ChordSheet({
         previewKeys={nativePreview ? previewKeys : undefined}
         onPreviewReady={(key, wave) => {
           if (!previewKeys.includes(key)) return;
-          performanceAudio.prepareGuitar(key, wave);
-          preparedPreviews.current.add(key);
-          if (opened && pendingPreview.current === key) {
-            pendingPreview.current = null;
-            performanceAudio.playPreparedGuitar(key);
-          }
+          void performanceAudio
+            .prepareFingering(key, wave)
+            .then((prepared) => playWhenReady(key, prepared))
+            .catch(() => preparedPreviews.current.delete(key));
         }}
         activeFingering={Math.max(
           0,
@@ -381,7 +401,16 @@ export function ChordSheet({
         meter={4}
         tempo={68}
       />
-      <Sheet title={chord} onClose={onClose} musical visible={opened}>
+      <Sheet
+        title={chord}
+        onClose={() => {
+          pendingPreview.current = null;
+          if (nativePreview) performanceAudio.stopPlayback();
+          onClose();
+        }}
+        musical
+        visible={opened}
+      >
         {options.length === 0 && (
           <Text style={styles.description}>{t("NoFingering")}</Text>
         )}
@@ -983,10 +1012,12 @@ function RhythmPlayer({
             if (nativeEvent.data.startsWith("{")) {
               try {
                 const message = JSON.parse(nativeEvent.data);
-                if (message.type === "fingering" &&
-                    typeof message.key === "string" &&
-                    typeof message.wave === "string" &&
-                    message.wave.length <= 8000000)
+                if (
+                  message.type === "fingering" &&
+                  typeof message.key === "string" &&
+                  typeof message.wave === "string" &&
+                  message.wave.length <= 8000000
+                )
                   onPreviewReady?.(message.key, message.wave);
               } catch {}
               return;

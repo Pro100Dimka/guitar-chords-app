@@ -44,7 +44,7 @@ jest.mock("react-native-reanimated", () => ({
 jest.mock("react-native-worklets", () => ({ runOnJS: (fn: unknown) => fn }));
 jest.mock("react-native-gesture-handler", () => ({
   GestureDetector: "GestureDetector",
-  Gesture: { Tap: () => ({ onStart: jest.fn() }) }
+  Gesture: { Tap: () => ({ onBegin: jest.fn() }) }
 }));
 jest.mock("../src/screens/tuner/strings", () => ({
   __esModule: true,

@@ -182,7 +182,10 @@ async function fetchSource(url: string, signal?: AbortSignal) {
 let nextPisennykRequest = 0;
 async function fetchPisennyk(url: string, signal?: AbortSignal) {
   if (signal?.aborted) throw new Error("Cancelled");
+  const origin = new URL(url).origin;
   do {
+    if (Date.now() < (sourceCooldowns.get(origin) ?? 0))
+      throw new Error("LyricsServiceUnavailable");
     await new Promise<void>((resolve, reject) => {
       const abort = () => {
         clearTimeout(timer);
@@ -199,6 +202,8 @@ async function fetchPisennyk(url: string, signal?: AbortSignal) {
     });
     if (signal?.aborted) throw new Error("Cancelled");
   } while (Date.now() < nextPisennykRequest);
+  if (Date.now() < (sourceCooldowns.get(origin) ?? 0))
+    throw new Error("LyricsServiceUnavailable");
   nextPisennykRequest = Date.now() + 10000;
   return fetchSource(url, signal);
 }

@@ -21,7 +21,10 @@ const previews = new Map<string, string>();
 export function prepareGuitar(notes: number[], reference = 440) {
   const key = `${reference}:${notes.join(",")}`;
   const cached = previews.get(key);
-  if (cached) return cached;
+  if (cached) {
+    performanceAudio.prepareGuitar(key, cached);
+    return cached;
+  }
   const samples: typeof import("../../assets/guitar-samples.json") = require("../../assets/guitar-samples.json");
   const rate = 22050;
   const mix = new Float32Array(rate * (notes.length > 1 ? 5 : 3));

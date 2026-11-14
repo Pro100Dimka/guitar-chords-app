@@ -5,9 +5,9 @@
   "design_changes": true,
   "checks": {
     "javascript": {
-      "suites": 13,
-      "tests": 80,
-      "status": "Historical 80-test run before subsequent provider, guide and preview-audio changes. No new automated tests were run for the guide/audio revision or versionCode 10 packaging."
+      "suites": 15,
+      "tests": 102,
+      "status": "Passed full local Jest run after review fixes, including cancellation, background enrichment, save routing, chord alignment, source cooldown, cache preparation, native-preview request ordering and CI request construction."
     },
     "typescript": "passed after the current source and regression-check changes",
     "eslint": "passed for changed production guitar-audio, tuner and song sources",
@@ -342,6 +342,31 @@
       ],
       "verification": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc10-verification.json",
       "physical_device": "not checked in this build task"
+    },
+    "native_fingering_previews": {
+      "status": "Source fix after versionCode 10, not in delivered APKs",
+      "routing": "Fingering previews render ahead through the same production acoustic engine, then play by native key without a WebView play/configure roundtrip",
+      "identity": "Key contains capo and all six fret/mute values; preparation responses are paired with their exact frequency array; only the last pending requested key may start",
+      "native": "Readiness acknowledgement, idle-track reuse, mono/stereo PCM at supported rates, maximum 8 ready tracks and 32 MiB PCM cache",
+      "verification": "TypeScript, full Jest suite, source ESLint, embedded JavaScript syntax, native host checks and actual browser offline renders passed. Final Android build pending.",
+      "runtime_limit": "Physical-phone latency and microphone playback quality not measured. Separate managed browser render passed.",
+      "cold_start": "A never-prepared fingering can still wait for first rendering; existing native cache is checked before waiting"
+    },
+    "review_regressions": {
+      "status": "Local checks passed; remote Rust/CI and versionCode 11 packaging pending",
+      "fixed": [
+        "Stopped AudioRecord zero/negative reads drain normally",
+        "AbortSignal checked before dialogs and after permission or file selection",
+        "Recognized metadata draft remains editable after enrichment is cancelled",
+        "JS-cached strings are prepared before native playback after native eviction",
+        "New songs replace the form route, removing the reusable id=0 draft",
+        "Chord and lyric columns advance together for long overlapping labels",
+        "Pisennyk cooldown is checked before crawl waiting and reservation"
+      ],
+      "native": "Original committed recorder reproduced Microphone capture failed: 0. Corrected production recorder preserved captured frames, processed tail and EOS for zero and negative terminal reads with deterministic platform/codec stubs. Existing native tuner checks passed.",
+      "audio_render": "Managed browser rendered two distinct stereo Am positions with natural 15.3-second tails and peaks below -12 dBFS. This is not a phone latency or listening test.",
+      "notices": "MIT upstream and MPL-2.0 chfft notice/source text added to Android assets; final APK contents pending verification",
+      "ci": "Strict real-audio proof watches all fingerprint sources and Cargo files; native CI watches Android sources/config and mandatory host regressions; TypeScript and ESLint still run after a Jest failure when dependencies installed"
     }
   },
   "privacy_forms_draft": [
@@ -463,7 +488,7 @@
   },
   "reviewed_on": "2026-11-14",
   "review_scope": "Source performance and scrolling fixes, minified-fragment restoration investigation, emulator recording and UI measurements, production Web Audio rendering and store-material preparation. No new APK/AAB.",
-  "artifact_scope": "VersionCode 10 ARM64 and ARM32 phone APKs include all current source changes: full 25-topic guide revision in three languages, refreshed tuner illustrations, prepared native string playback, persistent fingering player and touch-down auditions, chromatic tuner and prior song lookup fixes. Fresh production Hermes and native app code are included. APKs retain the preceding sideload test certificate. The listed AAB remains historical versionCode 7. No new store bundle, native iOS archive or physical-device latency verification is claimed.",
+  "artifact_scope": "VersionCode 10 ARM64 and ARM32 phone APKs include all current source changes: full 25-topic guide revision in three languages, refreshed tuner illustrations, prepared native string playback, persistent fingering player and touch-down auditions, chromatic tuner and prior song lookup fixes. Fresh production Hermes and native app code are included. APKs retain the preceding sideload test certificate. The listed AAB remains historical versionCode 7. No new store bundle, native iOS archive or physical-device latency verification is claimed. A subsequent native fingering-preview and exact-voicing-key correction is source-only and is not in those versionCode 10 APKs.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
@@ -483,5 +508,6 @@
       "https://support.google.com/googleplay/android-developer/answer/14151465?hl=en"
     ],
     "target_audience": "13-15, 16-17 and 18+ recommended as a draft after the owner requested advice; IARC remains unassigned and nothing is submitted."
-  }
+  },
+  "candidate_version_code": 11
 }
