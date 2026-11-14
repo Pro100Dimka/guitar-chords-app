@@ -778,31 +778,31 @@ export function RhythmGrid({
     3: ["", "&", "a"],
     4: ["", "e", "&", "a"]
   };
+  const columns = division > 2 ? division * 2 : meter * division;
   return (
     <View style={styles.rhythmRows}>
-      {Array.from(
-        { length: Math.ceil(pattern.length / (meter * division)) },
-        (_, bar) => (
-          <View key={bar} style={styles.beats}>
-            {Array.from({ length: meter * division }, (_, step) => {
-              const symbol = pattern[bar * meter * division + step] ?? "-";
-              return (
-                <View
-                  key={step}
-                  style={[styles.beat, symbol !== "-" && styles.beatPlayed]}
-                >
-                  <Text style={styles.beatCount}>
-                    {step % division === 0
-                      ? step / division + 1
-                      : counts[division][step % division]}
-                  </Text>
-                  <Text style={styles.beatSymbol}>{rhythmSymbols[symbol]}</Text>
-                </View>
-              );
-            })}
-          </View>
-        )
-      )}
+      {Array.from({ length: Math.ceil(pattern.length / columns) }, (_, bar) => (
+        <View key={bar} style={styles.beats}>
+          {Array.from({ length: columns }, (_, step) => {
+            const position = bar * columns + step;
+            const beat = position % (meter * division);
+            const symbol = pattern[position] ?? "-";
+            return (
+              <View
+                key={step}
+                style={[styles.beat, symbol !== "-" && styles.beatPlayed]}
+              >
+                <Text style={styles.beatCount}>
+                  {beat % division === 0
+                    ? beat / division + 1
+                    : counts[division][beat % division]}
+                </Text>
+                <Text style={styles.beatSymbol}>{rhythmSymbols[symbol]}</Text>
+              </View>
+            );
+          })}
+        </View>
+      ))}
     </View>
   );
 }
