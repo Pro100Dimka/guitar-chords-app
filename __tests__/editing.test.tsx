@@ -8,7 +8,8 @@ import {
   Text,
   AppState,
   NativeModules,
-  Alert
+  Alert,
+  Platform
 } from "react-native";
 import Select from "../src/components/fields/api-select";
 import Song from "../src/screens/song";
@@ -926,32 +927,39 @@ test("source tuning is visible in both the song and the editor", async () => {
   expect(JSON.stringify(screen!.toJSON())).toContain("D A D G B E");
 });
 
-test("Android cover actions always offer a direct cancellation path", async () => {
-  const { usePreferences } = require("../src/components/preferences");
-  usePreferences
-    .getState()
-    .updateSong(1, { cover: "data:image/jpeg;base64,/9j/2Q==" });
-  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
-  const ActualEditor = jest.requireActual<
-    typeof import("../src/screens/create-song-chords")
-  >("../src/screens/create-song-chords").default;
-  await act(async () => {
-    screen = Renderer.create(
-      <ActualEditor song={{ id: 1, title: "Title", content: "Am\nWords" }} />
+test.each(["android", "ios"] as const)(
+  "cover actions offer cancellation on %s",
+  async (platform) => {
+    jest.replaceProperty(Platform, "OS", platform);
+    const { usePreferences } = require("../src/components/preferences");
+    usePreferences
+      .getState()
+      .updateSong(1, { cover: "data:image/jpeg;base64,/9j/2Q==" });
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    const ActualEditor = jest.requireActual<
+      typeof import("../src/screens/create-song-chords")
+    >("../src/screens/create-song-chords").default;
+    await act(async () => {
+      screen = Renderer.create(
+        <ActualEditor song={{ id: 1, title: "Title", content: "Am\nWords" }} />
+      );
+    });
+    await act(async () =>
+      screen!.root
+        .find(
+          (node) =>
+            node.props.accessibilityLabel === "ChangeSongCover" &&
+            typeof node.props.onPress === "function"
+        )
+        .props.onPress()
     );
-  });
-  await act(async () =>
-    screen!.root
-      .find(
-        (node) =>
-          node.props.accessibilityLabel === "ChangeSongCover" &&
-          typeof node.props.onPress === "function"
-      )
-      .props.onPress()
-  );
-  const args = alert.mock.calls.at(-1)!;
-  expect(args[2]!.length).toBeLessThanOrEqual(3);
-  expect(
-    args[3]?.cancelable || args[2]!.some((button) => button.style === "cancel")
-  ).toBe(true);
-});
+    const args = alert.mock.calls.at(-1)!;
+    if (platform === "android") expect(args[2]!.length).toBeLessThanOrEqual(3);
+    else
+      expect(args[2]!.some((button) => button.style === "cancel")).toBe(true);
+    expect(
+      args[3]?.cancelable ||
+        args[2]!.some((button) => button.style === "cancel")
+    ).toBe(true);
+  }
+);

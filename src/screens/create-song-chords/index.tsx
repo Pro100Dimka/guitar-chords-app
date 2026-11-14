@@ -200,7 +200,15 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                               text: t("ResetCover"),
                               onPress: () =>
                                 void formik.setFieldValue("cover", "")
-                            }
+                            },
+                            ...(Platform.OS === "ios"
+                              ? [
+                                  {
+                                    text: t("Cancel"),
+                                    style: "cancel" as const
+                                  }
+                                ]
+                              : [])
                           ],
                           { cancelable: true }
                         );
