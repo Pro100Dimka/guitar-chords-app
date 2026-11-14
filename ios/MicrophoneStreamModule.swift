@@ -334,11 +334,16 @@ class MicrophoneStream: RCTEventEmitter {
             return sqrt(real * real + imaginary * imaginary)
         }
         var detected = frequency(bestLag)
-        // At high pitches, fractional sample lags can depress a fundamental peak.
-        if let upper = peaks.first(where: { Double($0) < sampleRate / 2000 && peakCorrelation($0) >= bestCorrelation * peakThreshold }) {
-            let candidate = frequency(upper)
-            if candidate > 2000 && candidate > detected * 1.5 && amplitude(candidate) > amplitude(detected) * 4 { detected = candidate }
-        }
+        // Short candidate periods lose peak height on the integer sample grid.
+        // Refine their correlation and require actual energy before correcting a subharmonic.
+        if let refined = peaks.first(where: { lag in
+            guard lag < 64, peakCorrelation(lag) >= bestCorrelation * peakThreshold else { return false }
+            let candidate = frequency(lag)
+            let ratio = candidate / detected
+            let multiple = ratio.rounded()
+            return (2...3).contains(multiple) && abs(1200 * log2(ratio / multiple)) < 35 &&
+                amplitude(candidate) > amplitude(detected) * 4
+        }) { detected = frequency(refined) }
         guard let lastPitch = pitchHistory.first else { return Float(detected) }
         let previous = Double(lastPitch)
         let ratio = max(detected, previous) / min(detected, previous)

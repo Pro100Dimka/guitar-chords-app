@@ -7,7 +7,8 @@ import {
   ScrollView,
   Text,
   AppState,
-  NativeModules
+  NativeModules,
+  Alert
 } from "react-native";
 import Select from "../src/components/fields/api-select";
 import Song from "../src/screens/song";
@@ -754,4 +755,203 @@ test("artist length uses the same contract as song backup fields", async () => {
       fk_band: { id: "", name: "a".repeat(1001), search_text_lower: "" }
     })
   ).toBe(false);
+});
+
+test.each(["|Am | F | C | G|", "|:Am|F|C|G:|"])(
+  "bar-delimited chord text stays consistent across transposition, import and practice: %s",
+  (line) => {
+    const {
+      transposeSong,
+      songChordSequence
+    } = require("../src/screens/song/chords");
+    const { importedSong } = require("../src/components/library-files");
+    expect(songChordSequence(transposeSong(line, 2))).toEqual([
+      "Bm",
+      "G",
+      "D",
+      "A"
+    ]);
+    expect(transposeSong(line, 2).replace(/[A-G][#b]?(?:m)?/g, "_")).toBe(
+      line.replace(/[A-G][#b]?(?:m)?/g, "_")
+    );
+    const imported = importedSong(
+      `{title: Example}\n{capo:2}\n${line}\nWords`,
+      "example.cho"
+    );
+    expect(songChordSequence(imported.content)).toEqual(["Bm", "G", "D", "A"]);
+  }
+);
+
+test("bar-delimited edge chords remain clickable in the displayed key", async () => {
+  const { usePreferences } = require("../src/components/preferences");
+  usePreferences.getState().updateSong(1, { transpose: 2, capo: 0 });
+  jest
+    .mocked(crud.getAllItems)
+    .mockResolvedValue([
+      { id: 1, title: "Song", content: "|Am | F | C | G|\nWords" }
+    ]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  const chords = screen!.root
+    .findAllByType(Text)
+    .filter(
+      (node) =>
+        typeof node.props.onPress === "function" &&
+        node.props.accessibilityRole === "button" &&
+        ["Bm", "G", "D", "A"].includes(node.props.children)
+    );
+  expect(chords.map((node) => node.props.children)).toEqual([
+    "Bm",
+    "G",
+    "D",
+    "A"
+  ]);
+});
+
+test("song settings do not end an active performance recording", async () => {
+  const previousState = AppState.currentState;
+  AppState.currentState = "active";
+  try {
+    jest.useFakeTimers();
+    jest
+      .spyOn(require("../src/components/permissions"), "default")
+      .mockResolvedValue(true);
+    jest.mocked(performanceAudio.start).mockResolvedValue("song-1-123.m4a");
+    jest.mocked(performanceAudio.stop).mockResolvedValue("song-1-123.m4a");
+    jest.mocked(performanceAudio.list).mockResolvedValue([]);
+    jest
+      .mocked(crud.getAllItems)
+      .mockResolvedValue([{ id: 1, title: "Song", content: "Am\nWords" }]);
+    await act(async () => {
+      screen = Renderer.create(<Song />);
+    });
+    await act(async () =>
+      screen!.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "RecordPerformance")!
+        .props.onPress()
+    );
+    await act(async () =>
+      screen!.root
+        .find(
+          (node) =>
+            node.props.accessibilityLabel === "StartRecording" &&
+            typeof node.props.onPress === "function"
+        )
+        .props.onPress()
+    );
+    expect(performanceAudio.start).toHaveBeenCalledTimes(1);
+    jest.mocked(performanceAudio.stop).mockClear();
+    await act(async () =>
+      screen!.root
+        .findAllByType(Action)
+        .find((node) => node.props.accessibilityLabel === "SongTools")!
+        .props.onPress()
+    );
+    expect(screen!.root.findByType(SongRecorder).props.active).toBe(true);
+    expect(performanceAudio.stop).not.toHaveBeenCalled();
+    await act(async () => screen!.unmount());
+    screen = undefined;
+    expect(performanceAudio.stop).toHaveBeenCalledTimes(1);
+  } finally {
+    AppState.currentState = previousState;
+  }
+});
+
+test("an unmounted fingering cannot start a delayed native preview", async () => {
+  jest.replaceProperty(performanceAudio, "preparedFingeringSupported", true);
+  let resolve!: (prepared: boolean) => void;
+  jest
+    .mocked(performanceAudio.prepareFingering)
+    .mockImplementation(async (_key, wave) =>
+      wave
+        ? await new Promise<boolean>((done) => {
+            resolve = done;
+          })
+        : false
+    );
+  await act(async () => {
+    screen = Renderer.create(
+      <ChordSheet chord="Am" onChange={() => {}} onClose={() => {}} />
+    );
+  });
+  await act(async () =>
+    jest.mocked(AppState.addEventListener).mock.calls.at(-1)![1]("active")
+  );
+  const card = screen!.root.findAll(
+    (node) =>
+      typeof node.props.onPressIn === "function" &&
+      String(node.props.accessibilityLabel).startsWith("Fingering ")
+  )[0];
+  const key =
+    "fingering:" +
+    JSON.stringify([
+      0,
+      ...String(card.props.accessibilityLabel)
+        .split(": ")[1]
+        .split(", ")
+        .map((fret) => (fret === "×" ? null : Number(fret)))
+    ]);
+  await act(async () => card.props.onPressIn());
+  await act(async () =>
+    screen!.root.findByType(WebView).props.onMessage({
+      nativeEvent: {
+        data: JSON.stringify({ type: "fingering", key, wave: "AAAA" })
+      }
+    })
+  );
+  await act(async () => screen!.unmount());
+  screen = undefined;
+  await act(async () => resolve(true));
+  expect(performanceAudio.playPreparedGuitar).not.toHaveBeenCalled();
+});
+
+test("source tuning is visible in both the song and the editor", async () => {
+  const { usePreferences } = require("../src/components/preferences");
+  usePreferences.getState().updateSong(1, { sourceTuning: "D A D G B E" });
+  const song = { id: 1, title: "Drop D", content: "D\nWords" };
+  jest.mocked(crud.getAllItems).mockResolvedValue([song]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  expect(JSON.stringify(screen!.toJSON())).toContain("D A D G B E");
+  await act(async () => screen!.unmount());
+  const ActualEditor = jest.requireActual<
+    typeof import("../src/screens/create-song-chords")
+  >("../src/screens/create-song-chords").default;
+  await act(async () => {
+    screen = Renderer.create(<ActualEditor song={song} />);
+  });
+  expect(JSON.stringify(screen!.toJSON())).toContain("D A D G B E");
+});
+
+test("Android cover actions always offer a direct cancellation path", async () => {
+  const { usePreferences } = require("../src/components/preferences");
+  usePreferences
+    .getState()
+    .updateSong(1, { cover: "data:image/jpeg;base64,/9j/2Q==" });
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const ActualEditor = jest.requireActual<
+    typeof import("../src/screens/create-song-chords")
+  >("../src/screens/create-song-chords").default;
+  await act(async () => {
+    screen = Renderer.create(
+      <ActualEditor song={{ id: 1, title: "Title", content: "Am\nWords" }} />
+    );
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "ChangeSongCover" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  const args = alert.mock.calls.at(-1)!;
+  expect(args[2]!.length).toBeLessThanOrEqual(3);
+  expect(
+    args[3]?.cancelable || args[2]!.some((button) => button.style === "cancel")
+  ).toBe(true);
 });

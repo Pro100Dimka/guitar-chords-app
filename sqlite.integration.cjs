@@ -48,9 +48,13 @@ function load(relative) {
     setTimeout, clearTimeout,
     require: (name) => {
       if (name === "../index" || name === "./database") return {db};
+      if (["react-native", "react-native-file-access", "@react-native-documents/picker", "@bam.tech/react-native-image-resizer"].includes(name)) return name === "react-native" ? {Alert:{alert(){}}} : {};
+      if (name.endsWith("locales")) return {t:key=>key};
+      if (name === "./performance-audio") return {performanceAudio:{}};
+      if (name.startsWith("@/")) { const target=path.join(root,"src",name.slice(2)); return load(fs.existsSync(target+".ts")?target+".ts":path.join(target,"index.ts")); }
       if (!name.startsWith(".")) return require(name);
       const target = path.resolve(path.dirname(filename), name);
-      return load(fs.existsSync(`${target}.ts`) ? `${target}.ts` : path.join(target,"index.ts"));
+      return load(fs.existsSync(`${target}.ts`) ? `${target}.ts` : fs.existsSync(`${target}.tsx`) ? `${target}.tsx` : path.join(target,"index.ts"));
     }
   });
   modules.set(filename, module.exports);
@@ -109,6 +113,34 @@ async function main() {
   assert.equal(preferences.usePreferences.getState().songs[144].cover.length,290023);
   assert.equal(preferences.usePreferences.getState().songs[1].favorite,true);
   console.log("SQLite preference migration passed: oversized legacy read reproduced, rollback preserved legacy data, chunked migration and multi-part cover reload passed.");
+  const reviewFailures=[];
+  try {
+    sqlite.exec("DELETE FROM settings; DELETE FROM songs;");
+    sqlite.prepare("INSERT INTO settings (key,value) VALUES (?,?)").run("experience",JSON.stringify({songs:{}}));
+    await preferences.loadPreferences();
+    const library=load("src/components/library-files.ts");
+    const imported=library.parseLibraryBackup(JSON.stringify({format:"freetune-library",version:1,songs:[{title:"Restored",content:"Am\nWords",band_name:"",youtube_music:"",youtobe_lesson:"",preferences:{cover:"data:image/jpeg;base64,/9j/2Q=="}}]}));
+    await library.restoreLibrary(imported);
+    const id=(await read({tableName:"songs"}))[0].id;
+    await remove({tableName:"songs",filters:`id = ${id}`});
+    preferences.usePreferences.getState().removeSong(id);
+    preferences.flushPreferences();
+    await new Promise((resolve,reject)=>db.transaction(()=>{},reject,resolve));
+    assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE ?").get(`song:${id}:%`).n,0);
+    await preferences.loadPreferences();
+    assert.equal(preferences.usePreferences.getState().songs[id],undefined);
+  } catch(error) {reviewFailures.push(`restore/delete: ${error.message}`);}
+  try {
+    const saved=await create({tableName:"songs",data:{title:"Legacy",content:"Am\nWords",youtube_music:null,youtobe_lesson:null,search_text_lower:"legacy"}});
+    const legacy=(await read({tableName:"songs",filters:"id = ?",parameters:[saved.insertId]}))[0];
+    assert.equal(legacy.youtube_music,null);assert.equal(legacy.youtobe_lesson,null);
+    const submit=load("src/screens/create-song-chords/formik/on-sabmit.tsx").default;
+    await submit({}, {...legacy,title:"Edited legacy",fk_band:{id:"",name:"",search_text_lower:""},cover:""},{replace(){}});
+    const edited=(await read({tableName:"songs",filters:"id = ?",parameters:[saved.insertId]}))[0];
+    assert.equal(edited.title,"Edited legacy");assert.equal(edited.youtube_music,"");assert.equal(edited.youtobe_lesson,"");
+  } catch(error) {reviewFailures.push(`nullable edit: ${error.message}`);}
+  assert.deepEqual(reviewFailures,[]);
+  console.log("SQLite review regressions passed: real NULL video fields edit successfully; restored/deleted covers and preferences stay deleted after reload.");
   sqlite.exec("PRAGMA user_version = 99");
   await assert.rejects(migrate(db), /newer application version/);
   assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 99);

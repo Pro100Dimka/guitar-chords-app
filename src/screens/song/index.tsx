@@ -47,6 +47,7 @@ import MicrophoneStream from "../tuner/MicrophoneStream";
 import {
   chordsAboveLyrics,
   chordPattern,
+  chordLineParts,
   isChordLine,
   songChords,
   transposeChord
@@ -208,11 +209,7 @@ const SongDetail: React.FC = () => {
     setTools("reading");
   };
   const content = useMemo(() => {
-    const renderChord = (text: string, key: number) => {
-      const displayed = transposeChord(
-        text,
-        preferences.transpose - preferences.capo
-      );
+    const renderChord = (displayed: string, key: number) => {
       return (
         <Text
           key={key}
@@ -231,7 +228,7 @@ const SongDetail: React.FC = () => {
     const renderLine = (line: string, index: number) => {
       const onlyChords = isChordLine(line);
       const parts = onlyChords
-        ? line.split(/(\s+)/)
+        ? chordLineParts(line, preferences.transpose - preferences.capo)
         : line.split(/(\[[^\]]+\])/);
       return (
         <Text
@@ -245,24 +242,18 @@ const SongDetail: React.FC = () => {
           ]}
         >
           {parts.map((part, i) => {
-            if (
-              onlyChords &&
-              /^ +$/.test(part) &&
-              chordPattern.test(parts[i - 1] ?? "")
-            ) {
-              const previous = parts[i - 1];
-              const shifted = transposeChord(
-                previous,
-                preferences.transpose - preferences.capo
-              );
-              return " ".repeat(
-                Math.max(1, part.length + previous.length - shifted.length)
-              );
-            }
             const token = onlyChords ? part : part.slice(1, -1);
             return (onlyChords || /^\[.*\]$/.test(part)) &&
               chordPattern.test(token)
-              ? renderChord(token, i)
+              ? renderChord(
+                  onlyChords
+                    ? token
+                    : transposeChord(
+                        token,
+                        preferences.transpose - preferences.capo
+                      ),
+                  i
+                )
               : part;
           })}
           {line ? "" : " "}
@@ -354,6 +345,11 @@ const SongDetail: React.FC = () => {
                   {preferences.transpose} · {t("Capo")}: {preferences.capo}
                 </Text>
               )}
+              {!!preferences.sourceTuning && (
+                <Text style={styles.metadata}>
+                  {t("Tuning")}: {preferences.sourceTuning}
+                </Text>
+              )}
               {!!song.band_name && (
                 <Text style={styles.metadata}>{song.band_name}</Text>
               )}
@@ -384,7 +380,8 @@ const SongDetail: React.FC = () => {
               songId={songId}
               open={route.params?.recordings}
               onOpened={() => navigation.setParams({ recordings: false })}
-              active={focused && !tuner && !tools && !chord && !isEdit}
+              active={focused && !tuner && !isEdit}
+              controlsEnabled={focused && !tuner && !tools && !chord && !isEdit}
               onStart={() => {
                 setVideos(false);
                 startScrolling();

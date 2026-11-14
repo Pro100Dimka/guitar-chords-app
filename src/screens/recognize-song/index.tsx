@@ -166,6 +166,16 @@ export default function RecognizeSong() {
         result.artist,
         result.lyrics
       );
+      if (next.content && result.url?.startsWith("https://www.shazam.com/")) {
+        next = {
+          ...next,
+          contentSource: {
+            name: "Shazam",
+            url: result.url,
+            credit: result.lyricsCredit
+          }
+        };
+      }
       setDraft(next);
       setLyricsNotice(
         next.content ? "AddSongLyricsNotice" : "AddSongLyricsUnavailable"
@@ -193,11 +203,11 @@ export default function RecognizeSong() {
         capo: selected?.capo,
         sourceTuning: selected?.tuning,
         content: selected?.content ?? next.content,
-        contentSource: selected?.url
-          ? { name: selected.source, url: selected.url }
-          : next.content && result.url?.startsWith("https://www.shazam.com/")
-            ? { name: "Shazam", url: result.url, credit: result.lyricsCredit }
+        contentSource: selected
+          ? selected.url
+            ? { name: selected.source, url: selected.url }
             : undefined
+          : next.contentSource
       };
       const notice = selected?.hasChords
         ? "AddSongChordsNotice"

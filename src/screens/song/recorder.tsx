@@ -20,12 +20,14 @@ import palette from "../../theme/palette";
 export default function SongRecorder({
   songId,
   active,
+  controlsEnabled = active,
   onStart,
   open = false,
   onOpened
 }: {
   songId: number;
   active: boolean;
+  controlsEnabled?: boolean;
   onStart: () => void;
   open?: boolean;
   onOpened?: () => void;
@@ -193,7 +195,7 @@ export default function SongRecorder({
           recording ? "StopRecording" : "RecordPerformance"
         )}
         selected={recording}
-        disabled={busy || !active}
+        disabled={busy || !controlsEnabled}
         onPress={() =>
           void run(async () => {
             if (recording) {

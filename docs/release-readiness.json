@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 16,
-      "tests": 132,
-      "status": "132 tests in 16 suites passed locally and in main CI; TypeScript, ESLint and actual SQLite integration passed in both environments."
+      "tests": 139,
+      "status": "Passed full local run after the nine follow-up fixes; source CI pending."
     },
     "typescript": "Passed tsc --noEmit locally and in CI.",
     "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
@@ -412,6 +412,20 @@
         "final_javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43631283524",
         "final_javascript_status": "success"
       }
+    },
+    "followup_review_regressions": {
+      "reviewed_base": "f626a248640bbcff65b4c3a935f3d40f82e16a7a",
+      "status": "All local checks passed; CI and versionCode 13 APK packaging pending.",
+      "chords": "One delimiter-preserving chord-line parser now drives normalization, transposition, rendering and practice. Bar-separated capo imports and clickable edge chords covered.",
+      "pitch": "Reproduced 22 failing combinations in the actual Kotlin estimator/smoother. Short-period correlation refinement plus spectral fundamental support passed all 336 combinations / 3360 frames, the existing 270 accuracy cases, 24 calibration cases, 180 transitions, 12 decay/drift sequences, 10 WAV checks and 200 capture cycles. Platform and codec are deterministic stubs, not physical microphone measurements. Swift source updated; iOS execution unavailable.",
+      "recording": "Actual Song and recorder component start a take; reading settings preserve capture, and unmount still stops it. Controls availability is separate from capture ownership.",
+      "nullable_edit": "Actual SQLite NULL video fields reproduced blocked editing. Save and editor hydration normalize optional links; the persisted title and links are verified after update.",
+      "preview": "Deferred native preparation after actual ChordSheet unmount cannot start playback.",
+      "tuning": "Source tuning is visible in the existing editor notice and song metadata styles.",
+      "cover": "Native cover actions are limited to three with explicit Android cancellation enabled.",
+      "restore_delete": "After successful restore, the persisted preference cache is synchronized. Actual SQLite restore/delete/reload removes all cover/settings chunks. Existing rollback checks pass.",
+      "attribution": "Interrupted enrichment retains Shazam lyrics, URL and attribution together in the editable draft.",
+      "scope": "No design restyling; existing styles reused for necessary tuning metadata. No manual lyric-search button added."
     }
   },
   "privacy_forms_draft": [
@@ -515,7 +529,10 @@
       "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc7.aab",
       "bytes": 97296005,
       "sha256": "24a55050e0a248391ba0a9c440e0d9e19038851e10c15628b68d54e59cdbb5dd",
-      "version_code": 7
+      "version_code": 7,
+      "historical": true,
+      "contains_current_fixes": false,
+      "status": "historical_only_not_current_distribution_bundle"
     },
     "apk_arm64": {
       "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc12-arm64-v8a.apk",
@@ -554,5 +571,9 @@
     ],
     "target_audience": "13-15, 16-17 and 18+ recommended as a draft after the owner requested advice; IARC remains unassigned and nothing is submitted."
   },
-  "candidate_version_code": 12
+  "candidate_version_code": 13,
+  "current_distribution_bundle": {
+    "status": "not_built_for_current_source",
+    "version_code": null
+  }
 }

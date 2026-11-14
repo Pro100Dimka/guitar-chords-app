@@ -352,26 +352,39 @@ export function normalizeChord(chord: string) {
       }[quality] ?? quality)
   );
 }
+export function chordLineParts(line: string, semitones = 0) {
+  const parts = line.split(/(\s+|[|:]+)/).filter(Boolean);
+  return parts.map((part, index) => {
+    const previous = parts[index - 1] ?? "";
+    if (/^ +$/.test(part) && chordPattern.test(normalizeChord(previous))) {
+      return " ".repeat(
+        Math.max(
+          1,
+          part.length +
+            previous.length -
+            transposeChord(previous, semitones).length
+        )
+      );
+    }
+    return transposeChord(part, semitones);
+  });
+}
 function chordTokens(line: string) {
-  return line
-    .replace(
+  return chordLineParts(
+    line.replace(
       /\[(?:intro|verse|chorus|bridge|outro|solo|interlude|instrumental|приспів|куплет|припев)[^\]]*\]/gi,
       " "
     )
-    .replace(/[|:]/g, " ")
-    .trim()
-    .split(/\s+/)
-    .filter(
-      (token) =>
-        token && !/^(?:[-()[\]]+|\(?[xх×]\d+\)?|\(?\d+[xх×]\)?)$/i.test(token)
-    )
-    .map(normalizeChord);
+  ).filter(
+    (token) =>
+      !/^(?:\s+|[|:]+|[-()[\]]+|\(?[xх×]\d+\)?|\(?\d+[xх×]\)?)$/i.test(token)
+  );
 }
 export function chordsAboveLyrics(content: string) {
   return content
     .split(/\r?\n/)
     .map((line) => {
-      if (isChordLine(line)) return line.replace(/\S+/g, normalizeChord);
+      if (isChordLine(line)) return chordLineParts(line).join("");
       let lyrics = "";
       let chords = "";
       let previous = 0;
@@ -422,9 +435,7 @@ export function transposeSong(content: string, semitones: number) {
   return chordsAboveLyrics(content)
     .split("\n")
     .map((line) =>
-      isChordLine(line)
-        ? line.replace(/\S+/g, (token) => transposeChord(token, semitones))
-        : line
+      isChordLine(line) ? chordLineParts(line, semitones).join("") : line
     )
     .join("\n");
 }

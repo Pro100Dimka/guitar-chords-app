@@ -219,12 +219,19 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
             return Math.sqrt(real * real + imaginary * imaginary)
         }
         var detected = frequency(bestLag)
-        // At high pitches, fractional sample lags can depress a fundamental peak.
-        val upper = peaks.firstOrNull { it < sampleRate / 2000.0 && peakCorrelation(it) >= bestCorr * peakThreshold }
-        if (upper != null) {
-            val candidate = frequency(upper)
-            if (candidate > 2000 && candidate > detected * 1.5 && amplitude(candidate) > amplitude(detected) * 4) detected = candidate
+        // Short candidate periods lose peak height on the integer sample grid.
+        // Refine their correlation and require actual energy before correcting a subharmonic.
+        val refined = peaks.firstOrNull { lag ->
+            if (lag >= 64 || peakCorrelation(lag) < bestCorr * peakThreshold) false
+            else {
+                val candidate = frequency(lag)
+                val ratio = candidate / detected
+                val multiple = Math.round(ratio)
+                multiple in 2..3 && kotlin.math.abs(1200 * kotlin.math.log2(ratio / multiple)) < 35 &&
+                    amplitude(candidate) > amplitude(detected) * 4
+            }
         }
+        if (refined != null) detected = frequency(refined)
         val previous = pitchHistory.firstOrNull()?.toDouble() ?: return detected.toFloat()
         val ratio = maxOf(detected, previous) / minOf(detected, previous)
         val harmonic = Math.round(ratio)

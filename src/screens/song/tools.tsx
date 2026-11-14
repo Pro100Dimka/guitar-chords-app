@@ -300,7 +300,7 @@ export function ChordSheet({
   visible?: boolean;
 }) {
   const { t } = useTranslation();
-  useEffect(() => () => performanceAudio.stopPlayback(), []);
+
   const options = useMemo(
     () => chordShapeOptions(chord, value),
     [chord, value]
@@ -330,8 +330,17 @@ export function ChordSheet({
   const previewKeysKey = JSON.stringify(previewKeys);
   const preparedPreviews = useRef(new Set<string>());
   const pendingPreview = useRef<string | null>(null);
+  const previewOwner = useRef(true);
+  useEffect(() => {
+    previewOwner.current = true;
+    return () => {
+      previewOwner.current = false;
+      pendingPreview.current = null;
+      performanceAudio.stopPlayback();
+    };
+  }, []);
   const playWhenReady = useCallback((key: string, prepared: boolean) => {
-    if (!prepared) return;
+    if (!prepared || !previewOwner.current) return;
     preparedPreviews.current.add(key);
     if (pendingPreview.current === key) {
       pendingPreview.current = null;

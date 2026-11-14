@@ -82,6 +82,10 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
             ...initialValues,
             ...songProps,
             content: chordsAboveLyrics(songProps.content ?? ""),
+            youtube_music: songProps.youtube_music ?? "",
+            youtobe_lesson: songProps.youtobe_lesson ?? "",
+            sourceTuning:
+              usePreferences.getState().songs[song.id]?.sourceTuning,
             cover: usePreferences.getState().songs[song.id]?.cover ?? "",
             contentSource:
               usePreferences.getState().songs[song.id]?.contentSource,
@@ -180,22 +184,26 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                           void changeCover();
                           return;
                         }
-                        Alert.alert(t("ChangeSongCover"), undefined, [
-                          {
-                            text: t("ChangeSongCover"),
-                            onPress: () => void changeCover()
-                          },
-                          {
-                            text: t("RotateCover"),
-                            onPress: () => void changeCover(true)
-                          },
-                          {
-                            text: t("ResetCover"),
-                            onPress: () =>
-                              void formik.setFieldValue("cover", "")
-                          },
-                          { text: t("Cancel"), style: "cancel" }
-                        ]);
+                        Alert.alert(
+                          t("ChangeSongCover"),
+                          undefined,
+                          [
+                            {
+                              text: t("ChangeSongCover"),
+                              onPress: () => void changeCover()
+                            },
+                            {
+                              text: t("RotateCover"),
+                              onPress: () => void changeCover(true)
+                            },
+                            {
+                              text: t("ResetCover"),
+                              onPress: () =>
+                                void formik.setFieldValue("cover", "")
+                            }
+                          ],
+                          { cancelable: true }
+                        );
                       }}
                     >
                       <Image
@@ -281,6 +289,11 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                   {!song && route.params?.notice && (
                     <Text style={styles.importNotice}>
                       {t(route.params.notice)}
+                    </Text>
+                  )}
+                  {!!formik.values.sourceTuning && (
+                    <Text style={styles.importNotice}>
+                      {t("Tuning")}: {formik.values.sourceTuning}
                     </Text>
                   )}
                   <View style={styles.lyricsHeading}>

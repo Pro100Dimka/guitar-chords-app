@@ -272,6 +272,7 @@ export async function restoreLibrary(songs: BackupSong[]) {
   const resumeSaving = suspendPreferenceSaving();
   const addedPreferences: Record<string, SongPreferences> = {};
   let added = 0;
+  let committed = false;
   try {
     await new Promise<void>((resolve, reject) =>
       db.transaction(
@@ -339,12 +340,13 @@ export async function restoreLibrary(songs: BackupSong[]) {
         resolve
       )
     );
+    committed = true;
     usePreferences.setState((state) => ({
       songs: { ...state.songs, ...addedPreferences }
     }));
     return { added, skipped: songs.length - added };
   } finally {
-    resumeSaving();
+    resumeSaving(committed ? addedPreferences : undefined);
   }
 }
 

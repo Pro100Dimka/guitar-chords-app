@@ -26,6 +26,8 @@ const onSabmit = async (
   setIsEdit?: (_: boolean) => void
 ) => {
   try {
+    values.youtube_music = values.youtube_music ?? "";
+    values.youtobe_lesson = values.youtobe_lesson ?? "";
     const fields = { ...values, band_name: fk_band?.name ?? "" };
     if (
       Object.entries(songFieldLimits).some(

@@ -102,7 +102,8 @@ function scheduleSave() {
 export function suspendPreferenceSaving() {
   flushPreferences();
   savingPaused = true;
-  return () => {
+  return (persistedSongs?: Record<string, SongPreferences>) => {
+    if (persistedSongs) savedSongs = { ...savedSongs, ...persistedSongs };
     savingPaused = false;
     flushPreferences();
   };

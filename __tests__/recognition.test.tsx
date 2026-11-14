@@ -1,4 +1,7 @@
-jest.mock("react-native-safe-area-context",()=>({SafeAreaView:require("react-native").View,useSafeAreaInsets:()=>({top:0,bottom:0,left:0,right:0})}));
+jest.mock("react-native-safe-area-context", () => ({
+  SafeAreaView: require("react-native").View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
+}));
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
 import {
@@ -112,6 +115,14 @@ test("an already cancelled operation never opens permission or file dialogs", as
 test("backgrounding during enrichment keeps an editable metadata draft and ignores late lyrics", async () => {
   const lyrics = deferred<Awaited<ReturnType<typeof lookupSongContent>>>();
   jest.mocked(lookupSongContent).mockReturnValue(lyrics.promise);
+  NativeModules.SongRecognition.recognizeMicrophone.mockResolvedValue({
+    title: "Track",
+    artist: "Artist",
+    source: "Shazam",
+    lyrics: "Recognized words",
+    url: "https://www.shazam.com/track/123",
+    lyricsCredit: "Text attribution"
+  });
   let background!: (state: "background") => void;
   jest
     .spyOn(AppState, "addEventListener")
@@ -145,6 +156,12 @@ test("backgrounding during enrichment keeps an editable metadata draft and ignor
     expect.objectContaining({
       draft: expect.objectContaining({
         title: "Track",
+        content: "Recognized words",
+        contentSource: {
+          name: "Shazam",
+          url: "https://www.shazam.com/track/123",
+          credit: "Text attribution"
+        },
         fk_band: expect.objectContaining({ name: "Artist" })
       })
     })

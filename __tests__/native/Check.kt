@@ -22,6 +22,26 @@ fun checkAccuracy(module: MicrophoneStreamModule, recordingsDirectory: File) {
     var worst = 0.0
     var cases = 0
     var transitions = 0
+    var registerCases = 0
+    for (rate in listOf(44100, 48000)) for (midi in 40..95) for (harmonics in 0..2) {
+        val frequency = 440.0 * 2.0.pow((midi - 69) / 12.0)
+        reset.invoke(module)
+        val pitches = (0..9).map { frame ->
+            val samples = ShortArray(rate / 15) { i ->
+                val phase = 2 * PI * frequency * (frame * (rate / 15) + i) / rate
+                val value = when (harmonics) {
+                    1 -> 0.08 * sin(phase) + 0.35 * sin(2 * phase) + 0.12 * sin(3 * phase)
+                    2 -> 0.035 * sin(phase) + 0.35 * sin(2 * phase) + 0.01 * sin(3 * phase)
+                    else -> 0.4 * sin(phase)
+                }
+                (value * 32767).toInt().toShort()
+            }
+            track(samples, rate)
+        }
+        registerCases++
+        if (pitches.drop(3).any { it <= 0 || abs(1200 * log2(it / frequency)) > 3 }) failures.add("Register rate=$rate midi=$midi harmonics=$harmonics expected=$frequency pitches=$pitches")
+    }
+    println("Full-register matrix: $registerCases combinations, ${registerCases * 10} frames")
     for (rate in listOf(44100, 48000)) {
         for (reference in listOf(400.0, 480.0)) {
             for (midi in listOf(28, 95)) {
@@ -155,7 +175,7 @@ fun checkAccuracy(module: MicrophoneStreamModule, recordingsDirectory: File) {
         }
     }
     println("Accuracy: $cases cases, worst=$worst cents; $transitions string transitions, 12 decay/drift sequences; failures=${failures.size}")
-    failures.take(12).forEach { println(it) }
+    failures.take(40).forEach { println(it) }
     check(failures.isEmpty()) { "Pitch accuracy regression" }
 }
 fun main(args: Array<String>) {
