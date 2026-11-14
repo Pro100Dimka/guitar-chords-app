@@ -1,3 +1,6 @@
+Historical source notice for the replaced Meta Steel Guitar bank.
+The current guitar-bank.json, guitar-recordings and guitar-samples.json contain owner-provided recordings described in recorded-guitar-source.json and are not covered by the historical notice below.
+
 Meta Steel Guitar, Meta Creative Audio.
 Source: https://github.com/facebookincubator/Meta-open-sound/tree/main/systems/instruments/meta-steel-guitar
 Selected soft-velocity acoustic steel-string recordings, trimmed, high-pass and low-pass filtered, level-matched, faded and resampled to mono 22050 Hz.

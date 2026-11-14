@@ -1,5 +1,5 @@
 {
-  "build": 14,
+  "build": 15,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
@@ -7,7 +7,7 @@
     "javascript": {
       "suites": 18,
       "tests": 206,
-      "status": "206 local tests passed, including recorded-stroke variants, cached scheduling, fingering preloading and saved rhythm subdivisions. Current source CI pending."
+      "status": "Passed full local run and final source main CI, including owner-recorded bank variants, scheduled playback/cache reuse, fingering preloading, saved rhythmic subdivisions and all prior regressions."
     },
     "typescript": "Passed tsc --noEmit locally and in CI.",
     "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
@@ -33,7 +33,7 @@
       "original_open_string_takes": 11,
       "status": "Original approved WAVs preserved outside repository; gapless mobile chord banks and measured-pitch string references prepared."
     },
-    "android_bundle": "VersionCode 14 ARM64 and ARM32 APKs assembled successfully. Release lint passed; fresh Hermes bundle hash, seven-fix localization markers, signing, archive integrity, native methods, third-party notices, ZIP alignment and ARM64 ELF alignment verified. Fingerprint Rust sources unchanged; current ARM JNI libraries reused locally and rebuilt in CI. No current AAB was built.",
+    "android_bundle": "VersionCode 15 ARM64 and ARM32 APKs built and checked: exact current Hermes hash, all 144 recorded chord strokes, six recorded string PCM references, 15 rhythm markers, existing signing certificate, ZIP integrity, 16 KB ZIP alignment and ARM64 ELF alignment. No current AAB built.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "not run: requires macOS/Xcode",
     "device_tests": "owner to perform",
@@ -552,7 +552,7 @@
       }
     },
     "recorded_audio_integration": {
-      "status": "Source integrated; final phone APK and current CI pending.",
+      "status": "Integrated and packaged in verified ARM64/ARM32 versionCode 15 APKs; source CI passed.",
       "design_changes": false,
       "rhythms": 15,
       "ordering": "Practical broad pop/rock usefulness, not a measured worldwide ranking; Old Faithful first.",
@@ -560,7 +560,53 @@
       "playback": "Whole recorded strokes for matching voicings; alternate/extended voicings use physical-string recordings with measured tuning. Three round-robin variants per direction, natural overlapping tails, smooth chord-change damping. No added room on whole recordings.",
       "latency": "Per-chord lazy bank loading; only first downstroke decoded for matching fingering previews; native prepared-PCM reuse. MP3 encoder-delay metadata avoids 23 ms priming. Standard 6 ms safety-node lookahead removed from native-ready fingering PCM. Physical phone latency unmeasured.",
       "proof": "E:/Releases/FreeTune/Audio/Guitar-live-24-2026-11-14/app-engine-verification.json",
-      "source_manifest": "assets/recorded-guitar-source.json"
+      "source_manifest": "assets/recorded-guitar-source.json",
+      "source_commit": "1e3829bf647eb9a8701492863e9741326f29ae1b",
+      "ci": {
+        "javascript": {
+          "run": 43649154995,
+          "commit": "1e3829bf647eb9a8701492863e9741326f29ae1b",
+          "status": "success",
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43649154995"
+        },
+        "native_android": {
+          "run": 43648344306,
+          "commit": "cc2d6f82e646e85200a771833fc427ca2a8b461c",
+          "status": "success",
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43648344306",
+          "scope": "Native code and Gradle configuration unchanged in later rhythm-list/grid-only commits."
+        }
+      },
+      "render_cases": 39,
+      "fingering_previews": [
+        {
+          "name": "Am",
+          "peakDbfs": -11.916978223512139,
+          "seconds": 10.193968253968254,
+          "recordedVoicing": true
+        },
+        {
+          "name": "F-alternate",
+          "peakDbfs": -14.772070525288372,
+          "seconds": 6.846190476190476,
+          "recordedVoicing": false
+        },
+        {
+          "name": "Cmaj7",
+          "peakDbfs": -14.28504201001138,
+          "seconds": 9.805646258503401,
+          "recordedVoicing": false
+        }
+      ],
+      "codec_added_delay_ms": 0,
+      "native_preview_alignment_samples": -1,
+      "limits": "Offline Chrome and native-host/CI checks do not measure physical phone speaker/Bluetooth latency or subjective listening quality. Native iOS build not performed.",
+      "temporary_cleanup": {
+        "reclaimed_bytes": 0,
+        "remaining_path": "E:\\CodexTemp\\freetune-live-audio\\chrome",
+        "remaining_file_bytes": 102067077,
+        "reason": "Automatic approval review rejected removal without a stated reason; no alternative deletion attempted and no further large writes started."
+      }
     }
   },
   "privacy_forms_draft": [
@@ -670,22 +716,22 @@
       "status": "historical_only_not_current_distribution_bundle"
     },
     "apk_arm64": {
-      "path": "E:/Releases/FreeTune/FreeTune-1.0-rc14-arm64-v8a.apk",
-      "bytes": 101376927,
-      "sha256": "534046a658440f05b743426be94fbc8dea164d07f43f5b80402b36aba4eb9d31",
-      "version_code": 14
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc15-arm64-v8a.apk",
+      "bytes": 111917671,
+      "sha256": "2e692900730938d8be43d9e76081cd4b8726c5ae8e258a159434525db90c76aa",
+      "version_code": 15
     },
     "apk_arm32": {
-      "path": "E:/Releases/FreeTune/FreeTune-1.0-rc14-armeabi-v7a.apk",
-      "bytes": 90545027,
-      "sha256": "f9a182bdfc2cd36b2c9570e115b57937cd8feb53e0916e7bebff464483c6af73",
-      "version_code": 14
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc15-armeabi-v7a.apk",
+      "bytes": 101085771,
+      "sha256": "b5b9c7ae58832b98fa416da9383757dc3d84d12f153bf419bed99f5d7bdbe1c0",
+      "version_code": 15
     },
-    "version_code": 14
+    "version_code": 15
   },
   "reviewed_on": "2026-11-15",
   "review_scope": "Integration of owner-approved chord and string recordings, preload and gapless preparation, physical-string alternate fingerings, 15 rhythm presets and persistent rhythmic subdivisions. Visual styles unchanged.",
-  "artifact_scope": "VersionCode 14 phone APKs contain all implementation changes through b581a6aea655c4a42865908e16c357f4b7c1322c. Later documentation-only changes do not alter app code. Both APKs retain the preceding sideload certificate and contain the verified fresh Hermes bundle. Physical microphone/speaker latency, Bluetooth, native iOS execution and store submission remain unverified. The listed AAB is historical versionCode 7 and does not contain current fixes.",
+  "artifact_scope": "Phone APKs versionCode 15 contain all implementation changes through 1e3829bf647eb9a8701492863e9741326f29ae1b. Subsequent documentation/attribution-only commits do not alter app code. All 144 owner-recorded strokes and six tuner references are verified inside each exact current Hermes bundle. Physical phone playback/latency and native iOS remain unverified. The listed AAB is historical versionCode 7.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
