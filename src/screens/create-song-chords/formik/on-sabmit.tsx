@@ -22,6 +22,7 @@ const onSabmit = async (
     cover,
     contentSource,
     capo,
+    tempo,
     sourceTuning,
     ...values
   }: FormValues,
@@ -56,6 +57,7 @@ const onSabmit = async (
                 ...state.songs[songId],
                 cover,
                 contentSource,
+                ...(tempo !== undefined ? { tempo } : {}),
                 ...(capo !== undefined ? { capo, transpose: 0 } : {}),
                 ...(sourceTuning ? { sourceTuning } : {})
               });

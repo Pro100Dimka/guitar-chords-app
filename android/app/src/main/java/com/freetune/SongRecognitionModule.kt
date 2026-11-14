@@ -77,6 +77,9 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
                     putString("artist", result.optString("subtitle"))
                     putString("cover", result.optJSONObject("images")?.optString("coverarthq") ?: "")
                     putString("genre", result.optJSONObject("genres")?.optString("primary") ?: "")
+                    val tempo = sequenceOf(result.optDouble("bpm"), result.optDouble("tempo"))
+                        .firstOrNull { it.isFinite() && it in 40.0..200.0 }
+                    tempo?.let { putDouble("tempo", it) }
                     val key = result.optString("key")
                     if (key.matches(Regex("[0-9]+"))) putString("url", "https://www.shazam.com/track/$key")
                     val sections = result.optJSONArray("sections")
@@ -96,6 +99,10 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
                             val entry = metadata.optJSONObject(j) ?: continue
                             if (entry.optString("title").equals("Album", ignoreCase = true))
                                 putString("album", entry.optString("text"))
+                            if (entry.optString("title").trim().lowercase(java.util.Locale.ROOT) in setOf("bpm", "tempo", "темп")) {
+                                val bpm = entry.optString("text").trim().removeSuffix("BPM").removeSuffix("bpm").trim().toDoubleOrNull()
+                                if (bpm != null && bpm.isFinite() && bpm in 40.0..200.0) putDouble("tempo", bpm)
+                            }
                         }
                     }
                     putString("source", "Shazam")

@@ -189,7 +189,8 @@ export default function RecognizeSong() {
         initialValues,
         result.title,
         result.artist,
-        result.lyrics
+        result.lyrics,
+        result.tempo
       );
       if (next.content && result.url?.startsWith("https://www.shazam.com/")) {
         next = {

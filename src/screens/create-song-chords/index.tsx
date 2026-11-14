@@ -51,6 +51,7 @@ export interface FormValues {
   title: string;
   cover: string;
   capo?: number;
+  tempo?: number;
   sourceTuning?: string;
   contentSource?: SongPreferences["contentSource"];
   content: string;
@@ -144,6 +145,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
             content: chordsAboveLyrics(songProps.content ?? ""),
             youtube_music: songProps.youtube_music ?? "",
             youtobe_lesson: songProps.youtobe_lesson ?? "",
+            tempo: usePreferences.getState().songs[song.id]?.tempo,
             sourceTuning:
               usePreferences.getState().songs[song.id]?.sourceTuning,
             cover: usePreferences.getState().songs[song.id]?.cover ?? "",

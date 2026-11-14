@@ -8,6 +8,7 @@ export interface RecognizedSong {
   source: "Shazam";
   cover?: string;
   album?: string;
+  tempo?: number;
   genre?: string;
   lyrics?: string;
   lyricsCredit?: string;
