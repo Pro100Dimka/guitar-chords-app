@@ -77,7 +77,10 @@ const onSabmit = async (
               tx.executeSql(
                 "UPDATE songs SET title = ?, content = ?, band_id = ?, youtube_music = ?, youtobe_lesson = ?, search_text_lower = ? WHERE id = ?",
                 [...data, id],
-                () => saveMetadata(id)
+                (_, result) => {
+                  if (result.rowsAffected !== 1) throw new Error("SongMissing");
+                  saveMetadata(id);
+                }
               );
             else
               tx.executeSql(
@@ -114,7 +117,13 @@ const onSabmit = async (
   } catch (error) {
     persisted = undefined;
     console.error(error);
-    Alert.alert(t("ErrorSavingSong"));
+    Alert.alert(
+      t(
+        error instanceof Error && error.message === "SongMissing"
+          ? "SongMissing"
+          : "ErrorSavingSong"
+      )
+    );
     return false;
   } finally {
     resume?.(persisted);

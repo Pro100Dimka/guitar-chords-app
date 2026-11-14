@@ -3,7 +3,10 @@ import { StyleSheet, TextInput, TextInputProps, View } from "react-native";
 import Text from "../styled-text";
 import palette from "../../theme/palette";
 
-interface ITextFieldProps extends Pick<TextInputProps, "onFocus" | "onBlur"> {
+interface ITextFieldProps extends Pick<
+  TextInputProps,
+  "onFocus" | "onBlur" | "editable"
+> {
   label?: string;
   value?: string; // для обычного контролируемого поля
   onChangeText?: (_: string) => void;
@@ -24,6 +27,7 @@ const TextField: React.FC<ITextFieldProps> = ({
   onChangeText,
   onFocus,
   onBlur,
+  editable = true,
   placeholder,
   multiline = false,
   style = {},
@@ -36,6 +40,7 @@ const TextField: React.FC<ITextFieldProps> = ({
   const error =
     formik && name ? formik.touched[name] && !!formik.errors[name] : null;
   const helperText = formik && name ? error && formik.errors[name] : null;
+  const enabled = editable && !formik?.isSubmitting;
 
   return (
     <View style={[styles.container, style?.container]}>
@@ -51,7 +56,10 @@ const TextField: React.FC<ITextFieldProps> = ({
           error && styles.errorInput
         ]}
         value={fieldValue}
-        onChangeText={handleChange}
+        editable={enabled}
+        onChangeText={(text) => {
+          if (enabled) handleChange?.(text);
+        }}
         placeholder={placeholder}
         placeholderTextColor={palette.glass.muted}
         multiline={multiline}

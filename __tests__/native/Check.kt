@@ -243,5 +243,6 @@ fun main(args: Array<String>) {
     println("Native Kotlin source passed 200 start/stop cycles, idempotent calls, no overlapping readers, silence RMS, and release checks with deterministic device stubs.")
     checkAccuracy(module, File(args[0]))
     checkRecorderStop(File(args[1]))
+    checkRecordingFiles(File(args[1]))
     } finally { module.invalidate() }
 }

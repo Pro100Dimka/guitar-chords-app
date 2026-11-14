@@ -45,12 +45,11 @@ import {
 import RequireMicAccess from "../tuner";
 import MicrophoneStream from "../tuner/MicrophoneStream";
 import {
-  chordsAboveLyrics,
   chordNotationPattern,
   chordLineParts,
   isChordLine,
   songChords,
-  transposeChord
+  transposeSong
 } from "./chords";
 import { Action, ChordSheet, SongTools } from "./tools";
 
@@ -64,6 +63,7 @@ const SongDetail: React.FC = () => {
   const [song, setSong] = useState<ISong>();
   const [loading, setLoading] = useState(true);
   const [isEdit, setIsEdit] = useState(false);
+  const editorExitAllowed = useRef(false);
   const [playing, setPlaying] = useState(false);
   const [tools, setTools] = useState<false | "reading" | "rhythm">(false);
   const [tuner, setTuner] = useState(false);
@@ -228,7 +228,7 @@ const SongDetail: React.FC = () => {
     const renderLine = (line: string, index: number) => {
       const onlyChords = isChordLine(line);
       const parts = onlyChords
-        ? chordLineParts(line, preferences.transpose - preferences.capo)
+        ? chordLineParts(line)
         : line.split(/(\[[^\]]+\])/);
       return (
         <Text
@@ -245,22 +245,17 @@ const SongDetail: React.FC = () => {
             const token = onlyChords ? part : part.slice(1, -1);
             return (onlyChords || /^\[.*\]$/.test(part)) &&
               chordNotationPattern.test(token)
-              ? renderChord(
-                  onlyChords
-                    ? token
-                    : transposeChord(
-                        token,
-                        preferences.transpose - preferences.capo
-                      ),
-                  i
-                )
+              ? renderChord(token, i)
               : part;
           })}
           {line ? "" : " "}
         </Text>
       );
     };
-    return chordsAboveLyrics(song?.content ?? "")
+    return transposeSong(
+      song?.content ?? "",
+      preferences.transpose - preferences.capo
+    )
       .split(/\r?\n/)
       .map(renderLine);
   }, [
@@ -300,10 +295,15 @@ const SongDetail: React.FC = () => {
         />
         <SongModal
           setIsEdit={(edit) => {
+            editorExitAllowed.current = false;
             setPlaying(false);
             setIsEdit(edit);
           }}
           songId={songId}
+          onDeleted={() => {
+            editorExitAllowed.current = true;
+            navigation.popTo("Tabs", { screen: "library" });
+          }}
         />
       </Header>
       {loading || !song ? (
@@ -313,7 +313,11 @@ const SongDetail: React.FC = () => {
           </Text>
         </View>
       ) : isEdit ? (
-        <CreateChordSong song={song} setIsEdit={setIsEdit} />
+        <CreateChordSong
+          song={song}
+          setIsEdit={setIsEdit}
+          exitAllowed={editorExitAllowed}
+        />
       ) : (
         <>
           <ScrollView

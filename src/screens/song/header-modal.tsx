@@ -17,9 +17,10 @@ import { requestSongDeletion } from "@/components/library-files";
 interface ISongModalProps {
   setIsEdit: (_: boolean) => void;
   songId: number;
+  onDeleted?: () => void;
 }
 
-const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
+const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId, onDeleted }) => {
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -30,7 +31,7 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId }) => {
       () =>
         requestSongDeletion(
           songId,
-          () => navigation.popTo("Tabs", { screen: "library" }),
+          onDeleted ?? (() => navigation.popTo("Tabs", { screen: "library" })),
           () => navigation.setParams({ recordings: true })
         )
     ]

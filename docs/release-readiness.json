@@ -5,13 +5,13 @@
   "design_changes": false,
   "checks": {
     "javascript": {
-      "suites": 18,
-      "tests": 206,
-      "status": "Passed full local run and final source main CI, including owner-recorded bank variants, scheduled playback/cache reuse, fingering preloading, saved rhythmic subdivisions and all prior regressions."
+      "suites": 19,
+      "tests": 214,
+      "status": "Passed full local run, including independent regressions for all six review scenarios. Source CI pending."
     },
-    "typescript": "Passed tsc --noEmit locally and in CI.",
-    "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
-    "sqlite": "Passed actual SQLite integration, including settings-write failure rolling back song, performer and metadata together for creates and edits; retry and reload succeeded.",
+    "typescript": "Passed local tsc --noEmit; source CI pending.",
+    "eslint": "Passed local full repository ESLint with zero warnings; source CI pending.",
+    "sqlite": "Passed actual SQLite integration, including missing-row UPDATE rejection, rollback of performer and metadata writes, and preservation of the editor without a success result.",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
@@ -607,6 +607,10 @@
         "remaining_file_bytes": 102067077,
         "reason": "Automatic approval review rejected removal without a stated reason; no alternative deletion attempted and no further large writes started."
       }
+    },
+    "recording_file_lifecycle": {
+      "status": "Passed extracted production-method regressions: incomplete orphan cleanup, complete interrupted-file recovery, active-take protection and companion-file deletion.",
+      "boundary": "MediaExtractor is stubbed in the host regression harness. Actual AAC recovery and physical process interruption remain device checks."
     }
   },
   "privacy_forms_draft": [
@@ -719,19 +723,21 @@
       "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc15-arm64-v8a.apk",
       "bytes": 111917671,
       "sha256": "2e692900730938d8be43d9e76081cd4b8726c5ae8e258a159434525db90c76aa",
-      "version_code": 15
+      "version_code": 15,
+      "contains_current_fixes": false
     },
     "apk_arm32": {
       "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc15-armeabi-v7a.apk",
       "bytes": 101085771,
       "sha256": "b5b9c7ae58832b98fa416da9383757dc3d84d12f153bf419bed99f5d7bdbe1c0",
-      "version_code": 15
+      "version_code": 15,
+      "contains_current_fixes": false
     },
     "version_code": 15
   },
   "reviewed_on": "2026-11-15",
-  "review_scope": "Integration of owner-approved chord and string recordings, preload and gapless preparation, physical-string alternate fingerings, 15 rhythm presets and persistent rhythmic subdivisions. Visual styles unchanged.",
-  "artifact_scope": "Phone APKs versionCode 15 contain all implementation changes through 1e3829bf647eb9a8701492863e9741326f29ae1b. Subsequent documentation/attribution-only commits do not alter app code. All 144 owner-recorded strokes and six tuner references are verified inside each exact current Hermes bundle. Physical phone playback/latency and native iOS remain unverified. The listed AAB is historical versionCode 7.",
+  "review_scope": "Six review fixes: bounded chord parsing, confirmed deletion and missing-row save, pending-save input locking, paired chord/lyrics transposition, interrupted recording reconciliation, and complete numbered backup export. Visual styles unchanged.",
+  "artifact_scope": "Listed rc15 APKs contain implementation changes through 1e3829bf647eb9a8701492863e9741326f29ae1b. They do not contain the six subsequent review fixes. No new APK or AAB was built for this review. Physical phone behavior and native iOS remain unverified. The listed AAB is historical versionCode 7.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
@@ -756,5 +762,43 @@
   "current_distribution_bundle": {
     "status": "not_built_for_current_source",
     "version_code": null
-  }
+  },
+  "six_scenario_review": [
+    {
+      "scenario": "Malformed slash-numeric chord token blocks parsing",
+      "regression": "__tests__/chord-layout.test.ts: isolated child process with a four-second timeout",
+      "before": "Parser process timed out on adversarial notation.",
+      "after": "All four malformed cases return unchanged; valid numeric extensions and slash bass still transpose."
+    },
+    {
+      "scenario": "Confirmed deletion prompts to save a deleted song and missing UPDATE succeeds",
+      "regression": "__tests__/editor-exit.test.tsx plus sqlite.integration.cjs",
+      "before": "UnsavedSong prompt occurred after deletion; real SQLite zero-row UPDATE returned success.",
+      "after": "Confirmed deletion bypasses the draft guard; missing-row save fails and rolls back new performer and metadata."
+    },
+    {
+      "scenario": "Edits during a pending save disappear",
+      "regression": "__tests__/editor-exit.test.tsx: deferred SQL commit with actual editor inputs",
+      "before": "Inputs remained editable while commit was pending.",
+      "after": "Formik submission state locks inputs and ignores late change handlers until the save completes."
+    },
+    {
+      "scenario": "Transposition shifts chords away from lyric anchors",
+      "regression": "__tests__/chord-layout.test.ts and __tests__/editing.test.tsx",
+      "before": "Dense ordinary and slash-chord anchors drifted; capo import failed to recover columns.",
+      "after": "Paired chord/lyric rows reflow together; inverse and capo cases pass, including the rendered Song screen."
+    },
+    {
+      "scenario": "Interrupted Android recording leaves hidden files",
+      "regression": "__tests__/native/RecordingFilesCheck.kt via test-native.ps1",
+      "before": "Invalid partial files survived, completed partial files were not recovered and deleting a take left its companion.",
+      "after": "Production file methods clean incomplete data, recover valid completed output, protect active takes and delete companion files. Codec boundary stubbed."
+    },
+    {
+      "scenario": "Large valid library cannot export completely",
+      "regression": "__tests__/preferences.test.ts: 38 songs with real 384-pixel JPEG artwork",
+      "before": "The library exceeded the aggregate backup limit and threw FileTooLarge.",
+      "after": "Every numbered JSON file is at most 5 MiB and independently parseable; restoring all parts preserves every song, artwork and preference; temporary export files are removed."
+    }
+  ]
 }

@@ -14,16 +14,17 @@ class ReactApplicationContext {
     }
     fun <T> getJSModule(type: Class<T>): T = type.cast(emitter)
 }
-interface Promise { fun resolve(value: Any) }
+interface Promise { fun resolve(value: Any); fun reject(code: String, error: Throwable) { throw error } }
 interface ReadableArray { fun size(): Int; fun getMap(index: Int): ReadableMap?; fun getDouble(index: Int): Double }
 interface ReadableMap {
     fun getString(key: String): String?; fun getInt(key: String): Int
     fun hasKey(key: String): Boolean; fun getDouble(key: String): Double; fun getArray(key: String): ReadableArray?
 }
-class WritableArray { fun pushDouble(value: Double) {} }
+class WritableArray { val maps=mutableListOf<WritableMap>(); fun pushDouble(value: Double) {}; fun pushMap(value: WritableMap) { maps.add(value) } }
 class WritableMap {
     val values = mutableMapOf<String, Any>()
     fun putString(key: String, value: String) { values[key] = value }
+    fun putBoolean(key: String, value: Boolean) { values[key] = value }
     fun putDouble(key: String, value: Double) { values[key] = value }
     fun putInt(key: String, value: Int) { values[key] = value }
     fun putArray(key: String, value: WritableArray) { values[key] = value }

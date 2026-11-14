@@ -832,6 +832,30 @@ test("bar-delimited edge chords remain clickable in the displayed key", async ()
   ]);
 });
 
+test("the song screen transposes chord and lyric rows together", async () => {
+  const { usePreferences } = require("../src/components/preferences");
+  usePreferences.getState().updateSong(1, { transpose: 1, capo: 0 });
+  jest
+    .mocked(crud.getAllItems)
+    .mockResolvedValue([{ id: 1, title: "Alignment", content: "C G\na b" }]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  const rows = screen!.root.findAllByType(Text).flatMap((node) => {
+    const parts = node.props.children?.[0];
+    return Array.isArray(parts)
+      ? [
+          parts
+            .map((part) =>
+              typeof part === "string" ? part : part.props.children
+            )
+            .join("")
+        ]
+      : [];
+  });
+  expect(rows).toEqual(["C# G#", "a  b"]);
+});
+
 test("song settings do not end an active performance recording", async () => {
   const previousState = AppState.currentState;
   AppState.currentState = "active";

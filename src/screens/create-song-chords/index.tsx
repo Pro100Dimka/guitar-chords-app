@@ -61,6 +61,7 @@ export interface FormValues {
 interface ICreateChordSongProps {
   song?: ISong;
   setIsEdit?: (_: boolean) => void;
+  exitAllowed?: { current: boolean };
 }
 
 export function SongEditorGuard({
@@ -115,7 +116,7 @@ export function SongEditorGuard({
 }
 
 const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
-  ({ song, setIsEdit }: ICreateChordSongProps) => {
+  ({ song, setIsEdit, exitAllowed }: ICreateChordSongProps) => {
     const route = useRoute<RouteProp<RootStackParamList, "createSong">>();
     const example = !song && route.params?.example;
     const { t } = useTranslation();
@@ -128,9 +129,9 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const [editingLyrics, setEditingLyrics] = useState(false);
     const [formTop, setFormTop] = useState(0);
     const navigation = useNavigation<NavigationProp>();
-    const allowLeave = useRef(false);
+    const localExitAllowed = useRef(false);
+    const allowLeave = exitAllowed ?? localExitAllowed;
     const pendingExit = useRef<NavigationAction | null>(null);
-    const [isSubmitting, setIsSubmitting] = useState(false);
     const [initialValuesState, setInitialValuesState] =
       useState<FormValues>(initialValues);
     useFocusEffect(
@@ -175,7 +176,6 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       values: FormValues,
       actions: FormikHelpers<FormValues>
     ) => {
-      setIsSubmitting(true);
       const finish = (fallback: () => void) => {
         allowLeave.current = true;
         const action = pendingExit.current;
@@ -191,7 +191,6 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           () => finish(() => setIsEdit?.(false))
         );
       } finally {
-        setIsSubmitting(false);
         actions.setSubmitting(false);
       }
     };
@@ -231,10 +230,10 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       accessibilityRole="button"
                       accessibilityLabel={t("ChangeSongCover")}
                       accessibilityState={{
-                        disabled: coverBusy || isSubmitting,
+                        disabled: coverBusy || formik.isSubmitting,
                         busy: coverBusy
                       }}
-                      disabled={coverBusy || isSubmitting}
+                      disabled={coverBusy || formik.isSubmitting}
                       style={[styles.cover, width < 360 && styles.coverNarrow]}
                       onPress={() => {
                         const changeCover = async (rotate = false) => {
@@ -316,6 +315,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         label={t("Band")}
                         placeholder={t("Band")}
                         value={formik.values.fk_band.name}
+                        editable={!formik.isSubmitting}
                         onChangeText={(name) =>
                           void formik.setFieldValue("fk_band", {
                             id: "",
@@ -444,7 +444,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     primary
                     label={t("SaveSong")}
                     onPress={() => formik.handleSubmit()}
-                    disabled={isSubmitting || coverBusy}
+                    disabled={formik.isSubmitting || coverBusy}
                   />
                 </View>
                 {editingLyrics && (
@@ -493,7 +493,11 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                           disableFullscreenUI
                           accessibilityLabel={t("ChordsLyrics")}
                           value={formik.values.content}
-                          onChangeText={formik.handleChange("content")}
+                          editable={!formik.isSubmitting}
+                          onChangeText={(text) => {
+                            if (!formik.isSubmitting)
+                              formik.handleChange("content")(text);
+                          }}
                           onBlur={() => formik.setFieldTouched("content")}
                           placeholder={t("PasteSongHint")}
                           placeholderTextColor={palette.glass.muted}

@@ -165,7 +165,7 @@
   "ReplaceDraftHint": "The file will replace the title and text in this form. A saved song changes only when you save.",
   "ImportFailed": "Could not open the song",
   "FileFormatError": "Choose TXT, PRO, CHO or ChordPro for a song, JSON for a backup.",
-  "FileTooLarge": "The file is too large. Limit: 5 MB per backup, 200,000 characters per song and 2,000 songs.",
+  "FileTooLarge": "The file is too large. Limit: 5 MiB and 2,000 songs per backup part; 200,000 characters per song.",
   "FileEncodingError": "Save the text file as UTF-8 and try again.",
   "FileReadError": "Could not read the file. Try saving it to your device and opening it again.",
   "EmptyLibraryHint": "Add a song or open the example to try the chords.",
@@ -496,7 +496,8 @@
       "steps": [
         "Open Settings and Library backup.",
         "Choose Save backup file and select a destination in the system dialog.",
-        "Keep a copy in a safe folder or cloud storage you can access later."
+        "Keep a copy in a safe folder or cloud storage you can access later.",
+        "Large libraries are split automatically into numbered JSON files of up to 5 MiB. Save every part when the system dialog opens."
       ],
       "tip": "Backups include songs, artwork and song preferences. Export audio recordings separately.",
       "keywords": "backup library copy transfer reinstall artwork"
@@ -507,7 +508,8 @@
       "steps": [
         "Open Settings and Library backup, then Open backup.",
         "Choose the backup file and review the restoration information.",
-        "Confirm, wait for completion and check Library."
+        "Confirm, wait for completion and check Library.",
+        "For a multi-part backup, restore every numbered file. Each part includes its songs, artwork and preferences."
       ],
       "tip": "Save a backup of the current library first. TXT documents and audio files are not library backups.",
       "keywords": "restore backup import json library merge"
@@ -654,5 +656,6 @@
   "RhythmGallop": "Gallop",
   "RhythmNine": "Nine strokes (2 bars)",
   "RecordedGuitar": "FreeTune acoustic recordings",
-  "RhythmFour": "Four strokes"
+  "RhythmFour": "Four strokes",
+  "SongMissing": "This song no longer exists. Your draft remains in the editor. Copy it before leaving."
 }

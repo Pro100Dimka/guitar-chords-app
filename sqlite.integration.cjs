@@ -168,6 +168,19 @@ async function main() {
     assert.equal(preferences.usePreferences.getState().songs[savedRows[0].id].contentSource.credit,"Attribution");
   }
   console.log("Atomic song saves passed: settings failures roll back song, artist and metadata; retry commits both create and edit completely.");
+  sqlite.exec("DELETE FROM settings; DELETE FROM songs; DELETE FROM bands;");
+  sqlite.prepare("INSERT INTO settings (key,value) VALUES (?,?)").run("experience",JSON.stringify({songs:{}}));
+  await preferences.loadPreferences();
+  const staleId=(await create({tableName:"songs",data:{title:"Deleted",content:"Am\nWords"}})).insertId;
+  await remove({tableName:"songs",filters:`id = ${staleId}`});
+  alerts.length=0;let staleClosed=false;
+  const staleSaved=await submit({}, {id:staleId,title:"Draft after deletion",content:"Am\nNew words",youtube_music:"",youtobe_lesson:"",cover:"",fk_band:{id:"",name:"Missing-row artist",search_text_lower:"missing-row artist"}}, {replace(){}},()=>{staleClosed=true;});
+  assert.equal(staleSaved,false,"Updating a missing song must not report success");
+  assert.equal(staleClosed,false,"Missing-row save must keep the draft open");
+  assert.ok(!alerts.some(args=>args[0]==="ElementChanged"));
+  assert.equal((await read({tableName:"bands"})).length,0,"Missing-row save must roll back artist insertion");
+  assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE ?").get(`song:${staleId}:%`).n,0);
+  console.log("Missing-row save regression passed: real SQLite zero-row update rejects and preserves the editor without orphan metadata.");
   sqlite.exec("PRAGMA user_version = 99");
   await assert.rejects(migrate(db), /newer application version/);
   assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 99);

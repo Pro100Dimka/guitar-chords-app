@@ -221,50 +221,60 @@ export async function exportLibrary() {
     fields: "songs.*, COALESCE(bands.name, '') AS band_name",
     joins: ["LEFT JOIN bands ON songs.band_id = bands.id"]
   });
-  if (
-    songs.length > 2000 ||
-    songs.reduce(
-      (size, song) => size + song.content.length + song.title.length,
-      0
-    ) > maxBytes
-  )
-    throw new Error("FileTooLarge");
   const preferences = usePreferences.getState().songs;
-  const text = JSON.stringify(
-    {
-      format: "freetune-library",
-      version: 1,
-      createdAt: new Date().toISOString(),
-      songs: songs.map((song) => ({
-        title: song.title,
-        content: song.content,
-        band_name: song.band_name,
-        youtube_music: song.youtube_music ?? "",
-        youtobe_lesson: song.youtobe_lesson ?? "",
-        preferences: normalizeSongPreferences(preferences[song.id])
-      }))
-    },
-    null,
-    2
-  );
-  // Ensure every exported file can also be restored by this version.
-  parseLibraryBackup(text);
-  const name = `FreeTune-library-${new Date().toISOString().slice(0, 10)}.json`;
-  const path = `${Dirs.CacheDir}/${name}`;
-  try {
-    await FileSystem.writeFile(path, text, "utf8");
-    if ((await FileSystem.stat(path)).size > maxBytes)
-      throw new Error("FileTooLarge");
-    const results = await saveDocuments({
-      sourceUris: [encodeURI(`file://${path}`)],
-      fileName: name,
-      mimeType: "application/json",
-      copy: true
-    });
-    if (results.some((result) => result.error))
-      throw new Error("FileSaveError");
-  } finally {
-    await FileSystem.unlink(path).catch(() => undefined);
+  const header = {
+    format: "freetune-library",
+    version: 1,
+    createdAt: new Date().toISOString()
+  };
+  const overhead = JSON.stringify({ ...header, songs: [] }).length;
+  const parts: BackupSong[][] = [[]];
+  let bytes = overhead;
+  for (const song of songs) {
+    const entry = {
+      title: song.title,
+      content: song.content,
+      band_name: song.band_name,
+      youtube_music: song.youtube_music ?? "",
+      youtobe_lesson: song.youtobe_lesson ?? "",
+      preferences: normalizeSongPreferences(preferences[song.id])
+    };
+    const size = encodeURIComponent(JSON.stringify(entry)).replace(
+      /%[\dA-F]{2}/g,
+      "_"
+    ).length;
+    if (size + overhead > maxBytes) throw new Error("FileTooLarge");
+    let part = parts[parts.length - 1];
+    if (part.length && (bytes + size + 1 > maxBytes || part.length === 2000)) {
+      part = [];
+      parts.push(part);
+      bytes = overhead;
+    }
+    bytes += size + (part.length ? 1 : 0);
+    part.push(entry);
+  }
+  for (const [index, songs] of parts.entries()) {
+    const text = JSON.stringify({ ...header, songs });
+    parseLibraryBackup(text);
+    const suffix =
+      parts.length > 1 ? `-part-${index + 1}-of-${parts.length}` : "";
+    const name = `FreeTune-library-${header.createdAt.slice(0, 10)}${suffix}.json`;
+    const path = `${Dirs.CacheDir}/${name}`;
+    try {
+      await FileSystem.writeFile(path, text, "utf8");
+      if ((await FileSystem.stat(path)).size > maxBytes)
+        throw new Error("FileTooLarge");
+      const results = await saveDocuments({
+        sourceUris: [encodeURI(`file://${path}`)],
+        fileName: name,
+        mimeType: "application/json",
+        copy: true
+      });
+      if (results.some((result) => result.error))
+        throw new Error("FileSaveError");
+    } finally {
+      await FileSystem.unlink(path).catch(() => undefined);
+    }
   }
 }
 

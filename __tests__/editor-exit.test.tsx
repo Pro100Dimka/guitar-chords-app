@@ -1,11 +1,26 @@
 import type { SQLTransaction } from "react-native-sqlite-2";
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert } from "react-native";
+import { Alert, TextInput } from "react-native";
 import { Formik, FormikProps } from "formik";
 import Editor, { FormValues } from "../src/screens/create-song-chords";
 import initialValues from "../src/screens/create-song-chords/formik/initial-values";
 import { db } from "../src/components/database";
+import Song from "../src/screens/song";
+import Menu from "../src/screens/song/header-modal";
+import { Action } from "../src/screens/song/tools";
+import { getAllItems, deleteItem } from "../src/components/database/crud";
+import { usePreferences } from "../src/components/preferences";
+import { performanceAudio } from "../src/components/performance-audio";
+jest.mock("../src/components/database/crud", () => ({
+  getAllItems: jest.fn(),
+  deleteItem: jest.fn()
+}));
+jest.mock("../src/screens/tuner", () => () => null);
+jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
+  setKeepAwake: jest.fn()
+}));
+jest.mock("react-native-vector-icons/Ionicons", () => "Icon");
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
 }));
@@ -16,12 +31,19 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }));
 jest.mock("@react-navigation/native", () => ({
-  useRoute: () => ({ params: {} }),
+  useRoute: () => ({ params: mockParams }),
+  useIsFocused: () => true,
   useNavigation: () => mockNavigation,
   usePreventRemove: (...args: unknown[]) => mockPreventRemove(...args),
   useFocusEffect: (cb: () => void) => require("react").useEffect(cb, [cb])
 }));
-const mockNavigation = { dispatch: jest.fn(), replace: jest.fn() };
+let mockParams: { id?: string } = {};
+const mockNavigation = {
+  dispatch: jest.fn(),
+  replace: jest.fn(),
+  popTo: jest.fn(),
+  setParams: jest.fn()
+};
 const mockPreventRemove = jest.fn();
 let screen: Renderer.ReactTestRenderer;
 let fail = false;
@@ -29,6 +51,7 @@ let values!: FormikProps<FormValues>;
 beforeEach(async () => {
   jest.clearAllMocks();
   fail = false;
+  mockParams = {};
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   jest.spyOn(console, "error").mockImplementation(() => {});
   jest.mocked(db.transaction).mockImplementation((body, error, success) => {
@@ -107,4 +130,108 @@ test("save-and-leave waits for successful persistence; failure preserves the edi
   await act(async () => trigger(action));
   await press("SaveSong");
   expect(mockNavigation.dispatch).toHaveBeenCalledWith(action);
+});
+
+test("confirmed header deletion of a dirty editor leaves without offering to save the deleted song", async () => {
+  await act(async () => screen.unmount());
+  mockParams = { id: "1" };
+  jest.mocked(getAllItems).mockResolvedValue([
+    {
+      id: 1,
+      title: "Original",
+      content: "Am\nWords",
+      band_id: null,
+      band_name: "",
+      youtube_music: "",
+      youtobe_lesson: ""
+    }
+  ]);
+  jest.mocked(deleteItem).mockResolvedValue(undefined);
+  jest.mocked(performanceAudio.list).mockResolvedValue([]);
+  usePreferences.getState().updateSong(1, { favorite: true });
+  mockNavigation.popTo.mockImplementation(() => {
+    const action = { type: "POP_TO", payload: { name: "Tabs" } };
+    const hook = mockPreventRemove.mock.calls.at(-1);
+    if (hook?.[0]) hook[1]({ data: { action } });
+    else mockNavigation.dispatch(action);
+  });
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  const menu = async (label: string) => {
+    await act(async () =>
+      screen.root
+        .findByType(Menu)
+        .findAll(
+          (node) =>
+            node.props.accessibilityLabel === "SongTools" &&
+            typeof node.props.onPress === "function"
+        )[0]
+        .props.onPress()
+    );
+    const item = screen.root
+      .findByType(Menu)
+      .findAll(
+        (node) =>
+          typeof node.props.onPress === "function" &&
+          node.props.children?.props?.children === label
+      )[0];
+    await act(async () => item.props.onPress());
+  };
+  await menu("Edit");
+  await change();
+  await menu("Delete");
+  await press("Delete");
+  expect(deleteItem).toHaveBeenCalledWith(
+    expect.objectContaining({ tableName: "songs" })
+  );
+  expect(
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.some((args) => args[0] === "UnsavedSong")
+  ).toBe(false);
+  expect(mockNavigation.dispatch).toHaveBeenCalledWith(
+    expect.objectContaining({ type: "POP_TO" })
+  );
+});
+
+test("rendered inputs do not accept new edits while the save transaction is pending", async () => {
+  await change();
+  let finish!: () => void;
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    let saving = false;
+    const tx: SQLTransaction = {
+      executeSql: (sql, _args, done) => {
+        if (String(sql).startsWith("INSERT INTO songs")) saving = true;
+        done?.(tx, {
+          insertId: 91,
+          rowsAffected: 1,
+          rows: { length: 0, item: jest.fn() }
+        });
+      }
+    };
+    body(tx);
+    if (saving) finish = () => success?.();
+    else success?.();
+  });
+  const title = () =>
+    screen.root
+      .findAllByType(TextInput)
+      .find((node) => node.props.accessibilityLabel === "SongTitle")!;
+  await act(async () => {
+    void screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "SaveSong")!
+      .props.onPress();
+  });
+  expect(typeof finish).toBe("function");
+  expect(
+    screen.root
+      .findAllByType(TextInput)
+      .every((node) => node.props.editable === false)
+  ).toBe(true);
+  await act(async () => title().props.onChangeText("Typed while saving"));
+  expect(title().props.value).toBe("Draft");
+  await act(async () => finish());
+  expect(mockNavigation.replace).toHaveBeenCalledWith("Song", { id: "91" });
 });

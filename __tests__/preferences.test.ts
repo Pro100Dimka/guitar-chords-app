@@ -23,6 +23,64 @@ jest.mock("../src/components/database/crud", () => ({
 }));
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
+
+test("a valid 38-cover library exports completely in individually restorable parts", async () => {
+  const image =
+    "data:image/jpeg;base64," +
+    require("node:fs")
+      .readFileSync(
+        require("node:path").resolve("__tests__/fixtures/cover-384.jpg")
+      )
+      .toString("base64");
+  expect(image.length).toBeLessThan(300000);
+  const songs = Array.from({ length: 38 }, (_, i) => ({
+    id: i + 1,
+    title: `Song ${i}`,
+    content: "Am\nWords",
+    band_name: "Artist",
+    youtube_music: "",
+    youtobe_lesson: ""
+  }));
+  usePreferences.setState({ songs: {} });
+  for (const song of songs)
+    usePreferences
+      .getState()
+      .updateSong(song.id, { cover: image, capo: 2, shapes: { Am: 1 } });
+  jest.mocked(getAllItems).mockResolvedValue(songs);
+  const files = new Map<string, string>();
+  jest.mocked(FileSystem.writeFile).mockImplementation(async (path, text) => {
+    files.set(path, text);
+  });
+  jest.mocked(FileSystem.stat).mockImplementation(
+    async (path) =>
+      ({
+        size: require("node:buffer").Buffer.byteLength(files.get(path)!, "utf8")
+      }) as Awaited<ReturnType<typeof FileSystem.stat>>
+  );
+  jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+  jest
+    .mocked(saveDocuments)
+    .mockResolvedValue([
+      { uri: "content://backup/part.json", name: "part.json", error: null }
+    ]);
+  await exportLibrary();
+  expect(jest.mocked(saveDocuments).mock.calls.length).toBeGreaterThan(1);
+  const restored = [...files.values()].flatMap((text) => {
+    expect(
+      require("node:buffer").Buffer.byteLength(text, "utf8")
+    ).toBeLessThanOrEqual(5 * 1024 * 1024);
+    return parseLibraryBackup(text);
+  });
+  expect(restored.map((song) => song.title)).toEqual(
+    songs.map((song) => song.title)
+  );
+  expect(
+    restored.every(
+      (song) => song.preferences.cover === image && song.preferences.capo === 2
+    )
+  ).toBe(true);
+  expect(FileSystem.unlink).toHaveBeenCalledTimes(files.size);
+});
 beforeEach(() => {
   jest.useFakeTimers();
   usePreferences.setState({ songs: {}, saveError: false });
@@ -208,18 +266,16 @@ test("many covers never create a single oversized settings row", () => {
 });
 
 test("existing oversized backup fields remain exportable and restorable", async () => {
-  jest
-    .mocked(getAllItems)
-    .mockResolvedValue([
-      {
-        id: 1,
-        title: "a".repeat(1001),
-        content: "Am\nWords",
-        band_name: "",
-        youtube_music: "",
-        youtobe_lesson: ""
-      }
-    ]);
+  jest.mocked(getAllItems).mockResolvedValue([
+    {
+      id: 1,
+      title: "a".repeat(1001),
+      content: "Am\nWords",
+      band_name: "",
+      youtube_music: "",
+      youtobe_lesson: ""
+    }
+  ]);
   jest
     .mocked(FileSystem.stat)
     .mockResolvedValue({ size: 2000 } as Awaited<
@@ -303,7 +359,23 @@ test.each([false, true])(
   }
 );
 
-
-test("backup rejects a single text row too large for bounded SQLite reads",()=>{
-  expect(()=>parseLibraryBackup(JSON.stringify({format:"freetune-library",version:1,songs:[{title:"Title",content:"a".repeat(400001),band_name:"",youtube_music:"",youtobe_lesson:"",preferences:{}}]}))).toThrow("BackupInvalid");
+test("backup rejects a single text row too large for bounded SQLite reads", () => {
+  expect(() =>
+    parseLibraryBackup(
+      JSON.stringify({
+        format: "freetune-library",
+        version: 1,
+        songs: [
+          {
+            title: "Title",
+            content: "a".repeat(400001),
+            band_name: "",
+            youtube_music: "",
+            youtobe_lesson: "",
+            preferences: {}
+          }
+        ]
+      })
+    )
+  ).toThrow("BackupInvalid");
 });

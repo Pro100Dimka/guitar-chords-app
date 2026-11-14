@@ -22,12 +22,20 @@ try {
     if ($start -lt 0) { throw 'Production recorder class not found' }
     $recorderFile = Join-Path $OutputDirectory 'PolishedRecorder.kt'
     Set-Content -LiteralPath $recorderFile -Encoding utf8 -Value ("package com.freetune`nimport android.media.*`nimport java.io.File`n" + $recorder.Substring($start))
+    $filesStart = $recorder.IndexOf('    private fun localFile(')
+    $filesEnd = $recorder.IndexOf('    @ReactMethod @Synchronized fun playTake(', $filesStart)
+    $deleteIndex = $recorder.IndexOf('fun deleteTake(')
+    $deleteStart = $recorder.LastIndexOf('    @ReactMethod', $deleteIndex)
+    $deleteEnd = $recorder.IndexOf('    @ReactMethod @Synchronized fun playSuccess(', $deleteIndex)
+    if (@($filesStart, $filesEnd, $deleteStart, $deleteEnd) | Where-Object { $_ -lt 0 }) { throw 'Production recording file methods not found' }
+    $filesProbe = Join-Path $OutputDirectory 'RecordingStoreProbe.kt'
+    Set-Content -LiteralPath $filesProbe -Encoding utf8 -Value ("package com.freetune`nimport android.media.*`nimport com.facebook.react.bridge.*`nimport java.io.File`nimport java.nio.ByteBuffer`nclass RecordingStoreProbe(val directory: File) {`nval processing=mutableSetOf<String>()`nvar take: File?=null`nvar recorder: Any?=null`nfun stopPlayback() {}`n" + $recorder.Substring($filesStart, $filesEnd-$filesStart) + $recorder.Substring($deleteStart, $deleteEnd-$deleteStart) + "`n}")
     $recognition = Get-Content -LiteralPath "$PSScriptRoot/android/app/src/main/java/com/freetune/SongRecognitionModule.kt" -Raw
     $sessionStart = $recognition.IndexOf('internal class RecognitionSession')
     if ($sessionStart -lt 0) { throw 'Recognition session class not found' }
     Set-Content -LiteralPath (Join-Path $OutputDirectory 'RecognitionSession.kt') -Encoding utf8 -Value ("package com.freetune`nimport java.util.concurrent.atomic.AtomicBoolean`n" + $recognition.Substring($sessionStart))
     $separator = [IO.Path]::PathSeparator
-    & java -cp "$KotlinLib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -classpath "$standardLibrary$separator$annotations" -d $artifact @sources (Join-Path $OutputDirectory 'RecognitionSession.kt') $recorderFile "$PSScriptRoot/android/app/src/main/java/com/freetune/MicrophoneStreamModule.kt" "$PSScriptRoot/android/app/src/main/java/com/freetune/RecordingPolish.kt"
+    & java -cp "$KotlinLib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -classpath "$standardLibrary$separator$annotations" -d $artifact @sources (Join-Path $OutputDirectory 'RecognitionSession.kt') $filesProbe $recorderFile "$PSScriptRoot/android/app/src/main/java/com/freetune/MicrophoneStreamModule.kt" "$PSScriptRoot/android/app/src/main/java/com/freetune/RecordingPolish.kt"
     if ($LASTEXITCODE -ne 0) { throw 'Kotlin compilation failed' }
     & java -cp "$artifact$separator$standardLibrary" CheckKt "$PSScriptRoot/assets/notebooks" $OutputDirectory
     if ($LASTEXITCODE -ne 0) { throw 'Native regression checks failed' }

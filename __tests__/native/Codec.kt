@@ -6,12 +6,24 @@ import java.util.ArrayDeque
 
 class MediaFormat {
     fun setInteger(key: String, value: Int) {}
+    fun getString(key: String) = "audio/mp4a-latm"
     companion object {
+        const val KEY_MIME = "mime"
         const val KEY_AAC_PROFILE = "profile"
         const val KEY_BIT_RATE = "bitrate"
         const val KEY_MAX_INPUT_SIZE = "input"
         fun createAudioFormat(mime: String, rate: Int, channels: Int) = MediaFormat()
     }
+}
+class MediaExtractor {
+    private var complete = false
+    fun setDataSource(path: String) { complete = java.io.File(path).inputStream().use { String(it.readNBytes(8)) == "complete" } }
+    val trackCount get() = if (complete) 1 else 0
+    val sampleTime get() = if (complete) 0L else -1L
+    fun getTrackFormat(index: Int) = MediaFormat()
+    fun selectTrack(index: Int) {}
+    fun readSampleData(buffer: ByteBuffer, offset: Int) = if (complete) 4 else -1
+    fun release() {}
 }
 object MediaCodecInfo { object CodecProfileLevel { const val AACObjectLC = 2 } }
 class MediaCodec {

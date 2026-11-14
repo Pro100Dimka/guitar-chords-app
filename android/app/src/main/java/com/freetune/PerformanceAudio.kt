@@ -11,6 +11,7 @@ import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaFormat
 import android.media.MediaMuxer
+import android.media.MediaExtractor
 import android.content.Context
 import com.facebook.react.bridge.*
 import com.facebook.react.modules.core.DeviceEventManagerModule
@@ -37,7 +38,10 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
         if (change < 0) { finishTake(); stopPlayback() }
     }
-    init { context.addLifecycleEventListener(this) }
+    init {
+        context.addLifecycleEventListener(this)
+        worker.execute { try { reconcileRecordings() } catch (_: Exception) { emit("error") } }
+    }
     override fun getName() = "PerformanceAudio"
     private fun emit(state: String, uri: String? = null) {
         val body = Arguments.createMap().apply { putString("state", state); putString("uri", uri) }
@@ -122,7 +126,38 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         require(file.parentFile == directory.canonicalFile && file.name.matches(Regex("song-[0-9]+-[0-9]+\\.m4a")))
         return file
     }
-    @ReactMethod fun listTakes(songId: String, promise: Promise) {
+    @Synchronized private fun reconcileRecordings() {
+        val active = (processing + listOfNotNull(take?.absolutePath)).map { File(it).canonicalPath }.toSet()
+        directory.listFiles()?.filter { it.name.matches(Regex("song-[0-9]+-[0-9]+\\.processing\\.m4a")) }?.forEach { partial ->
+            val target = File(directory, partial.name.removeSuffix(".processing.m4a") + ".m4a")
+            if (target.canonicalPath in active) return@forEach
+            if (target.length() > 0) {
+                check(partial.delete())
+                return@forEach
+            }
+            val extractor = MediaExtractor()
+            val valid = try {
+                extractor.setDataSource(partial.absolutePath)
+                val track = (0 until extractor.trackCount).firstOrNull {
+                    extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
+                }
+                if (track == null) false else {
+                    extractor.selectTrack(track)
+                    extractor.sampleTime >= 0 && extractor.readSampleData(ByteBuffer.allocate(16384), 0) > 0
+                }
+            } catch (_: Exception) { false } finally { extractor.release() }
+            if (valid) {
+                check(!target.exists() || target.delete())
+                check(partial.renameTo(target))
+            } else check(partial.delete())
+        }
+        directory.listFiles()?.filter {
+            it.name.matches(Regex("song-[0-9]+-[0-9]+\\.m4a")) && it.length() == 0L && it.canonicalPath !in active
+        }?.forEach { check(it.delete()) }
+    }
+    @ReactMethod @Synchronized fun listTakes(songId: String, promise: Promise) {
+        try {
+        reconcileRecordings()
         val rows = Arguments.createArray()
         directory.listFiles()?.filter { it.name.startsWith("song-${songId}-") && it.name.matches(Regex("song-[0-9]+-[0-9]+\\.m4a")) && it != take }?.sortedByDescending { it.lastModified() }?.forEach { file ->
             rows.pushMap(Arguments.createMap().apply {
@@ -131,6 +166,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             })
         }
         promise.resolve(rows)
+        } catch (error: Exception) { promise.reject("RECORDING_READ_FAILED", error) }
     }
     @ReactMethod @Synchronized fun playTake(path: String, promise: Promise) {
         if (recorder != null) { promise.reject("RECORDING_BUSY", "Recording in progress"); return }
@@ -158,8 +194,16 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         if (recorder == null) audioManager.abandonAudioFocus(focusListener)
         if (wasPlaying) emit("stopped")
     }
-    @ReactMethod fun deleteTake(path: String, promise: Promise) {
-        try { require(recorder == null && !processing.contains(path)); stopPlayback(); require(localFile(path).delete()); promise.resolve(true) }
+    @ReactMethod @Synchronized fun deleteTake(path: String, promise: Promise) {
+        try {
+            val file = localFile(path)
+            require(recorder == null && processing.none { File(it).canonicalFile == file })
+            stopPlayback()
+            val partial = File(file.parentFile, file.nameWithoutExtension + ".processing.m4a")
+            require(!partial.exists() || partial.delete())
+            require(file.delete())
+            promise.resolve(true)
+        }
         catch (error: Exception) { promise.reject("DELETE_FAILED", error) }
     }
     @ReactMethod @Synchronized fun playSuccess() {

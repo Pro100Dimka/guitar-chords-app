@@ -37,7 +37,7 @@ const roots: Record<string, number> = {
 };
 const accidentals: Record<string, number> = { "#": 1, b: -1 };
 export const chordNotationPattern =
-  /^([A-G])([#b]?)((?:(?:maj|Maj|min|dim|aug|sus|add|omit|no|m|M|Δ|ø|°|\+|-|\d+\/\d+|\d|[#b])|\((?:maj\d+|M\d+|[\d#b,+-]+)\))*)(?:\/([A-G])([#b]?))?$/;
+  /^(?=.{1,64}$)([A-G])([#b]?)((?:(?:maj|Maj|min|dim|aug|sus|add|omit|no|m|M|Δ|ø|°|\+|-|[\d#b])|\((?:maj\d+|M\d+|[\d#b,+-]+)\))*(?:\/\d+)*)(?:\/([A-G])([#b]?))?$/;
 export function transposeChord(chord: string, semitones: number) {
   chord = normalizeChord(chord);
   if (!chordNotationPattern.test(chord) || semitones === 0) return chord;
@@ -356,25 +356,59 @@ export function normalizeChord(chord: string) {
   );
 }
 export function chordLineParts(line: string, semitones = 0) {
-  const parts = line.split(/(\s+|[|:]+)/).filter(Boolean);
-  return parts.map((part, index) => {
-    const previous = parts[index - 1] ?? "";
-    if (
-      /^ +$/.test(part) &&
-      chordNotationPattern.test(normalizeChord(previous))
-    ) {
-      return " ".repeat(
-        Math.max(
-          1,
-          part.length +
-            previous.length -
-            transposeChord(previous, semitones).length
-        )
-      );
-    }
-    return transposeChord(part, semitones);
-  });
+  return line
+    .split(/(\s+|[|:]+)/)
+    .filter(Boolean)
+    .map((part) => transposeChord(part, semitones));
 }
+function reflowChordPairs(content: string, semitones: number) {
+  const lines = content.split("\n");
+  const output: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i],
+      lyrics = lines[i + 1];
+    if (!isChordLine(line)) {
+      output.push(line);
+      continue;
+    }
+    if (!lyrics?.trim() || isChordLine(lyrics)) {
+      output.push(chordLineParts(line, semitones).join(""));
+      continue;
+    }
+    const anchors = [...line.matchAll(/[^\s|:]+/g)].filter((match) =>
+      chordNotationPattern.test(normalizeChord(match[0]))
+    );
+    const words = [...lyrics];
+    let chords = line.slice(0, anchors[0].index);
+    let text =
+      words.slice(0, anchors[0].index).join("") +
+      " ".repeat(Math.max(0, anchors[0].index - words.length));
+    for (let j = 0; j < anchors.length; j++) {
+      const current = anchors[j],
+        next = anchors[j + 1];
+      const chord = transposeChord(current[0], semitones);
+      const part = words.slice(current.index, next?.index).join("");
+      if (!next) {
+        chords += chord + line.slice(current.index + current[0].length);
+        text += part;
+        continue;
+      }
+      const originalGap = line.slice(
+        current.index + current[0].length,
+        next.index
+      );
+      const gap = originalGap.trim() ? originalGap.replace(/ +/g, " ") : " ";
+      const phrase = part.replace(/\s+$/, " ");
+      const width = Math.max([...phrase].length, chord.length + gap.length);
+      chords += (chord + gap).padEnd(width);
+      text += phrase + " ".repeat(width - [...phrase].length);
+    }
+    output.push(chords.trimEnd(), text.trimEnd());
+    i++;
+  }
+  return output.join("\n");
+}
+
 function chordTokens(line: string) {
   return chordLineParts(
     line.replace(
@@ -387,7 +421,7 @@ function chordTokens(line: string) {
   );
 }
 export function chordsAboveLyrics(content: string) {
-  return content
+  const result = content
     .split(/\r?\n/)
     .map((line) => {
       if (isChordLine(line)) return chordLineParts(line).join("");
@@ -409,6 +443,7 @@ export function chordsAboveLyrics(content: string) {
       return lyrics.trim() ? `${chords}\n${lyrics.trimEnd()}` : chords;
     })
     .join("\n");
+  return reflowChordPairs(result, 0);
 }
 
 export function isChordLine(line: string) {
@@ -431,13 +466,9 @@ export function songChordSequence(content: string) {
     );
 }
 export function transposeSong(content: string, semitones: number) {
-  return chordsAboveLyrics(content)
-    .split("\n")
-    .map((line) =>
-      isChordLine(line) ? chordLineParts(line, semitones).join("") : line
-    )
-    .join("\n");
+  return reflowChordPairs(chordsAboveLyrics(content), semitones);
 }
+
 export function songChords(content: string) {
   return [...new Set(songChordSequence(content))];
 }
