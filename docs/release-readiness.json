@@ -1,13 +1,13 @@
 {
-  "build": 11,
+  "build": 12,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
   "checks": {
     "javascript": {
       "suites": 16,
-      "tests": 130,
-      "status": "Passed full local Jest run for the release-review corrections; remote CI pending."
+      "tests": 132,
+      "status": "132 tests in 16 suites passed locally and in main CI; TypeScript, ESLint and actual SQLite integration passed in both environments."
     },
     "typescript": "Passed tsc --noEmit locally and in CI.",
     "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
@@ -18,8 +18,9 @@
       "string_transitions": 180,
       "decay_sequences": 12,
       "capture_cycles": 200,
-      "status": "passed with deterministic hardware stubs",
-      "permission_denial": "passed: denied microphone permission returns without capture; normal capture works after permission is restored"
+      "status": "Passed deterministic hardware-stub checks including all 24 added calibration-edge cases.",
+      "permission_denial": "passed: denied microphone permission returns without capture; normal capture works after permission is restored",
+      "calibration_edge_cases": 24
     },
     "audio_bank": {
       "source": "Meta Steel Guitar",
@@ -28,7 +29,7 @@
       "recordings": 250,
       "status": "250 recordings and room impulse decoded successfully; physical playback pending"
     },
-    "android_bundle": "VersionCode 11 ARM64 and ARM32 APKs assembled successfully. Release lint passed; signing, archive integrity, current Hermes bundle, native prepareFingering method, guide assets, third-party notices, ZIP alignment and ARM64 ELF alignment verified. Listed AAB remains historical.",
+    "android_bundle": "VersionCode 12 ARM64 and ARM32 phone APKs assembled successfully. Release lint passed. Signature, archive integrity, exact current Hermes bundle, native unsupported-recognition handling, third-party notices, ZIP alignment and ARM64 ELF alignment verified. The AAB remains historical.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "not run: requires macOS/Xcode",
     "device_tests": "owner to perform",
@@ -392,7 +393,7 @@
     },
     "main_review_regressions": {
       "reviewed_base": "46c0edad453e9a428304fef3f1a64322f6a211e5",
-      "status": "Local checks passed; main/PR CI and APK packaging pending.",
+      "status": "All local checks, all three implementation CI workflows and final versionCode 12 APK verification passed.",
       "storage": "Bounded per-song settings chunks; legacy aggregate read in SQL substrings; migration and multi-part reload verified through actual SQLite with a simulated 2 MiB row ceiling. Commit-failure rollback preserves old data.",
       "backup": "Shared new-save field limits; older fields remain exportable/restorable within the backup file and bounded text-row limits.",
       "deletion": "Both deletion paths confirm intent, stop capture, inspect recordings, offer access for export, and require explicit deletion of recordings. Recording failures preserve the song. Root navigation uses popTo.",
@@ -401,7 +402,16 @@
       "other": "Pending purchase retry, Shorts/Live URL handling, unknown-host rejection and reference-tone octave state covered by regressions. Every declared ABI has a matching ELF fingerprint binary. JNI load failures are reported as unsupported recognition.",
       "ci": "JS, SQLite, TypeScript, ESLint, native and strict real-audio workflows trigger on main and main-targeted pull requests. Branch-protection settings were not modified.",
       "privacy": "GuitareTab added to all three localized policies and HTML policy; README now distinguishes Android and iOS recording failure behavior.",
-      "scope": "No design changes and no manual lookup button added."
+      "scope": "No design changes and no manual lookup button added.",
+      "ci_runs": {
+        "source_commit": "32d1d95f89f2e92ea52cb9c5d1ad4c8425555550",
+        "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43630546347",
+        "native": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43630546370",
+        "real_audio": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43630546338",
+        "final_test_commit": "8b0ea9d8a1df119ae1f92519c7ff90f19b25a5bd",
+        "final_javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43631283524",
+        "final_javascript_status": "success"
+      }
     }
   },
   "privacy_forms_draft": [
@@ -508,22 +518,22 @@
       "version_code": 7
     },
     "apk_arm64": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc11-arm64-v8a.apk",
-      "bytes": 101348423,
-      "sha256": "cb571228f2946ed649a9e49632343b71085a69fc8339edb70b8c9a0f40916fa7",
-      "version_code": 11
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc12-arm64-v8a.apk",
+      "bytes": 101367115,
+      "sha256": "b17fd867523805a652a6af5673ba551e3c7f93852b380133db84793aeb8bfb16",
+      "version_code": 12
     },
     "apk_arm32": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc11-armeabi-v7a.apk",
-      "bytes": 90516523,
-      "sha256": "5e4aef387a1655e578b283fc78993f63906a36a4394ac0048609a4ce20e472e2",
-      "version_code": 11
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc12-armeabi-v7a.apk",
+      "bytes": 90535215,
+      "sha256": "51711dfeff67b501d56adf73263b836b051500844b3dcd80c5a483b0a74ec77a",
+      "version_code": 12
     },
-    "version_code": 11
+    "version_code": 12
   },
   "reviewed_on": "2026-11-14",
-  "review_scope": "Seven reviewed behavior defects corrected, regression tests restored and extended, CI coverage expanded, final phone APKs verified. No design changes in this review.",
-  "artifact_scope": "VersionCode 11 ARM64 and ARM32 APKs include source commit 8436c36, exact-voicing native fingering previews and all seven review corrections. Both retain the preceding sideload certificate. Final archives include current Hermes code and fingerprint license notices. The AAB remains historical versionCode 7. Physical-phone latency, microphone/codec behavior and subjective listening remain device checks.",
+  "review_scope": "Main-branch release review: bounded preference storage and legacy migration, backup compatibility, recording-aware deletion and navigation, provider chord/capo/version handling, calibrated pitch edges, pending purchases, video links, ABI coverage and main/PR checks. No design change or manual lookup button.",
+  "artifact_scope": "VersionCode 12 phone APKs contain all implementation changes from 32d1d95 and retain the previous sideload certificate. Later changes add test coverage and verification documentation only. Installation over the preceding test APK is supported. Physical-device recording and subjective listening, iOS native execution and store submission remain unverified. The listed AAB remains historical versionCode 7.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
