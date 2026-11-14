@@ -1,5 +1,5 @@
 {
-  "build": 13,
+  "build": 14,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
@@ -7,7 +7,7 @@
     "javascript": {
       "suites": 17,
       "tests": 179,
-      "status": "Passed full local run, including atomic save failure/retry, editor navigation protection, extended chord notation, cancellation admission, local file errors and remaster identity checks. Current CI pending."
+      "status": "Passed 179 tests in 17 suites locally and in main CI. TypeScript, zero-warning ESLint and actual SQLite integration also passed."
     },
     "typescript": "Passed tsc --noEmit locally and in CI.",
     "eslint": "Passed full repository ESLint with zero warnings locally and in CI.",
@@ -31,7 +31,7 @@
       "recordings": 250,
       "status": "250 recordings and room impulse decoded successfully; physical playback pending"
     },
-    "android_bundle": "VersionCode 13 ARM64 and ARM32 APKs assembled successfully. Release lint passed; final current Hermes bundle, capture-controls property, signing, archive integrity, native methods, third-party notices, ZIP alignment and ARM64 ELF alignment verified. No current AAB was built.",
+    "android_bundle": "VersionCode 14 ARM64 and ARM32 APKs assembled successfully. Release lint passed; fresh Hermes bundle hash, seven-fix localization markers, signing, archive integrity, native methods, third-party notices, ZIP alignment and ARM64 ELF alignment verified. Fingerprint Rust sources unchanged; current ARM JNI libraries reused locally and rebuilt in CI. No current AAB was built.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "not run: requires macOS/Xcode",
     "device_tests": "owner to perform",
@@ -81,7 +81,7 @@
         {
           "track": "I Will Survive",
           "artist": "Gloria Gaynor",
-          "source": "РџС–СЃРµРЅРЅРёРє",
+          "source": "Р СџРЎвЂ“РЎРѓР ВµР Р…Р Р…Р С‘Р С”",
           "has_chords": true,
           "primary_failure": "simulated 503 from Cifra Club",
           "elapsed_ms": 10560
@@ -457,7 +457,7 @@
     },
     "seven_issue_review": {
       "base_commit": "8ab13cfe30bb256e804a22c5c54e7397b8bc5e3a",
-      "status": "Local regression checks passed; APK and CI verification pending.",
+      "status": "All local regression checks, packaged APK verifications and all three source-commit CI workflows passed.",
       "cases": [
         "Save song, performer and per-song metadata in one transaction; publish state and navigate only after commit.",
         "Six acoustic string references hold pitch within five cents in four attack/sustain windows at 432, 440 and 442 Hz. G3 independently measured by FFT.",
@@ -493,8 +493,61 @@
           0.605
         ]
       },
-      "native_verification": "Production RecognitionSession checked with real threads and deferred cleanup, plus the existing capture, full-register pitch and recording checks. Hardware and codecs are stubbed.",
-      "design_changes": false
+      "native_verification": "Production RecognitionSession checked with real threads and deferred cleanup, plus the existing capture, full-register pitch and recording checks. Hardware and codecs are stubbed. Source-commit CI also passed Rust host checks, all three Android JNI builds, deterministic checks, genuine Shazam POST and full Android Kotlin compilation.",
+      "design_changes": false,
+      "source_commit": "b581a6aea655c4a42865908e16c357f4b7c1322c",
+      "ci": {
+        "javascript": {
+          "run": 43642776135,
+          "status": "success",
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43642776135"
+        },
+        "shazam_real_audio": {
+          "run": 43642776076,
+          "status": "success",
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43642776076"
+        },
+        "native_android": {
+          "run": 43642776033,
+          "status": "success",
+          "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43642776033"
+        }
+      },
+      "apk_verification": {
+        "path": "E:/Releases/FreeTune/FreeTune-1.0-rc14-verification.json",
+        "abis": [
+          "arm64-v8a",
+          "armeabi-v7a"
+        ],
+        "bundle_sha256": "2e9c4d4fcac9d2e7a70b4973f027e368d5e680fd4c68a13cceec6bee55f3a665",
+        "signature_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c"
+      },
+      "temporary_cleanup": {
+        "reclaimed_bytes": 0,
+        "status": "Automatic approval review rejected removal; no alternative deletion attempted. No further large writes will be started.",
+        "remaining": [
+          {
+            "path": "E:\\CodexTemp\\freetune-final-audit\\native-rc14\\native-check.jar",
+            "bytes": 84068
+          },
+          {
+            "path": "E:\\CodexTemp\\freetune-final-audit\\native-rc14\\PolishedRecorder.kt",
+            "bytes": 6285
+          },
+          {
+            "path": "E:\\CodexTemp\\freetune-final-audit\\native-rc14\\RecognitionSession.kt",
+            "bytes": 770
+          },
+          {
+            "path": "E:\\CodexTemp\\freetune-final-audit\\g3-reference-before.wav",
+            "bytes": 132344
+          },
+          {
+            "path": "E:\\CodexTemp\\freetune-final-audit\\g3-reference-after.wav",
+            "bytes": 132344
+          }
+        ]
+      }
     }
   },
   "privacy_forms_draft": [
@@ -604,22 +657,22 @@
       "status": "historical_only_not_current_distribution_bundle"
     },
     "apk_arm64": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc13-arm64-v8a.apk",
-      "bytes": 101367551,
-      "sha256": "6577c09f3a4230814b02fc9a116e22bb0918e0b148b191e850b67a77796b6056",
-      "version_code": 13
+      "path": "E:/Releases/FreeTune/FreeTune-1.0-rc14-arm64-v8a.apk",
+      "bytes": 101376927,
+      "sha256": "534046a658440f05b743426be94fbc8dea164d07f43f5b80402b36aba4eb9d31",
+      "version_code": 14
     },
     "apk_arm32": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc13-armeabi-v7a.apk",
-      "bytes": 90535651,
-      "sha256": "1853bbcf6e7f9a74ba423e16291cbc90a6e034a71284fdb37afccdc9f8fbb6da",
-      "version_code": 13
+      "path": "E:/Releases/FreeTune/FreeTune-1.0-rc14-armeabi-v7a.apk",
+      "bytes": 90545027,
+      "sha256": "f9a182bdfc2cd36b2c9570e115b57937cd8feb53e0916e7bebff464483c6af73",
+      "version_code": 14
     },
-    "version_code": 13
+    "version_code": 14
   },
   "reviewed_on": "2026-11-14",
   "review_scope": "Seven correctness defects: atomic song metadata persistence, acoustic G3 reference drift, extended chord transposition and practice order, unsaved editor navigation, cancellation/retry admission, remaster content lookup and actionable local audio errors. Existing visual design preserved.",
-  "artifact_scope": "VersionCode 13 phone APKs contain all implementation changes through c999523 and retain the preceding sideload certificate. A fresh Hermes bundle including both cover-dialog platform branches is verified inside each APK. Later documentation-only changes do not alter app code. Physical microphones, Bluetooth, native iOS execution and store submission remain unverified. The AAB listed in artifacts is historical versionCode 7 and does not contain current fixes.",
+  "artifact_scope": "VersionCode 14 phone APKs contain all implementation changes through b581a6aea655c4a42865908e16c357f4b7c1322c. Later documentation-only changes do not alter app code. Both APKs retain the preceding sideload certificate and contain the verified fresh Hermes bundle. Physical microphone/speaker latency, Bluetooth, native iOS execution and store submission remain unverified. The listed AAB is historical versionCode 7 and does not contain current fixes.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
