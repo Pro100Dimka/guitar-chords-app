@@ -7,10 +7,10 @@
     "javascript": {
       "suites": 19,
       "tests": 214,
-      "status": "Passed full local run, including independent regressions for all six review scenarios. Source CI pending."
+      "status": "Passed full local run and source main CI, including independent regressions for all six review scenarios."
     },
-    "typescript": "Passed local tsc --noEmit; source CI pending.",
-    "eslint": "Passed local full repository ESLint with zero warnings; source CI pending.",
+    "typescript": "Passed tsc --noEmit locally and in source main CI.",
+    "eslint": "Passed full repository ESLint with zero warnings locally and in source main CI.",
     "sqlite": "Passed actual SQLite integration, including missing-row UPDATE rejection, rollback of performer and metadata writes, and preservation of the editor without a success result.",
     "android_pitch": {
       "synthetic_cases": 270,
@@ -611,6 +611,13 @@
     "recording_file_lifecycle": {
       "status": "Passed extracted production-method regressions: incomplete orphan cleanup, complete interrupted-file recovery, active-take protection and companion-file deletion.",
       "boundary": "MediaExtractor is stubbed in the host regression harness. Actual AAC recovery and physical process interruption remain device checks."
+    },
+    "android_kotlin_review": "Passed local compileReleaseKotlin using the current Android SDK and existing unchanged Rust JNI libraries, plus clean-environment Android Kotlin compilation in source main CI. No APK assembled.",
+    "six_scenario_source_ci": {
+      "commit": "aae4ec7ba64b518fd060b00f7dc4932cdf1e41bf",
+      "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43654518820",
+      "native": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43654518825",
+      "status": "Both source workflows passed: JavaScript, SQLite, TypeScript, ESLint, deterministic native checks, Rust JNI and Android Kotlin compilation."
     }
   },
   "privacy_forms_draft": [
