@@ -778,10 +778,13 @@ export function RhythmGrid({
     3: ["", "&", "a"],
     4: ["", "e", "&", "a"]
   };
-  const columns = division > 2 ? division * 2 : meter * division;
+  const beatsPerRow = division > 2 ? (meter % 2 === 0 ? 2 : 1) : meter;
+  const columns = beatsPerRow * division;
+  const slots =
+    Math.ceil(pattern.length / (meter * division)) * meter * division;
   return (
     <View style={styles.rhythmRows}>
-      {Array.from({ length: Math.ceil(pattern.length / columns) }, (_, bar) => (
+      {Array.from({ length: Math.ceil(slots / columns) }, (_, bar) => (
         <View key={bar} style={styles.beats}>
           {Array.from({ length: columns }, (_, step) => {
             const position = bar * columns + step;
