@@ -7,10 +7,10 @@
     "javascript": {
       "suites": 19,
       "tests": 231,
-      "status": "Passed full local run: 19 suites, 231 tests. The final preference-pause change around deletion also passed the 17 related menu/editor tests and actual SQLite checks. Source CI pending."
+      "status": "Passed full local run and source main CI: 19 suites, 231 tests. The final deletion preference-pause change also passed the 17 related local menu/editor tests and actual SQLite checks."
     },
-    "typescript": "Passed local tsc --noEmit for the review fixes.",
-    "eslint": "Passed local full repository ESLint with zero warnings for the review fixes.",
+    "typescript": "Passed tsc --noEmit locally and in source main CI.",
+    "eslint": "Passed full repository ESLint with zero warnings locally and in source main CI.",
     "sqlite": "Passed actual SQLite, including failed deletion rolling back the cleanup journal without removing recordings; interrupted committed deletion cleanup; distinct arrangements, repeat import and restoration of existing song settings; all prior migration and atomic-save checks.",
     "android_pitch": {
       "synthetic_cases": 270,
@@ -22,7 +22,9 @@
       "permission_denial": "passed: denied microphone permission returns without capture; normal capture works after permission is restored",
       "calibration_edge_cases": 24,
       "full_register_combinations": 336,
-      "full_register_frames": 3360
+      "full_register_frames": 3360,
+      "octave_transition_regressions": 4,
+      "octave_transition_frames": 240
     },
     "audio_bank": {
       "source": "Owner-provided acoustic guitar recordings",
@@ -612,7 +614,7 @@
       "status": "Passed extracted production-method regressions: incomplete orphan cleanup, complete interrupted-file recovery, active-take protection and companion-file deletion.",
       "boundary": "MediaExtractor is stubbed in the host regression harness. Actual AAC recovery and physical process interruption remain device checks."
     },
-    "android_kotlin_review": "Passed local compileReleaseKotlin for the current native sources using existing unchanged Rust JNI libraries. No APK assembled. Source CI pending.",
+    "android_kotlin_review": "Passed local compileReleaseKotlin and clean-environment Android Kotlin compilation in source main CI. Current Rust JNI, deterministic audio/capture/recording checks and the separate real-audio Shazam proof also passed in source CI. No APK assembled.",
     "six_scenario_source_ci": {
       "commit": "aae4ec7ba64b518fd060b00f7dc4932cdf1e41bf",
       "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43654518820",
@@ -897,6 +899,13 @@
       "Existing versioned migrations and controlled CRUD SQL callers were reviewed; no unsupported migration or SQL-injection claim is marked fixed.",
       "No dependency downgrade or unverified advisory workaround was applied.",
       "No APK, AAB or release R8 assembly was produced in this task."
-    ]
+    ],
+    "source_ci": {
+      "commit": "6d30a44513dd02cfd2e30601ac047ddb3c8c2c7d",
+      "status": "All three workflows passed.",
+      "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43660782160",
+      "native": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43660782273",
+      "shazam_real_audio": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43660782216"
+    }
   }
 }
