@@ -276,18 +276,16 @@ test("post-commit cleanup retries remaining files without deleting the first tak
 });
 
 test("an aborted deletion journal never removes recordings of a surviving song", async () => {
-  jest
-    .mocked(getAllItems)
-    .mockImplementation(async (query) =>
-      query.tableName === "settings"
-        ? [
-            {
-              key: "recording-delete:7",
-              value: JSON.stringify(["song-7-1.m4a"])
-            }
-          ]
-        : [{ id: 7 }]
-    );
+  jest.mocked(getAllItems).mockImplementation(async (query) =>
+    query.tableName === "settings"
+      ? [
+          {
+            key: "recording-delete:7",
+            value: JSON.stringify(["song-7-1.m4a"])
+          }
+        ]
+      : [{ id: 7 }]
+  );
   await finishPendingRecordingDeletions();
   expect(performanceAudio.remove).not.toHaveBeenCalled();
 });
@@ -308,4 +306,51 @@ test("failure to commit the cleanup journal leaves both song and recordings unto
   expect(deleteItem).not.toHaveBeenCalled();
   expect(performanceAudio.remove).not.toHaveBeenCalled();
   expect(done).not.toHaveBeenCalled();
+});
+
+test("a second deletion waits for its own journal even while startup cleanup is running", async () => {
+  const journals = new Map([
+    ["recording-delete:1", JSON.stringify(["song-1-1.m4a"])]
+  ]);
+  let release!: () => void;
+  let started!: () => void;
+  const firstStarted = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  jest
+    .mocked(getAllItems)
+    .mockImplementation(async (query) =>
+      query.tableName === "settings"
+        ? [...journals].map(([key, value]) => ({ key, value }))
+        : []
+    );
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    body({
+      executeSql: (_sql, args) => {
+        journals.delete(String(args![0]));
+      }
+    });
+    success?.();
+  });
+  jest
+    .mocked(performanceAudio.list)
+    .mockImplementation(async (id) => [
+      { path: `song-${id}-1.m4a`, bytes: 100, date: 1 }
+    ]);
+  jest.mocked(performanceAudio.remove).mockImplementation(async (path) => {
+    if (path === "song-1-1.m4a")
+      await new Promise<void>((resolve) => {
+        release = resolve;
+        started();
+      });
+    return true;
+  });
+  const first = finishPendingRecordingDeletions();
+  await firstStarted;
+  journals.set("recording-delete:2", JSON.stringify(["song-2-1.m4a"]));
+  const second = finishPendingRecordingDeletions();
+  release();
+  await Promise.all([first, second]);
+  expect(performanceAudio.remove).toHaveBeenCalledWith("song-2-1.m4a");
+  expect(journals.size).toBe(0);
 });

@@ -45,6 +45,7 @@ import {
 import RequireMicAccess from "../tuner";
 import MicrophoneStream from "../tuner/MicrophoneStream";
 import {
+  chordsAboveLyrics,
   chordNotationPattern,
   chordLineParts,
   isChordLine,
@@ -252,9 +253,11 @@ const SongDetail: React.FC = () => {
         </Text>
       );
     };
-    return transposeSong(
-      song?.content ?? "",
-      preferences.transpose - preferences.capo
+    return chordsAboveLyrics(
+      transposeSong(
+        song?.content ?? "",
+        preferences.transpose - preferences.capo
+      )
     )
       .split(/\r?\n/)
       .map(renderLine);

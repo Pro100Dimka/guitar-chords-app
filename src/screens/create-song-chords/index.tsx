@@ -1,4 +1,8 @@
-import { chordsAboveLyrics } from "../song/chords";
+import {
+  chordsAboveLyrics,
+  transposeSong,
+  songContentFromEditor
+} from "../song/chords";
 // src/screens/create-song-chords/index.tsx
 import {
   useFocusEffect,
@@ -67,10 +71,12 @@ interface ICreateChordSongProps {
 
 export function SongEditorGuard({
   allowLeave,
-  pendingExit
+  pendingExit,
+  busy = false
 }: {
   allowLeave: { current: boolean };
   pendingExit: { current: NavigationAction | null };
+  busy?: boolean;
 }) {
   const formik = useFormikContext<FormValues>();
   const navigation = useNavigation<NavigationProp>();
@@ -84,35 +90,38 @@ export function SongEditorGuard({
         formik.values.cover,
         formik.values.fk_band.name
       ].some((value) => !!value.trim()));
-  usePreventRemove(changed && !allowLeave.current, ({ data: { action } }) => {
-    if (allowLeave.current) {
-      navigation.dispatch(action);
-      return;
-    }
-    if (formik.isSubmitting) return;
-    Alert.alert(t("UnsavedSong"), undefined, [
-      { text: t("StayInEditor"), style: "cancel" },
-      {
-        text: t("DiscardChanges"),
-        style: "destructive",
-        onPress: () => {
-          pendingExit.current = null;
-          allowLeave.current = true;
-          navigation.dispatch(action);
-        }
-      },
-      {
-        text: t("SaveSong"),
-        onPress: () => {
-          pendingExit.current = action;
-          const clear = () => {
-            if (pendingExit.current === action) pendingExit.current = null;
-          };
-          void formik.submitForm().then(clear, clear);
-        }
+  usePreventRemove(
+    (changed || busy) && !allowLeave.current,
+    ({ data: { action } }) => {
+      if (allowLeave.current) {
+        navigation.dispatch(action);
+        return;
       }
-    ]);
-  });
+      if (formik.isSubmitting || busy) return;
+      Alert.alert(t("UnsavedSong"), undefined, [
+        { text: t("StayInEditor"), style: "cancel" },
+        {
+          text: t("DiscardChanges"),
+          style: "destructive",
+          onPress: () => {
+            pendingExit.current = null;
+            allowLeave.current = true;
+            navigation.dispatch(action);
+          }
+        },
+        {
+          text: t("SaveSong"),
+          onPress: () => {
+            pendingExit.current = action;
+            const clear = () => {
+              if (pendingExit.current === action) pendingExit.current = null;
+            };
+            void formik.submitForm().then(clear, clear);
+          }
+        }
+      ]);
+    }
+  );
   return null;
 }
 
@@ -123,11 +132,13 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const { t } = useTranslation();
     const [extras, setExtras] = useState(false);
     const [coverBusy, setCoverBusy] = useState(false);
+    const coverPending = useRef(false);
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const form = useRef<View>(null);
     const lyricsInput = useRef<TextInput>(null);
     const [editingLyrics, setEditingLyrics] = useState(false);
+    const [lyricsDraft, setLyricsDraft] = useState("");
     const [formTop, setFormTop] = useState(0);
     const navigation = useNavigation<NavigationProp>();
     const localExitAllowed = useRef(false);
@@ -142,7 +153,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           setInitialValuesState({
             ...initialValues,
             ...songProps,
-            content: chordsAboveLyrics(songProps.content ?? ""),
+            content: transposeSong(songProps.content ?? "", 0),
             youtube_music: songProps.youtube_music ?? "",
             youtobe_lesson: songProps.youtobe_lesson ?? "",
             tempo: usePreferences.getState().songs[song.id]?.tempo,
@@ -163,12 +174,12 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
               ? {
                   ...initialValues,
                   title: t("ExampleTitle"),
-                  content: chordsAboveLyrics(t("ExampleLyrics"))
+                  content: transposeSong(t("ExampleLyrics"), 0)
                 }
               : {
                   ...initialValues,
                   ...route.params?.draft,
-                  content: chordsAboveLyrics(route.params?.draft?.content ?? "")
+                  content: transposeSong(route.params?.draft?.content ?? "", 0)
                 }
           );
         }
@@ -178,6 +189,10 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       values: FormValues,
       actions: FormikHelpers<FormValues>
     ) => {
+      if (coverPending.current) {
+        actions.setSubmitting(false);
+        return;
+      }
       const finish = (fallback: () => void) => {
         allowLeave.current = true;
         const action = pendingExit.current;
@@ -188,7 +203,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       try {
         await onSubmit(
           actions,
-          { ...values, content: chordsAboveLyrics(values.content) },
+          { ...values, content: transposeSong(values.content, 0) },
           { replace: (...args) => finish(() => navigation.replace(...args)) },
           () => finish(() => setIsEdit?.(false))
         );
@@ -219,6 +234,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                 <SongEditorGuard
                   allowLeave={allowLeave}
                   pendingExit={pendingExit}
+                  busy={coverBusy}
                 />
                 <ScrollView
                   style={styles.flex}
@@ -239,6 +255,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       style={[styles.cover, width < 360 && styles.coverNarrow]}
                       onPress={() => {
                         const changeCover = async (rotate = false) => {
+                          coverPending.current = true;
                           setCoverBusy(true);
                           try {
                             await formik.setFieldValue(
@@ -251,6 +268,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                             if (!fileCanceled(error))
                               Alert.alert(t("CoverError"), t("CoverErrorHint"));
                           } finally {
+                            coverPending.current = false;
                             setCoverBusy(false);
                           }
                         };
@@ -408,6 +426,9 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       label={t("EditLyrics")}
                       onPress={() => {
                         Keyboard.dismiss();
+                        setLyricsDraft(
+                          chordsAboveLyrics(formik.values.content)
+                        );
                         setEditingLyrics(true);
                       }}
                     />
@@ -417,6 +438,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     accessibilityLabel={t("EditLyrics")}
                     onPress={() => {
                       Keyboard.dismiss();
+                      setLyricsDraft(chordsAboveLyrics(formik.values.content));
                       setEditingLyrics(true);
                     }}
                     style={styles.lyricsPreview}
@@ -428,7 +450,8 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         !formik.values.content && styles.lyricsPlaceholder
                       ]}
                     >
-                      {formik.values.content || t("PasteSongHint")}
+                      {chordsAboveLyrics(formik.values.content) ||
+                        t("PasteSongHint")}
                     </Text>
                   </Pressable>
                   {!!formik.touched.content && !!formik.errors.content && (
@@ -495,11 +518,19 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                           multiline
                           disableFullscreenUI
                           accessibilityLabel={t("ChordsLyrics")}
-                          value={formik.values.content}
+                          value={lyricsDraft}
                           editable={!formik.isSubmitting}
                           onChangeText={(text) => {
-                            if (!formik.isSubmitting)
-                              formik.handleChange("content")(text);
+                            if (!formik.isSubmitting) {
+                              setLyricsDraft(text);
+                              void formik.setFieldValue(
+                                "content",
+                                songContentFromEditor(
+                                  formik.values.content,
+                                  text
+                                )
+                              );
+                            }
                           }}
                           onBlur={() => formik.setFieldTouched("content")}
                           placeholder={t("PasteSongHint")}

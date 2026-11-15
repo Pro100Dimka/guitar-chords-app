@@ -1068,13 +1068,11 @@ test("an evicted native fingering is rebuilt from its rendered waveform and play
         .map((value) => (value === "×" ? null : Number(value)))
     ]);
   await act(async () =>
-    screen!.root
-      .findByType(WebView)
-      .props.onMessage({
-        nativeEvent: {
-          data: JSON.stringify({ type: "fingering", key, wave: "AAAA" })
-        }
-      })
+    screen!.root.findByType(WebView).props.onMessage({
+      nativeEvent: {
+        data: JSON.stringify({ type: "fingering", key, wave: "AAAA" })
+      }
+    })
   );
   cached = false;
   jest.mocked(performanceAudio.prepareFingering).mockClear();
@@ -1084,4 +1082,36 @@ test("an evicted native fingering is rebuilt from its rendered waveform and play
   await act(async () => card.props.onPressIn());
   expect(performanceAudio.prepareFingering).toHaveBeenCalledWith(key, "AAAA");
   expect(performanceAudio.playPreparedGuitar).toHaveBeenCalledTimes(1);
+});
+
+test("the initially highlighted Cm shape matches the recorded rhythm voicing", async () => {
+  await act(async () => {
+    screen = Renderer.create(
+      <ChordSheet chord="Cm" onChange={() => {}} onClose={() => {}} />
+    );
+  });
+  const selected = screen!.root.findAll(
+    (node) =>
+      typeof node.props.onPressIn === "function" &&
+      node.props.accessibilityState?.selected &&
+      String(node.props.accessibilityLabel).startsWith("Fingering ")
+  );
+  expect(selected).toHaveLength(1);
+  expect(String(selected[0].props.accessibilityLabel).split(": ")[1]).toBe(
+    "×, 3, 5, 5, 4, 3"
+  );
+});
+
+test("all 24 recorded defaults and explicit selections use one fingering resolver", () => {
+  const {
+    recordedChordFrets,
+    selectedChordShape
+  } = require("../src/components/acoustic-player");
+  const { chordShapes } = require("../src/screens/song/chords");
+  expect(Object.keys(recordedChordFrets)).toHaveLength(24);
+  for (const [chord, frets] of Object.entries(recordedChordFrets)) {
+    expect(selectedChordShape(chord).frets).toEqual(frets);
+    expect(chordShapes(chord)[selectedChordShape(chord).index]).toEqual(frets);
+    expect(selectedChordShape(chord, 0).index).toBe(0);
+  }
 });

@@ -3,7 +3,7 @@ import { t } from "../locales";
 import { performanceAudio } from "./performance-audio";
 import { deleteItem } from "./database/crud";
 import { songFieldLimits } from "@/@interfaces";
-import { chordsAboveLyrics, transposeSong } from "../screens/song/chords";
+import { transposeSong } from "../screens/song/chords";
 import {
   errorCodes,
   isErrorWithCode,
@@ -132,17 +132,32 @@ export async function readLibraryFile(kind: "song" | "backup") {
 export function importedSong(text: string, name: string) {
   if (text.length > 200000) throw new Error("FileTooLarge");
   const title =
-    text.match(/^\s*\{(?:title|t):\s*([^}]+)\}\s*$/im)?.[1]?.trim() ??
-    name.replace(/\.[^.]+$/, "");
+    text
+      .match(
+        /^[^\S\r\n]*\{(?:title|t):[^\S\r\n]*([^{}\r\n]+)\}[^\S\r\n]*$/im
+      )?.[1]
+      ?.trim() ?? name.replace(/\.[^.]+$/, "");
   if (title.length > songFieldLimits.title) throw new Error("FileTooLarge");
-  const capo = Math.min(12, Number(text.match(/\{capo:\s*(\d+)\}/i)?.[1] ?? 0));
-  const sourceTuning = text.match(/\{tuning:\s*([^}]+)\}/i)?.[1]?.trim();
+  const capo = Math.min(
+    12,
+    Number(text.match(/\{capo:[^\S\r\n]*(\d+)\}/i)?.[1] ?? 0)
+  );
+  const sourceTuning = text
+    .match(/\{tuning:[^\S\r\n]*([^{}\r\n]+)\}/i)?.[1]
+    ?.trim();
   const content = text
-    .replace(/^\s*\{(?:title|t|capo|tuning):[^}]+\}\s*$/gim, "")
+    .replace(
+      /^[^\S\r\n]*\{(?:title|t|capo|tuning):[^{}\r\n]+\}[^\S\r\n]*$/gim,
+      ""
+    )
     .trim();
   if (!content) throw new Error("FileFormatError");
   const artist =
-    text.match(/^\s*\{(?:artist|a):\s*([^}]+)\}\s*$/im)?.[1]?.trim() ?? "";
+    text
+      .match(
+        /^[^\S\r\n]*\{(?:artist|a):[^\S\r\n]*([^{}\r\n]+)\}[^\S\r\n]*$/im
+      )?.[1]
+      ?.trim() ?? "";
   if (artist.length > songFieldLimits.band_name)
     throw new Error("FileTooLarge");
   return {
@@ -150,9 +165,9 @@ export function importedSong(text: string, name: string) {
     capo,
     sourceTuning,
     content: transposeSong(
-      chordsAboveLyrics(
-        content.replace(/^\s*\{(?:artist|a):[^}]+\}\s*$/gim, "").trim()
-      ),
+      content
+        .replace(/^[^\S\r\n]*\{(?:artist|a):[^{}\r\n]+\}[^\S\r\n]*$/gim, "")
+        .trim(),
       capo
     ),
     fk_band: {
@@ -429,50 +444,52 @@ export async function restoreLibrary(songs: BackupSong[]) {
 
 let recordingCleanup: Promise<void> | undefined;
 export function finishPendingRecordingDeletions(): Promise<void> {
-  if (recordingCleanup) return recordingCleanup;
-  recordingCleanup = (async () => {
-    const pending = await getAllItems<{ key: string; value: string }>({
-      tableName: "settings",
-      filters: "key LIKE ?",
-      parameters: ["recording-delete:%"]
-    });
-    for (const item of pending) {
-      const match = /^recording-delete:(\d+)$/.exec(item.key);
-      if (!match) continue;
-      const songId = Number(match[1]);
-      const songs = await getAllItems({
-        tableName: "songs",
-        filters: "id = ?",
-        parameters: [songId]
+  const cleanup = (recordingCleanup ?? Promise.resolve())
+    .catch(() => undefined)
+    .then(async () => {
+      const pending = await getAllItems<{ key: string; value: string }>({
+        tableName: "settings",
+        filters: "key LIKE ?",
+        parameters: ["recording-delete:%"]
       });
-      if (!songs.length) {
-        const paths: unknown = JSON.parse(item.value);
-        if (
-          !Array.isArray(paths) ||
-          !paths.every((path) => typeof path === "string")
-        )
-          throw new Error("RecordingDeleteFailed");
-        const remaining = await performanceAudio.list(songId);
-        for (const take of remaining.filter((take) =>
-          paths.includes(take.path)
-        )) {
-          if (take.processing || !(await performanceAudio.remove(take.path)))
+      for (const item of pending) {
+        const match = /^recording-delete:(\d+)$/.exec(item.key);
+        if (!match) continue;
+        const songId = Number(match[1]);
+        const songs = await getAllItems({
+          tableName: "songs",
+          filters: "id = ?",
+          parameters: [songId]
+        });
+        if (!songs.length) {
+          const paths: unknown = JSON.parse(item.value);
+          if (
+            !Array.isArray(paths) ||
+            !paths.every((path) => typeof path === "string")
+          )
             throw new Error("RecordingDeleteFailed");
+          const remaining = await performanceAudio.list(songId);
+          for (const take of remaining.filter((take) =>
+            paths.includes(take.path)
+          )) {
+            if (take.processing || !(await performanceAudio.remove(take.path)))
+              throw new Error("RecordingDeleteFailed");
+          }
         }
+        await new Promise<void>((resolve, reject) =>
+          db.transaction(
+            (tx) =>
+              tx.executeSql("DELETE FROM settings WHERE key = ?", [item.key]),
+            reject,
+            resolve
+          )
+        );
       }
-      await new Promise<void>((resolve, reject) =>
-        db.transaction(
-          (tx) =>
-            tx.executeSql("DELETE FROM settings WHERE key = ?", [item.key]),
-          reject,
-          resolve
-        )
-      );
-    }
-  })().finally(() => {
-    recordingCleanup = undefined;
+    });
+  recordingCleanup = cleanup;
+  return cleanup.finally(() => {
+    if (recordingCleanup === cleanup) recordingCleanup = undefined;
   });
-  return recordingCleanup;
 }
 
 export function requestSongDeletion(

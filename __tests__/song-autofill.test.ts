@@ -273,12 +273,17 @@ describe("content provider failover", () => {
         source: "GuitareTab",
         url: canonical,
         hasChords: true,
-        content: "Am C\nOriginal example words"
+        content: expect.any(String)
       })
     ]);
     expect(
       request.mock.calls.some(([url]) => String(url).includes("456.html"))
     ).toBe(false);
+    expect(
+      require("../src/screens/song/chords").chordsAboveLyrics(
+        (await result)[0].content
+      )
+    ).toBe("Am C\nOriginal example words");
   });
 
   it("does not keep requesting a provider during its access-denied cooldown", async () => {

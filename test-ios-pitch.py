@@ -24,7 +24,7 @@ def main():
         raise SystemExit("Requires macOS with Xcode/Swift and Accelerate. No iOS checks ran.")
     root = Path(__file__).resolve().parent
     source = (root / "ios/MicrophoneStreamModule.swift").read_text(encoding="utf-8")
-    detector = "import Foundation\nimport Accelerate\nimport AVFoundation\nclass Detector {\nvar pitchHistory: [Float] = []\nvar previousRms = 0.0\nvar pendingPitch: Float = 0\nvar missingFrames = 0\n"
+    detector = "import Foundation\nimport Accelerate\nimport AVFoundation\nclass Detector {\nvar pitchHistory: [Float] = []\nvar previousRms = 0.0\nvar pendingPitch: Float = 0\nvar missingFrames = 0\nvar harmonicCandidate = 0.0\nvar harmonicFrames = 0\n"
     detector += method(source, "estimatePitch") + "\n" + method(source, "smoothPitch") + "\n" + method(source, "resetPitch") + "\n}\n"
     driver = r'''
 let detector = Detector()

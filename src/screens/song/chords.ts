@@ -420,11 +420,114 @@ function chordTokens(line: string) {
       !/^(?:\s+|[|:]+|[-()[\]]+|\(?[xх×]\d+\)?|\(?\d+[xх×]\)?)$/i.test(token)
   );
 }
+type AnchoredLine = {
+  lyrics: string;
+  anchors: { chord: string; column: number }[];
+};
+function inlineChordLine(line: string): AnchoredLine | undefined {
+  let lyrics = "",
+    previous = 0,
+    column = 0;
+  const anchors: AnchoredLine["anchors"] = [];
+  for (const match of line.matchAll(/\[([^\[\]]+)\]/g)) {
+    const chord = normalizeChord(match[1]);
+    if (!chordNotationPattern.test(chord)) continue;
+    const part = line.slice(previous, match.index);
+    lyrics += part;
+    column += [...part].length;
+    anchors.push({ chord, column });
+    previous = match.index + match[0].length;
+  }
+  return anchors.length
+    ? { lyrics: lyrics + line.slice(previous), anchors }
+    : undefined;
+}
+function hasInternalChord({ lyrics, anchors }: AnchoredLine) {
+  const letters = [...lyrics];
+  return anchors.some(
+    ({ column }) =>
+      column > 0 &&
+      column < letters.length &&
+      !/\s/.test(letters[column - 1]) &&
+      !/\s/.test(letters[column])
+  );
+}
+function anchoredContent({ lyrics, anchors }: AnchoredLine, semitones = 0) {
+  const letters = [...lyrics];
+  let result = "",
+    previous = 0;
+  for (const { chord, column } of anchors) {
+    const position = Math.min(column, letters.length);
+    result +=
+      letters.slice(previous, position).join("") +
+      `[${transposeChord(chord, semitones)}]`;
+    previous = position;
+  }
+  return result + letters.slice(previous).join("");
+}
+function anchoredRows(parsed: AnchoredLine) {
+  const { lyrics, anchors } = parsed;
+  const rows: string[] = [];
+  let cursor = 0,
+    previousColumn = -1,
+    size = lyrics.length;
+  for (const { chord, column } of anchors) {
+    if (column !== previousColumn) cursor = 0;
+    previousColumn = column;
+    while (cursor < rows.length && rows[cursor].length + 1 > column) cursor++;
+    const previous = rows[cursor] ?? "";
+    size += column + chord.length - previous.length;
+    if (size > 200000) return [anchoredContent(parsed)];
+    rows[cursor] = previous.padEnd(column) + chord;
+    cursor++;
+  }
+  return [...rows, lyrics];
+}
+
+export function songContentFromEditor(previous: string, edited: string) {
+  const groups = new Map<
+    string,
+    { entries: { parsed: AnchoredLine; rows: string[] }[]; next: number }
+  >();
+  for (const line of previous.split("\n")) {
+    const parsed = inlineChordLine(line);
+    if (!parsed || !hasInternalChord(parsed)) continue;
+    const display = anchoredRows(parsed);
+    if (display.length < 2) continue;
+    const rows = display.slice(0, -1);
+    const bucket = groups.get(rows[0]) ?? { entries: [], next: 0 };
+    bucket.entries.push({ parsed, rows });
+    groups.set(rows[0], bucket);
+  }
+  const lines = edited.split("\n"),
+    result: string[] = [];
+  for (let i = 0; i < lines.length; i++) {
+    const bucket = groups.get(lines[i]);
+    const group = bucket?.entries[bucket.next++];
+    if (
+      !group ||
+      !group.rows.every((row, offset) => lines[i + offset] === row) ||
+      lines[i + group.rows.length] === undefined
+    ) {
+      result.push(lines[i]);
+      continue;
+    }
+    result.push(
+      anchoredContent({ ...group.parsed, lyrics: lines[i + group.rows.length] })
+    );
+    i += group.rows.length;
+  }
+  return transposeSong(result.join("\n"), 0);
+}
+
 export function chordsAboveLyrics(content: string) {
   const result = content
     .split(/\r?\n/)
     .map((line) => {
       if (isChordLine(line)) return chordLineParts(line).join("");
+      const parsed = inlineChordLine(line);
+      if (parsed && hasInternalChord(parsed))
+        return anchoredRows(parsed).join("\n");
       let lyrics = "";
       let chords = "";
       let previous = 0;
@@ -466,7 +569,47 @@ export function songChordSequence(content: string) {
     );
 }
 export function transposeSong(content: string, semitones: number) {
-  return reflowChordPairs(chordsAboveLyrics(content), semitones);
+  const lines = content.split(/\r?\n/),
+    result: string[] = [],
+    normal: string[] = [];
+  const flush = () => {
+    if (normal.length) {
+      result.push(
+        reflowChordPairs(chordsAboveLyrics(normal.join("\n")), semitones)
+      );
+      normal.length = 0;
+    }
+  };
+  for (let i = 0; i < lines.length; i++) {
+    let parsed = inlineChordLine(lines[i]);
+    let paired = false;
+    if (
+      !parsed &&
+      isChordLine(lines[i]) &&
+      lines[i + 1]?.trim() &&
+      !isChordLine(lines[i + 1])
+    ) {
+      parsed = {
+        lyrics: lines[i + 1],
+        anchors: [...lines[i].matchAll(/[^\s|:]+/g)]
+          .filter((match) =>
+            chordNotationPattern.test(normalizeChord(match[0]))
+          )
+          .map((match) => ({
+            chord: normalizeChord(match[0]),
+            column: match.index
+          }))
+      };
+      paired = true;
+    }
+    if (parsed && hasInternalChord(parsed)) {
+      flush();
+      result.push(anchoredContent(parsed, semitones));
+      if (paired) i++;
+    } else normal.push(lines[i]);
+  }
+  flush();
+  return result.join("\n");
 }
 
 export function songChords(content: string) {

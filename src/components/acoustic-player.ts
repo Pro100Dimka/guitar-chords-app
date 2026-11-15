@@ -1,3 +1,4 @@
+import { chordShapes, chordShapeOptions } from "../screens/song/chords";
 export const recordedChordFrets: Record<string, (number | null)[]> = {
   C: [null, 3, 2, 0, 1, 0],
   Cm: [null, 3, 5, 5, 4, 3],
@@ -24,6 +25,18 @@ export const recordedChordFrets: Record<string, (number | null)[]> = {
   B: [null, 2, 4, 4, 4, 2],
   Bm: [null, 2, 4, 4, 3, 2]
 };
+export function selectedChordShape(chord: string, selected?: number) {
+  const shapes = chordShapes(chord);
+  const recorded = recordedChordFrets[chord];
+  const index =
+    selected !== undefined && shapes[selected]
+      ? selected
+      : shapes.findIndex((frets) =>
+          recorded?.every((fret, string) => frets[string] === fret)
+        );
+  const options = chordShapeOptions(chord, index >= 0 ? index : undefined);
+  return options.find((option) => option.index === index) ?? options[0];
+}
 const recordedAudio: Record<
   string,
   () => typeof import("../../assets/guitar-recordings/Am.json")

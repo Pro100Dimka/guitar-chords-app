@@ -32,12 +32,11 @@ import palette from "@/theme/palette";
 import {
   acousticBank,
   acousticEngine,
-  recordedChordFrets
+  selectedChordShape
 } from "../../components/acoustic-player";
 import { performanceAudio } from "../../components/performance-audio";
 import guitarBackground from "../../../assets/images/gold-background.png";
 import {
-  chordShapes,
   chordShapeOptions,
   easierPositions,
   Frets,
@@ -305,9 +304,10 @@ export function ChordSheet({
 }) {
   const { t } = useTranslation();
 
+  const selectedIndex = selectedChordShape(chord, value)?.index;
   const options = useMemo(
-    () => chordShapeOptions(chord, value),
-    [chord, value]
+    () => chordShapeOptions(chord, selectedIndex),
+    [chord, selectedIndex]
   );
   const { width, height } = useWindowDimensions();
   const landscape = width > height;
@@ -317,12 +317,13 @@ export function ChordSheet({
   );
   const selectedPage = Math.max(
     0,
-    Math.floor(options.findIndex((option) => option.index === value) / 4)
+    Math.floor(
+      options.findIndex((option) => option.index === selectedIndex) / 4
+    )
   );
   const [page, setPage] = useState(selectedPage);
   const pageCount = Math.max(1, Math.ceil(options.length / 4));
   const currentPage = Math.min(page, pageCount - 1);
-  const selectedIndex = value ?? options[0]?.index;
   const visible = useMemo(
     () => options.slice(currentPage * 4, currentPage * 4 + 4),
     [options, currentPage]
@@ -881,12 +882,7 @@ function RhythmPlayer({
       JSON.parse(fingeringsKey) ??
       progressionKey
         .split(" ")
-        .map(
-          (chord) =>
-            chordShapes(chord)[selected[chord]] ??
-            recordedChordFrets[chord] ??
-            chordShapeOptions(chord)[0]?.frets
-        );
+        .map((chord) => selectedChordShape(chord, selected[chord])?.frets);
     return positions.map((frets) => {
       return (
         frets?.flatMap((fret, string) =>

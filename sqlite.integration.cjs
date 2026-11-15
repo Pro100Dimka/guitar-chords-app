@@ -117,6 +117,26 @@ async function main() {
   await library.finishPendingRecordingDeletions();
   assert.equal(recordingFiles.size,0,"Committed deletion resumes file cleanup after restart");
   assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE 'recording-delete:%'").get().n,0);
+
+  let releaseCleanup, cleanupStarted;
+  const startedCleanup=new Promise(resolve=>{cleanupStarted=resolve;});
+  const firstCleanupPath="/private/performances/song-900001-1.m4a";
+  const secondCleanupPath="/private/performances/song-900002-1.m4a";
+  recordingFiles.set(firstCleanupPath,{path:firstCleanupPath,date:1,bytes:100});
+  sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("recording-delete:900001",JSON.stringify([firstCleanupPath]));
+  const originalRemove=audio.remove;
+  audio.remove=async(path)=>{if(path===firstCleanupPath)await new Promise(resolve=>{releaseCleanup=resolve;cleanupStarted();});return originalRemove(path);};
+  const firstCleanup=library.finishPendingRecordingDeletions();
+  await startedCleanup;
+  recordingFiles.set(secondCleanupPath,{path:secondCleanupPath,date:1,bytes:100});
+  sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("recording-delete:900002",JSON.stringify([secondCleanupPath]));
+  const secondCleanup=library.finishPendingRecordingDeletions();
+  releaseCleanup();
+  await Promise.all([firstCleanup,secondCleanup]);
+  audio.remove=originalRemove;
+  assert.equal(recordingFiles.size,0,"Concurrent cleanup caller must process its newly committed journal");
+  assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE 'recording-delete:%'").get().n,0);
+  console.log("Concurrent recording cleanup passed against actual SQLite: new journals arriving during an active pass are drained before their caller completes.");
   const arrangement=(tempo,capo)=>({title:"Two arrangements",content:"Am\nWords",band_name:"",youtube_music:"",youtobe_lesson:"",preferences:{tempo,capo}});
   const backup=library.parseLibraryBackup(JSON.stringify({format:"freetune-library",version:1,songs:[arrangement(80,0),arrangement(120,2)]}));
   const imported=await library.restoreLibrary(backup);

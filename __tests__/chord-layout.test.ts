@@ -1,7 +1,8 @@
 import {
   chordsAboveLyrics,
   transposeChord,
-  transposeSong
+  transposeSong,
+  songContentFromEditor
 } from "../src/screens/song/chords";
 import { importedSong } from "../src/components/library-files";
 
@@ -77,4 +78,62 @@ test("unclosed section brackets parse within a bounded process", () => {
       { timeout: 4000, encoding: "utf8" }
     )
   ).toBe("ok");
+});
+
+test("capo import preserves a word and its internal chord anchors", () => {
+  const song = importedSong(
+    "{title: Example}\n{capo: 1}\nПо[C]ве[Am]рь",
+    "example.pro"
+  );
+  const played = transposeSong(song.content, -song.capo);
+  expect(
+    played
+      .replace(/\[[^\]]+\]/g, "")
+      .split("\n")
+      .filter((line) => !/^\s*[A-G]/.test(line))
+      .join("\n")
+  ).toBe("Поверь");
+  expect(chordsAboveLyrics(played).split("\n").at(-1)).toBe("Поверь");
+  expect(played).toBe("По[C]ве[Am]рь");
+});
+
+test("blank-line runs in ChordPro directives cannot block the import process", () => {
+  const root = require("node:path").resolve("src");
+  const code = `
+ const fs=require('fs'),babel=require('@babel/core'),root=${JSON.stringify(root)};
+ function load(file){const module={exports:{}};const source=babel.transformSync(fs.readFileSync(file,'utf8'),{filename:file,configFile:false,babelrc:false,presets:[['@babel/preset-env',{targets:{node:'current'}}],'@babel/preset-typescript']}).code;
+ new Function('require','module','exports',source)(name=>name.endsWith('/song/chords')?load(root+'/screens/song/chords.ts'):name==='@/@interfaces'?{songFieldLimits:{title:1000,content:200000,band_name:1000,youtube_music:4000,youtobe_lesson:4000}}:{},module,module.exports);return module.exports;}
+ const {importedSong}=load(root+'/components/library-files.ts');
+ for(let i=0;i<3;i++){const result=importedSong('First line\\n'+'\\n'.repeat(40000)+'[Am]Valid words','example.txt');if(!result.content.includes('Valid words'))throw Error('Lost words');}
+ process.stdout.write('ok');`;
+  expect(
+    require("node:child_process").execFileSync(
+      require("node:process").execPath,
+      ["-e", code],
+      { timeout: 4000, encoding: "utf8" }
+    )
+  ).toBe("ok");
+});
+
+test.each(["По[C]ве[Am]рь", "🎵По[C]ве[Am]рь", "[C]а[Am]б[Dm]в"])(
+  "internal anchors survive repeated transposition and editor round trips: %s",
+  (source) => {
+    const shifted = transposeSong(source, 1);
+    expect(transposeSong(shifted, -1)).toBe(source);
+    const display = chordsAboveLyrics(shifted);
+    expect(display).not.toMatch(/\[[A-G]/);
+    expect(songContentFromEditor(shifted, display)).toBe(shifted);
+    const changed = display.replace(/([^\n]+)$/, "$1!");
+    expect(songContentFromEditor(shifted, changed)).toBe(shifted + "!");
+    expect(transposeSong(songContentFromEditor(shifted, changed), -1)).toBe(
+      source + "!"
+    );
+  }
+);
+
+test("extremely dense internal anchors keep the presentation bounded", () => {
+  const source = "я".repeat(150000) + "[C]".repeat(10000) + "я";
+  const canonical = transposeSong(source, 0);
+  expect(canonical).toBe(source);
+  expect(chordsAboveLyrics(canonical).length).toBeLessThanOrEqual(200000);
 });

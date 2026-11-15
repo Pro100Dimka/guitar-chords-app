@@ -1,8 +1,4 @@
-import {
-  chordsAboveLyrics,
-  songChords,
-  transposeSong
-} from "../../screens/song/chords";
+import { songChords, transposeSong } from "../../screens/song/chords";
 import { Parser, parseDocument, DomUtils } from "htmlparser2";
 
 export interface LyricsOption {
@@ -580,13 +576,11 @@ async function lookupChordPage(
   );
   const tuning = tuningElement?.attribs["data-tuning"];
   const content = transposeSong(
-    chordsAboveLyrics(
-      text
-        .replace(/\u200b/g, "")
-        .replace(/\u00a0/g, " ")
-        .replace(/\r\n?/g, "\n")
-        .trim()
-    ),
+    text
+      .replace(/\u200b/g, "")
+      .replace(/\u00a0/g, " ")
+      .replace(/\r\n?/g, "\n")
+      .trim(),
     capo
   );
   if (!content || content.length > 200000) return [];

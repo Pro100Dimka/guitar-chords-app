@@ -15,6 +15,10 @@ on:
       - android/app/proguard-rules.pro
       - __tests__/native/**
       - test-native.ps1
+      - ios/PerformanceAudio.swift
+      - ios/MicrophoneStreamModule.swift
+      - test-ios-pitch.py
+      - test-ios-recordings.py
       - .github/workflows/native-song-recognition.yml
       - scripts/verify-shazam.cjs
   pull_request:
@@ -79,3 +83,14 @@ jobs:
       - name: Compile Android Kotlin (no APK)
         working-directory: android
         run: chmod +x gradlew && ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon
+
+  ios:
+    runs-on: macos-14
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Production Swift pitch methods
+        run: python3 test-ios-pitch.py
+      - name: Production Swift recording file methods with real AAC
+        if: ${{ !cancelled() }}
+        run: python3 test-ios-recordings.py

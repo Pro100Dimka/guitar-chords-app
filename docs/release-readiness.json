@@ -6,12 +6,12 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 231,
-      "status": "Passed full local run and source main CI: 19 suites, 231 tests. The final deletion preference-pause change also passed the 17 related local menu/editor tests and actual SQLite checks."
+      "tests": 242,
+      "status": "Passed full local verification, including operation-combination regressions. Current source CI pending."
     },
-    "typescript": "Passed tsc --noEmit locally and in source main CI.",
-    "eslint": "Passed full repository ESLint with zero warnings locally and in source main CI.",
-    "sqlite": "Passed actual SQLite, including failed deletion rolling back the cleanup journal without removing recordings; interrupted committed deletion cleanup; distinct arrangements, repeat import and restoration of existing song settings; all prior migration and atomic-save checks.",
+    "typescript": "Passed local tsc --noEmit for current combination fixes.",
+    "eslint": "Passed full local ESLint with zero warnings for current combination fixes.",
+    "sqlite": "Passed actual SQLite, including a new cleanup journal committed while an earlier cleanup pass is waiting on file I/O; both callers drain their own work. Prior deletion rollback, backup identity, arrangement restore, migration and atomic-save checks also pass.",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
@@ -37,7 +37,7 @@
     },
     "android_bundle": "VersionCode 15 ARM64 and ARM32 APKs built and checked: exact current Hermes hash, all 144 recorded chord strokes, six recorded string PCM references, 15 rhythm markers, existing signing certificate, ZIP integrity, 16 KB ZIP alignment and ARM64 ELF alignment. No current AAB built.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
-    "ios_native": "not run: requires macOS/Xcode",
+    "ios_native": "Full iOS app/archive and device checks remain unverified. macOS CI now exercises extracted production Swift pitch methods and recording-file methods with real AAC fixtures; current run pending.",
     "device_tests": "owner to perform",
     "store_billing": "store product configuration and sandbox tests not verified",
     "recording_polish": "passed: silence, rumble, gain, compression, limiting and room decay at 22050, 44100 and 48000 Hz; actual codec/device verification pending",
@@ -745,7 +745,7 @@
     "version_code": 15
   },
   "reviewed_on": "2026-11-15",
-  "review_scope": "Two review reports addressed: octave reacquisition, native fingering cache revalidation, source capo normalization, malformed bracket parsing, editable recognition results during enrichment, nested performer errors, recording deletion safety, serialized preference saves, independent song-settings loading, full arrangement restore, backup field validation and duration-aware version ranking. Visual styles unchanged.",
+  "review_scope": "Six operation-combination fixes: cover readiness across exit saves, preservation of lyrics and internal chord anchors, bounded directive parsing, serialized recording cleanup passes, iOS interrupted-file reconciliation and consistent default fingering selection. Visual styles and image assets unchanged.",
   "artifact_scope": "Listed rc15 APKs contain implementation changes through 1e3829bf647eb9a8701492863e9741326f29ae1b. They do not contain the subsequent review fixes or recognition tempo changes. No new APK or AAB was built for this review. Physical phone behavior and native iOS remain unverified. The listed AAB is historical versionCode 7.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
@@ -907,5 +907,62 @@
       "native": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43660782273",
       "shazam_real_audio": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43660782216"
     }
+  },
+  "combination_review": {
+    "base_commit": "15545dddba2e7d9949445be85023e5c25b4dd57d",
+    "cover_save": {
+      "before": "Actual editor committed while image processing was unresolved.",
+      "after": "Exit guard blocks while processing; the central submit handler independently checks the synchronous readiness ref. The editor remains open until the selected image is ready.",
+      "tests": [
+        "__tests__/editor-exit.test.tsx"
+      ]
+    },
+    "internal_chord_anchors": {
+      "before": "Capo import changed the literal word Поверь into Пове рь.",
+      "after": "Ambiguous internal-word anchors remain standard inline ChordPro in canonical content. Read-only presentation and the fullscreen editor show chord rows above untouched lyrics; overlapping labels use additional chord rows. Editor serialization retains the original anchors. Presentation size is bounded for pathological dense input.",
+      "tests": [
+        "__tests__/chord-layout.test.ts",
+        "__tests__/editor-exit.test.tsx",
+        "__tests__/song-autofill.test.ts"
+      ],
+      "coverage": "Import, repeated transpose/inverse, Unicode prefix, multiple internal anchors, real editor save and backup parse. Existing corrupted words cannot be repaired automatically without the original source."
+    },
+    "directive_parser": {
+      "before": "Three real imports with 40,000 blank lines exceeded a bounded child-process timeout.",
+      "after": "Directive expressions consume horizontal whitespace only and do not cross brace or line boundaries. Interior blank lines are included in the regression.",
+      "tests": [
+        "__tests__/chord-layout.test.ts"
+      ]
+    },
+    "cleanup_queue": {
+      "before": "A second caller returned after the first snapshot, leaving its new journal untouched.",
+      "after": "Every invocation chains a fresh pass after the active pass; conditional finalization cannot erase a newer queued promise.",
+      "tests": [
+        "__tests__/release-navigation.test.tsx",
+        "sqlite.integration.cjs"
+      ]
+    },
+    "ios_recording_files": {
+      "before": "Swift had no interrupted-file reconciliation and removed only the main take. Source-confirmed baseline; not executed on an iPhone.",
+      "after": "Initialization and listing reconcile managed file families. Completed AAC output is recovered when necessary, invalid leftovers and empty finals are cleaned, nonempty originals are retained, and active capture/processing is protected. Deletion handles the companion file and tolerates retries.",
+      "tests": [
+        "test-ios-recordings.py",
+        ".github/workflows/native-song-recognition.yml"
+      ],
+      "status": "macOS execution pending; local Python syntax and extraction structure checked. Full iOS application build is not claimed."
+    },
+    "default_fingering": {
+      "before": "Highlighted Cm was X 3 1 0 1 3 while rhythm used X 3 5 5 4 3.",
+      "after": "Cards, rhythm and practice use the same selectedChordShape resolver. Valid explicit selection takes priority, then the recorded voicing, then the available fallback. All 24 recorded defaults are covered.",
+      "tests": [
+        "__tests__/editing.test.tsx"
+      ]
+    },
+    "repository_policy": "Branch-protection settings were not changed. The report states main has no required checks; enabling protection and choosing a PR/direct-push policy is a separate repository administration change.",
+    "artifacts": "No new APK, AAB or IPA. Listed rc15 packages do not contain these changes.",
+    "boundaries": [
+      "No physical Android/iPhone, Bluetooth, calls or store purchases checked.",
+      "A macOS helper-method check does not compile the full React Native iOS app or validate AVAudioSession."
+    ]
   }
 }

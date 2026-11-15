@@ -1,3 +1,4 @@
+import * as libraryFiles from "../src/components/library-files";
 import type { SQLTransaction } from "react-native-sqlite-2";
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
@@ -250,4 +251,99 @@ test("overlong performer shows its field error instead of silently refusing save
   await act(async () => current.submitForm());
   expect(JSON.stringify(screen.toJSON())).toContain("FileTooLarge");
   expect(mockNavigation.replace).not.toHaveBeenCalled();
+});
+
+test("exit saving cannot commit while the selected cover is still processing", async () => {
+  await change();
+  let finishCover!: (value: string) => void;
+  jest.spyOn(libraryFiles, "readSongCover").mockReturnValue(
+    new Promise((resolve) => {
+      finishCover = resolve;
+    })
+  );
+  await act(async () =>
+    screen.root
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "ChangeSongCover" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  jest.mocked(db.transaction).mockClear();
+  const action = { type: "GO_BACK" };
+  await act(async () => trigger(action));
+  const save = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)?.[2]
+    ?.find((button) => button.text === "SaveSong");
+  if (save) await act(async () => save.onPress?.());
+  expect(db.transaction).not.toHaveBeenCalled();
+  expect(mockNavigation.dispatch).not.toHaveBeenCalled();
+  await act(async () => finishCover("data:image/jpeg;base64,/9j/2Q=="));
+  await act(async () => trigger(action));
+  await press("SaveSong");
+  expect(usePreferences.getState().songs[91].cover).toBe(
+    "data:image/jpeg;base64,/9j/2Q=="
+  );
+  expect(mockNavigation.dispatch).toHaveBeenCalledWith(action);
+});
+
+test("editing and saving imported internal chord changes preserves the word and capo", async () => {
+  const imported = libraryFiles.importedSong(
+    "{title: Example}\n{capo: 1}\nПо[C]ве[Am]рь",
+    "example.pro"
+  );
+  const field = () =>
+    screen.root.findAll(
+      (node) => node.props.formik && node.props.name === "title"
+    )[0].props.formik;
+  await act(async () => field().setValues({ ...initialValues, ...imported }));
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "EditLyrics")!
+      .props.onPress()
+  );
+  const input = screen.root
+    .findAllByType(TextInput)
+    .find((node) => node.props.accessibilityLabel === "ChordsLyrics")!;
+  expect(input.props.value).not.toMatch(/\[[A-G]/);
+  expect(input.props.value.split("\n").at(-1)).toBe("Поверь");
+  await act(async () => input.props.onChangeText(input.props.value + " мне"));
+  await act(async () => field().submitForm());
+  const { transposeSong } = require("../src/screens/song/chords");
+  const metadata = usePreferences.getState().songs[91];
+  const transaction = jest.mocked(db.transaction).mock.calls.at(-1)!;
+  const contents: string[] = [];
+  transaction[0]({
+    executeSql: (sql, args, success) => {
+      if (sql.startsWith("INSERT INTO songs")) contents.push(String(args![1]));
+      success?.(
+        { executeSql: jest.fn() },
+        { rowsAffected: 1, insertId: 91, rows: { length: 0, item: jest.fn() } }
+      );
+    }
+  });
+  expect(metadata.capo).toBe(1);
+  expect(transposeSong(contents[0], -metadata.capo)).toBe("По[C]ве[Am]рь мне");
+  const backup = libraryFiles.parseLibraryBackup(
+    JSON.stringify({
+      format: "freetune-library",
+      version: 2,
+      songs: [
+        {
+          ...imported,
+          band_name: "",
+          youtube_music: "",
+          youtobe_lesson: "",
+          content: contents[0],
+          preferences: metadata
+        }
+      ]
+    })
+  );
+  expect(transposeSong(backup[0].content, -backup[0].preferences.capo)).toBe(
+    "По[C]ве[Am]рь мне"
+  );
 });

@@ -18,6 +18,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     }
     override init() {
         super.init()
+        try? reconcileRecordings()
         for name in [UIApplication.didEnterBackgroundNotification, AVAudioSession.interruptionNotification] {
             observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
                 self?.finishTake()
@@ -89,9 +90,45 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         }
         return url
     }
+    private func reconcileRecordings() throws {
+        let files = FileManager.default
+        try files.createDirectory(at: directory, withIntermediateDirectories: true)
+        var active = Set(processing.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path })
+        if let url = recorder?.url { active.insert(url.resolvingSymlinksInPath().path) }
+        for partial in try files.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey]) {
+            guard partial.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.processing\\.m4a$", options: .regularExpression) != nil else { continue }
+            let name = partial.lastPathComponent.replacingOccurrences(of: ".processing.m4a", with: ".m4a")
+            let target = directory.appendingPathComponent(name)
+            guard !active.contains(target.resolvingSymlinksInPath().path) else { continue }
+            if files.fileExists(atPath: target.path), (try target.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0 {
+                try files.removeItem(at: partial)
+            } else if let audio = try? AVAudioFile(forReading: partial), audio.length > 0 {
+                if files.fileExists(atPath: target.path) { try files.removeItem(at: target) }
+                try files.moveItem(at: partial, to: target)
+            } else { try files.removeItem(at: partial) }
+        }
+        for url in try files.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey]) {
+            if url.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.m4a$", options: .regularExpression) != nil,
+               !active.contains(url.resolvingSymlinksInPath().path),
+               (try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) == 0 {
+                try files.removeItem(at: url)
+            }
+        }
+    }
+    private func removeRecordingFiles(_ url: URL) throws {
+        let path = url.resolvingSymlinksInPath().path
+        guard !processing.contains(where: { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path == path }),
+              recorder?.url.resolvingSymlinksInPath().path != path else {
+            throw NSError(domain: "PerformanceAudio", code: 2)
+        }
+        let partial = url.deletingPathExtension().appendingPathExtension("processing.m4a")
+        for file in [partial, url] where FileManager.default.fileExists(atPath: file.path) {
+            try FileManager.default.removeItem(at: file)
+        }
+    }
     @objc func listTakes(_ songId: String, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
         do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            try reconcileRecordings()
             let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey])
             let rows: [[String: Any]] = try files.filter { $0.lastPathComponent.hasPrefix("song-\(songId)-") && $0.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.m4a$", options: .regularExpression) != nil && $0 != recorder?.url }.map { url in
                 let values = try url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
@@ -123,7 +160,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     }
     @objc func deleteTake(_ path: String, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
         guard recorder == nil, !processing.contains(path) else { reject("RECORDING_BUSY", "Recording in progress", nil); return }
-        do { stopPlayback(); try FileManager.default.removeItem(at: localFile(path)); resolve(true) }
+        do { stopPlayback(); try removeRecordingFiles(localFile(path)); resolve(true) }
         catch { reject("DELETE_FAILED", "Could not delete recording", error) }
     }
     @objc func playSuccess() {
