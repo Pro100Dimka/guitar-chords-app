@@ -38,9 +38,10 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             reject("RECORDING_BUSY", "Recording unavailable", nil); return
         }
         stopPlayback()
-        let url = directory.appendingPathComponent("song-\(songId)-\(Int(Date().timeIntervalSince1970 * 1000)).m4a")
+        var ownedURL: URL?
         do {
-            try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+            let url = try reserveRecordingURL(songId)
+            ownedURL = url
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
             try session.setActive(true)
@@ -60,7 +61,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             lastTake = nil
             resolve(url.path)
         } catch {
-            try? FileManager.default.removeItem(at: url)
+            if let url = ownedURL { try? FileManager.default.removeItem(at: url) }
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             reject("RECORDING_FAILED", "Could not start recording", error)
         }
@@ -83,6 +84,26 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         return lastTake?.path
     }
     @objc func stopTake(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) { resolve(finishTake()) }
+    private func reserveRecordingURL(_ songId: String, timestamp: Int64 = Int64(Date().timeIntervalSince1970 * 1000)) throws -> URL {
+        let files = FileManager.default
+        try files.createDirectory(at: directory, withIntermediateDirectories: true)
+        var candidate = timestamp
+        while true {
+            let url = directory.appendingPathComponent("song-\(songId)-\(candidate).m4a")
+            let base = url.deletingPathExtension()
+            let blocked = processing.contains(url.path) || recorder?.url == url ||
+                files.fileExists(atPath: base.appendingPathExtension("processing.m4a").path) ||
+                files.fileExists(atPath: base.appendingPathExtension("interrupted").path)
+            if !blocked {
+                do {
+                    try Data().write(to: url, options: .withoutOverwriting)
+                    return url
+                } catch let error as CocoaError where error.code == .fileWriteFileExists { }
+            }
+            guard candidate < Int64.max else { throw CocoaError(.fileWriteFileExists) }
+            candidate += 1
+        }
+    }
     private func localFile(_ path: String) throws -> URL {
         let url = URL(fileURLWithPath: path).resolvingSymlinksInPath()
         guard url.deletingLastPathComponent() == directory.resolvingSymlinksInPath(), url.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.m4a$", options: .regularExpression) != nil else {

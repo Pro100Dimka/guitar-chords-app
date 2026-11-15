@@ -2,6 +2,7 @@ import palette from "../theme/palette";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
+  AppState,
   Image,
   Platform,
   StyleSheet,
@@ -27,6 +28,10 @@ const purchaseErrors: Record<string, string> = {
   [ErrorCode.Pending]: "SupportPending",
   [ErrorCode.DeferredPayment]: "SupportPending"
 };
+const purchaseKey = (purchase: Purchase) =>
+  purchase.platform === "android" && purchase.purchaseToken
+    ? purchase.purchaseToken
+    : purchase.id;
 
 export default function Support() {
   const { t } = useTranslation();
@@ -41,6 +46,7 @@ export default function Support() {
   const requesting = useRef(false);
   const deferred = useRef(false);
   const pendingPurchases = useRef(new Set<string>());
+  const refreshOperation = useRef<Promise<void> | null>(null);
   const updateState = useCallback((message?: string) => {
     setBusy(
       refreshing.current > 0 ||
@@ -56,13 +62,13 @@ export default function Support() {
   const complete = useCallback(
     async (purchase: Purchase) => {
       if (purchase.productId !== SUPPORT_PRODUCT) return;
-      const id = purchase.id;
+      const id = purchaseKey(purchase);
       if (completed.current.has(id)) return;
       const current = processing.current.get(id);
       if (current) return current;
       requesting.current = false;
       if (purchase.purchaseState !== "purchased") {
-        pendingPurchases.current.add(purchase.id);
+        pendingPurchases.current.add(id);
         updateState();
         return;
       }
@@ -100,55 +106,73 @@ export default function Support() {
       onError: () => setStatus("SupportUnavailable")
     });
   const product = products.find((item) => item.id === SUPPORT_PRODUCT);
-  const refresh = useCallback(async () => {
-    refreshing.current++;
-    updateState();
-    setStatus("SupportLoading");
-    try {
-      if (!connected && !(await reconnect())) {
-        setStatus("SupportUnavailable");
-        return;
-      }
-      await fetchProducts({ skus: [SUPPORT_PRODUCT], type: "in-app" });
-      const storePurchases = await (Platform.OS === "ios"
-        ? getPendingTransactionsIOS()
-        : getAvailablePurchases());
-      const purchases = [
-        ...new Map(
-          [...unfinished.current.values(), ...storePurchases].map((item) => [
-            item.id,
-            item
-          ])
-        ).values()
-      ];
-      pendingPurchases.current = new Set(
-        storePurchases
-          .filter(
-            (item) =>
-              item.productId === SUPPORT_PRODUCT &&
-              item.purchaseState !== "purchased" &&
-              !completed.current.has(item.id) &&
-              !processing.current.has(item.id)
-          )
-          .map((item) => item.id)
-      );
-      await Promise.all([
-        ...processing.current.values(),
-        ...purchases.map(complete)
-      ]);
-      setStatus((current) =>
-        current === "SupportLoading" ? "SupportUnavailable" : current
-      );
-    } catch {
-      setStatus("SupportUnavailable");
-    } finally {
-      refreshing.current--;
+  const refresh = useCallback(() => {
+    if (refreshOperation.current) return refreshOperation.current;
+    const task = (async () => {
+      refreshing.current++;
       updateState();
-    }
+      setStatus("SupportLoading");
+      try {
+        if (!connected && !(await reconnect())) {
+          setStatus("SupportUnavailable");
+          return;
+        }
+        await fetchProducts({ skus: [SUPPORT_PRODUCT], type: "in-app" });
+        const storePurchases = await (Platform.OS === "ios"
+          ? getPendingTransactionsIOS()
+          : getAvailablePurchases());
+        const purchases = [
+          ...new Map(
+            [...unfinished.current.values(), ...storePurchases].map((item) => [
+              purchaseKey(item),
+              item
+            ])
+          ).values()
+        ];
+        pendingPurchases.current = new Set(
+          storePurchases
+            .filter(
+              (item) =>
+                item.productId === SUPPORT_PRODUCT &&
+                item.purchaseState !== "purchased" &&
+                !completed.current.has(purchaseKey(item)) &&
+                !processing.current.has(purchaseKey(item))
+            )
+            .map(purchaseKey)
+        );
+        await Promise.all([
+          ...processing.current.values(),
+          ...purchases.map(complete)
+        ]);
+        setStatus((current) =>
+          current === "SupportLoading" ? "SupportUnavailable" : current
+        );
+      } catch {
+        setStatus("SupportUnavailable");
+      } finally {
+        refreshing.current--;
+        updateState();
+      }
+    })().finally(() => {
+      refreshOperation.current = null;
+    });
+    refreshOperation.current = task;
+    return task;
   }, [connected, reconnect, fetchProducts, complete, updateState]);
   useEffect(() => {
     if (connected) void refresh();
   }, [connected, refresh]);
+  useEffect(() => {
+    if (visible) void refresh();
+  }, [visible, refresh]);
+  useEffect(() => {
+    let previous = AppState.currentState;
+    const listener = AppState.addEventListener("change", (next) => {
+      if (next === "active" && previous !== "active") void refresh();
+      previous = next;
+    });
+    return () => listener.remove();
+  }, [refresh]);
   const purchase = async () => {
     if (
       busy ||

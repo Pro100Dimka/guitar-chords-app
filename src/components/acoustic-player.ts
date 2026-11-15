@@ -175,7 +175,7 @@ export const acousticEngine = `function createAcousticPlayer(audio, prepared) {
   function stop(){sounding.forEach(voice=>damp(voice,audio.currentTime));voices=[];seed=78;cursors.clear();}
   function stroke(notes,hit,when,position,changed,pattern){
     if(!notes.length)return;
-    if(changed)sounding.forEach(voice=>damp(voice,when));
+    if(changed||hit==='X')sounding.forEach(voice=>damp(voice,when));
     const up=hit==='U',muted=hit==='X',six=pattern==='D-DU-UDU';
     const index=six?[0,-1,1,2,-1,3,4,5][position%8]:-1;
     const key=notes.map(note=>note.string+':'+Math.round(69+12*Math.log2(note.frequency/440))).join(',');

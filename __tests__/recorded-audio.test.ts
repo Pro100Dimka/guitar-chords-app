@@ -119,7 +119,7 @@ test("recorded strokes rotate, keep original speed and schedule without new deco
   ]);
   expect(decoded).toBe(7);
   expect(sources.every((source) => !source.stop.mock.calls.length)).toBe(true);
-  engine.stroke(notes, "X", 5, 0, true, "X-------");
+  engine.stroke(notes, "X", 5, 0, false, "X-------");
   expect(sources.at(-1).start).toHaveBeenCalledWith(5);
   expect(sources.at(-1).stop).toHaveBeenCalledWith(5.14);
   expect(sources[0].stop).toHaveBeenCalledWith(5.22);

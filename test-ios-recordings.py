@@ -15,7 +15,7 @@ def main():
     root = Path(__file__).resolve().parent
     method = runpy.run_path(str(root / "test-ios-pitch.py"))["method"]
     source = (root / "ios/PerformanceAudio.swift").read_text(encoding="utf-8")
-    production = "\n".join(method(source, name) for name in ["localFile", "reconcileRecordings", "removeRecordingFiles"])
+    production = "\n".join(method(source, name) for name in ["reserveRecordingURL", "localFile", "reconcileRecordings", "removeRecordingFiles"])
     swift = """import Foundation
 import AVFoundation
 class Recorder { var url: URL; init(_ url: URL) { self.url = url } }
@@ -37,6 +37,24 @@ func audio(_ url: URL) throws {
     try output.write(from: buffer)
 }
 func path(_ id: Int, partial: Bool = false) -> URL { directory.appendingPathComponent("song-1-\(id)\(partial ? ".processing" : "").m4a") }
+try Data("saved recording".utf8).write(to: path(100))
+try Data("recoverable partial".utf8).write(to: path(101, partial: true))
+store.processing.insert(path(102).path)
+store.recorder = Recorder(path(103))
+let reserved = try store.reserveRecordingURL("1", timestamp: 100)
+precondition(reserved == path(104))
+let secondReservation = try store.reserveRecordingURL("1", timestamp: 104)
+precondition(secondReservation == path(105))
+let savedRecording = try Data(contentsOf: path(100))
+let savedPartial = try Data(contentsOf: path(101, partial: true))
+precondition(savedRecording == Data("saved recording".utf8))
+precondition(savedPartial == Data("recoverable partial".utf8))
+try files.removeItem(at: reserved)
+try files.removeItem(at: secondReservation)
+try files.removeItem(at: path(100))
+try files.removeItem(at: path(101, partial: true))
+store.processing.removeAll()
+store.recorder = nil
 try Data().write(to: path(1))
 try Data("incomplete".utf8).write(to: path(1, partial: true))
 try store.reconcileRecordings()

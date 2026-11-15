@@ -13,6 +13,27 @@ jest.mock("../src/components/database", () => ({
 }));
 jest.mock("../src/locales", () => ({ t: String }));
 
+test.each(["C x2", "C (x3)", "|: C :|", "[Verse] C"])(
+  "editor round trip retains annotated chord row %s",
+  (row) => {
+    const original = "[C]Hello";
+    const state = createSongEditorState(original);
+    const saved = songContentFromEditor(original, `${row}\nHello`, state);
+    const reopened = createSongEditorState(saved);
+    expect(reopened.text).toContain("Hello");
+    for (const marker of row.includes("Verse")
+      ? ["[Verse]"]
+      : row.includes("|")
+        ? ["|:", ":|"]
+        : [row.split(" ").slice(1).join(" ")])
+      expect(reopened.text).toContain(marker);
+    expect(saved).not.toMatch(/Hel\[C\]lo|Hello\[C\]/);
+    expect(
+      songContentFromEditor(saved, reopened.text + "!", reopened)
+    ).toContain("Hello!");
+  }
+);
+
 test.each(["[Verse]", "Verse:", "{start_of_chorus}"])(
   "chord rows preserve structural heading %s through import and editing",
   (heading) => {

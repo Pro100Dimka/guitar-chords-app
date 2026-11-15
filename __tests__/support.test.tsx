@@ -1,6 +1,6 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert, Platform } from "react-native";
+import { Alert, AppState, type AppStateStatus, Platform } from "react-native";
 import {
   ErrorCode,
   finishTransaction,
@@ -94,6 +94,69 @@ const payButton = () =>
     .findAllByType(Action)
     .find((node) => node.props.label.includes("€1.99"))!;
 
+test("Android pending token and purchased order ID share one transaction lifecycle", async () => {
+  await open();
+  await act(async () =>
+    mockCallbacks.onPurchaseSuccess!({
+      ...purchase,
+      id: purchase.purchaseToken!,
+      purchaseState: "pending"
+    })
+  );
+  expect(payButton().props.disabled).toBe(true);
+  await act(async () =>
+    mockCallbacks.onPurchaseSuccess!({ ...purchase, id: "order-123" })
+  );
+  expect(finishTransaction).toHaveBeenCalledTimes(1);
+  expect(Alert.alert).toHaveBeenCalledWith("SupportThanks");
+  expect(payButton().props.disabled).toBe(false);
+  await act(async () =>
+    mockCallbacks.onPurchaseSuccess!({
+      ...purchase,
+      id: purchase.purchaseToken!,
+      purchaseState: "pending"
+    })
+  );
+  expect(payButton().props.disabled).toBe(false);
+});
+
+test("reopening support reconciles a missed store purchase", async () => {
+  await open();
+  await act(async () => useSupport.setState({ visible: false }));
+  jest.mocked(getAvailablePurchases).mockResolvedValue([purchase]);
+  await act(async () => useSupport.setState({ visible: true }));
+  expect(getAvailablePurchases).toHaveBeenCalledTimes(2);
+  expect(finishTransaction).toHaveBeenCalledTimes(1);
+});
+
+test("foreground and opening events share one pending store refresh", async () => {
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      listeners.add(listener);
+      return { remove: () => listeners.delete(listener) };
+    });
+  await open();
+  await act(async () => useSupport.setState({ visible: false }));
+  let resolve!: (items: Purchase[]) => void;
+  jest.mocked(getAvailablePurchases).mockImplementation(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      })
+  );
+  await act(async () => {
+    listeners.forEach((listener) => listener("background"));
+    listeners.forEach((listener) => listener("active"));
+    useSupport.setState({ visible: true });
+  });
+  expect(getAvailablePurchases).toHaveBeenCalledTimes(2);
+  await act(async () => resolve([purchase]));
+  expect(finishTransaction).toHaveBeenCalledTimes(1);
+  expect(payButton().props.disabled).toBe(false);
+});
+
 test("late pending events cannot downgrade a completed purchase", async () => {
   await open();
   await act(async () => mockCallbacks.onPurchaseSuccess!(purchase));
@@ -142,7 +205,10 @@ test("language refresh waits for an in-flight finalization before enabling payme
 test("one successful transaction cannot hide another failed finalization", async () => {
   jest
     .mocked(getAvailablePurchases)
-    .mockResolvedValue([purchase, { ...purchase, id: "transaction-2" }]);
+    .mockResolvedValue([
+      purchase,
+      { ...purchase, id: "transaction-2", purchaseToken: "test-token-2" }
+    ]);
   jest.mocked(finishTransaction).mockRejectedValueOnce(new Error("offline"));
   await open();
   expect(payButton().props.disabled).toBe(true);

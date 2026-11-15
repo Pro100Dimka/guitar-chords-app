@@ -476,8 +476,15 @@ function sectionChordRows(content: string) {
   });
 }
 
-function chordRowAnchors(line: string) {
-  if (!isChordLine(line)) return undefined;
+function chordRowAnchors(line: string, chordsOnly = false) {
+  if (
+    !isChordLine(line) ||
+    (chordsOnly &&
+      chordLineParts(line).some(
+        (part) => part.trim() && !chordNotationPattern.test(part)
+      ))
+  )
+    return undefined;
   return [...line.matchAll(/[^\s|:]+/g)].filter((match) =>
     chordNotationPattern.test(normalizeChord(match[0]))
   );
@@ -608,7 +615,9 @@ export function songContentFromEditor(
     if ((start > 0 && edited[start - 1] !== "\n") || edited[end - 1] !== "\n")
       continue;
     const rows = edited.slice(start, end).split("\n").slice(0, -1);
-    const tokens = rows.map((row) => (row.trim() ? chordRowAnchors(row) : []));
+    const tokens = rows.map((row) =>
+      row.trim() ? chordRowAnchors(row, true) : []
+    );
     if (tokens.some((row) => !row)) continue;
     const newline = edited.indexOf("\n", end);
     const lyricEnd = newline < 0 ? edited.length : newline;
@@ -794,12 +803,7 @@ export function transposeSong(content: string, semitones: number) {
             column: match.index
           }))
         };
-        if (
-          hasInternalChord(pair) &&
-          chordLineParts(lines[i]).every(
-            (part) => !part.trim() || chordNotationPattern.test(part)
-          )
-        ) {
+        if (hasInternalChord(pair) && chordRowAnchors(lines[i], true)) {
           flush();
           result.push(anchoredContent(pair, semitones));
           i++;
