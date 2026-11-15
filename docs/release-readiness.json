@@ -36,7 +36,7 @@
       "original_open_string_takes": 11,
       "status": "Original approved WAVs preserved outside repository; gapless mobile chord banks and measured-pitch string references prepared."
     },
-    "android_bundle": "VersionCode 15 ARM64 and ARM32 APKs built and checked: exact current Hermes hash, all 144 recorded chord strokes, six recorded string PCM references, 15 rhythm markers, existing signing certificate, ZIP integrity, 16 KB ZIP alignment and ARM64 ELF alignment. No current AAB built.",
+    "android_bundle": "VersionCode 16 ARM64 and ARM32 release APKs built with R8 and checked: exact freshly generated Hermes hash, latest bass/layout/file-timeout markers, all 144 recorded chord strokes, six recorded string PCM references, 15 rhythm markers, existing test signing certificate, ZIP integrity, 16 KB ZIP alignment and ARM64 ELF alignment. No current AAB built. No connected device installation performed.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "macOS 15 CI compiled and executed extracted production Swift pitch, capture lifecycle and recording-file methods. Capture route fixtures cover seven unavailable/invalid routes, retries and setup failures; file fixtures use real AAC. Full React Native iOS app/archive, real AVAudioSession and device checks remain unverified.",
     "device_tests": "owner to perform",
@@ -615,7 +615,7 @@
       "status": "Passed extracted production-method regressions: incomplete orphan cleanup, complete interrupted-file recovery, active-take protection and companion-file deletion.",
       "boundary": "MediaExtractor is stubbed in the host regression harness. Actual AAC recovery and physical process interruption remain device checks."
     },
-    "android_kotlin_review": "Current source CI passed Rust JNI, deterministic capture/recording/pitch checks and Android Kotlin compilation. No APK assembled.",
+    "android_kotlin_review": "Source commit 4013ec6 passed Android/iOS native CI, including Rust JNI and Kotlin compilation, capture/recording/pitch checks, real Shazam request and Swift fixtures. Local Android release assembly with R8 and packaging checks passed for both ARM ABIs.",
     "six_scenario_source_ci": {
       "commit": "aae4ec7ba64b518fd060b00f7dc4932cdf1e41bf",
       "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43654518820",
@@ -739,24 +739,30 @@
       "status": "historical_only_not_current_distribution_bundle"
     },
     "apk_arm64": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc15-arm64-v8a.apk",
-      "bytes": 111917671,
-      "sha256": "2e692900730938d8be43d9e76081cd4b8726c5ae8e258a159434525db90c76aa",
-      "version_code": 15,
-      "contains_current_fixes": false
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc16-arm64-v8a.apk",
+      "bytes": 111084803,
+      "sha256": "86f39b38ed987a67c026dc8340b81dfdeaf36b08e55fb36b7486cc7fa90b9892",
+      "version_code": 16,
+      "source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
+      "contains_current_fixes": true,
+      "certificate_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+      "hermes_sha256": "075aa97bbbc385b76a04fb3a408f3fddae95e5846801a82e60f30736889ce839"
     },
     "apk_arm32": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc15-armeabi-v7a.apk",
-      "bytes": 101085771,
-      "sha256": "b5b9c7ae58832b98fa416da9383757dc3d84d12f153bf419bed99f5d7bdbe1c0",
-      "version_code": 15,
-      "contains_current_fixes": false
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc16-armeabi-v7a.apk",
+      "bytes": 100252903,
+      "sha256": "58d85bfe9d6c24b97bd14875a713ce2f600cfa0d370520b67b491db3ddc9ca73",
+      "version_code": 16,
+      "source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
+      "contains_current_fixes": true,
+      "certificate_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+      "hermes_sha256": "075aa97bbbc385b76a04fb3a408f3fddae95e5846801a82e60f30736889ce839"
     },
-    "version_code": 15
+    "version_code": 16
   },
   "reviewed_on": "2026-11-15",
-  "review_scope": "Three review fixes: permission-dialog lifecycle handling, preventing preference recreation after deleting an open song, and literal library search. README backup restoration semantics corrected. Visual styles unchanged; native code unchanged.",
-  "artifact_scope": "Listed rc15 APKs contain implementation changes through 1e3829bf647eb9a8701492863e9741326f29ae1b. They do not contain the subsequent review fixes or recognition tempo changes. No new APK or AAB was built for this review. Physical phone behavior and native iOS remain unverified. The listed AAB is historical versionCode 7.",
+  "review_scope": "Latest source fixes preserve editor-origin lyrics, select bass by minimum sounding pitch, and keep chord/lyric rows in one horizontal viewport. VersionCode 16 signed release APKs assembled and checked; typography/colors unchanged.",
+  "artifact_scope": "Current rc16 APKs contain implementation changes through source commit 4013ec653e2bc7a998c3f93887c83c4534f9d458. R8 assembly, signing, exact embedded Hermes/audio resources and alignment verified. Prior rc15 packages are historical. Physical phone behavior and full native iOS remain unverified. The listed AAB is historical versionCode 7.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
@@ -777,7 +783,7 @@
     ],
     "target_audience": "13-15, 16-17 and 18+ recommended as a draft after the owner requested advice; IARC remains unassigned and nothing is submitted."
   },
-  "candidate_version_code": 15,
+  "candidate_version_code": 16,
   "current_distribution_bundle": {
     "status": "not_built_for_current_source",
     "version_code": null
@@ -1217,16 +1223,88 @@
       "Horizontal layout is checked at the React Native component boundary; no new native phone screenshot or pixel measurement was made.",
       "Bass rendering is verified through the production engine and a deterministic audio context, not phone playback.",
       "Native Android/iOS source is unchanged in this review. The preceding native CI remains applicable; full iOS integration and tuner recall qualification remain outstanding.",
-      "No APK/AAB/IPA built. Branch protection and existing artifact status are unchanged."
+      "Branch protection is unchanged. Subsequent rc16 APK assembly and checks are recorded in android_rc16."
     ],
     "design_changes": false
   },
   "android_rc16": {
-    "status": "preparing_signed_test_apks",
+    "status": "signed_release_test_apks_verified",
     "versionCode": 16,
     "versionName": "1.0",
     "source_changes": "Includes lyric identity, minimum-pitch bass stroke and shared horizontal chord/lyric scrolling fixes; 284 tests passed locally.",
     "signing": "Same test certificate as prior phone APKs; not a store-ready production signing identity.",
-    "artifacts": "Pending assembly and verification. No AAB planned."
+    "artifacts": [
+      {
+        "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc16-armeabi-v7a.apk",
+        "abi": "armeabi-v7a",
+        "versionCode": 16,
+        "bytes": 100252903,
+        "sha256": "58d85bfe9d6c24b97bd14875a713ce2f600cfa0d370520b67b491db3ddc9ca73",
+        "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+        "bundleSha256": "075aa97bbbc385b76a04fb3a408f3fddae95e5846801a82e60f30736889ce839",
+        "standaloneHermes": true,
+        "ownerRecordedStrokes": 144,
+        "rhythmPresets": 15,
+        "latestChromaticStrings": true,
+        "latestSongLookupStrings": true,
+        "nativeRecognitionLyrics": true,
+        "preparedNativePlayback": true,
+        "updatedGuide": true,
+        "manropeAssets": [
+          "assets/fonts/Manrope-OFL.txt",
+          "assets/fonts/Manrope-Regular.ttf",
+          "assets/fonts/Manrope-SemiBold.ttf"
+        ],
+        "nativeLibraries": 22,
+        "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+        "navigationFragmentNames": "preserved",
+        "zipIntegrity": "passed",
+        "source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
+        "latestBassAndLayout": true,
+        "nativeFileDeadlines": true
+      },
+      {
+        "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc16-arm64-v8a.apk",
+        "abi": "arm64-v8a",
+        "versionCode": 16,
+        "bytes": 111084803,
+        "sha256": "86f39b38ed987a67c026dc8340b81dfdeaf36b08e55fb36b7486cc7fa90b9892",
+        "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+        "bundleSha256": "075aa97bbbc385b76a04fb3a408f3fddae95e5846801a82e60f30736889ce839",
+        "standaloneHermes": true,
+        "ownerRecordedStrokes": 144,
+        "rhythmPresets": 15,
+        "latestChromaticStrings": true,
+        "latestSongLookupStrings": true,
+        "nativeRecognitionLyrics": true,
+        "preparedNativePlayback": true,
+        "updatedGuide": true,
+        "manropeAssets": [
+          "assets/fonts/Manrope-OFL.txt",
+          "assets/fonts/Manrope-Regular.ttf",
+          "assets/fonts/Manrope-SemiBold.ttf"
+        ],
+        "nativeLibraries": 22,
+        "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+        "navigationFragmentNames": "preserved",
+        "zipIntegrity": "passed",
+        "source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
+        "latestBassAndLayout": true,
+        "nativeFileDeadlines": true
+      }
+    ],
+    "source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
+    "verification_report": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc16-verification.json",
+    "ci": {
+      "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43728113643",
+      "native": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43728113634"
+    },
+    "limits": [
+      "Same test certificate as prior phone APKs; no store production signing claim.",
+      "No connected device installation or real phone playback check.",
+      "Full native iOS app/archive, physical tuner recall and provider permissions remain outstanding.",
+      "Existing unchanged fingerprint JNI libraries reused locally; current native CI separately compiled JNI and Kotlin.",
+      "No new AAB or IPA."
+    ]
   }
 }
