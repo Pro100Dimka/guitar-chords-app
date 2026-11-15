@@ -29,6 +29,7 @@ fun checkRecordingFiles(directory: File) {
         val rows=list(store).maps
         check(rows.size==1 && (rows[0].values["bytes"] as Double)>0) { "Completed interrupted take was not recovered" }
         check(final.readText()=="complete audio" && !partial.exists())
+        check(rows[0].values["interrupted"] == true) { "Recovered recording lost its interrupted status" }
     }
     runCase("active-take-protected") { folder,store ->
         val final=File(folder,"song-1-12.m4a").apply { createNewFile() }
@@ -40,8 +41,14 @@ fun checkRecordingFiles(directory: File) {
     runCase("delete-file-family") { folder,store ->
         val final=File(folder,"song-1-13.m4a").apply { writeText("complete audio") }
         val partial=File(folder,"song-1-13.processing.m4a").apply { writeText("orphan") }
+        val marker=File(folder,"song-1-13.interrupted").apply { createNewFile() }
         store.deleteTake(final.absolutePath,object:Promise { override fun resolve(value: Any) { check(value==true) } })
-        check(!final.exists() && !partial.exists()) { "Deleting the take left its hidden companion" }
+        check(!final.exists() && !partial.exists() && !marker.exists()) { "Deleting the take left its hidden companion" }
+    }
+    runCase("orphan-status") { folder,store ->
+        val marker=File(folder,"song-1-14.interrupted").apply { createNewFile() }
+        list(store)
+        check(!marker.exists()) { "Orphan interrupted status survived cleanup" }
     }
     check(root.delete())
     check(failures.isEmpty()) { failures.joinToString("; ") }

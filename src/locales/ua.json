@@ -241,6 +241,7 @@
   "ResetCover": "Скинути",
   "CoverError": "Не вдалося відкрити зображення",
   "CoverErrorHint": "Виберіть зображення JPEG, PNG або WebP до 20 МБ.",
+  "RecordingInterrupted": "Запис перервано. Записану частину збережено.",
   "RecordingProcessing": "Покращуємо звучання…",
   "RecordingPolishFailed": "Не вдалося обробити звук. Запис збережено без змін.",
   "AutofillFindLyrics": "Знайти текст (LRCLIB)",

@@ -20,6 +20,9 @@ class AudioRecord(source: Int, rate: Int, channel: Int, encoding: Int, size: Int
         var frequency = 0.0
         var permissionGranted = true
         var stoppedRead = -1
+        var failedRead: Int? = null
+        var throwRead = false
+        var successfulReads = 2
         var blocked = CountDownLatch(1)
         const val STATE_INITIALIZED = 1
         const val RECORDSTATE_RECORDING = 3
@@ -40,11 +43,13 @@ class AudioRecord(source: Int, rate: Int, channel: Int, encoding: Int, size: Int
     fun read(buffer: ShortArray, offset: Int, size: Int): Int {
         check(readers.incrementAndGet() == 1) { "Overlapping capture threads" }
         try {
-            if (frames++ < 2) {
+            if (frames++ < successfulReads) {
                 for (i in 0 until size) buffer[i] = (kotlin.math.sin(2 * Math.PI * frequency * i / 44100) * 16384).toInt().toShort()
                 return size
             }
             blocked.countDown()
+            if (throwRead) throw IllegalStateException("Audio device lost")
+            failedRead?.let { return it }
             stopped.await()
             return stoppedRead
         } finally { readers.decrementAndGet() }

@@ -71,13 +71,17 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                 var began = false
                 try {
                     android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO)
-                    recording.write(output, {
+                    val interrupted = recording.write(output, {
                         began = true
                         promise.resolve(file.absolutePath)
                     }) {
                         synchronized(this) { if (recorder === recording) finishTake() }
                     }
                     check(output.length() > 0 && output.renameTo(file))
+                    if (interrupted) {
+                        state = "interrupted"
+                        runCatching { File(directory, file.nameWithoutExtension + ".interrupted").createNewFile() }
+                    }
                 } catch (error: Exception) {
                     file.delete()
                     state = "error"
@@ -149,10 +153,16 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             if (valid) {
                 check(!target.exists() || target.delete())
                 check(partial.renameTo(target))
+                runCatching { File(directory, target.nameWithoutExtension + ".interrupted").createNewFile() }
             } else check(partial.delete())
         }
         directory.listFiles()?.filter {
             it.name.matches(Regex("song-[0-9]+-[0-9]+\\.m4a")) && it.length() == 0L && it.canonicalPath !in active
+        }?.forEach { check(it.delete()) }
+        directory.listFiles()?.filter {
+            it.name.matches(Regex("song-[0-9]+-[0-9]+\\.interrupted")) &&
+                !File(directory, it.nameWithoutExtension + ".m4a").exists() &&
+                !File(directory, it.nameWithoutExtension + ".processing.m4a").exists()
         }?.forEach { check(it.delete()) }
     }
     @ReactMethod @Synchronized fun listTakes(songId: String, promise: Promise) {
@@ -163,6 +173,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             rows.pushMap(Arguments.createMap().apply {
                 putString("path", file.absolutePath); putDouble("date", file.lastModified().toDouble()); putDouble("bytes", file.length().toDouble())
                 putBoolean("processing", processing.contains(file.absolutePath))
+                putBoolean("interrupted", File(directory, file.nameWithoutExtension + ".interrupted").exists())
             })
         }
         promise.resolve(rows)
@@ -202,6 +213,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             val partial = File(file.parentFile, file.nameWithoutExtension + ".processing.m4a")
             require(!partial.exists() || partial.delete())
             require(file.delete())
+            File(file.parentFile, file.nameWithoutExtension + ".interrupted").delete()
             promise.resolve(true)
         }
         catch (error: Exception) { promise.reject("DELETE_FAILED", error) }
@@ -324,7 +336,7 @@ private class PolishedRecorder {
     }
     fun release() { stop(); capture.release() }
 
-    fun write(output: File, onStarted: () -> Unit, onCaptured: () -> Unit) {
+    fun write(output: File, onStarted: () -> Unit, onCaptured: () -> Unit): Boolean {
         val effect = RecordingPolish(rate)
         val writer = MediaCodec.createEncoderByType("audio/mp4a-latm")
         var muxer: MediaMuxer? = null
@@ -395,12 +407,23 @@ private class PolishedRecorder {
             }
             val input = ShortArray(2048)
             var captured = 0L
+            var interrupted = false
             start()
             onStarted()
             while (!stopped && captured < rate * 30L * 60 && output.length() < 50L * 1024 * 1024) {
-                val count = capture.read(input, 0, input.size, AudioRecord.READ_BLOCKING)
+                val count = try {
+                    capture.read(input, 0, input.size, AudioRecord.READ_BLOCKING)
+                } catch (error: Exception) {
+                    if (!stopped && captured == 0L) throw error
+                    if (!stopped) interrupted = true
+                    break
+                }
                 if (count <= 0 && stopped) break
-                check(count > 0) { "Microphone capture failed: $count" }
+                if (count <= 0) {
+                    check(captured > 0) { "Microphone capture failed: $count" }
+                    interrupted = true
+                    break
+                }
                 for (index in 0 until count) {
                     val stereo = effect.processStereo(input[index] / 32768.0)
                     append((stereo shr 16).toInt().toShort().toInt(), stereo.toShort().toInt())
@@ -422,6 +445,7 @@ private class PolishedRecorder {
             check(muxing)
             container.stop()
             muxing = false
+            return interrupted
         } finally {
             runCatching { writer.stop() }
             writer.release()

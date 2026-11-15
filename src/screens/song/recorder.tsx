@@ -72,18 +72,24 @@ export default function SongRecorder({
     mounted.current = true;
     const listener = performanceAudio.listen((event) => {
       if (event.state === "stopped") setPlaying("");
-      if (["processing", "error"].includes(event.state)) {
+      if (["processing", "error", "interrupted"].includes(event.state)) {
         recordingRef.current = false;
         setRecording(false);
       }
       if (
-        ["processing", "saved", "error", "processingFailed"].includes(
-          event.state
-        )
+        [
+          "processing",
+          "saved",
+          "error",
+          "processingFailed",
+          "interrupted"
+        ].includes(event.state)
       ) {
         void load().catch(() => Alert.alert(t("RecordingError")));
         if (event.state === "error")
           Alert.alert(t("RecordingError"), t("RecordingErrorHint"));
+        if (event.state === "interrupted")
+          Alert.alert(t("RecordingInterrupted"));
         if (event.state === "processingFailed")
           Alert.alert(t("RecordingPolishFailed"));
       }
@@ -228,6 +234,9 @@ export default function SongRecorder({
                   i18n.language === "ua" ? "uk" : i18n.language
                 )}
               </Text>
+              {take.interrupted && (
+                <Text style={styles.hint}>{t("RecordingInterrupted")}</Text>
+              )}
               {take.processing && (
                 <Text style={styles.hint}>{t("RecordingProcessing")}</Text>
               )}

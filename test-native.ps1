@@ -33,7 +33,7 @@ try {
     $recognition = Get-Content -LiteralPath "$PSScriptRoot/android/app/src/main/java/com/freetune/SongRecognitionModule.kt" -Raw
     $sessionStart = $recognition.IndexOf('internal class RecognitionSession')
     if ($sessionStart -lt 0) { throw 'Recognition session class not found' }
-    Set-Content -LiteralPath (Join-Path $OutputDirectory 'RecognitionSession.kt') -Encoding utf8 -Value ("package com.freetune`nimport java.util.concurrent.atomic.AtomicBoolean`n" + $recognition.Substring($sessionStart))
+    Set-Content -LiteralPath (Join-Path $OutputDirectory 'RecognitionSession.kt') -Encoding utf8 -Value ("package com.freetune`nimport java.util.concurrent.*`nimport java.util.concurrent.atomic.*`nimport android.os.CancellationSignal`nimport java.io.Closeable`n" + $recognition.Substring($sessionStart))
     $separator = [IO.Path]::PathSeparator
     & java -cp "$KotlinLib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -classpath "$standardLibrary$separator$annotations" -d $artifact @sources (Join-Path $OutputDirectory 'RecognitionSession.kt') $filesProbe $recorderFile "$PSScriptRoot/android/app/src/main/java/com/freetune/MicrophoneStreamModule.kt" "$PSScriptRoot/android/app/src/main/java/com/freetune/RecordingPolish.kt"
     if ($LASTEXITCODE -ne 0) { throw 'Kotlin compilation failed' }

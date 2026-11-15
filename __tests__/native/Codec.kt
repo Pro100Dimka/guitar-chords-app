@@ -39,6 +39,7 @@ class MediaCodec {
         const val BUFFER_FLAG_CODEC_CONFIG = 2
         const val BUFFER_FLAG_END_OF_STREAM = 4
         var ended = false
+        var failEnd = false
         fun createEncoderByType(mime: String) = MediaCodec().also { ended = false }
     }
     fun configure(format: MediaFormat, surface: Any?, crypto: Any?, flags: Int) {}
@@ -48,6 +49,7 @@ class MediaCodec {
     fun dequeueInputBuffer(timeout: Long) = 0
     fun getInputBuffer(index: Int) = input
     fun queueInputBuffer(index: Int, offset: Int, size: Int, time: Long, flags: Int) {
+        if (failEnd && flags and BUFFER_FLAG_END_OF_STREAM != 0) error("Encoder finalization failed")
         queue.add(input.array().copyOfRange(offset, offset + size) to flags)
     }
     fun dequeueOutputBuffer(info: BufferInfo, timeout: Long): Int {

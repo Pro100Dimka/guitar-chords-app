@@ -520,47 +520,61 @@ test("each rhythm can be selected once through its full pattern and applied", as
     practice: false
   });
 });
-test("processing recordings cannot be played or exported until the saved event", async () => {
-  let listener!: (event: PerformanceEvent) => void;
-  const subscription = performanceAudio.listen(() => {});
-  jest.spyOn(performanceAudio, "listen").mockImplementation((callback) => {
-    listener = callback;
-    return subscription;
-  });
-  const take = {
-    path: "/performances/song-1-123.m4a",
-    date: 123,
-    bytes: 1000,
-    processing: true
-  };
-  jest.mocked(performanceAudio.list).mockResolvedValue([take]);
-  await act(async () => {
-    screen = Renderer.create(
-      <SongRecorder songId={1} active onStart={() => {}} />
-    );
-  });
-  await act(async () =>
-    screen!.root
-      .findAllByType(Action)
-      .find((node) => node.props.label === "RecordPerformance")!
-      .props.onPress()
-  );
-  const controls = () =>
-    screen!.root
-      .findAllByType(Action)
-      .filter((node) =>
-        ["ListenTake", "SaveRecordingFile", "DeleteTake"].includes(
-          node.props.accessibilityLabel
-        )
+test.each(["saved", "interrupted"] as const)(
+  "processing recordings unlock after %s and interrupted takes remain visible",
+  async (state) => {
+    jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    let listener!: (event: PerformanceEvent) => void;
+    const subscription = performanceAudio.listen(() => {});
+    jest.spyOn(performanceAudio, "listen").mockImplementation((callback) => {
+      listener = callback;
+      return subscription;
+    });
+    const take = {
+      path: "/performances/song-1-123.m4a",
+      date: 123,
+      bytes: 1000,
+      processing: true
+    };
+    jest.mocked(performanceAudio.list).mockResolvedValue([take]);
+    await act(async () => {
+      screen = Renderer.create(
+        <SongRecorder songId={1} active onStart={() => {}} />
       );
-  expect(controls()).toHaveLength(3);
-  expect(controls().every((node) => node.props.disabled)).toBe(true);
-  jest
-    .mocked(performanceAudio.list)
-    .mockResolvedValue([{ ...take, processing: false }]);
-  await act(async () => listener({ state: "saved", uri: take.path }));
-  expect(controls().every((node) => !node.props.disabled)).toBe(true);
-});
+    });
+    await act(async () =>
+      screen!.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "RecordPerformance")!
+        .props.onPress()
+    );
+    const controls = () =>
+      screen!.root
+        .findAllByType(Action)
+        .filter((node) =>
+          ["ListenTake", "SaveRecordingFile", "DeleteTake"].includes(
+            node.props.accessibilityLabel
+          )
+        );
+    expect(controls()).toHaveLength(3);
+    expect(controls().every((node) => node.props.disabled)).toBe(true);
+    jest
+      .mocked(performanceAudio.list)
+      .mockResolvedValue([
+        { ...take, processing: false, interrupted: state === "interrupted" }
+      ]);
+    await act(async () => listener({ state, uri: take.path }));
+    expect(controls().every((node) => !node.props.disabled)).toBe(true);
+    if (state === "interrupted") {
+      expect(Alert.alert).toHaveBeenCalledWith("RecordingInterrupted");
+      expect(
+        screen!.root
+          .findAllByType(Text)
+          .some((node) => node.props.children === "RecordingInterrupted")
+      ).toBe(true);
+    }
+  }
+);
 async function openSelect(onSelect: jest.Mock) {
   jest.useFakeTimers({ doNotFake: ["nextTick", "setImmediate"] });
   await act(async () => {

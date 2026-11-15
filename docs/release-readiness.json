@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 254,
-      "status": "Passed full local verification and current source main CI: 19 suites, 254 tests, including permission lifecycle, cancellation, rapid backgrounding, deleted-song cleanup and literal SQLite search."
+      "tests": 255,
+      "status": "Passed full local verification: 19 suites, 255 tests, including interrupted-take notification, persistent status and playback/export controls. See interruption_recovery_review for current native proof and boundaries."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1029,8 +1029,8 @@
     },
     "readme": "README now states that restore applies backup preferences and artwork to matching records, preserves distinct arrangements by backup identity, and uses numbered parts. It advises saving current settings first.",
     "supplementary_risks": {
-      "interrupted_android_take": "Unchanged: a capture/read or encoding failure can discard the Android take, as explicitly documented in README. Recovery of captured frames needs a separate native change and tests.",
-      "cloud_provider_cancellation": "Unchanged, source-level risk: ContentResolver opening/reading is not proven cancellable against a delaying provider. A device/provider scenario and cancellation latency measurement remain necessary.",
+      "interrupted_android_take": "Addressed by interruption_recovery_review for microphone read failures after captured frames. Abrupt process death before a valid AAC container exists remains unrecoverable.",
+      "cloud_provider_cancellation": "Addressed by interruption_recovery_review with per-request cancellation and bounded isolated file workers. Full physical content-provider testing remains outstanding.",
       "native_checks": "No current native source changes. Previous successful Android compilation, Kotlin/Rust and macOS Swift/AAC method checks remain relevant but do not exercise the full application, AVAudioSession or content-provider recognition path.",
       "external_checks": "Optional external steps in combined workflows do not establish service availability by overall workflow status. The separate shazam-real-audio-proof workflow has a strict recognition assertion; inspect actual live-step outcomes before release."
     },
@@ -1041,5 +1041,28 @@
       "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43709299442",
       "live_lrclib_step": "Passed; optional-step outcome was checked independently of the overall workflow conclusion."
     }
+  },
+  "interruption_recovery_review": {
+    "base_commit": "39d1540722a1f03ddd4fd6aa6f621e9650223725",
+    "android_recording": "Read failure after captured frames finalizes the same processed AAC with its fading effect tail. A persisted interrupted marker is shown using existing recording styles; list/restart preserves status and delete removes the marker. Completed temporary AAC files recovered at startup are marked interrupted. Empty capture and encoder-finalization failures still reject.",
+    "cloud_files": "ContentResolver receives a CancellationSignal. Each decode owns its cancellation state and descriptor until cleanup. Cancellation releases the recognition waiter independently of provider open/read, prevents stale results after retry, and requests provider cancellation/close outside the bridge lock. At most two blocked decoder workers are retained; additional file requests reject Busy instead of accumulating threads. Remote cancellation uses one bounded worker with two queued requests.",
+    "reproduced_before": [
+      "Actual recorder threw Microphone capture failed: 0 after 4096 captured frames.",
+      "RecognitionSession cancellation remained pending while a simulated provider open was blocked."
+    ],
+    "proof": [
+      "Production Kotlin recorder with deterministic device/codec stubs: normal Stop, zero/negative/throwing read failures, captured frame/tail/EOS preservation, empty capture and encoder failure rejection.",
+      "Production AudioFileRead and RecognitionSession with blocking provider fixtures: open/read cancellation under one second, retry before old provider returns, late-result rejection, descriptor cleanup and a two-worker bound.",
+      "Production recording file methods: recovered interrupted status, active-take protection, file-family deletion and orphan marker cleanup.",
+      "255 Jest tests in 19 suites, TypeScript, zero-warning ESLint and actual SQLite integration passed.",
+      "Android compileReleaseKotlin passed using installed SDK and reused native fingerprint libraries. No APK/AAB built."
+    ],
+    "limits": [
+      "Host media/provider stubs do not verify physical microphone, actual cloud provider, MediaCodec AAC quality or full content URI recognition on a phone.",
+      "A provider that ignores cancellation may keep a bounded decoder/cancellation worker until its I/O returns or the process exits.",
+      "Process termination before AAC finalization can leave an invalid container; such data cannot be claimed recovered.",
+      "No full native iOS build or device test performed; iOS implementation unchanged."
+    ],
+    "design_changes": false
   }
 }

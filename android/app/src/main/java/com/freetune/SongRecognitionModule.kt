@@ -11,14 +11,15 @@ import android.media.MediaRecorder
 import android.net.Uri
 import android.os.SystemClock
 import android.os.Build
+import android.os.CancellationSignal
 import android.util.Base64
 import com.facebook.react.bridge.*
 import java.net.HttpURLConnection
 import java.net.URL
 import java.nio.ByteOrder
 import java.util.UUID
-import java.util.concurrent.Executors
-import java.util.concurrent.TimeUnit
+import java.util.concurrent.*
+import java.io.Closeable
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 import java.util.concurrent.atomic.AtomicBoolean
@@ -35,6 +36,9 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     private val worker = Executors.newSingleThreadExecutor()
     private val captureWorker = Executors.newSingleThreadExecutor()
     private val session = RecognitionSession()
+    private val fileWorkers = ThreadPoolExecutor(2, 2, 0, TimeUnit.SECONDS, SynchronousQueue())
+    private val fileCancellation = ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, ArrayBlockingQueue(2))
+    private val fileRead = AtomicReference<AudioFileRead?>()
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var connection: HttpURLConnection? = null
     @Volatile private var rateLimitedUntil = 0L
@@ -47,9 +51,17 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     @ReactMethod
     fun recognizeFile(uri: String, promise: Promise) = start(promise) {
         require(uri.startsWith("content://") || uri.startsWith("file://")) { "FileUnavailable" }
-        val samples = try { decodeFile(Uri.parse(uri)) } catch (error: Exception) {
-            if (session.cancelled.get() || error.message in setOf("FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "Cancelled")) throw error
+        val read = AudioFileRead(fileWorkers, fileCancellation) { decodeFile(Uri.parse(uri), it) }
+        fileRead.set(read)
+        val samples = try {
+            ensureActive()
+            read.await()
+        } catch (error: Exception) {
+            if (session.cancelled.get() || error.message in setOf("Busy", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "Cancelled")) throw error
             throw IllegalStateException(if (error is java.io.IOException || error is SecurityException) "FileUnavailable" else "AudioDecodeFailed", error)
+        } finally {
+            fileRead.compareAndSet(read, null)
+            read.cancel()
         }
         identify(samples)
     }
@@ -57,6 +69,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     @ReactMethod
     fun cancel(promise: Promise) {
         session.cancel({
+            fileRead.get()?.cancel()
             try { recorder?.stop() } catch (_: Exception) {}
             connection?.disconnect()
         }, { promise.resolve(null) })
@@ -112,7 +125,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             } catch (error: LinkageError) {
                 promise.reject("RecognitionUnsupported", "Audio recognition is unavailable for this device", error)
             } catch (error: Exception) {
-                val categories = setOf("AudioTooShort", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "AudioDecodeFailed", "MicrophonePermissionDenied", "AudioDeviceUnavailable", "MicrophoneReadFailed", "RateLimited")
+                val categories = setOf("Busy", "AudioTooShort", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "AudioDecodeFailed", "MicrophonePermissionDenied", "AudioDeviceUnavailable", "MicrophoneReadFailed", "RateLimited")
                 val code = when {
                     session.cancelled.get() -> "Cancelled"
                     error.message in categories -> error.message!!
@@ -207,14 +220,18 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
      * MediaExtractor accepts content:// directly through the provider's fd.
      * Decode packets until a bounded 12-second section is available; never read the entire file.
      */
-    private fun decodeFile(uri: Uri): ShortArray {
+    private fun decodeFile(uri: Uri, read: AudioFileRead): ShortArray {
         val extractor = MediaExtractor()
         var codec: MediaCodec? = null
+        var asset: android.content.res.AssetFileDescriptor? = null
         try {
-            context.contentResolver.openAssetFileDescriptor(uri, "r")?.use { asset ->
-                if (asset.length >= 0) extractor.setDataSource(asset.fileDescriptor, asset.startOffset, asset.length)
-                else extractor.setDataSource(asset.fileDescriptor)
-            } ?: throw IllegalStateException("FileUnavailable")
+            asset = context.contentResolver.openAssetFileDescriptor(uri, "r", read.signal)
+                ?: throw IllegalStateException("FileUnavailable")
+            read.asset.set(asset)
+            read.ensureActive()
+            if (asset.length >= 0) extractor.setDataSource(asset.fileDescriptor, asset.startOffset, asset.length)
+            else extractor.setDataSource(asset.fileDescriptor)
+            read.ensureActive()
             val index = (0 until extractor.trackCount).firstOrNull {
                 extractor.getTrackFormat(it).getString(MediaFormat.KEY_MIME)?.startsWith("audio/") == true
             } ?: throw IllegalStateException("NoAudioTrack")
@@ -240,12 +257,13 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             var sampleSum = 0L
             var sampleCount = 0
             while (!outputDone && outputCount < selected.size) {
-                ensureActive()
+                read.ensureActive()
                 if (!inputDone) {
                     val inputIndex = codec.dequeueInputBuffer(10_000)
                     if (inputIndex >= 0) {
                         val input = codec.getInputBuffer(inputIndex)!!
                         val size = extractor.readSampleData(input, 0)
+                        read.ensureActive()
                         if (size < 0) {
                             codec.queueInputBuffer(inputIndex, 0, 0, 0, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
                             inputDone = true
@@ -274,7 +292,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
                             if (firstTimeUs < 0) firstTimeUs = bufferInfo.presentationTimeUs
                             val frameCount = samples.remaining() / channels
                             for (frame in 0 until frameCount) {
-                                if ((frame and 2047) == 0) ensureActive()
+                                if ((frame and 2047) == 0) read.ensureActive()
                                 var sum = 0
                                 for (channel in 0 until channels) sum += samples.get()
                                 val mono = (sum / channels).toShort()
@@ -303,7 +321,9 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
         } finally {
             try { codec?.stop() } catch (_: Exception) {}
             try { codec?.release() } catch (_: Exception) {}
-            extractor.release()
+            runCatching { extractor.release() }
+            read.asset.compareAndSet(asset, null)
+            runCatching { asset?.close() }
         }
     }
 
@@ -355,6 +375,9 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
 
     override fun invalidate() {
         session.cancelled.set(true)
+        fileRead.get()?.cancel()
+        fileWorkers.shutdownNow()
+        fileCancellation.shutdown()
         try { recorder?.stop() } catch (_: Exception) {}
         connection?.disconnect()
         worker.shutdownNow()
@@ -387,5 +410,46 @@ internal class RecognitionSession {
         val completed = waiters.toList()
         waiters.clear()
         completed.forEach { it() }
+    }
+}
+
+
+internal class AudioFileRead(
+    private val executor: Executor,
+    private val cancellationExecutor: Executor,
+    operation: (AudioFileRead) -> ShortArray
+) {
+    val signal = CancellationSignal()
+    val asset = AtomicReference<Closeable?>()
+    private val cancelled = AtomicBoolean(false)
+    private val task = FutureTask<ShortArray> {
+        ensureActive()
+        operation(this).also { ensureActive() }
+    }
+
+    fun ensureActive() {
+        check(!cancelled.get() && !Thread.currentThread().isInterrupted) { "Cancelled" }
+    }
+
+    fun await(): ShortArray {
+        ensureActive()
+        try { executor.execute(task) }
+        catch (error: RejectedExecutionException) {
+            task.cancel(false)
+            throw IllegalStateException("Busy", error)
+        }
+        return try { task.get() }
+        catch (error: CancellationException) { throw IllegalStateException("Cancelled", error) }
+        catch (error: ExecutionException) { throw error.cause ?: error }
+    }
+
+    fun cancel() {
+        if (!cancelled.compareAndSet(false, true)) return
+        task.cancel(true)
+        // Provider cancellation and descriptor close may themselves block remote I/O.
+        runCatching { cancellationExecutor.execute {
+            runCatching { signal.cancel() }
+            runCatching { asset.getAndSet(null)?.close() }
+        } }
     }
 }

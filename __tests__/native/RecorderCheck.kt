@@ -19,7 +19,7 @@ fun checkRecorderStop(directory: File) {
         val failure = AtomicReference<Throwable?>()
         var captured = false
         val worker = Thread {
-            try { write.invoke(capture, output, {}, { captured = true }) }
+            try { check(write.invoke(capture, output, {}, { captured = true }) == false) { "Normal Stop marked the take interrupted" } }
             catch (error: Throwable) { failure.set(error.cause ?: error) }
         }
         try {
@@ -37,5 +37,49 @@ fun checkRecorderStop(directory: File) {
         }
     }
     AudioRecord.stoppedRead = -1
-    println("Actual recorder drained both zero and negative read results after Stop, preserving captured frames, tail and encoder EOS (device/codec stubs).")
+    for (terminal in listOf(0, -1, -6, null)) {
+        AudioRecord.failedRead = terminal
+        AudioRecord.throwRead = terminal == null
+        val capture = constructor.newInstance()
+        val output = File(directory, "interrupted-$terminal.pcm")
+        try {
+            val interrupted = write.invoke(capture, output, {}, {})
+            check(interrupted == true) { "Microphone failure was not reported as an interrupted take" }
+            check(MediaCodec.ended && output.length() == (4096L + 44100) * 4) { "Interrupted take lost frames or its fading tail" }
+        } finally {
+            release.invoke(capture)
+            output.delete()
+            AudioRecord.failedRead = null
+            AudioRecord.throwRead = false
+        }
+    }
+    AudioRecord.successfulReads = 0
+    AudioRecord.failedRead = -6
+    val emptyCapture = constructor.newInstance()
+    val emptyOutput = File(directory, "empty-interrupted.pcm")
+    try {
+        var rejected = false
+        try { write.invoke(emptyCapture, emptyOutput, {}, {}) } catch (_: java.lang.reflect.InvocationTargetException) { rejected = true }
+        check(rejected) { "An empty interrupted take was accepted" }
+    } finally {
+        release.invoke(emptyCapture)
+        emptyOutput.delete()
+        AudioRecord.successfulReads = 2
+        AudioRecord.failedRead = null
+    }
+    AudioRecord.failedRead = -6
+    MediaCodec.failEnd = true
+    val brokenCapture = constructor.newInstance()
+    val brokenOutput = File(directory, "broken-encoder.pcm")
+    try {
+        var rejected = false
+        try { write.invoke(brokenCapture, brokenOutput, {}, {}) } catch (_: java.lang.reflect.InvocationTargetException) { rejected = true }
+        check(rejected) { "Encoder failure was reported as a saved interrupted take" }
+    } finally {
+        release.invoke(brokenCapture)
+        brokenOutput.delete()
+        AudioRecord.failedRead = null
+        MediaCodec.failEnd = false
+    }
+    println("Actual recorder passed normal Stop, zero/negative/throwing microphone failures, empty capture rejection and encoder failure rejection; frames, processed tail and EOS preserved (device/codec stubs).")
 }

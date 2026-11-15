@@ -241,6 +241,7 @@
   "ResetCover": "Reset",
   "CoverError": "Could not open image",
   "CoverErrorHint": "Choose a JPEG, PNG or WebP image up to 20 MB.",
+  "RecordingInterrupted": "Recording interrupted. The recorded audio has been saved.",
   "RecordingProcessing": "Enhancing your recording…",
   "RecordingPolishFailed": "Audio enhancement failed. Your recording was kept unchanged.",
   "AutofillFindLyrics": "Find lyrics (LRCLIB)",

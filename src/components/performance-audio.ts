@@ -5,9 +5,16 @@ export interface Take {
   date: number;
   bytes: number;
   processing?: boolean;
+  interrupted?: boolean;
 }
 export interface PerformanceEvent {
-  state: "saved" | "error" | "stopped" | "processing" | "processingFailed";
+  state:
+    | "saved"
+    | "error"
+    | "stopped"
+    | "processing"
+    | "processingFailed"
+    | "interrupted";
   uri?: string;
 }
 const native = NativeModules.PerformanceAudio;
