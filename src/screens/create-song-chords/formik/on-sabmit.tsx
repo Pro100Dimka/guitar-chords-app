@@ -23,6 +23,7 @@ const onSabmit = async (
     contentSource,
     capo,
     tempo,
+    rhythm,
     sourceTuning,
     ...values
   }: FormValues,
@@ -48,6 +49,7 @@ const onSabmit = async (
       cover,
       contentSource,
       ...(tempo !== undefined ? { tempo } : {}),
+      ...rhythm,
       ...(capo !== undefined ? { capo, transpose: 0 } : {}),
       ...(sourceTuning ? { sourceTuning } : {})
     };

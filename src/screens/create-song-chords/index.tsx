@@ -52,6 +52,10 @@ export interface FormValues {
   cover: string;
   capo?: number;
   tempo?: number;
+  rhythm?: Pick<
+    SongPreferences,
+    "strum" | "strumMeter" | "strumDivision" | "strumPreset"
+  >;
   sourceTuning?: string;
   contentSource?: SongPreferences["contentSource"];
   content: string;

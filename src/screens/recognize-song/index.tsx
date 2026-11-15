@@ -241,6 +241,7 @@ export default function RecognizeSong() {
         ...next,
         cover,
         capo: selected?.capo,
+        rhythm: selected?.rhythm,
         sourceTuning: selected?.tuning,
         content: selected?.content ?? next.content,
         contentSource: selected

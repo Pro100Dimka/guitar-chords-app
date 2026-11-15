@@ -1,5 +1,6 @@
 import { songChords, transposeSong } from "../../screens/song/chords";
 import { Parser, parseDocument, DomUtils } from "htmlparser2";
+import { sourceRhythm } from "../../screens/song/rhythms";
 
 export interface LyricsOption {
   id: number;
@@ -10,6 +11,7 @@ export interface LyricsOption {
   duration: number | null;
   capo?: number;
   tuning?: string;
+  rhythm?: ReturnType<typeof sourceRhythm>;
   source:
     | "LRCLIB"
     | "Пісенник"
@@ -169,6 +171,22 @@ export async function lookupLyrics(
 const sameArtist = (expected: string, actual: string) =>
   normalize(primaryArtist(expected)).replace(/ /g, "") ===
   normalize(primaryArtist(actual)).replace(/ /g, "");
+
+function chartRhythm(
+  text: string,
+  metadata?: Parameters<typeof DomUtils.getChildren>[0] | null
+) {
+  return sourceRhythm(
+    [
+      text,
+      ...(metadata
+        ? DomUtils.getChildren(metadata).map((node) =>
+            DomUtils.textContent(node)
+          )
+        : [])
+    ].join("\n")
+  );
+}
 
 const sourceCooldowns = new Map<string, number>();
 async function fetchSource(url: string, signal?: AbortSignal, timeout = 12000) {
@@ -437,6 +455,7 @@ async function lookupPisennyk(
       ...identity,
       content: transposeSong(content, capo ?? 0),
       capo,
+      rhythm: chartRhythm(content, metadata),
       album: "",
       duration: null,
       source: "Пісенник",
@@ -661,6 +680,16 @@ async function lookupChordPage(
       content,
       capo,
       tuning,
+      rhythm: chartRhythm(
+        text,
+        DomUtils.findOne(
+          (element) =>
+            (element.attribs.class ?? "")
+              .split(/\s+/)
+              .includes("song-metadata"),
+          document.children
+        )
+      ),
       album: "",
       duration: null,
       source,
