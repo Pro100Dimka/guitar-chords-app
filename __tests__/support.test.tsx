@@ -129,7 +129,28 @@ test("reopening support reconciles a missed store purchase", async () => {
   expect(finishTransaction).toHaveBeenCalledTimes(1);
 });
 
-test("foreground and opening events share one pending store refresh", async () => {
+test("a known purchased receipt takes precedence over a stale pending snapshot on retry", async () => {
+  await open();
+  jest.mocked(finishTransaction).mockRejectedValueOnce(new Error("offline"));
+  await act(async () =>
+    mockCallbacks.onPurchaseSuccess!({ ...purchase, id: "order-123" })
+  );
+  jest
+    .mocked(getAvailablePurchases)
+    .mockResolvedValue([
+      { ...purchase, id: purchase.purchaseToken!, purchaseState: "pending" }
+    ]);
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Retry")!
+      .props.onPress()
+  );
+  expect(finishTransaction).toHaveBeenCalledTimes(2);
+  expect(payButton().props.disabled).toBe(false);
+});
+
+function observeAppState() {
   const listeners = new Set<(state: AppStateStatus) => void>();
   jest
     .spyOn(AppState, "addEventListener")
@@ -137,6 +158,26 @@ test("foreground and opening events share one pending store refresh", async () =
       listeners.add(listener);
       return { remove: () => listeners.delete(listener) };
     });
+  return (state: AppStateStatus) =>
+    listeners.forEach((listener) => listener(state));
+}
+
+test("foreground alone reconciles missed purchases while support stays closed", async () => {
+  const emit = observeAppState();
+  await open();
+  await act(async () => useSupport.setState({ visible: false }));
+  jest.mocked(getAvailablePurchases).mockResolvedValue([purchase]);
+  await act(async () => {
+    emit("background");
+    emit("active");
+  });
+  expect(getAvailablePurchases).toHaveBeenCalledTimes(2);
+  expect(finishTransaction).toHaveBeenCalledTimes(1);
+  expect(useSupport.getState().visible).toBe(false);
+});
+
+test("foreground and opening events share one pending store refresh", async () => {
+  const emit = observeAppState();
   await open();
   await act(async () => useSupport.setState({ visible: false }));
   let resolve!: (items: Purchase[]) => void;
@@ -147,8 +188,8 @@ test("foreground and opening events share one pending store refresh", async () =
       })
   );
   await act(async () => {
-    listeners.forEach((listener) => listener("background"));
-    listeners.forEach((listener) => listener("active"));
+    emit("background");
+    emit("active");
     useSupport.setState({ visible: true });
   });
   expect(getAvailablePurchases).toHaveBeenCalledTimes(2);

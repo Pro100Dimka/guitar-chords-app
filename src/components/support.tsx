@@ -123,7 +123,7 @@ export default function Support() {
           : getAvailablePurchases());
         const purchases = [
           ...new Map(
-            [...unfinished.current.values(), ...storePurchases].map((item) => [
+            [...storePurchases, ...unfinished.current.values()].map((item) => [
               purchaseKey(item),
               item
             ])
