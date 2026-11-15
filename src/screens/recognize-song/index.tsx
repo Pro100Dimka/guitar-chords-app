@@ -34,7 +34,8 @@ import { Action, Sheet } from "../song/tools";
 import {
   preferredSongContent,
   LyricsOption,
-  lookupSongContent
+  lookupSongContent,
+  lookupShazamTempo
 } from "../../components/song-autofill/lyrics";
 import {
   fileCanceled,
@@ -216,12 +217,20 @@ export default function RecognizeSong() {
       setLyricsNotice(
         next.content ? "AddSongLyricsNotice" : "AddSongLyricsUnavailable"
       );
-      const [lyrics, cover] = await Promise.all([
+      const [lyrics, cover, tempo] = await Promise.all([
         lookupSongContent(result.title, result.artist, abort.signal).then(
           (options) => ({ options, failed: false }),
           () => ({ options: [], failed: true })
         ),
-        readRemoteSongCover(result.cover ?? "", abort.signal).catch(() => "")
+        readRemoteSongCover(result.cover ?? "", abort.signal).catch(() => ""),
+        result.tempo !== undefined
+          ? Promise.resolve(result.tempo)
+          : lookupShazamTempo(
+              result.title,
+              result.artist,
+              result.url ?? "",
+              abort.signal
+            ).catch(() => undefined)
       ]);
       if (request !== generation.current) return;
       const candidates = preferredSongContent(
@@ -240,6 +249,7 @@ export default function RecognizeSong() {
       next = {
         ...next,
         cover,
+        ...(tempo !== undefined ? { tempo } : {}),
         capo: selected?.capo,
         rhythm: selected?.rhythm,
         sourceTuning: selected?.tuning,

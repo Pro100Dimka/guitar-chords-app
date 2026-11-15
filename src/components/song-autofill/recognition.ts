@@ -1,7 +1,6 @@
 import { AppState, NativeModules, Platform } from "react-native";
 import { pick, types } from "@react-native-documents/picker";
 import checkMicPermission from "../permissions";
-import { lookupShazamTempo } from "./lyrics";
 
 export interface RecognizedSong {
   title: string;
@@ -27,17 +26,6 @@ const native = (): NativeRecognizer => {
   return NativeModules.SongRecognition as NativeRecognizer;
 };
 let cancellation: Promise<void> = Promise.resolve();
-async function withTempo(result: RecognizedSong | null, signal?: AbortSignal) {
-  if (!result || result.tempo !== undefined) return result;
-  const tempo = await lookupShazamTempo(
-    result.title,
-    result.artist,
-    result.url ?? "",
-    signal
-  ).catch(() => undefined);
-  if (signal?.aborted) throw new Error("Cancelled");
-  return tempo === undefined ? result : { ...result, tempo };
-}
 export async function recognizeMicrophone(
   signal?: AbortSignal,
   onCaptureReady?: () => void
@@ -51,7 +39,7 @@ export async function recognizeMicrophone(
   await waitForAppActive(signal);
   const recognizer = native();
   onCaptureReady?.();
-  return withTempo(await recognizer.recognizeMicrophone(), signal);
+  return recognizer.recognizeMicrophone();
 }
 export async function waitForAppActive(signal?: AbortSignal) {
   while (AppState.currentState !== "active") {
@@ -93,7 +81,7 @@ export async function recognizeAudioFile(
   // Read the original content:// through Android's ContentResolver; never delete it.
   await cancellation;
   if (signal?.aborted) throw new Error("Cancelled");
-  return withTempo(await native().recognizeFile(file.uri), signal);
+  return native().recognizeFile(file.uri);
 }
 export async function cancelRecognition() {
   if (Platform.OS === "android" && NativeModules.SongRecognition) {

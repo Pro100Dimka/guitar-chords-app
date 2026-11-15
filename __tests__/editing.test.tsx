@@ -1327,28 +1327,39 @@ test.each([
       );
       const table = source.match(/const beatCounts=.*?;/)?.[0] ?? "";
       const counts: string[] = [];
+      const count = { textContent: "" };
+      const context = { currentTime: 0 };
+      const vm = require("node:vm");
+      const runtime = vm.createContext({
+        playing: true,
+        context,
+        practice: false,
+        start: 0,
+        next: 0,
+        tempo: 60,
+        meter: 4,
+        division,
+        pattern: "-",
+        step: 0,
+        chords: ["Am"],
+        singleStroke: false,
+        activeFingering: 0,
+        lastChord: -1,
+        arrangements: [],
+        bar: 0,
+        slot: 0,
+        patternStep: 0,
+        planKey: "",
+        scheduled: [],
+        count,
+        timer: 0,
+        setTimeout: () => 1,
+        labels: {}
+      });
+      vm.runInContext(table + tick + "tick();", runtime);
       for (let position = 0; position < division; position++) {
-        const count = { textContent: "" };
-        require("node:vm").runInNewContext(table + tick + "tick();", {
-          playing: true,
-          context: { currentTime: (position + 0.01) / division },
-          practice: false,
-          start: 0,
-          next: 100,
-          tempo: 60,
-          meter: 4,
-          division,
-          pattern: "-",
-          step: 0,
-          chords: ["Am"],
-          singleStroke: false,
-          activeFingering: 0,
-          lastChord: -1,
-          count,
-          timer: 0,
-          setTimeout: () => 1,
-          labels: {}
-        });
+        context.currentTime = (position + 0.01) / division;
+        vm.runInContext("tick();", runtime);
         counts.push(count.textContent.split(" · ")[1]);
       }
       expect(counts).toEqual(expected);

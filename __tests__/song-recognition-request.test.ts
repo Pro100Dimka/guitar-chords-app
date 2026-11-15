@@ -42,12 +42,16 @@ test("every declared Android ABI has a matching native fingerprint binary", () =
     x86_64: 62
   };
   const gradle = readFileSync("android/app/build.gradle", "utf8");
+  const nativeTargets =
+    gradle
+      .match(/def architectures =[\s\S]*?\.orElse\("([^"]+)"\)/)?.[1]
+      .split(",") ?? [];
   for (const abi of abis) {
     const binary = readFileSync(
       `android/app/src/main/jniLibs/${abi}/libfreetune_song_fingerprint.so`
     );
     expect(binary.subarray(0, 4).toString("hex")).toBe("7f454c46");
     expect(binary.readUInt16LE(18)).toBe(machines[abi]);
-    expect(gradle).toContain(`"-t", "${abi}"`);
+    expect(nativeTargets).toContain(abi);
   }
 });

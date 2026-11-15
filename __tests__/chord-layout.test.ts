@@ -104,7 +104,7 @@ test("blank-line runs in ChordPro directives cannot block the import process", (
   const code = `
  const fs=require('fs'),babel=require('@babel/core'),root=${JSON.stringify(root)};
  function load(file){const module={exports:{}};const source=babel.transformSync(fs.readFileSync(file,'utf8'),{filename:file,configFile:false,babelrc:false,presets:[['@babel/preset-env',{targets:{node:'current'}}],'@babel/preset-typescript']}).code;
- new Function('require','module','exports',source)(name=>name.endsWith('/song/chords')?load(root+'/screens/song/chords.ts'):name==='@/@interfaces'?{songFieldLimits:{title:1000,content:200000,band_name:1000,youtube_music:4000,youtobe_lesson:4000}}:{},module,module.exports);return module.exports;}
+ new Function('require','module','exports',source)(name=>(name.endsWith('/song/chords')||name==='./chords')?load(root+'/screens/song/chords.ts'):name.endsWith('/song/rhythms')?load(root+'/screens/song/rhythms.ts'):name==='@/@interfaces'?{songFieldLimits:{title:1000,content:200000,band_name:1000,youtube_music:4000,youtobe_lesson:4000}}:{},module,module.exports);return module.exports;}
  const {importedSong}=load(root+'/components/library-files.ts');
  for(const separator of ['\\n','\\u2028','\\u2029'])for(let i=0;i<3;i++){const result=importedSong('First line\\n'+separator.repeat(40000)+'[Am]Valid words','example.txt');if(!result.content.includes('Valid words'))throw Error('Lost words');}
  process.stdout.write('ok');`;
