@@ -17,6 +17,7 @@ import { Action, Sheet } from "../src/screens/song/tools";
 import { db } from "../src/components/database";
 import { getAllItems } from "../src/components/database/crud";
 import { FileSystem } from "react-native-file-access";
+import ImageResizer from "@bam.tech/react-native-image-resizer";
 import {
   saveDocuments,
   pick,
@@ -25,6 +26,7 @@ import {
 import {
   exportLibrary,
   readLibraryFile,
+  readSongCover,
   parseLibraryBackup,
   restoreLibrary
 } from "../src/components/library-files";
@@ -747,6 +749,45 @@ test("already-cancelled file reading never opens the picker", async () => {
   ).rejects.toMatchObject({ code: "cancelled" });
   expect(pick).not.toHaveBeenCalled();
 });
+
+test.each(["cancel", "timeout"])(
+  "cover processing releases a pending resize after %s and removes its late result",
+  async (exit) => {
+    let finish!: (
+      image: Awaited<ReturnType<typeof ImageResizer.createResizedImage>>
+    ) => void;
+    jest.mocked(ImageResizer.createResizedImage).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+    const controller = new AbortController();
+    const result = readSongCover(
+      "file:///original.jpg",
+      false,
+      controller.signal
+    ).catch((error) => error);
+    if (exit === "cancel") controller.abort();
+    else await jest.advanceTimersByTimeAsync(30000);
+    expect(await result).toMatchObject(
+      exit === "cancel" ? { code: "cancelled" } : { message: "FileReadError" }
+    );
+    finish({
+      uri: "file:///late-resized.jpg",
+      path: "/late-resized.jpg",
+      name: "late-resized.jpg",
+      size: 100,
+      width: 384,
+      height: 384
+    });
+    for (let i = 0; i < 5; i++) await Promise.resolve();
+    expect(FileSystem.unlink).toHaveBeenCalledWith("file:///late-resized.jpg");
+    expect(FileSystem.unlink).not.toHaveBeenCalledWith("file:///original.jpg");
+    expect(FileSystem.readFile).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  }
+);
 
 test.each(["stat", "readFile"] as const)(
   "backup cancellation interrupts a pending %s and cleans its local copy",

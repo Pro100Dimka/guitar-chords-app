@@ -361,6 +361,31 @@ export function chordLineParts(line: string, semitones = 0) {
     .filter(Boolean)
     .map((part) => transposeChord(part, semitones));
 }
+function expandTabs(content: string) {
+  if (!content.includes("\t")) return content;
+  let column = 0;
+  const expanded = content.replace(
+    /\[[^\[\]\n]+\]|[^\t\n\[]+|\t|\n|./gu,
+    (part) => {
+      if (part === "\n") {
+        column = 0;
+        return part;
+      }
+      if (part === "\t") {
+        const width = 8 - (column % 8);
+        column += width;
+        return " ".repeat(width);
+      }
+      if (
+        !part.startsWith("[") ||
+        !chordNotationPattern.test(normalizeChord(part.slice(1, -1)))
+      )
+        column += [...part].length;
+      return part;
+    }
+  );
+  return expanded.length > 200000 ? content : expanded;
+}
 function reflowChordPairs(content: string, semitones: number) {
   const lines = content.split("\n");
   const output: string[] = [];
@@ -372,7 +397,13 @@ function reflowChordPairs(content: string, semitones: number) {
       continue;
     }
     const anchors = chordRowAnchors(line);
-    if (!anchors || !lyrics?.trim() || isChordLine(lyrics)) {
+    if (
+      !anchors ||
+      !lyrics?.trim() ||
+      isChordLine(lyrics) ||
+      line.includes("\t") ||
+      lyrics.includes("\t")
+    ) {
       output.push(chordLineParts(line, semitones).join(""));
       continue;
     }
@@ -500,9 +531,11 @@ function anchoredRows(parsed: AnchoredLine) {
 
 // Only rows expanded by the editor may be folded back into inline chord anchors.
 export function createSongEditorState(content: string) {
+  const normalized = expandTabs(content);
+  if (normalized.includes("\t")) return { text: content, groups: [] };
   let text = "";
   const groups: { start: number; end: number }[] = [];
-  for (const line of content.split("\n")) {
+  for (const line of normalized.split("\n")) {
     const display = chordsAboveLyrics(line);
     if (text.length + display.length > 200000)
       return { text: content, groups: [] };
@@ -582,6 +615,9 @@ export function songContentFromEditor(
 }
 
 export function chordsAboveLyrics(content: string) {
+  const normalized = expandTabs(content);
+  if (normalized.includes("\t")) return content;
+  content = normalized;
   const result: string[] = [],
     normal: string[] = [];
   let size = 0;
@@ -646,7 +682,7 @@ export function songChordSequence(content: string) {
     );
 }
 export function transposeSong(content: string, semitones: number) {
-  const lines = sectionChordRows(content),
+  const lines = sectionChordRows(expandTabs(content)),
     result: string[] = [],
     normal: string[] = [];
   const flush = () => {
@@ -674,7 +710,13 @@ export function transposeSong(content: string, semitones: number) {
         continue;
       }
       const lyrics = lines[i + 1];
-      if (lyrics?.trim() && !isChordLine(lyrics) && !inlineChordLine(lyrics)) {
+      if (
+        lyrics?.trim() &&
+        !isChordLine(lyrics) &&
+        !inlineChordLine(lyrics) &&
+        !lines[i].includes("\t") &&
+        !lyrics.includes("\t")
+      ) {
         const pair = {
           lyrics,
           anchors: tokens.map((match) => ({

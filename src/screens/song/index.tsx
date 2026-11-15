@@ -88,7 +88,8 @@ const SongDetail: React.FC = () => {
     position: 0,
     content: 0,
     viewport: 0,
-    restored: false
+    restored: false,
+    target: preferences.position
   });
   const change = (patch: Partial<typeof preferences>) => {
     if (deletedSong.current !== songId) updateSong(songId, patch);
@@ -106,6 +107,8 @@ const SongDetail: React.FC = () => {
       if (isEdit) return;
       let active = true;
       metrics.current.restored = false;
+      metrics.current.target =
+        usePreferences.getState().songs[songId]?.position ?? 0;
       setLoading(true);
       getAllItems<ISong>({
         tableName: "songs",
@@ -138,7 +141,13 @@ const SongDetail: React.FC = () => {
     }, [songId, isEdit, savePosition, updateSong])
   );
   useEffect(() => {
-    metrics.current = { position: 0, content: 0, viewport: 0, restored: false };
+    metrics.current = {
+      position: 0,
+      content: 0,
+      viewport: 0,
+      restored: false,
+      target: usePreferences.getState().songs[songId]?.position ?? 0
+    };
   }, [songId, isEdit]);
   useEffect(() => {
     const updateAwake = (active: boolean) =>
@@ -167,6 +176,11 @@ const SongDetail: React.FC = () => {
     let previous = 0;
     const tick = (time: number) => {
       const bounds = metrics.current;
+      if (!bounds.restored) {
+        previous = 0;
+        frame = requestAnimationFrame(tick);
+        return;
+      }
       const end = Math.max(0, bounds.content - bounds.viewport);
       if (previous)
         bounds.position = Math.min(
@@ -204,17 +218,17 @@ const SongDetail: React.FC = () => {
     const bounds = metrics.current;
     if (!bounds.restored && bounds.content > 0 && bounds.viewport > 0) {
       bounds.position = Math.min(
-        preferences.position,
+        bounds.target,
         Math.max(0, bounds.content - bounds.viewport)
       );
-      bounds.restored = true;
+      bounds.restored = !content.virtualized || bounds.target === 0;
       scrollTo(bounds.position);
     }
   };
   const startScrolling = () => {
     const bounds = metrics.current;
     const end = Math.max(0, bounds.content - bounds.viewport);
-    if (end > 0 && bounds.position >= end - 1) {
+    if (bounds.restored && end > 0 && bounds.position >= end - 1) {
       bounds.position = 0;
       scrollTo(0);
     }
@@ -359,8 +373,13 @@ const SongDetail: React.FC = () => {
     scrollEventThrottle: 32,
     onScroll: ({ nativeEvent }) => {
       metrics.current.position = Math.max(0, nativeEvent.contentOffset.y);
+      if (Math.abs(metrics.current.position - metrics.current.target) < 1)
+        metrics.current.restored = true;
     },
-    onScrollBeginDrag: () => setPlaying(false),
+    onScrollBeginDrag: () => {
+      metrics.current.restored = true;
+      setPlaying(false);
+    },
     onScrollEndDrag: savePosition,
     onMomentumScrollEnd: savePosition
   };

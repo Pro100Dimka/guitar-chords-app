@@ -13,6 +13,8 @@ import { Action, Sheet } from "../src/screens/song/tools";
 import { getAllItems, deleteItem } from "../src/components/database/crud";
 import { usePreferences } from "../src/components/preferences";
 import { performanceAudio } from "../src/components/performance-audio";
+import { pick, keepLocalCopy } from "@react-native-documents/picker";
+import { FileSystem } from "react-native-file-access";
 jest.mock("../src/components/database/crud", () => ({
   getAllItems: jest.fn(),
   deleteItem: jest.fn()
@@ -782,3 +784,132 @@ test.each([
     jest.useRealTimers();
   }
 });
+
+test.each(["cancel", "timeout"])(
+  "pending cloud cover releases the editor after %s",
+  async (exit) => {
+    jest.useFakeTimers();
+    await change();
+    jest.mocked(pick).mockResolvedValue([
+      {
+        uri: "content://cover.jpg",
+        name: "cover.jpg",
+        size: 1024,
+        type: "image/jpeg",
+        nativeType: "image/jpeg",
+        error: null,
+        isVirtual: false,
+        convertibleToMimeTypes: null,
+        hasRequestedType: true
+      }
+    ]);
+    let finish!: (value: Awaited<ReturnType<typeof keepLocalCopy>>) => void;
+    jest.mocked(keepLocalCopy).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+    try {
+      await act(async () =>
+        screen.root
+          .find(
+            (node) =>
+              node.props.accessibilityLabel === "ChangeSongCover" &&
+              typeof node.props.onPress === "function"
+          )
+          .props.onPress()
+      );
+      const save = () =>
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "SaveSong")!;
+      expect(save().props.disabled).toBe(true);
+      if (exit === "cancel") {
+        await act(async () => trigger({ type: "GO_BACK" }));
+        expect(
+          jest
+            .mocked(Alert.alert)
+            .mock.calls.at(-1)?.[2]
+            ?.some((button) => button.text === "Cancel")
+        ).toBe(true);
+        await press("Cancel");
+      } else
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(60000);
+        });
+      expect(save().props.disabled).toBe(false);
+      await act(async () =>
+        finish([
+          {
+            status: "success",
+            localUri: "file:///late-cover.jpg",
+            sourceUri: "content://cover.jpg"
+          }
+        ])
+      );
+      expect(FileSystem.unlink).toHaveBeenCalledWith("file:///late-cover.jpg");
+      const form = () =>
+        screen.root.findAll(
+          (node) => node.props.formik && node.props.name === "title"
+        )[0].props.formik;
+      expect(form().values).toMatchObject({
+        title: "Draft",
+        content: "Am\nWords",
+        cover: ""
+      });
+      const action = { type: "GO_BACK" };
+      await act(async () => trigger(action));
+      await press("SaveSong");
+      expect(mockNavigation.dispatch).toHaveBeenCalledWith(action);
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
+  }
+);
+
+test.each([false, true])(
+  "virtualized reading retains its target until layout catches up: grow=%s",
+  async (grow) => {
+    jest.useFakeTimers();
+    await act(async () => screen.unmount());
+    mockParams = { id: "22" };
+    usePreferences.getState().updateSong(22, { position: 5000 });
+    jest
+      .mocked(getAllItems)
+      .mockResolvedValue([
+        { id: 22, title: "Long", content: "Words\n".repeat(301) }
+      ]);
+    try {
+      await act(async () => {
+        screen = Renderer.create(<Song />);
+      });
+      const list = screen.root.findByType(FlatList);
+      const scroll = jest
+        .spyOn(list.instance, "scrollToOffset")
+        .mockImplementation(() => {});
+      await act(async () => {
+        list.props.onLayout({ nativeEvent: { layout: { height: 400 } } });
+        list.props.onContentSizeChange(360, 800);
+        list.props.onScroll({ nativeEvent: { contentOffset: { y: 400 } } });
+      });
+      expect(scroll).toHaveBeenCalledWith({ offset: 400, animated: false });
+      if (grow) {
+        await act(async () => list.props.onContentSizeChange(360, 10000));
+        expect(scroll).toHaveBeenLastCalledWith({
+          offset: 5000,
+          animated: false
+        });
+        await act(async () =>
+          list.props.onScroll({ nativeEvent: { contentOffset: { y: 5000 } } })
+        );
+      }
+      await act(async () => screen.unmount());
+      expect(usePreferences.getState().songs[22].position).toBe(5000);
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
+  }
+);

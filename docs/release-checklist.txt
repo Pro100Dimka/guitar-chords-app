@@ -9,12 +9,15 @@ Proofs: E:/Releases/FreeTune/FreeTune-1.0-rc17-verification.json
 Media: E:/Releases/FreeTune/FreeTune-1.0-rc17-resource-verification.json
 Both APKs pass the strict 40000000-byte gate and use the prior test certificate.
 Install over the previous test version; no uninstall is needed.
-316 tests, TypeScript, full ESLint and SQLite passed. Two child-process timing
-fixtures timed out during an earlier concurrent Gradle run; the complete isolated
-rerun passed. No timeout threshold or test expectation was relaxed.
+Current source: 330 tests, TypeScript, full ESLint and SQLite passed.
+Five audit defects fixed: cancellable cover processing, stale string readings,
+tab-aligned chords, whitespace in capo directives and virtualized reading offsets.
+These source fixes are NOT included in the rc17 APKs listed above.
+The earlier APK verification used 316 tests; its isolated full run passed.
 R8 release assembly, signing, ZIP/ARM64 ELF alignment, exact current Hermes,
 144 chord strokes, unchanged tuner PCM and WebP assets passed packaging checks.
-All latest editor, backup/cancellation and large-document fixes are included.
+APK includes editor, backup/cancellation and large-document fixes through its
+recorded source commit. See source_audit_five for later source-only fixes.
 Both code and native APK entries are compressed. Installed size is larger because
 Android extracts native libraries; the 40 MB target applies to the APK file.
 No phone installation, physical playback/startup check or new AAB/IPA performed.

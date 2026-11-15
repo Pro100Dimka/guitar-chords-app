@@ -1,6 +1,7 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { AppState, TextInput } from "react-native";
+import { AppState, TextInput, Dimensions } from "react-native";
+import NoteIndicator from "../src/screens/tuner/note-indicator";
 import { Action } from "../src/screens/song/tools";
 import Tuner from "../src/screens/tuner/tuner";
 import RequireMicAccess from "../src/screens/tuner";
@@ -349,5 +350,83 @@ test("changing octave stops the reference and the next tap plays again", async (
     await act(async () => screen.unmount());
     usePreferences.setState(previous);
     play.mockRestore();
+  }
+});
+
+test("selecting a new string clears the previous measurement during reference playback", async () => {
+  jest.useFakeTimers();
+  const previous = usePreferences.getState();
+  const config = require("../src/screens/tuner/config");
+  const strings = config.instruments.guitar.stringNotes;
+  config.instruments.guitar.stringNotes = [
+    { name: "E", octave: 2 },
+    { name: "A", octave: 2 }
+  ];
+  usePreferences.setState({
+    instrument: "guitar",
+    autoDetect: true,
+    stringIndex: 0,
+    tuning: "standard"
+  });
+  let tap!: (point: { x: number; y: number }) => void;
+  jest
+    .spyOn(require("react-native-gesture-handler").Gesture, "Tap")
+    .mockImplementation(() => ({
+      onBegin: (callback: typeof tap) => {
+        tap = callback;
+        return {};
+      }
+    }));
+  jest.spyOn(guitarAudio, "playGuitar").mockImplementation(() => {});
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Tuner active />);
+    });
+    const listener = jest
+      .mocked(MicrophoneStream.addListener)
+      .mock.calls.at(-1)![0];
+    const measured = {
+      note: "E",
+      octave: 2,
+      pitch: 82.4069,
+      refFreq: 82.4069,
+      direction: "=" as const,
+      rms: 0.1,
+      diff: 0
+    };
+    await act(async () => listener(measured));
+    expect(screen.root.findByType(NoteIndicator).props.note.value.name).toBe(
+      "E"
+    );
+    const { width, height } = Dimensions.get("window");
+    const guitar = require("../src/screens/tuner/guitar-layout").guitarLayout(
+      width,
+      height
+    );
+    await act(async () =>
+      tap({ x: guitar.stringLeft + guitar.stringWidth, y: 10 })
+    );
+    expect(screen.root.findByType(NoteIndicator).props.currString.name).toBe(
+      "A"
+    );
+    expect(screen.root.findByType(NoteIndicator).props.note.value).toBeNull();
+    for (let i = 0; i < 3; i++) {
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(1000);
+        listener(measured);
+      });
+      expect(screen.root.findByType(NoteIndicator).props.note.value).toBeNull();
+    }
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(101);
+      listener({ ...measured, note: "A", pitch: 110, refFreq: 110 });
+    });
+    expect(
+      screen.root.findByType(NoteIndicator).props.note.value
+    ).toMatchObject({ name: "A", pitch: 110 });
+  } finally {
+    await act(async () => screen.unmount());
+    config.instruments.guitar.stringNotes = strings;
+    usePreferences.setState(previous);
   }
 });

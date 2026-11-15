@@ -29,48 +29,108 @@ const maxBytes = 5 * 1024 * 1024;
 export const fileCanceled = (error: unknown) =>
   isErrorWithCode(error) && error.code === errorCodes.OPERATION_CANCELED;
 
-export async function readSongCover(uri?: string, rotate = !!uri) {
+function fileRead(signal?: AbortSignal) {
+  const cancelled = () =>
+    Object.assign(new Error("Cancelled"), {
+      code: errorCodes.OPERATION_CANCELED
+    });
+  if (signal?.aborted) throw cancelled();
+  let stopped: Error | undefined;
+  let reject!: (error: Error) => void;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const interrupted = new Promise<never>((_resolve, fail) => {
+    reject = fail;
+  });
+  const stop = (error: Error) => {
+    stopped = error;
+    reject(error);
+  };
+  const abort = () => stop(cancelled());
+  signal?.addEventListener("abort", abort, { once: true });
+  return {
+    wait<T>(promise: Promise<T>, discard?: (value: T) => Promise<unknown>) {
+      return Promise.race([
+        promise.then((value) => {
+          if (stopped && discard) void discard(value).catch(() => undefined);
+          return value;
+        }),
+        interrupted
+      ]);
+    },
+    start() {
+      timer = setTimeout(() => stop(new Error("FileReadError")), 30000);
+    },
+    finish() {
+      if (timer !== undefined) clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+    }
+  };
+}
+
+export async function readSongCover(
+  uri?: string,
+  rotate = !!uri,
+  signal?: AbortSignal
+) {
+  const read = fileRead(signal);
   let localUri: string | undefined;
   let resizedUri: string | undefined;
   try {
     if (!uri) {
-      const [file] = await pick({
-        type: [types.images],
-        allowMultiSelection: false
-      });
+      const [file] = await read.wait(
+        pick({
+          type: [types.images],
+          allowMultiSelection: false
+        })
+      );
+      read.start();
       if (file.size !== null && file.size > 20 * 1024 * 1024)
         throw new Error("FileTooLarge");
-      const [copy] = await keepLocalCopy({
-        destination: "cachesDirectory",
-        files: [
-          {
-            uri: file.uri,
-            fileName: `cover-${Date.now()}.${file.name?.split(".").pop() ?? "jpg"}`
-          }
-        ]
-      });
+      const [copy] = await read.wait(
+        keepLocalCopy({
+          destination: "cachesDirectory",
+          files: [
+            {
+              uri: file.uri,
+              fileName: `cover-${Date.now()}-${Math.random().toString(36).slice(2)}.${file.name?.split(".").pop() ?? "jpg"}`
+            }
+          ]
+        }),
+        (copies) =>
+          Promise.all(
+            copies.map((copy) =>
+              copy.status === "success"
+                ? FileSystem.unlink(copy.localUri)
+                : Promise.resolve()
+            )
+          )
+      );
       if (copy.status !== "success") throw new Error("FileReadError");
       localUri = copy.localUri;
-      if ((await FileSystem.stat(localUri)).size > 20 * 1024 * 1024)
+      if ((await read.wait(FileSystem.stat(localUri))).size > 20 * 1024 * 1024)
         throw new Error("FileTooLarge");
-    }
-    const resized = await ImageResizer.createResizedImage(
-      uri ?? localUri!,
-      384,
-      384,
-      "JPEG",
-      82,
-      rotate ? 90 : 0,
-      undefined,
-      false,
-      { mode: "contain", onlyScaleDown: true }
+    } else read.start();
+    const resized = await read.wait(
+      ImageResizer.createResizedImage(
+        uri ?? localUri!,
+        384,
+        384,
+        "JPEG",
+        82,
+        rotate ? 90 : 0,
+        undefined,
+        false,
+        { mode: "contain", onlyScaleDown: true }
+      ),
+      (image) => FileSystem.unlink(image.uri)
     );
     resizedUri = resized.uri;
-    const cover = `data:image/jpeg;base64,${await FileSystem.readFile(resized.uri, "base64")}`;
+    const cover = `data:image/jpeg;base64,${await read.wait(FileSystem.readFile(resized.uri, "base64"))}`;
     if (cover.length > 300000) throw new Error("FileTooLarge");
     return cover;
   } finally {
-    await Promise.all(
+    read.finish();
+    void Promise.all(
       [localUri, resizedUri]
         .filter((path): path is string => !!path)
         .map((path) => FileSystem.unlink(path).catch(() => undefined))
@@ -92,7 +152,7 @@ export async function readRemoteSongCover(url: string, signal: AbortSignal) {
   try {
     const response = await request.result;
     if (!response.ok || signal.aborted) return "";
-    return await readSongCover(`file://${path}`, false);
+    return await readSongCover(`file://${path}`, false, signal);
   } finally {
     clearTimeout(timer);
     signal.removeEventListener("abort", abort);
@@ -104,32 +164,11 @@ export async function readLibraryFile(
   kind: "song" | "backup",
   signal?: AbortSignal
 ) {
-  let stopped: Error | undefined;
-  let reject!: (error: Error) => void;
-  let timer: ReturnType<typeof setTimeout> | undefined;
+  const read = fileRead(signal);
   let localUri: string | undefined;
-  const interrupted = new Promise<never>((_resolve, fail) => {
-    reject = fail;
-  });
-  const stop = (error: Error) => {
-    stopped = error;
-    reject(error);
-  };
-  const abort = () =>
-    stop(
-      Object.assign(new Error("Cancelled"), {
-        code: errorCodes.OPERATION_CANCELED
-      })
-    );
-  const wait = <T>(promise: Promise<T>) => Promise.race([promise, interrupted]);
-  signal?.addEventListener("abort", abort, { once: true });
   try {
-    if (signal?.aborted) {
-      abort();
-      await interrupted;
-    }
-    const [file] = await wait(pick({ allowMultiSelection: false }));
-    timer = setTimeout(() => stop(new Error("FileReadError")), 30000);
+    const [file] = await read.wait(pick({ allowMultiSelection: false }));
+    read.start();
     const extension = file.name?.split(".").pop()?.toLowerCase() ?? "";
     if (
       !(
@@ -139,7 +178,7 @@ export async function readLibraryFile(
       throw new Error("FileFormatError");
     if (file.size !== null && file.size > maxBytes)
       throw new Error("FileTooLarge");
-    const [copy] = await wait(
+    const [copy] = await read.wait(
       keepLocalCopy({
         destination: "cachesDirectory",
         files: [
@@ -148,20 +187,22 @@ export async function readLibraryFile(
             fileName: `freetune-import-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`
           }
         ]
-      }).then((copies) => {
-        if (stopped)
-          for (const copy of copies)
-            if (copy.status === "success")
-              void FileSystem.unlink(copy.localUri).catch(() => undefined);
-        return copies;
-      })
+      }),
+      (copies) =>
+        Promise.all(
+          copies.map((copy) =>
+            copy.status === "success"
+              ? FileSystem.unlink(copy.localUri)
+              : Promise.resolve()
+          )
+        )
     );
     if (copy.status !== "success") throw new Error("FileReadError");
     localUri = copy.localUri;
-    const stat = await wait(FileSystem.stat(localUri));
+    const stat = await read.wait(FileSystem.stat(localUri));
     if (stat.size > maxBytes) throw new Error("FileTooLarge");
     const bytes = toByteArray(
-      await wait(FileSystem.readFile(localUri, "base64"))
+      await read.wait(FileSystem.readFile(localUri, "base64"))
     );
     if (bytes.length > maxBytes) throw new Error("FileTooLarge");
     for (let i = 0; i < bytes.length; ) {
@@ -194,14 +235,13 @@ export async function readLibraryFile(
         if (byte < min || byte > max) throw new Error("FileEncodingError");
       }
     }
-    const text = (await wait(FileSystem.readFile(localUri, "utf8")))
+    const text = (await read.wait(FileSystem.readFile(localUri, "utf8")))
       .replace(/^\uFEFF/, "")
       .replace(/\r\n?/g, "\n");
     if (text.includes("\0")) throw new Error("FileEncodingError");
     return { text, name: file.name ?? "" };
   } finally {
-    if (timer !== undefined) clearTimeout(timer);
-    signal?.removeEventListener("abort", abort);
+    read.finish();
     if (localUri) await FileSystem.unlink(localUri).catch(() => undefined);
   }
 }
@@ -215,17 +255,19 @@ export function importedSong(text: string, name: string) {
       )?.[1]
       ?.trim() ?? name.replace(/\.[^.]+$/, "");
   if (title.length > songFieldLimits.title) throw new Error("FileTooLarge");
-  const capo = Math.min(
-    12,
-    Number(text.match(/\{capo:[^\S\r\n\u2028\u2029]*(\d+)\}/i)?.[1] ?? 0)
-  );
+  const capoDirective =
+    /\{capo:[^\S\r\n\u2028\u2029]*(\d+)[^\S\r\n\u2028\u2029]*\}/i;
+  const capo = Math.min(12, Number(text.match(capoDirective)?.[1] ?? 0));
   const sourceTuning = text
     .match(/\{tuning:[^\S\r\n\u2028\u2029]*([^{}\r\n]+)\}/i)?.[1]
     ?.trim();
   const content = text
     .replace(
-      /^[^\S\r\n\u2028\u2029]*\{(?:title|t|capo|tuning):[^{}\r\n]+\}[^\S\r\n\u2028\u2029]*$/gim,
-      ""
+      /^[^\S\r\n\u2028\u2029]*\{(title|t|capo|tuning):[^{}\r\n]+\}[^\S\r\n\u2028\u2029]*$/gim,
+      (line, directive: string) =>
+        directive.toLowerCase() === "capo" && !capoDirective.test(line)
+          ? line
+          : ""
     )
     .trim();
   if (!content) throw new Error("FileFormatError");

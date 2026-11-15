@@ -8,7 +8,7 @@ import {
   NavigationAction
 } from "@react-navigation/native";
 import { Formik, FormikHelpers, useFormikContext } from "formik";
-import React, { memo, useCallback, useRef, useState } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -68,11 +68,13 @@ interface ICreateChordSongProps {
 export function SongEditorGuard({
   allowLeave,
   pendingExit,
-  busy = false
+  busy = false,
+  onCancelCover
 }: {
   allowLeave: { current: boolean };
   pendingExit: { current: NavigationAction | null };
   busy?: boolean;
+  onCancelCover: () => void;
 }) {
   const formik = useFormikContext<FormValues>();
   const navigation = useNavigation<NavigationProp>();
@@ -93,7 +95,14 @@ export function SongEditorGuard({
         navigation.dispatch(action);
         return;
       }
-      if (formik.isSubmitting || busy) return;
+      if (formik.isSubmitting) return;
+      if (busy) {
+        Alert.alert(t("ChangeSongCover"), t("FileLoading"), [
+          { text: t("StayInEditor"), style: "cancel" },
+          { text: t("Cancel"), onPress: onCancelCover }
+        ]);
+        return;
+      }
       Alert.alert(t("UnsavedSong"), undefined, [
         { text: t("StayInEditor"), style: "cancel" },
         {
@@ -129,6 +138,20 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const [extras, setExtras] = useState(false);
     const [coverBusy, setCoverBusy] = useState(false);
     const coverPending = useRef(false);
+    const coverRequest = useRef<AbortController | null>(null);
+    const cancelCover = () => {
+      coverRequest.current?.abort();
+      coverRequest.current = null;
+      coverPending.current = false;
+      setCoverBusy(false);
+    };
+    useEffect(
+      () => () => {
+        coverRequest.current?.abort();
+        coverRequest.current = null;
+      },
+      []
+    );
     const { width, height } = useWindowDimensions();
     const insets = useSafeAreaInsets();
     const form = useRef<View>(null);
@@ -234,6 +257,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                   allowLeave={allowLeave}
                   pendingExit={pendingExit}
                   busy={coverBusy}
+                  onCancelCover={cancelCover}
                 />
                 <ScrollView
                   style={styles.flex}
@@ -254,21 +278,33 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       style={[styles.cover, width < 360 && styles.coverNarrow]}
                       onPress={() => {
                         const changeCover = async (rotate = false) => {
+                          const request = new AbortController();
+                          coverRequest.current = request;
                           coverPending.current = true;
                           setCoverBusy(true);
                           try {
-                            await formik.setFieldValue(
-                              "cover",
-                              await readSongCover(
-                                rotate ? formik.values.cover : undefined
-                              )
+                            const cover = await readSongCover(
+                              rotate ? formik.values.cover : undefined,
+                              rotate,
+                              request.signal
                             );
+                            if (
+                              coverRequest.current === request &&
+                              !request.signal.aborted
+                            )
+                              await formik.setFieldValue("cover", cover);
                           } catch (error) {
-                            if (!fileCanceled(error))
+                            if (
+                              coverRequest.current === request &&
+                              !fileCanceled(error)
+                            )
                               Alert.alert(t("CoverError"), t("CoverErrorHint"));
                           } finally {
-                            coverPending.current = false;
-                            setCoverBusy(false);
+                            if (coverRequest.current === request) {
+                              coverRequest.current = null;
+                              coverPending.current = false;
+                              setCoverBusy(false);
+                            }
                           }
                         };
                         if (!formik.values.cover) {

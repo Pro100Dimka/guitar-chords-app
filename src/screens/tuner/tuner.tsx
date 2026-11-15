@@ -370,6 +370,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const selectString = (index: number) => {
     const string = strings?.[index];
     if (!string) return;
+    note.value = null;
+    rms.value = 0;
     previewUntil.current = Date.now() + 3100;
     if (cueTimer.current !== undefined) clearTimeout(cueTimer.current);
     playGuitar([(string.octave + 1) * 12 + noteNames.indexOf(string.name)]);

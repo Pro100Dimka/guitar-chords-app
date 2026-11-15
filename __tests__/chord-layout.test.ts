@@ -3,7 +3,8 @@ import {
   transposeChord,
   transposeSong,
   songContentFromEditor,
-  createSongEditorState
+  createSongEditorState,
+  songChordSequence
 } from "../src/screens/song/chords";
 import { importedSong } from "../src/components/library-files";
 
@@ -155,4 +156,36 @@ test("editing accepted maximum-size text does not expand it past the save limit"
   const saved = songContentFromEditor(source, edited, state);
   expect(saved.length).toBe(edited.length);
   expect(saved === edited).toBe(true);
+});
+
+test.each(["import", "editor"])(
+  "tab stops preserve word-aligned chords through %s",
+  (path) => {
+    const source = "C\tG\nHello\tworld";
+    const state = createSongEditorState(source);
+    const content =
+      path === "import"
+        ? importedSong(source, "song.txt").content
+        : songContentFromEditor(source, state.text + "!", state);
+    const visible = chordsAboveLyrics(content).split("\n");
+    expect(visible[1]).toBe(path === "import" ? "Hello world" : "Hello world!");
+    expect(visible[0].indexOf("G")).toBe(visible[1].indexOf("world"));
+    expect(songChordSequence(content)).toEqual(["C", "G"]);
+  }
+);
+
+test.each(["2", "2 ", "2\t", " 2\t "])(
+  "capo directive accepts surrounding whitespace: %j",
+  (value) => {
+    const song = importedSong(`{capo: ${value}}\n[Am]Words`, "song.pro");
+    expect(song.capo).toBe(2);
+    expect(songChordSequence(song.content)).toEqual(["Bm"]);
+    expect(transposeSong(song.content, -song.capo)).toBe("[Am]Words");
+  }
+);
+
+test("an unparsed capo directive stays in the imported text", () => {
+  const song = importedSong("{capo: two }\n[Am]Words", "song.pro");
+  expect(song.capo).toBe(0);
+  expect(song.content).toContain("{capo: two }");
 });

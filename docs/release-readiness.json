@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 316,
-      "status": "316 tests in 19 suites passed locally after final resource changes, without concurrent Gradle compilation. An earlier concurrent run timed out two bounded child-process startup fixtures; isolated complete rerun passed. TypeScript, full ESLint and SQLite passed; source CI JS also passed."
+      "tests": 330,
+      "status": "330 tests in 19 suites passed locally after five audit fixes. Fourteen added regressions cover cloud cover cancellation/deadlines, late resized-file cleanup, string switching, tabs, capo directives and virtualized reading restoration."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1487,5 +1487,26 @@
       "native": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43743871466"
     },
     "retained_generated_resource_path": "E:/CodexTemp/freetune-ui-polish/app-build/generated/res/react/release"
+  },
+  "source_audit_five": {
+    "date": "2026-11-15",
+    "baseline": "All five audit scenarios reproduced on source 7b785d1 before implementation; eleven new assertions failed and one numeric capo control passed.",
+    "changes": [
+      "Cover copying, stat, resizing and reading share a 30-second post-picker deadline. Leaving a busy editor offers cancellation without discarding the song draft; cancelled or superseded cover results cannot update the form.",
+      "Late local copies and resized images are removed. Native providers that do not support abort may continue internally; UI cancellation rejects their late results.",
+      "Selecting a guitar string clears the previous measurement before preview suppression, keeping the new target separate from stale frequency data.",
+      "Chord layout expands tab stops by visual columns before import, editor conversion and transposition, with the existing document-size budget retained.",
+      "ChordPro numeric capo directives accept trailing horizontal whitespace. An unparsed capo directive remains visible instead of being silently discarded.",
+      "Virtualized reading keeps the original saved offset until reached, retries after content measurements and does not persist an intermediate clamp. Explicit dragging takes control; autoscroll waits for restoration."
+    ],
+    "verification": [
+      "330 Jest tests in 19 suites passed locally.",
+      "TypeScript, full ESLint with zero warnings and SQLite integration passed."
+    ],
+    "limits": [
+      "Native picker, resizer and scrolling boundaries are controlled in component regressions. No physical cloud-provider, frame-rate or phone measurement is claimed.",
+      "No design or media resources changed. No new APK, AAB or IPA was built for these fixes. Existing rc17 APKs predate this audit work.",
+      "Full native iOS archive, device interruptions/routes/billing, labeled tuner recall, branch protection and separately evaluated external-service smoke results remain outstanding."
+    ]
   }
 }
