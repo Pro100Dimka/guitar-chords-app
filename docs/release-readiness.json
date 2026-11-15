@@ -1075,7 +1075,7 @@
     "sections": "One shared section pattern separates labels from chord-only rows before normalization/transposition. Labels, all chords and lyric words survive editor conversion, save-content normalization, reopening and transposition.",
     "recording_permission": "Recorder reuses the existing abortable foreground wait from recognition after microphone permission. Leaving the screen or unmounting aborts pending start. Active capture still stops on background.",
     "rhythm_feedback": "Catalogue lists unsupported chords using existing text styles and disables audition actions. Playback confirmation, rather than tapping a button, changes the action to Pause.",
-    "native_scheduling": "Bounded pending queue replaces zero-capacity handoff. Cancelled queued futures are removed. Deterministic afterExecute barriers reproduce the old false Busy window and verify admission before workers return; provider phases wait for explicit task-finished signals rather than sleeping.",
+    "native_scheduling": "Bounded pending queue replaces zero-capacity handoff. Cancelled queued futures are removed. Deterministic afterExecute barriers reproduce the old false Busy window and verify admission before workers return; provider phases wait for explicit task-finished signals rather than sleeping. A second admission barrier verifies cancellation immediately before enqueue also removes the cancelled task.",
     "baseline_reproductions": [
       "Section/chord inputs threw an undefined anchor error or lost labels/chords.",
       "Permission resolved while backgrounded, then active: zero native recording starts.",

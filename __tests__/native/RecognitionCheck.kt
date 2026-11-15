@@ -55,6 +55,30 @@ fun checkRecognitionCancellation() {
         accepted.join(2000)
         check(!accepted.isAlive && next.get() == null) { "Completed reads caused false Busy: ${next.get()}" }
     } finally { returnWorkers.countDown(); scheduling.shutdownNow(); check(scheduling.awaitTermination(2, TimeUnit.SECONDS)) }
+    val providerBlocked = CountDownLatch(1)
+    val providerRunning = CountDownLatch(1)
+    val admission = CountDownLatch(1)
+    val resumeAdmission = CountDownLatch(1)
+    val admissions = AtomicInteger()
+    val admissionPool = object : ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, ArrayBlockingQueue<Runnable>(2)) {
+        override fun execute(task: Runnable) {
+            if (admissions.incrementAndGet() == 2) { admission.countDown(); resumeAdmission.await() }
+            super.execute(task)
+        }
+    }
+    admissionPool.execute { providerRunning.countDown(); providerBlocked.await() }
+    val pendingRead = AudioFileRead(admissionPool, Executor { it.run() }) { error("Cancelled admission executed") }
+    val pendingWaiter = Thread { runCatching { pendingRead.await() } }.apply { start() }
+    try {
+        check(providerRunning.await(2, TimeUnit.SECONDS) && admission.await(2, TimeUnit.SECONDS))
+        pendingRead.cancel()
+        resumeAdmission.countDown()
+        pendingWaiter.join(2000)
+        check(!pendingWaiter.isAlive && admissionPool.queue.isEmpty()) { "Cancellation before enqueue left a pending task" }
+    } finally {
+        resumeAdmission.countDown(); providerBlocked.countDown(); pendingRead.cancel(); pendingWaiter.join(2000)
+        admissionPool.shutdownNow(); check(admissionPool.awaitTermination(2, TimeUnit.SECONDS))
+    }
     val finishedTasks = LinkedBlockingQueue<Boolean>()
     val submittedTasks = LinkedBlockingQueue<Runnable>()
     val executor = object : ThreadPoolExecutor(2, 2, 0, TimeUnit.SECONDS, ArrayBlockingQueue<Runnable>(2)) {

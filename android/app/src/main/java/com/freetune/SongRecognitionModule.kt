@@ -438,6 +438,7 @@ internal class AudioFileRead(
             task.cancel(false)
             throw IllegalStateException("Busy", error)
         }
+        if (cancelled.get()) (executor as? ThreadPoolExecutor)?.remove(task)
         return try { task.get() }
         catch (error: CancellationException) { throw IllegalStateException("Cancelled", error) }
         catch (error: ExecutionException) { throw error.cause ?: error }
