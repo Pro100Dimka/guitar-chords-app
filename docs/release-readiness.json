@@ -1,5 +1,5 @@
 {
-  "build": 17,
+  "build": 18,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
@@ -36,7 +36,7 @@
       "original_open_string_takes": 11,
       "status": "Original approved WAVs preserved outside repository; gapless mobile chord banks and measured-pitch string references prepared."
     },
-    "android_bundle": "VersionCode 17 ARM64 and ARM32 test APKs assembled with R8; both below 40000000 bytes. Signature, exact current Hermes hash, compressed bundle/native entries, extractNativeLibs, all 144 owner-recorded strokes, six unchanged tuner PCM references, WebP guide assets, ZIP integrity, 16KB ZIP alignment and ARM64 ELF alignment passed. No AAB or physical device test.",
+    "android_bundle": "VersionCode 18 ARM64 and ARM32 test APKs assembled with R8 and release lint; both below 40000000 bytes. Prior test signature, current rebuilt Hermes hash, latest audit properties, all 144 strokes, six unchanged tuner PCM references, WebP guides, ZIP integrity and ZIP/ARM64 ELF 16KB alignment passed. Native binaries match verified rc17 because native sources are unchanged. No new AAB or physical-device test.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "macOS 15 CI compiled and executed extracted production Swift pitch, capture lifecycle and recording-file methods. Capture route fixtures cover seven unavailable/invalid routes, retries and setup failures; file fixtures use real AAC. Full React Native iOS app/archive, real AVAudioSession and device checks remain unverified.",
     "device_tests": "owner to perform",
@@ -1530,6 +1530,100 @@
       "Provider HTML and StoreKit boundaries use controlled fixtures; no claim of current catalog coverage or real billing validation.",
       "No design, audio or image resources changed. No new APK, AAB or IPA built. Existing rc17 APKs do not include these source fixes.",
       "Physical devices, full native iOS archive, StoreKit Sandbox, audio routes/interruptions, labeled tuner recall and branch protection remain outstanding. Optional external-service smoke steps require separate outcome review."
+    ]
+  },
+  "android_rc18": {
+    "status": "signed_release_test_apks_verified",
+    "version_code": 18,
+    "source_commit": "f954876878a93fbe5f670a2e5ba9a405211575ff",
+    "artifacts": [
+      {
+        "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc18-armeabi-v7a.apk",
+        "abi": "armeabi-v7a",
+        "versionCode": 18,
+        "bytes": 38196005,
+        "sha256": "bd89f850bca7ec21cea2b74807f719922bdb33167b3b5fe4f7eb15dc1533925a",
+        "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+        "bundleSha256": "af6883eaebe28d2be1d1ec670ca498573ec3ea6b4520c644c7f39bcdad1bd3dc",
+        "standaloneHermes": true,
+        "ownerRecordedStrokes": 144,
+        "rhythmPresets": 15,
+        "latestChromaticStrings": true,
+        "latestSongLookupStrings": true,
+        "nativeRecognitionLyrics": true,
+        "preparedNativePlayback": true,
+        "updatedGuide": true,
+        "manropeAssets": [
+          "assets/fonts/Manrope-OFL.txt",
+          "assets/fonts/Manrope-Regular.ttf",
+          "assets/fonts/Manrope-SemiBold.ttf"
+        ],
+        "nativeLibraries": 22,
+        "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+        "navigationFragmentNames": "preserved",
+        "zipIntegrity": "passed",
+        "source_commit": "f954876878a93fbe5f670a2e5ba9a405211575ff",
+        "latestBassAndLayout": true,
+        "nativeFileDeadlines": true,
+        "max_apk_bytes": 40000000,
+        "bundle_compressed": true,
+        "native_libraries_compressed": true,
+        "extractNativeLibs": true,
+        "native_libraries_match_rc17": true,
+        "includes_audits": [
+          "source_audit_five",
+          "source_audit_six"
+        ]
+      },
+      {
+        "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc18-arm64-v8a.apk",
+        "abi": "arm64-v8a",
+        "versionCode": 18,
+        "bytes": 39901981,
+        "sha256": "364f5a0ec1af1a3dbc78154d253d055a6df9312e0aebba2aa2e9d0dd4fa1684d",
+        "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+        "bundleSha256": "af6883eaebe28d2be1d1ec670ca498573ec3ea6b4520c644c7f39bcdad1bd3dc",
+        "standaloneHermes": true,
+        "ownerRecordedStrokes": 144,
+        "rhythmPresets": 15,
+        "latestChromaticStrings": true,
+        "latestSongLookupStrings": true,
+        "nativeRecognitionLyrics": true,
+        "preparedNativePlayback": true,
+        "updatedGuide": true,
+        "manropeAssets": [
+          "assets/fonts/Manrope-OFL.txt",
+          "assets/fonts/Manrope-Regular.ttf",
+          "assets/fonts/Manrope-SemiBold.ttf"
+        ],
+        "nativeLibraries": 22,
+        "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+        "navigationFragmentNames": "preserved",
+        "zipIntegrity": "passed",
+        "source_commit": "f954876878a93fbe5f670a2e5ba9a405211575ff",
+        "latestBassAndLayout": true,
+        "nativeFileDeadlines": true,
+        "max_apk_bytes": 40000000,
+        "bundle_compressed": true,
+        "native_libraries_compressed": true,
+        "extractNativeLibs": true,
+        "native_libraries_match_rc17": true,
+        "includes_audits": [
+          "source_audit_five",
+          "source_audit_six"
+        ]
+      }
+    ],
+    "verification_report": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc18-verification.json",
+    "build_log": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc18-build.log",
+    "source_checks": "343 Jest tests, TypeScript, full ESLint and actual SQLite passed before packaging; source commit cff3d75 CI passed.",
+    "changes": [
+      "Includes the five c62c099 audit fixes and six cff3d75 follow-up fixes.",
+      "VersionCode increased to 18. Existing resource compression, audio bank and design unchanged."
+    ],
+    "limits": [
+      "Uses the prior test certificate. Install over the prior matching test APK, not an unrelated signed build.",
+      "No physical phone, native iOS archive, actual store billing or AAB test. Historical audit notes describe validation before packaging."
     ]
   }
 }
