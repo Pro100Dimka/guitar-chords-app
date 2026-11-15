@@ -7,7 +7,7 @@
     "javascript": {
       "suites": 19,
       "tests": 266,
-      "status": "Passed locally: 19 suites, 266 tests. New real-editor SQL regressions cover dense chord edits, unchanged musical annotations and opening recordings over an unsaved draft."
+      "status": "Passed locally and in current source CI: 19 suites, 266 tests. Real-editor SQL regressions cover dense chord edits, unchanged musical annotations and opening recordings over an unsaved draft."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1126,6 +1126,11 @@
       "iOS container relocation is simulated at the native boundary, not tested through a physical iPhone update.",
       "Branch protection unchanged; device, Bluetooth/call and full native iOS app checks remain outstanding."
     ],
-    "design_changes": false
+    "design_changes": false,
+    "source_ci": {
+      "commit": "6b21cdf5e25485c7c5bad6d324a0d69b523f51bd",
+      "status": "Passed, including Jest, SQLite integration, TypeScript, ESLint and the independently checked live LRCLIB step.",
+      "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43716962399"
+    }
   }
 }
