@@ -271,6 +271,7 @@ export default function RecognizeSong() {
       const categories: Record<string, string> = {
         AudioTooShort: "AutofillAudioTooShort",
         FileUnavailable: "AutofillFileUnavailable",
+        FileReadTimeout: "AutofillFileReadTimeout",
         NoAudioTrack: "AutofillNoAudioTrack",
         UnsupportedPcmFormat: "AutofillUnsupportedAudio",
         UnsupportedAudio: "AutofillUnsupportedAudio",

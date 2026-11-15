@@ -57,6 +57,7 @@ fun checkRecognitionCancellation() {
     } finally { returnWorkers.countDown(); scheduling.shutdownNow(); check(scheduling.awaitTermination(2, TimeUnit.SECONDS)) }
     val providerBlocked = CountDownLatch(1)
     val providerRunning = CountDownLatch(1)
+    val providerExited = CountDownLatch(1)
     val admission = CountDownLatch(1)
     val resumeAdmission = CountDownLatch(1)
     val admissions = AtomicInteger()
@@ -66,7 +67,7 @@ fun checkRecognitionCancellation() {
             super.execute(task)
         }
     }
-    admissionPool.execute { providerRunning.countDown(); providerBlocked.await() }
+    admissionPool.execute { try { providerRunning.countDown(); providerBlocked.await() } finally { providerExited.countDown() } }
     val pendingRead = AudioFileRead(admissionPool, Executor { it.run() }) { error("Cancelled admission executed") }
     val pendingWaiter = Thread { runCatching { pendingRead.await() } }.apply { start() }
     try {
@@ -77,6 +78,7 @@ fun checkRecognitionCancellation() {
         check(!pendingWaiter.isAlive && admissionPool.queue.isEmpty()) { "Cancellation before enqueue left a pending task" }
     } finally {
         resumeAdmission.countDown(); providerBlocked.countDown(); pendingRead.cancel(); pendingWaiter.join(2000)
+        check(providerExited.await(2, TimeUnit.SECONDS))
         admissionPool.shutdownNow(); check(admissionPool.awaitTermination(2, TimeUnit.SECONDS))
     }
     val finishedTasks = LinkedBlockingQueue<Boolean>()
@@ -133,6 +135,20 @@ fun checkRecognitionCancellation() {
                 repeat(2) { check(finishedTasks.poll(2, TimeUnit.SECONDS) == true) }
             } finally { provider.countDown(); fileWorker.join(2000) }
         }
+        val readGate = CountDownLatch(1)
+        val readClosed = CountDownLatch(1)
+        val timedSource = AudioFileRead(executor, cancellationExecutor, readTimeoutMs = 50) { job ->
+            try {
+                while (readGate.count > 0) try { readGate.await() } catch (_: InterruptedException) {}
+                job.ensureActive()
+                shortArrayOf(5)
+            } finally { readClosed.countDown() }
+        }
+        try {
+            var timeout: Throwable? = null
+            try { timedSource.await() } catch (error: Throwable) { timeout = error }
+            check(timeout?.message == "FileReadTimeout") { "Blocked source did not report its deadline" }
+        } finally { timedSource.cancel(); readGate.countDown(); check(readClosed.await(2, TimeUnit.SECONDS)) }
         val gate = CountDownLatch(1)
         val entered = CountDownLatch(2)
         val jobs = (1..2).map {
@@ -159,6 +175,15 @@ fun checkRecognitionCancellation() {
                 check(!queuedWaiter.isAlive && queuedResult.get()?.message == "Cancelled")
                 check(executor.queue.isEmpty()) { "Cancelled pending read still occupies the bounded queue" }
             } finally { queued.cancel(); queuedWaiter.join(2000) }
+            val timedRead = AudioFileRead(executor, cancellationExecutor, startTimeoutMs = 50) { invoked.incrementAndGet(); shortArrayOf(9) }
+            val timedResult = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            val timedWaiter = Thread { try { timedRead.await() } catch (error: Throwable) { timedResult.set(error) } }.apply { start() }
+            try {
+                timedWaiter.join(2000)
+                check(!timedWaiter.isAlive && timedResult.get()?.message == "Busy") { "Two abandoned providers leave the next file waiting indefinitely" }
+                check(invoked.get() == 0 && executor.queue.isEmpty())
+            } finally { timedRead.cancel(); timedWaiter.join(2000) }
+
 
         } finally { gate.countDown(); waiters.forEach { it.join(2000) } }
     } finally {
@@ -167,5 +192,5 @@ fun checkRecognitionCancellation() {
         check(executor.awaitTermination(2, TimeUnit.SECONDS))
         check(cancellationExecutor.awaitTermination(2, TimeUnit.SECONDS))
     }
-    println("Recognition cancellation passed: blocked cloud open/read cancel within 1 second, retry works, stale data is rejected, descriptors close, decoder concurrency stays bounded to two; provider/device stubs.")
+    println("Recognition cancellation passed: blocked cloud open/read cancel within 1 second, retry works, stale data is rejected, descriptors close, decoder concurrency stays bounded to two, queued reads fail Busy and blocked sources report FileReadTimeout; provider/device stubs.")
 }

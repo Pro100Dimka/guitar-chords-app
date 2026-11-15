@@ -373,6 +373,8 @@ test("immediate retry waits until native cancellation finishes", async () => {
 test.each([
   ["AudioTooShort", "AutofillAudioTooShort"],
   ["FileUnavailable", "AutofillFileUnavailable"],
+  ["FileReadTimeout", "AutofillFileReadTimeout"],
+  ["Busy", "AutofillBusy"],
   ["NoAudioTrack", "AutofillNoAudioTrack"],
   ["UnsupportedPcmFormat", "AutofillUnsupportedAudio"]
 ])("local file error %s has a specific explanation", async (code, message) => {

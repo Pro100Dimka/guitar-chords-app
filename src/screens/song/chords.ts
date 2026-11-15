@@ -498,8 +498,86 @@ function anchoredRows(parsed: AnchoredLine) {
   return [...rows, lyrics];
 }
 
-export function songContentFromEditor(_previous: string, edited: string) {
-  return transposeSong(edited, 0);
+// Only rows expanded by the editor may be folded back into inline chord anchors.
+export function createSongEditorState(content: string) {
+  let text = "";
+  const groups: { start: number; end: number }[] = [];
+  for (const line of content.split("\n")) {
+    const display = chordsAboveLyrics(line);
+    const parsed = inlineChordLine(line);
+    if (parsed && hasInternalChord(parsed) && display.split("\n").length > 2)
+      groups.push({
+        start: text.length,
+        end: text.length + display.lastIndexOf("\n") + 1
+      });
+    text += display + "\n";
+  }
+  return { text: text.slice(0, -1), groups };
+}
+
+export function songContentFromEditor(
+  previous: string,
+  edited: string,
+  state = createSongEditorState(previous)
+) {
+  let prefix = 0,
+    suffix = 0;
+  while (
+    prefix < Math.min(state.text.length, edited.length) &&
+    state.text[prefix] === edited[prefix]
+  )
+    prefix++;
+  while (
+    suffix < Math.min(state.text.length, edited.length) - prefix &&
+    state.text[state.text.length - suffix - 1] ===
+      edited[edited.length - suffix - 1]
+  )
+    suffix++;
+  const oldEnd = state.text.length - suffix,
+    newEnd = edited.length - suffix;
+  const delta = edited.length - state.text.length;
+  const inserted = edited.slice(prefix, newEnd);
+  const rowDelta =
+    inserted.split("\n").length -
+    state.text.slice(prefix, oldEnd).split("\n").length;
+  state.groups = state.groups.flatMap(({ start, end }) => {
+    if (oldEnd <= start && (prefix < start || inserted.includes("\n")))
+      return [{ start: start + delta, end: end + delta }];
+    if (prefix >= end) return [{ start, end }];
+    if (prefix >= start && oldEnd <= end && rowDelta === 0)
+      return [{ start, end: end + delta }];
+    return [];
+  });
+  state.text = edited;
+  const parts: string[] = [];
+  let previousEnd = 0;
+  for (const { start, end } of state.groups) {
+    if ((start > 0 && edited[start - 1] !== "\n") || edited[end - 1] !== "\n")
+      continue;
+    const rows = edited.slice(start, end).split("\n").slice(0, -1);
+    const tokens = rows.map(chordRowAnchors);
+    if (tokens.some((row) => !row)) continue;
+    const newline = edited.indexOf("\n", end);
+    const lyricEnd = newline < 0 ? edited.length : newline;
+    const lyrics = edited.slice(end, lyricEnd);
+    if (!lyrics.trim() || isChordLine(lyrics)) continue;
+    const inline = inlineChordLine(lyrics);
+    const anchors = tokens.flatMap((row) =>
+      row!.map((match) => ({
+        chord: normalizeChord(match[0]),
+        column: match.index
+      }))
+    );
+    anchors.push(...(inline?.anchors ?? []));
+    anchors.sort((a, b) => a.column - b.column);
+    parts.push(
+      edited.slice(previousEnd, start),
+      anchoredContent({ lyrics: inline?.lyrics ?? lyrics, anchors })
+    );
+    previousEnd = lyricEnd;
+  }
+  parts.push(edited.slice(previousEnd));
+  return transposeSong(parts.join(""), 0);
 }
 
 export function chordsAboveLyrics(content: string) {
@@ -563,43 +641,36 @@ export function transposeSong(content: string, semitones: number) {
   };
   for (let i = 0; i < lines.length; i++) {
     let parsed = inlineChordLine(lines[i]);
-    let paired = false;
-    let lyricIndex = i + 1;
-    let lastChordRow = i;
-    if (!parsed && chordRowAnchors(lines[i])) {
-      const anchors: AnchoredLine["anchors"] = [];
-      let row = i;
-      for (; row < lines.length; row++) {
-        const tokens = chordRowAnchors(lines[row]);
-        if (!tokens) break;
-        for (const match of tokens) {
-          anchors.push({
+    const tokens = chordRowAnchors(lines[i]);
+    if (!parsed && tokens) {
+      let end = i + 1;
+      while (end < lines.length && chordRowAnchors(lines[end])) end++;
+      if (end > i + 1) {
+        for (; i < end; i++) normal.push(lines[i]);
+        i--;
+        continue;
+      }
+      const lyrics = lines[i + 1];
+      if (lyrics?.trim() && !isChordLine(lyrics) && !inlineChordLine(lyrics)) {
+        parsed = {
+          lyrics,
+          anchors: tokens.map((match) => ({
             chord: normalizeChord(match[0]),
             column: match.index
-          });
-        }
-      }
-      lastChordRow = row - 1;
-      if (lines[row]?.trim() && !isChordLine(lines[row])) {
-        const inline = inlineChordLine(lines[row]);
-        parsed = {
-          lyrics: inline?.lyrics ?? lines[row],
-          anchors: [...anchors, ...(inline?.anchors ?? [])].sort(
-            (a, b) => a.column - b.column
-          )
+          }))
         };
-        paired = true;
-        lyricIndex = row;
+        if (hasInternalChord(parsed)) {
+          flush();
+          result.push(anchoredContent(parsed, semitones));
+          i++;
+          continue;
+        }
       }
     }
     if (parsed && hasInternalChord(parsed)) {
       flush();
       result.push(anchoredContent(parsed, semitones));
-      if (paired) i = lyricIndex;
-    } else {
-      for (; i <= lastChordRow; i++) normal.push(lines[i]);
-      i--;
-    }
+    } else normal.push(lines[i]);
   }
   flush();
   return result.join("\n");

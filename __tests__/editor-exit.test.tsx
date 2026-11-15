@@ -518,3 +518,58 @@ test("opening recordings from deletion while editing preserves the draft", async
   ).toHaveLength(0);
   expect(mockNavigation.popTo).not.toHaveBeenCalled();
 });
+
+test.each([false, true])(
+  "real editor preserves ordinary chord order on save and paste: paste=%s",
+  async (paste) => {
+    await act(async () => screen.unmount());
+    const saved: string[] = [];
+    jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+      const tx: SQLTransaction = {
+        executeSql: (sql, args, done) => {
+          if (sql.startsWith("UPDATE songs")) saved.push(String(args![1]));
+          done?.(tx, {
+            rowsAffected: 1,
+            insertId: 22,
+            rows: { length: 0, item: jest.fn() }
+          });
+        }
+      };
+      body(tx);
+      success?.();
+    });
+    await act(async () => {
+      screen = Renderer.create(
+        <Editor
+          song={{
+            id: 22,
+            title: "Sequence",
+            content: paste ? "" : "Am C\nF G\nHello world"
+          }}
+          setIsEdit={() => {}}
+        />
+      );
+    });
+    const form = () =>
+      screen.root.findAll(
+        (node) => node.props.formik && node.props.name === "title"
+      )[0].props.formik;
+    if (paste) {
+      await act(async () =>
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "EditLyrics")!
+          .props.onPress()
+      );
+      await act(async () =>
+        screen.root
+          .findAllByType(TextInput)
+          .find((node) => node.props.accessibilityLabel === "ChordsLyrics")!
+          .props.onChangeText("Am C\nF G\nHello world")
+      );
+    }
+    await act(async () => form().submitForm());
+    const { songChordSequence } = require("../src/screens/song/chords");
+    expect(songChordSequence(saved[0])).toEqual(["Am", "C", "F", "G"]);
+  }
+);

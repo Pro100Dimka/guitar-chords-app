@@ -1,7 +1,8 @@
 import {
   chordsAboveLyrics,
   transposeSong,
-  songContentFromEditor
+  songContentFromEditor,
+  createSongEditorState
 } from "../song/chords";
 // src/screens/create-song-chords/index.tsx
 import {
@@ -139,6 +140,9 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
     const lyricsInput = useRef<TextInput>(null);
     const [editingLyrics, setEditingLyrics] = useState(false);
     const [lyricsDraft, setLyricsDraft] = useState("");
+    const lyricsState = useRef<
+      ReturnType<typeof createSongEditorState> | undefined
+    >(undefined);
     const [formTop, setFormTop] = useState(0);
     const navigation = useNavigation<NavigationProp>();
     const localExitAllowed = useRef(false);
@@ -426,9 +430,10 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       label={t("EditLyrics")}
                       onPress={() => {
                         Keyboard.dismiss();
-                        setLyricsDraft(
-                          chordsAboveLyrics(formik.values.content)
+                        lyricsState.current = createSongEditorState(
+                          formik.values.content
                         );
+                        setLyricsDraft(lyricsState.current.text);
                         setEditingLyrics(true);
                       }}
                     />
@@ -438,7 +443,10 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     accessibilityLabel={t("EditLyrics")}
                     onPress={() => {
                       Keyboard.dismiss();
-                      setLyricsDraft(chordsAboveLyrics(formik.values.content));
+                      lyricsState.current = createSongEditorState(
+                        formik.values.content
+                      );
+                      setLyricsDraft(lyricsState.current.text);
                       setEditingLyrics(true);
                     }}
                     style={styles.lyricsPreview}
@@ -527,7 +535,8 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                                 "content",
                                 songContentFromEditor(
                                   formik.values.content,
-                                  text
+                                  text,
+                                  lyricsState.current
                                 )
                               );
                             }

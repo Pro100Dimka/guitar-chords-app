@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 266,
-      "status": "Passed locally and in current source CI: 19 suites, 266 tests. Real-editor SQL regressions cover dense chord edits, unchanged musical annotations and opening recordings over an unsaved draft."
+      "tests": 271,
+      "status": "Passed locally: 19 suites, 271 tests. Includes ordinary chord-row order on editor save/paste, editor-origin dense chord recovery, and native timeout message routing."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -24,7 +24,8 @@
       "full_register_combinations": 336,
       "full_register_frames": 3360,
       "octave_transition_regressions": 4,
-      "octave_transition_frames": 240
+      "octave_transition_frames": 240,
+      "recall_qualification": "Outstanding: repository WAVs are not labeled per frame. Passing register checks do not establish note recall, stable-onset latency or dropout rates; six-string labeled recordings and device checks are required."
     },
     "audio_bank": {
       "source": "Owner-provided acoustic guitar recordings",
@@ -1132,5 +1133,31 @@
       "status": "Passed, including Jest, SQLite integration, TypeScript, ESLint and the independently checked live LRCLIB step.",
       "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43716962399"
     }
+  },
+  "chord_order_and_file_deadline_review": {
+    "base_commit": "c484dc4da3ffc9700561e0f825a6f054577b22ed",
+    "before": [
+      "Real Editor/Formik SQL save changed Am,C,F,G into Am,F,G,C.",
+      "After two cancelled but blocked providers, a local file queued indefinitely without starting or returning Busy."
+    ],
+    "chord_order": "Default normalization preserves consecutive chord rows in row order. Only rows whose ranges were created by the editor from a canonical inline-chord line may be folded back by column. Editor-local range tracking survives line insertions and intermediate invalid chord names, independent of changing Formik content. Pasted ordinary rows receive no such provenance.",
+    "file_deadlines": {
+      "start_ms": 1000,
+      "read_ms": 30000,
+      "outcomes": "Failure to start reports Busy. Source/decode timeout reports FileReadTimeout with localized guidance. Timeout cancels and removes queued futures; cancellation still releases waiters promptly. Blocked provider threads remain bounded to two."
+    },
+    "local_verification": [
+      "271 Jest tests in 19 suites passed.",
+      "TypeScript and zero-warning ESLint passed; actual SQLite integration passed.",
+      "Native Kotlin suite passed, including two blocked/cancelled providers followed by an unstarted local decode returning Busy, a running blocked source returning FileReadTimeout, late-result cancellation, normal retry and bounded resource ownership.",
+      "Android compileReleaseKotlin passed using installed SDK and reused unchanged fingerprint libraries. No APK/AAB built."
+    ],
+    "qualification_gaps": [
+      "Existing tuner WAV checks lack per-frame voicing labels. The 6th_E.wav result is not a measured physical-phone recall score. Record annotated six-string tests for recall, stable onset, decay gaps and octave/string transitions.",
+      "Full native iOS application integration, AVAudioSession, calls, Bluetooth and physical devices remain unverified. Swift method CI is not an iOS archive.",
+      "Existing rc15 APKs and the historical AAB do not include current source fixes. Build and verify a uniquely identified final candidate before submission.",
+      "Repository branch protection remains unchanged and is not claimed enforced."
+    ],
+    "design_changes": false
   }
 }

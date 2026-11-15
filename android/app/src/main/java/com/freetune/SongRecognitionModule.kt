@@ -57,7 +57,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             ensureActive()
             read.await()
         } catch (error: Exception) {
-            if (session.cancelled.get() || error.message in setOf("Busy", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "Cancelled")) throw error
+            if (session.cancelled.get() || error.message in setOf("Busy", "FileReadTimeout", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "Cancelled")) throw error
             throw IllegalStateException(if (error is java.io.IOException || error is SecurityException) "FileUnavailable" else "AudioDecodeFailed", error)
         } finally {
             fileRead.compareAndSet(read, null)
@@ -125,7 +125,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             } catch (error: LinkageError) {
                 promise.reject("RecognitionUnsupported", "Audio recognition is unavailable for this device", error)
             } catch (error: Exception) {
-                val categories = setOf("Busy", "AudioTooShort", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "AudioDecodeFailed", "MicrophonePermissionDenied", "AudioDeviceUnavailable", "MicrophoneReadFailed", "RateLimited")
+                val categories = setOf("Busy", "FileReadTimeout", "AudioTooShort", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "AudioDecodeFailed", "MicrophonePermissionDenied", "AudioDeviceUnavailable", "MicrophoneReadFailed", "RateLimited")
                 val code = when {
                     session.cancelled.get() -> "Cancelled"
                     error.message in categories -> error.message!!
@@ -417,12 +417,16 @@ internal class RecognitionSession {
 internal class AudioFileRead(
     private val executor: Executor,
     private val cancellationExecutor: Executor,
+    private val startTimeoutMs: Long = 1_000,
+    private val readTimeoutMs: Long = 30_000,
     operation: (AudioFileRead) -> ShortArray
 ) {
     val signal = CancellationSignal()
     val asset = AtomicReference<Closeable?>()
     private val cancelled = AtomicBoolean(false)
+    private val started = CountDownLatch(1)
     private val task = FutureTask<ShortArray> {
+        started.countDown()
         ensureActive()
         operation(this).also { ensureActive() }
     }
@@ -439,7 +443,13 @@ internal class AudioFileRead(
             throw IllegalStateException("Busy", error)
         }
         if (cancelled.get()) (executor as? ThreadPoolExecutor)?.remove(task)
-        return try { task.get() }
+        if (!started.await(startTimeoutMs, TimeUnit.MILLISECONDS)) {
+            cancel()
+            throw IllegalStateException("Busy")
+        }
+        ensureActive()
+        return try { task.get(readTimeoutMs, TimeUnit.MILLISECONDS) }
+        catch (error: TimeoutException) { cancel(); throw IllegalStateException("FileReadTimeout", error) }
         catch (error: CancellationException) { throw IllegalStateException("Cancelled", error) }
         catch (error: ExecutionException) { throw error.cause ?: error }
     }
@@ -447,6 +457,7 @@ internal class AudioFileRead(
     fun cancel() {
         if (!cancelled.compareAndSet(false, true)) return
         task.cancel(true)
+        started.countDown()
         (executor as? ThreadPoolExecutor)?.remove(task)
         // Provider cancellation and descriptor close may themselves block remote I/O.
         runCatching { cancellationExecutor.execute {
