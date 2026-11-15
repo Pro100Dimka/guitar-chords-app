@@ -202,7 +202,7 @@ const Buttons = ({
           ]}
         >
           <Image
-            source={require("../../../assets/images/tuner-button-wood.png")}
+            source={require("../../../assets/images/tuner-button-wood.webp")}
             accessible={false}
             style={[
               StyleSheet.absoluteFillObject,

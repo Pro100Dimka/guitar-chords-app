@@ -422,7 +422,7 @@ export default function RecognizeSong() {
             source={
               found.cover
                 ? { uri: found.cover }
-                : require("../../../assets/images/screen-background/gold-splash.png")
+                : require("../../../assets/images/screen-background/gold-splash.webp")
             }
             style={styles.cover}
           />

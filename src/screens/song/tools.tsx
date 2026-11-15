@@ -35,7 +35,7 @@ import {
   selectedChordShape
 } from "../../components/acoustic-player";
 import { performanceAudio } from "../../components/performance-audio";
-import guitarBackground from "../../../assets/images/gold-background.png";
+import guitarBackground from "../../../assets/images/gold-background.webp";
 import {
   chordShapeOptions,
   easierPositions,

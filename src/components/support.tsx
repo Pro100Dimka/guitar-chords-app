@@ -131,7 +131,7 @@ export default function Support() {
       onClose={() => useSupport.setState({ visible: false })}
     >
       <Image
-        source={require("../../assets/images/gold-heart.png")}
+        source={require("../../assets/images/gold-heart.webp")}
         style={[
           supportStyles.heroIcon,
           height < 500 && supportStyles.compactHero

@@ -29,7 +29,7 @@ import {
   RouteProp
 } from "@react-navigation/native";
 import { useTranslation } from "react-i18next";
-import guitarBgSong from "../../../assets/images/gold-background.png";
+import guitarBgSong from "../../../assets/images/gold-background.webp";
 import CreateChordSong from "../create-song-chords";
 import SongRecorder from "./recorder";
 import SongModal from "./header-modal";

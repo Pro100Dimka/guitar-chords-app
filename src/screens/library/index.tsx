@@ -289,7 +289,7 @@ const Library: React.FC = () => {
       {!loading && !loadError && songs.length === 0 && (
         <ScrollView contentContainerStyle={styles.noSongsContainer}>
           <Image
-            source={require("../../../assets/images/gold-folder.png")}
+            source={require("../../../assets/images/gold-folder.webp")}
             style={[styles.glow, height < 650 && styles.compactGlow]}
           />
           <Text style={styles.noSongsText}>{t("NoSongs")}</Text>

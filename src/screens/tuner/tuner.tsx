@@ -469,8 +469,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
             onError={() => setRenderError(true)}
             source={
               landscape
-                ? require("../../../assets/images/screen-background/tuner-grand-auditorium-landscape.png")
-                : require("../../../assets/images/screen-background/tuner-grand-auditorium.png")
+                ? require("../../../assets/images/screen-background/tuner-grand-auditorium-landscape.webp")
+                : require("../../../assets/images/screen-background/tuner-grand-auditorium.webp")
             }
             style={[styles.artwork, guitar.artwork]}
             resizeMode="stretch"

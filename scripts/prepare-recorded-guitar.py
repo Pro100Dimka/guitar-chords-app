@@ -15,10 +15,10 @@ def run(args, data=None):
                           capture_output=True, check=True).stdout
 
 
-def encoded(data, rate, path):
+def encoded(data, rate, path, quality=4.25):
     path.parent.mkdir(parents=True, exist_ok=True)
     run(["-y", "-f", "f32le", "-ar", str(rate), "-ac", str(data.shape[1]), "-i", "pipe:0",
-         "-c:a", "libmp3lame", "-b:a", "192k", str(path)],
+         "-c:a", "libmp3lame", "-q:a", str(quality), "-ar", str(rate), str(path)],
         np.asarray(data, dtype="<f4").tobytes())
     return base64.b64encode(path.read_bytes()).decode()
 
@@ -44,15 +44,20 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("bank", type=Path)
     parser.add_argument("strings", type=Path)
+    parser.add_argument("--quality", type=float, default=4.25)
+    parser.add_argument("--work-dir", type=Path)
     args = parser.parse_args()
+    if not 0 <= args.quality <= 9:
+        parser.error("quality must be between 0 and 9")
     root = Path(__file__).resolve().parents[1]
+    mobile = args.work_dir or args.bank / "mobile"
     manifest = json.loads((args.bank / "manifest.json").read_text(encoding="utf-8"))
     recordings = {}
     for entry in manifest["files"]:
         raw = run(["-i", str(args.bank / entry["path"]), "-f", "f32le", "pipe:1"])
         data = np.frombuffer(raw, dtype="<f4").reshape(-1, 2)
         recordings.setdefault(entry["chord"], {"down": [], "up": []})[entry["direction"]].append({
-            "audio": encoded(data, 48000, args.bank / "mobile" / entry["path"].replace(".wav", ".mp3")), "level": float(np.sqrt(np.mean(data[:16800] ** 2)))
+            "audio": encoded(data, 48000, mobile / entry["path"].replace(".wav", ".mp3"), args.quality), "level": float(np.sqrt(np.mean(data[:16800] ** 2)))
         })
     raw = run(["-t", "115", "-i", str(args.strings), "-ac", "1", "-ar", "22050", "-f", "f32le", "pipe:1"])
     data = np.frombuffer(raw, dtype="<f4")
@@ -73,8 +78,8 @@ def main():
         samples.append({"string": string, "midi": midi,
                         "softMidi": 69 + 12 * np.log2(soft[1] / 440),
                         "mediumMidi": 69 + 12 * np.log2(medium[1] / 440),
-                        "soft": encoded(soft[0][:, None], 22050, args.bank / "mobile" / "strings" / f"{string}_soft.mp3"),
-                        "medium": encoded(medium[0][:, None], 22050, args.bank / "mobile" / "strings" / f"{string}_medium.mp3")})
+                        "soft": encoded(soft[0][:, None], 22050, mobile / "strings" / f"{string}_soft.mp3", args.quality),
+                        "medium": encoded(medium[0][:, None], 22050, mobile / "strings" / f"{string}_medium.mp3", args.quality)})
         part, frequency = soft
         pcm = np.clip(part * min(8, .65 / max(abs(part))), -1, 1)
         references.append({"frequency": frequency, "pcm": base64.b64encode(

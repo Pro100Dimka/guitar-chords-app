@@ -197,7 +197,7 @@ export default function SongRecorder({
         }
       >
         <Image
-          source={require("../../../assets/images/gold-record-button.png")}
+          source={require("../../../assets/images/gold-record-button.webp")}
           style={styles.recordImage}
         />
       </Pressable>

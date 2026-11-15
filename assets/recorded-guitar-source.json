@@ -10,8 +10,8 @@
   "up_per_chord": 3,
   "strings": 6,
   "missing_variant": "E2 has one available recorded attack; shared for soft and medium string synthesis.",
-  "format": "Gapless 192 kbps MP3 with Xing/LAME encoder-delay metadata, original stereo chord recordings and mono 22050 Hz strings; tuner PCM is 16-bit mono 22050 Hz.",
-  "preparation": "scripts/prepare-recorded-guitar.py; source WAV masters unchanged. Chord masters approved before encoding. No looping or time stretching.",
+  "format": "Gapless MP3 VBR quality 4.25 with Xing/LAME encoder-delay metadata, encoded directly from approved WAV masters; stereo chords stay 48000 Hz, mono synthesis strings are 22050 Hz, tuner PCM is unchanged 16-bit mono 22050 Hz.",
+  "preparation": "scripts/prepare-recorded-guitar.py --quality 4.25; source WAV masters unchanged. All 144 strokes retain their 8.4-second duration. No looping, time stretching, envelope editing or extra normalization.",
   "rhythm_order": "Practical order by broad pop/rock usefulness, not a measured global popularity ranking. Old Faithful first, basic quarter/eighth patterns next, style-specific patterns later.",
   "rhythm_sources": [
     "https://www.justinguitar.com/advanced_search?q=strum",

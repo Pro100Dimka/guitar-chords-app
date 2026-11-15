@@ -26,9 +26,9 @@ const LibraryItem: React.FC<{ song: ISong; onLongPress?: () => void }> = ({
           cover
             ? { uri: cover }
             : [
-                require("../../../assets/images/screen-background/gold-splash.png"),
-                require("../../../assets/images/screen-background/song.jpg"),
-                require("../../../assets/images/screen-background/background.jpg")
+                require("../../../assets/images/screen-background/gold-splash.webp"),
+                require("../../../assets/images/screen-background/song.webp"),
+                require("../../../assets/images/screen-background/background.webp")
               ][song.id % 3]
         }
         style={styles.cover}

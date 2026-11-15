@@ -17,7 +17,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { SystemBars } from "react-native-edge-to-edge";
 import Router from "./router";
-import backgroundImage from "../assets/images/gold-background.png";
+import backgroundImage from "../assets/images/gold-background.webp";
 import palette from "./theme/palette";
 import { initLanguage, t } from "./locales";
 import { initDatabase } from "./components/database";
@@ -177,7 +177,7 @@ const App: FC = () => {
           {launching && (
             <Animated.View style={[styles.launch, { opacity: launchOpacity }]}>
               <ImageBackground
-                source={require("../assets/images/screen-background/splash-premium.png")}
+                source={require("../assets/images/screen-background/splash-premium.webp")}
                 style={styles.launchArt}
                 resizeMode="cover"
                 onLoadEnd={() =>
@@ -186,7 +186,7 @@ const App: FC = () => {
               >
                 <View style={styles.launchShade} />
                 <Image
-                  source={require("../assets/images/splash-pick.png")}
+                  source={require("../assets/images/splash-pick.webp")}
                   style={styles.launchMark}
                   resizeMode="contain"
                   onLoadEnd={() =>
@@ -194,7 +194,7 @@ const App: FC = () => {
                   }
                 />
                 <Image
-                  source={require("../assets/images/splash-wordmark.png")}
+                  source={require("../assets/images/splash-wordmark.webp")}
                   style={styles.launchWordmark}
                   resizeMode="contain"
                   onLoadEnd={() =>

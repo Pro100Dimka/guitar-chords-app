@@ -309,7 +309,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         source={
                           formik.values.cover
                             ? { uri: formik.values.cover }
-                            : require("../../../assets/images/screen-background/gold-splash.png")
+                            : require("../../../assets/images/screen-background/gold-splash.webp")
                         }
                         style={StyleSheet.absoluteFill}
                         resizeMode="cover"

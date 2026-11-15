@@ -1,4 +1,4 @@
-import backgroundImage from "../../../assets/images/gold-background.png";
+import backgroundImage from "../../../assets/images/gold-background.webp";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {

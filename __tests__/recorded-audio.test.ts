@@ -7,6 +7,23 @@ import { normalizeSongPreferences } from "../src/components/preferences";
 import { rhythms } from "../src/screens/song/rhythms";
 
 const tuning = [40, 45, 50, 55, 59, 64];
+test("bundled audio and artwork remain within the mobile resource budgets", () => {
+  const { readdirSync, statSync } = require("node:fs");
+  const { join } = require("node:path");
+  const size = (path: string): number =>
+    statSync(path).isDirectory()
+      ? readdirSync(path).reduce(
+          (total: number, name: string) => total + size(join(path, name)),
+          0
+        )
+      : statSync(path).size;
+  expect(
+    size("assets/guitar-recordings") +
+      size("assets/guitar-bank.json") +
+      size("assets/guitar-samples.json")
+  ).toBeLessThan(28_000_000);
+  expect(size("assets/images")).toBeLessThan(8_000_000);
+});
 const notesFor = (chord: string) =>
   recordedChordFrets[chord].flatMap((fret, string) =>
     fret === null

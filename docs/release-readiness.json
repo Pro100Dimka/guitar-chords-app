@@ -1,13 +1,13 @@
 {
-  "build": 16,
+  "build": 17,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 315,
-      "status": "Passed locally: 19 suites, 315 tests. Added end-to-end Unicode backup reading/restoration, Settings cloud-copy close/back/timeout cases, malformed UTF-8 and valid boundary cases, cancellation during stat/read, pre-cancellation, restore transaction locking, maximum-size editor saves and bounded large-song rendering."
+      "tests": 316,
+      "status": "316 Jest tests in 19 suites passed locally. Final VBR 4.25 bank also passed all 31 recorded-audio cases; TypeScript, full ESLint and actual SQLite passed."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -783,7 +783,7 @@
     ],
     "target_audience": "13-15, 16-17 and 18+ recommended as a draft after the owner requested advice; IARC remains unassigned and nothing is submitted."
   },
-  "candidate_version_code": 16,
+  "candidate_version_code": 17,
   "current_distribution_bundle": {
     "status": "not_built_for_current_source",
     "version_code": null
@@ -1364,6 +1364,44 @@
       "FlatList windowing and text-budget checks are component-level proof, not Android/iPhone memory or frame-rate measurements.",
       "Native source is unchanged. Expanded CI coverage does not establish a full iOS app/archive build, device audio-route behavior or labeled tuner recall.",
       "No new APK/AAB/IPA. RC16 is the earlier verified candidate; store forms, branch protection and public URLs remain pending."
+    ]
+  },
+  "android_rc17": {
+    "status": "preparing_compressed_test_apks",
+    "version_code": 17,
+    "target_max_apk_bytes": 40000000,
+    "changes": [
+      "React Native bundle compression enabled using supported Gradle option.",
+      "JNI libraries use compressed APK packaging and installer extraction.",
+      "Approved WAV masters encoded directly as gapless MP3 VBR 4.25. All 24 chords, 144 strokes, six synthesis strings and all rhythm presets retained.",
+      "23 artwork files converted to WebP with unchanged dimensions and lossless alpha; no layout changes.",
+      "Includes all source fixes after the previously delivered rc16."
+    ],
+    "audio_verification": {
+      "strokes": 144,
+      "strings": 12,
+      "encoder": "libmp3lame VBR quality 4.25, from approved WAV masters",
+      "tuner_pcm_sha256": "8eee99d00ae72023a0b34d9827fd940a3773acefec47eee7caf19ccf1875b65f",
+      "minimum_correlation": 0.994185209274292,
+      "maximum_peak": 0.8018721342086792,
+      "all_strokes_403200_frames": true,
+      "all_strings_176400_frames": true,
+      "levels_and_pitch_metadata_unchanged": true
+    },
+    "image_verification": {
+      "images": 23,
+      "before_bytes": 18228501,
+      "bytes": 3097630,
+      "dimensions_and_alpha_unchanged": true,
+      "minimum_psnr_db": 32.747684478759766,
+      "visual_check": "Compared guitar body, guide and button artwork with originals; no obvious difference at displayed scale. Not a device screenshot check."
+    },
+    "limits": [
+      "MP3 VBR and WebP RGB compression are lossy. Approved WAV masters and original artwork remain available outside the working files/in Git history; no lossless audio claim.",
+      "Tuner PCM is byte-identical. All chord strokes decode to 403200 stereo frames (8.4 seconds at 48000 Hz); all string samples decode to 176400 mono frames at 22050 Hz.",
+      "APK download size is distinct from installed size: Android extracts compressed native libraries.",
+      "Final APK sizes, integrity, signing, bundle identity and alignment await assembly verification.",
+      "Full physical-phone playback/startup and full native iOS archive remain unverified."
     ]
   }
 }

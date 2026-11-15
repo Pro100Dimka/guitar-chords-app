@@ -328,8 +328,8 @@ const Settings: React.FC = () => {
           <Image
             source={
               pending
-                ? require("../../assets/images/gold-restore.png")
-                : require("../../assets/images/gold-cloud.png")
+                ? require("../../assets/images/gold-restore.webp")
+                : require("../../assets/images/gold-cloud.webp")
             }
             style={[styles.hero, height < 500 && styles.compactHero]}
           />
@@ -417,7 +417,7 @@ const Settings: React.FC = () => {
           onClose={() => setPrivacy(false)}
         >
           <Image
-            source={require("../../assets/images/gold-shield.png")}
+            source={require("../../assets/images/gold-shield.webp")}
             style={styles.privacyIcon}
           />
           <View style={styles.privacyPaper}>

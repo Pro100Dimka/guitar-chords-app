@@ -29,9 +29,9 @@ const sections = [
   { id: "help", icon: "lifebuoy" }
 ] as const;
 const pictures = {
-  guitar: require("../../../assets/images/guide/guitar.png"),
-  chromatic: require("../../../assets/images/guide/chromatic.png"),
-  rhythm: require("../../../assets/images/guide/rhythm.png"),
+  guitar: require("../../../assets/images/guide/guitar.webp"),
+  chromatic: require("../../../assets/images/guide/chromatic.webp"),
+  rhythm: require("../../../assets/images/guide/rhythm.webp"),
   add: require("../../../assets/images/guide/add.jpg"),
   recognize: require("../../../assets/images/guide/recognize.jpg"),
   editor: require("../../../assets/images/guide/editor.jpg"),
