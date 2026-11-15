@@ -22,6 +22,7 @@ export default function SongRecorder({
   songId,
   active,
   controlsEnabled = active,
+  browseOnly = false,
   onStart,
   open = false,
   onOpened
@@ -29,6 +30,7 @@ export default function SongRecorder({
   songId: number;
   active: boolean;
   controlsEnabled?: boolean;
+  browseOnly?: boolean;
   onStart: () => void;
   open?: boolean;
   onOpened?: () => void;
@@ -206,28 +208,30 @@ export default function SongRecorder({
   );
   return (
     <View>
-      <Action
-        glass
-        compact
-        label={recording ? `■ ${time}` : t("RecordPerformance")}
-        icon={recording ? "stop" : "record-circle"}
-        accessibilityLabel={t(
-          recording ? "StopRecording" : "RecordPerformance"
-        )}
-        selected={recording}
-        disabled={busy || !controlsEnabled}
-        onPress={() =>
-          void run(async () => {
-            if (recording) {
-              await performanceAudio.stop();
-              recordingRef.current = false;
-              setRecording(false);
-            }
-            await load();
-            setVisible(true);
-          })
-        }
-      />
+      {!browseOnly && (
+        <Action
+          glass
+          compact
+          label={recording ? `■ ${time}` : t("RecordPerformance")}
+          icon={recording ? "stop" : "record-circle"}
+          accessibilityLabel={t(
+            recording ? "StopRecording" : "RecordPerformance"
+          )}
+          selected={recording}
+          disabled={busy || !controlsEnabled}
+          onPress={() =>
+            void run(async () => {
+              if (recording) {
+                await performanceAudio.stop();
+                recordingRef.current = false;
+                setRecording(false);
+              }
+              await load();
+              setVisible(true);
+            })
+          }
+        />
+      )}
       {recording && <Text style={styles.elapsed}>{time}</Text>}
       {visible && (
         <Sheet
@@ -240,7 +244,7 @@ export default function SongRecorder({
             }
           }}
         >
-          {!takes.length && recordControl}
+          {!browseOnly && !takes.length && recordControl}
           {takes.map((take) => (
             <View key={take.path} style={styles.card}>
               <Text style={styles.title}>
@@ -319,7 +323,7 @@ export default function SongRecorder({
               </View>
             </View>
           ))}
-          {!!takes.length && recordControl}
+          {!browseOnly && !!takes.length && recordControl}
         </Sheet>
       )}
     </View>

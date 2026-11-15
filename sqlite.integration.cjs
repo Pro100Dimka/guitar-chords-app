@@ -118,6 +118,25 @@ async function main() {
   assert.equal(recordingFiles.size,0,"Committed deletion resumes file cleanup after restart");
   assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE 'recording-delete:%'").get().n,0);
 
+  for (const journalPath of ["/OLD/Documents/performances/song-900003-100.m4a", "song-900003-100.m4a"]) {
+    const relocated = "/NEW/Documents/performances/song-900003-100.m4a";
+    recordingFiles.set(relocated,{path:relocated,date:100,bytes:100});
+    sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("recording-delete:900003",JSON.stringify([journalPath]));
+    await library.finishPendingRecordingDeletions();
+    assert.equal(recordingFiles.has(relocated),false,"Relocated iOS recording must be deleted using its current native path");
+    assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key = 'recording-delete:900003'").get().n,0);
+  }
+  const retainedPath="/NEW/Documents/performances/song-900004-100.m4a";
+  recordingFiles.set(retainedPath,{path:retainedPath,date:100,bytes:100});
+  sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("recording-delete:900004",JSON.stringify(["song-900004-100.m4a"]));
+  const actualRemove=audio.remove;
+  audio.remove=async()=>true;
+  await assert.rejects(library.finishPendingRecordingDeletions(),/RecordingDeleteFailed/);
+  assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key = 'recording-delete:900004'").get().n,1,"Cleanup journal must remain while the native list still contains its target");
+  audio.remove=actualRemove;
+  await library.finishPendingRecordingDeletions();
+  assert.equal(recordingFiles.size,0);
+  console.log("Relocated recording cleanup passed: legacy paths and relative names resolve through the native list; incomplete deletions keep their journal.");
   let releaseCleanup, cleanupStarted;
   const startedCleanup=new Promise(resolve=>{cleanupStarted=resolve;});
   const firstCleanupPath="/private/performances/song-900001-1.m4a";

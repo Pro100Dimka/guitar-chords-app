@@ -9,7 +9,7 @@ import initialValues from "../src/screens/create-song-chords/formik/initial-valu
 import { db } from "../src/components/database";
 import Song from "../src/screens/song";
 import Menu from "../src/screens/song/header-modal";
-import { Action } from "../src/screens/song/tools";
+import { Action, Sheet } from "../src/screens/song/tools";
 import { getAllItems, deleteItem } from "../src/components/database/crud";
 import { usePreferences } from "../src/components/preferences";
 import { performanceAudio } from "../src/components/performance-audio";
@@ -26,7 +26,9 @@ jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
 }));
 jest.mock("../src/locales", () => ({ t: String }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: String, i18n: { language: "en" } })
+}));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: require("react-native").View,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
@@ -399,4 +401,120 @@ test("deleting the open scrolled song does not recreate its preferences on unmou
   expect(usePreferences.getState().songs[1]).toBeUndefined();
   await act(async () => screen.unmount());
   expect(usePreferences.getState().songs[1]).toBeUndefined();
+});
+
+test.each([true, false])(
+  "real editor preserves dense chords and musical annotations on save: edit=%s",
+  async (edit) => {
+    await act(async () => screen.unmount());
+    const content = edit ? "[C]а[Am]б[Dm]в" : "C | G | (x2)\nHello there";
+    const song = { id: 22, title: "Saved song", content };
+    const saved: string[] = [];
+    jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+      const tx: SQLTransaction = {
+        executeSql: (sql, args, done) => {
+          if (sql.startsWith("UPDATE songs")) saved.push(String(args![1]));
+          done?.(tx, {
+            rowsAffected: 1,
+            insertId: 22,
+            rows: { length: 0, item: jest.fn() }
+          });
+        }
+      };
+      body(tx);
+      success?.();
+    });
+    await act(async () => {
+      screen = Renderer.create(<Editor song={song} setIsEdit={() => {}} />);
+    });
+    const form = () =>
+      screen.root.findAll(
+        (node) => node.props.formik && node.props.name === "title"
+      )[0].props.formik;
+    if (edit) {
+      await act(async () =>
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "EditLyrics")!
+          .props.onPress()
+      );
+      const input = screen.root
+        .findAllByType(TextInput)
+        .find((node) => node.props.accessibilityLabel === "ChordsLyrics")!;
+      expect(input.props.value).toBe("C Dm\n Am\nабв");
+      await act(async () =>
+        input.props.onChangeText(input.props.value.replace(/^C/, "D"))
+      );
+    }
+    await act(async () => form().submitForm());
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toBe(edit ? "[D]а[Am]б[Dm]в" : content);
+    const {
+      songChordSequence,
+      transposeSong
+    } = require("../src/screens/song/chords");
+    expect(songChordSequence(saved[0])).toEqual(
+      edit ? ["D", "Am", "Dm"] : ["C", "G"]
+    );
+    expect(transposeSong(saved[0], 0)).toBe(saved[0]);
+  }
+);
+
+test("opening recordings from deletion while editing preserves the draft", async () => {
+  await act(async () => screen.unmount());
+  mockParams = { id: "22" };
+  const song = { id: 22, title: "Saved song", content: "Am\nWords" };
+  jest.mocked(getAllItems).mockResolvedValue([song]);
+  jest
+    .mocked(performanceAudio.list)
+    .mockResolvedValue([
+      { path: "/performances/song-22-100.m4a", date: 100, bytes: 100 }
+    ]);
+  mockNavigation.setParams.mockImplementation((patch) => {
+    Object.assign(mockParams, patch);
+  });
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  await act(async () => screen.root.findByType(Menu).props.setIsEdit(true));
+  const form = () =>
+    screen.root.findAll(
+      (node) => node.props.formik && node.props.name === "title"
+    )[0].props.formik;
+  await act(async () => form().setFieldValue("title", "Unsaved draft"));
+  await act(async () =>
+    screen.root
+      .findByType(Menu)
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "SongTools" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  await act(async () =>
+    screen.root
+      .findByType(Menu)
+      .findAll(
+        (node) =>
+          typeof node.props.onPress === "function" &&
+          node.props.children?.props?.children === "Delete"
+      )[0]
+      .props.onPress()
+  );
+  await press("Delete");
+  await press("MyRecordings");
+  await act(async () => screen.update(<Song />));
+  expect(
+    screen.root
+      .findAllByType(Sheet)
+      .some((node) => node.props.title === "MyRecordings")
+  ).toBe(true);
+  expect(form().values.title).toBe("Unsaved draft");
+  expect(
+    screen.root.findAll(
+      (node) => node.props.accessibilityLabel === "StartRecording"
+    )
+  ).toHaveLength(0);
+  expect(mockNavigation.popTo).not.toHaveBeenCalled();
 });

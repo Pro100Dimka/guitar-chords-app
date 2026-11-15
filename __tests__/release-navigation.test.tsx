@@ -247,8 +247,12 @@ test("a failed database deletion never destroys any recorded take", async () => 
 test("post-commit cleanup retries remaining files without deleting the first take twice", async () => {
   const files = new Map(
     [1, 2].map((i) => [
-      `song-7-${i}.m4a`,
-      { path: `song-7-${i}.m4a`, bytes: 100, date: i }
+      `/OLD/Documents/performances/song-7-${i}.m4a`,
+      {
+        path: `/OLD/Documents/performances/song-7-${i}.m4a`,
+        bytes: 100,
+        date: i
+      }
     ])
   );
   let fail = true;
@@ -265,6 +269,14 @@ test("post-commit cleanup retries remaining files without deleting the first tak
   await pressAlert("DeleteSongAndRecordings");
   expect(done).toHaveBeenCalledTimes(1);
   expect(files.size).toBe(1);
+  expect(await getAllItems({ tableName: "settings" })).toEqual(
+    expect.arrayContaining([
+      {
+        key: "recording-delete:7",
+        value: JSON.stringify(["song-7-1.m4a", "song-7-2.m4a"])
+      }
+    ])
+  );
   fail = false;
   await finishPendingRecordingDeletions();
   expect(files.size).toBe(0);
@@ -332,17 +344,21 @@ test("a second deletion waits for its own journal even while startup cleanup is 
     });
     success?.();
   });
+  const removed = new Set<string>();
   jest
     .mocked(performanceAudio.list)
-    .mockImplementation(async (id) => [
-      { path: `song-${id}-1.m4a`, bytes: 100, date: 1 }
-    ]);
+    .mockImplementation(async (id) =>
+      removed.has(`song-${id}-1.m4a`)
+        ? []
+        : [{ path: `song-${id}-1.m4a`, bytes: 100, date: 1 }]
+    );
   jest.mocked(performanceAudio.remove).mockImplementation(async (path) => {
     if (path === "song-1-1.m4a")
       await new Promise<void>((resolve) => {
         release = resolve;
         started();
       });
+    removed.add(path);
     return true;
   });
   const first = finishPendingRecordingDeletions();

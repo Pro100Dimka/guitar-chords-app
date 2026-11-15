@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 261,
-      "status": "Passed locally and in source CI: 19 suites, 261 tests. Includes section/chord editor roundtrips, recording permission/foreground ordering and unsupported rhythm feedback."
+      "tests": 266,
+      "status": "Passed locally: 19 suites, 266 tests. New real-editor SQL regressions cover dense chord edits, unchanged musical annotations and opening recordings over an unsaved draft."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1101,5 +1101,31 @@
       "native_and_swift": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43713697487",
       "shazam_proof": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43713697374"
     }
+  },
+  "editor_recording_journal_review": {
+    "base_commit": "a45b49f839346c0cba66d2d594e8e4e0e8b4db56",
+    "editor": "Adjacent chord rows are parsed as a single block with column anchors, merged with existing inline markers before transposition. Editor conversion no longer matches against chord names. Rows containing bars/repeat annotations retain their original paired representation. Large plain chord blocks are consumed once.",
+    "deletion_journal": "New journals store validated recording file names. Old absolute paths are resolved by validated base name against the current native recording list. Only current native paths are passed to deletion. The journal remains until a second native listing confirms all intended files are gone.",
+    "recordings_in_editor": "A browse-only instance of the existing recording sheet opens above the editor. Listening, export and deletion remain available; starting a new take is left to song view. Opening recordings preserves the mounted Formik draft and does not switch editing off.",
+    "store_materials": "Store-listing build is 15 and reviewer notes match assets/recorded-guitar-source.json: owner-provided recordings included at the owner request, without a CC0 claim. No store submission made.",
+    "before": [
+      "Actual Editor/Formik SQL save produced [D]а[[Dm]Am]бв after changing the first chord.",
+      "Actual Editor SQL save removed both bars and (x2) with no edits.",
+      "SQLite cleanup left the relocated recording while clearing its journal.",
+      "The recordings request left the editor with no open recordings sheet."
+    ],
+    "verification": [
+      "266 Jest tests across 19 suites passed locally.",
+      "TypeScript and full zero-warning ESLint passed.",
+      "Actual SQLite integration passed for old/new journal formats, relocated paths, incomplete native deletion and concurrent cleanup.",
+      "Existing release-navigation fixture now removes files from its mock native list when deletion succeeds, matching actual filesystem semantics."
+    ],
+    "limits": [
+      "No native source changes; native Kotlin/Rust and Swift method verification remains the successful source CI for 4962af334c84c013feb194f3c5e08a46434d95f6.",
+      "No APK/AAB/IPA built.",
+      "iOS container relocation is simulated at the native boundary, not tested through a physical iPhone update.",
+      "Branch protection unchanged; device, Bluetooth/call and full native iOS app checks remain outstanding."
+    ],
+    "design_changes": false
   }
 }

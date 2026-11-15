@@ -1,7 +1,7 @@
 {
   "app_id": "com.freetune",
   "version": "1.0",
-  "build": 7,
+  "build": 15,
   "category": "Music & Audio / Music",
   "price": "Free",
   "contact": {
@@ -28,7 +28,7 @@
   "privacy_url": null,
   "support_url": null,
   "public_submission_ready": false,
-  "reviewer_notes": "No login is required. Microphone access is optional and used for tuning, user-started performance recording, and microphone song recognition. Android library > Add offers manual entry, microphone recognition, audio-file recognition and TXT/ChordPro import. Recognition and content lookup need a network connection; external services can be unavailable or return no match. Retrieved content is reviewed in the song form before saving. Imported and recognized chords appear above the lyrics. Tap a chord to preview fingerings. Open song settings for rhythm playback and practice. Local recording starts only on user action. Recordings are exported separately from library backups. YouTube players load only after Show videos is selected. The optional consumable freetune_support unlocks no features; its store configuration and sandbox verification remain pending. Guitar playback uses Meta Steel Guitar recordings under CC0. Physical-device verification and final store configuration remain required.",
+  "reviewer_notes": "No login is required. Microphone access is optional and used for tuning, user-started performance recording, and microphone song recognition. Android library > Add offers manual entry, microphone recognition, audio-file recognition and TXT/ChordPro import. Recognition and content lookup need a network connection; external services can be unavailable or return no match. Retrieved content is reviewed in the song form before saving. Imported and recognized chords appear above the lyrics. Tap a chord to preview fingerings. Open song settings for rhythm playback and practice. Local recording starts only on user action. Recordings are exported separately from library backups. YouTube players load only after Show videos is selected. The optional consumable freetune_support unlocks no features; its store configuration and sandbox verification remain pending. The embedded guitar bank uses owner-provided acoustic recordings, included at the owner's explicit request. No CC0 or third-party licence is claimed for these recordings. Physical-device verification and final store configuration remain required.",
   "screenshot_plan": [
     "Guitar tuner with input",
     "Chromatic tuner with input",
@@ -39,15 +39,11 @@
     "Practice",
     "Local recording list"
   ],
-  "screenshot_note": "Use actual emulator or device captures with original demonstration content. The prepared graphics use captures from the last verified emulator candidate. Current lookup fixes have not been packaged, as requested. Refresh and review captures against the final release candidate before submission. The review collage is not an upload screenshot. Do not include commercial song lyrics, artists or artwork without appropriate rights.",
-  "prepared_on": "2026-11-14",
+  "screenshot_note": "Use actual emulator or device captures with original demonstration content. The prepared graphics use captures from the last verified emulator candidate. Current source fixes have not been packaged. Refresh and review captures against the final release candidate before submission. The review collage is not an upload screenshot. Do not include commercial song lyrics, artists or artwork without appropriate rights.",
+  "prepared_on": "2026-11-15",
   "preparation_scope": "Listing and review materials only. No new APK or Android App Bundle created. Nothing submitted to a store.",
   "target_audience_draft": {
-    "age_groups": [
-      "13-15",
-      "16-17",
-      "18+"
-    ],
+    "age_groups": ["13-15", "16-17", "18+"],
     "status": "recommended for owner review, not submitted",
     "basis": "General guitar tuning and song practice for teenagers and adults. External lyrics and videos require a separate content-rating review.",
     "content_rating": "IARC questionnaire not completed; no rating assigned",

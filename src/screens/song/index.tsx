@@ -323,11 +323,21 @@ const SongDetail: React.FC = () => {
           </Text>
         </View>
       ) : isEdit ? (
-        <CreateChordSong
-          song={song}
-          setIsEdit={setIsEdit}
-          exitAllowed={editorExitAllowed}
-        />
+        <>
+          <CreateChordSong
+            song={song}
+            setIsEdit={setIsEdit}
+            exitAllowed={editorExitAllowed}
+          />
+          <SongRecorder
+            songId={songId}
+            browseOnly
+            open={route.params?.recordings}
+            onOpened={() => navigation.setParams({ recordings: false })}
+            active={focused && !tuner}
+            onStart={() => setPlaying(false)}
+          />
+        </>
       ) : (
         <>
           <ScrollView

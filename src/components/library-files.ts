@@ -446,6 +446,12 @@ export async function restoreLibrary(songs: BackupSong[]) {
 }
 
 let recordingCleanup: Promise<void> | undefined;
+function recordingFileName(path: string, songId: number) {
+  const name = path.split(/[\\/]/).pop() ?? "";
+  if (!new RegExp(`^song-${songId}-[0-9]+\\.m4a$`).test(name))
+    throw new Error("RecordingDeleteFailed");
+  return name;
+}
 export function finishPendingRecordingDeletions(): Promise<void> {
   const cleanup = (recordingCleanup ?? Promise.resolve())
     .catch(() => undefined)
@@ -471,13 +477,21 @@ export function finishPendingRecordingDeletions(): Promise<void> {
             !paths.every((path) => typeof path === "string")
           )
             throw new Error("RecordingDeleteFailed");
+          const names = paths.map((path) => recordingFileName(path, songId));
           const remaining = await performanceAudio.list(songId);
           for (const take of remaining.filter((take) =>
-            paths.includes(take.path)
+            names.includes(recordingFileName(take.path, songId))
           )) {
             if (take.processing || !(await performanceAudio.remove(take.path)))
               throw new Error("RecordingDeleteFailed");
           }
+          const after = await performanceAudio.list(songId);
+          if (
+            after.some((take) =>
+              names.includes(recordingFileName(take.path, songId))
+            )
+          )
+            throw new Error("RecordingDeleteFailed");
         }
         await new Promise<void>((resolve, reject) =>
           db.transaction(
@@ -517,7 +531,9 @@ export function requestSongDeletion(
                 "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
                 [
                   `recording-delete:${songId}`,
-                  JSON.stringify(takes.map((take) => take.path))
+                  JSON.stringify(
+                    takes.map((take) => recordingFileName(take.path, songId))
+                  )
                 ]
               );
               tx.executeSql(

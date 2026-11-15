@@ -1246,3 +1246,23 @@ test("unsupported song chord explains and disables rhythm auditions", async () =
   ).toBe(true);
   expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
 });
+
+test("stacked chord rows and existing inline markers combine without nesting", () => {
+  const {
+    transposeSong,
+    songChordSequence
+  } = require("../src/screens/song/chords");
+  expect(transposeSong("C Dm\n Am\nабв", 0)).toBe("[C]а[Am]б[Dm]в");
+  expect(transposeSong("C\nа[Am]б[Dm]в", 0)).toBe("[C]а[Am]б[Dm]в");
+  const annotated = "C | G | (x2)\nHello there";
+  expect(transposeSong(annotated, 2)).toBe("D | A | (x2)\nHello there");
+  expect(songChordSequence(transposeSong(annotated, 2))).toEqual(["D", "A"]);
+});
+
+test("large consecutive chord blocks are processed once without changing content", () => {
+  const { transposeSong } = require("../src/screens/song/chords");
+  const content = "C\n".repeat(30000);
+  const start = Date.now();
+  expect(transposeSong(content, 0)).toBe(content);
+  expect(Date.now() - start).toBeLessThan(2000);
+});
