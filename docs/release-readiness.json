@@ -7,10 +7,10 @@
     "javascript": {
       "suites": 19,
       "tests": 254,
-      "status": "Passed full local verification: 19 suites, 254 tests, including permission pause/resume, denied permission, cancellation, rapid backgrounding, deletion cleanup and literal SQLite search. Current source CI pending."
+      "status": "Passed full local verification and current source main CI: 19 suites, 254 tests, including permission lifecycle, cancellation, rapid backgrounding, deleted-song cleanup and literal SQLite search."
     },
-    "typescript": "Passed local tsc --noEmit.",
-    "eslint": "Passed full local ESLint with zero warnings.",
+    "typescript": "Passed tsc --noEmit locally and in current source main CI.",
+    "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
     "sqlite": "Actual SQLite integration passed. New literal-search regressions execute the query and bound parameters emitted by the real Library component against node:sqlite for %, _, compound strings, the ! escape character and backslash.",
     "android_pitch": {
       "synthetic_cases": 270,
@@ -1034,6 +1034,12 @@
       "native_checks": "No current native source changes. Previous successful Android compilation, Kotlin/Rust and macOS Swift/AAC method checks remain relevant but do not exercise the full application, AVAudioSession or content-provider recognition path.",
       "external_checks": "Optional external steps in combined workflows do not establish service availability by overall workflow status. The separate shazam-real-audio-proof workflow has a strict recognition assertion; inspect actual live-step outcomes before release."
     },
-    "artifacts": "No APK, AAB or IPA built for these source fixes."
+    "artifacts": "No APK, AAB or IPA built for these source fixes.",
+    "source_ci": {
+      "commit": "2832c0ac520ba2af717f892dceef5982a1152069",
+      "status": "Passed current source workflow, including SQLite, Jest, TypeScript and ESLint.",
+      "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43709299442",
+      "live_lrclib_step": "Passed; optional-step outcome was checked independently of the overall workflow conclusion."
+    }
   }
 }
