@@ -1,4 +1,4 @@
-import { songFieldLimits } from "@/@interfaces";
+import { validationSchema } from "./validation-schema";
 import { NavigationProp } from "@/router";
 import { t } from "../../../locales";
 import { Alert } from "react-native";
@@ -28,7 +28,8 @@ const onSabmit = async (
     ...values
   }: FormValues,
   navigation: Pick<NavigationProp, "replace">,
-  setIsEdit?: (_: boolean) => void
+  setIsEdit?: (_: boolean) => void,
+  original?: FormValues
 ) => {
   let resume: ReturnType<typeof suspendPreferenceSaving> | undefined;
   let persisted: Record<string, SongPreferences> | undefined;
@@ -37,14 +38,10 @@ const onSabmit = async (
     values.youtube_music = values.youtube_music ?? "";
     values.youtobe_lesson = values.youtobe_lesson ?? "";
     const performer = fk_band?.name.trim() ?? "";
-    const fields = { ...values, band_name: performer };
-    if (
-      Object.entries(songFieldLimits).some(
-        ([key, limit]) =>
-          fields[key as keyof typeof songFieldLimits].length > limit
-      )
-    )
-      throw new Error("FileTooLarge");
+    await validationSchema(
+      t,
+      original?.id === id ? original : undefined
+    ).validate({ ...values, fk_band });
     const metadata = {
       cover,
       contentSource,

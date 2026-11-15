@@ -332,9 +332,7 @@ const SongDetail: React.FC = () => {
       let end = index + 1;
       while (end < rows.length && rows[end].onlyChords) end++;
       if (rows[end]?.line.trim()) end++;
-      const batch = virtualized ? 4 : end - index;
-      for (let start = index; start < end; start += batch)
-        blocks.push(rows.slice(start, Math.min(start + batch, end)));
+      blocks.push(rows.slice(index, end));
       index = end;
     }
     const renderBlock = (block: typeof rows) => {

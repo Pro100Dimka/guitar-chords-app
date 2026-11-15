@@ -1,3 +1,14 @@
+SOURCE AUDIT UPDATE, 16.11.2026
+Seven functional/localization issues after 2617d14 fixed in source.
+381 tests / 19 suites, TypeScript, zero-warning ESLint and actual SQLite passed.
+Android compileReleaseKotlin and hardware-stub native checks passed.
+Synthetic detector continuity: 360/360 labelled frames, no gaps, first-frame detection;
+real recording recall remains unqualified and 6th_E.wav is still 31/125 frames.
+Unit recognition does not issue real tempo requests. Design retained.
+These fixes are newer than the rc20 APK below; no new APK/AAB/IPA was assembled.
+Full iOS lock/build, real-device quality and branch protection remain outstanding.
+Details: source_audit_2617d14 in docs/release-readiness.json.
+
 FreeTune 1.0, Android versionCode 20. APK verification, 15.11.2026
 
 CURRENT SOURCE AND PACKAGE STATUS

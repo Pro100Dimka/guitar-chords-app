@@ -143,6 +143,33 @@ fun checkAccuracy(module: MicrophoneStreamModule, recordingsDirectory: File) {
             if (data.values["direction"] != expectedDirection) failures.add("Inconsistent cents tolerance: $reference, $cents")
         }
     }
+    var labeledFrames = 0
+    var detectedLabeledFrames = 0
+    var longestGap = 0
+    var slowestOnset = 0
+    for (rate in listOf(44100, 48000)) {
+        for (reference in listOf(82.4069, 110.0, 146.8324, 195.9977, 246.9417, 329.6276)) {
+            reset.invoke(module)
+            var gap = 0
+            var firstDetection = 30
+            repeat(30) { frame ->
+                val pitch = estimate(tone(reference, rate, frame, 0.2 * exp(-frame / 40.0)), rate)
+                val correct = pitch > 0 && abs(1200 * log2(pitch / reference)) < 10
+                labeledFrames++
+                if (correct) {
+                    detectedLabeledFrames++
+                    firstDetection = min(firstDetection, frame)
+                    gap = 0
+                } else gap++
+                longestGap = max(longestGap, gap)
+            }
+            slowestOnset = max(slowestOnset, firstDetection)
+        }
+    }
+    val detectionRatio = detectedLabeledFrames.toDouble() / labeledFrames
+    if (detectionRatio < 0.95 || longestGap > 2 || slowestOnset > 2)
+        failures.add("Labeled synthetic continuity: recall=$detectionRatio, gap=$longestGap, onset=$slowestOnset frames")
+    println("Labeled synthetic detector continuity: $detectedLabeledFrames/$labeledFrames frames, longest gap=$longestGap, latest onset=$slowestOnset frames (15 fps). Real recordings remain unlabelled.")
     val recordings = recordingsDirectory.listFiles { f -> f.extension == "wav" && f.name != "nylon_all.wav" } ?: emptyArray()
     check(recordings.size == 10) { "Expected ten guitar recordings in $recordingsDirectory" }
     for (file in recordings.sortedBy { it.name }) {

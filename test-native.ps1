@@ -21,7 +21,9 @@ try {
     $start = $recorder.IndexOf('private class PolishedRecorder')
     if ($start -lt 0) { throw 'Production recorder class not found' }
     $recorderFile = Join-Path $OutputDirectory 'PolishedRecorder.kt'
-    Set-Content -LiteralPath $recorderFile -Encoding utf8 -Value ("package com.freetune`nimport android.media.*`nimport java.io.File`n" + $recorder.Substring($start))
+    $reservationStart = $recorder.IndexOf('internal fun reserveRecordingFile(')
+    if ($reservationStart -lt 0) { throw 'Production recording reservation not found' }
+    Set-Content -LiteralPath $recorderFile -Encoding utf8 -Value ("package com.freetune`nimport android.media.*`nimport java.io.File`n" + $recorder.Substring($reservationStart, $start-$reservationStart) + $recorder.Substring($start))
     $filesStart = $recorder.IndexOf('    private fun localFile(')
     $filesEnd = $recorder.IndexOf('    @ReactMethod @Synchronized fun playTake(', $filesStart)
     $deleteIndex = $recorder.IndexOf('fun deleteTake(')

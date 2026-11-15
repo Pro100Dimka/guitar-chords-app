@@ -400,6 +400,7 @@ function reflowChordPairs(content: string, semitones: number) {
     if (
       !anchors ||
       !lyrics?.trim() ||
+      isSectionBoundary(lyrics) ||
       isChordLine(lyrics) ||
       line.includes("\t") ||
       lyrics.includes("\t")
@@ -453,6 +454,13 @@ const chordProSectionTitles: Record<string, string | undefined> = {
   start_of_bridge: "Bridge",
   sob: "Bridge"
 };
+function isSectionBoundary(line: string) {
+  return (
+    sectionHeading.test(line.trim()) ||
+    !!line.match(sectionPattern) ||
+    /^\s*\{[^{}]*\}\s*$/.test(line)
+  );
+}
 function chordTokens(line: string) {
   return chordLineParts(line.replace(sectionPattern, " ")).filter(
     (token) =>
@@ -470,12 +478,9 @@ function sectionChordRows(content: string) {
 
 function chordRowAnchors(line: string) {
   if (!isChordLine(line)) return undefined;
-  const tokens = [...line.matchAll(/[^\s]+/g)];
-  if (
-    tokens.some((match) => !chordNotationPattern.test(normalizeChord(match[0])))
-  )
-    return undefined;
-  return tokens;
+  return [...line.matchAll(/[^\s|:]+/g)].filter((match) =>
+    chordNotationPattern.test(normalizeChord(match[0]))
+  );
 }
 
 type AnchoredLine = {
@@ -776,6 +781,7 @@ export function transposeSong(content: string, semitones: number) {
       const lyrics = lines[i + 1];
       if (
         lyrics?.trim() &&
+        !isSectionBoundary(lyrics) &&
         !isChordLine(lyrics) &&
         !inlineChordLine(lyrics) &&
         !lines[i].includes("\t") &&
@@ -788,7 +794,12 @@ export function transposeSong(content: string, semitones: number) {
             column: match.index
           }))
         };
-        if (hasInternalChord(pair)) {
+        if (
+          hasInternalChord(pair) &&
+          chordLineParts(lines[i]).every(
+            (part) => !part.trim() || chordNotationPattern.test(part)
+          )
+        ) {
           flush();
           result.push(anchoredContent(pair, semitones));
           i++;

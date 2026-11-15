@@ -627,7 +627,7 @@ export function requestSongDeletion(
   onDeleted: () => void,
   onRecordings: () => void
 ) {
-  const fail = () => Alert.alert(t("Error"));
+  const fail = () => Alert.alert(t("DeleteSongError"));
   const remove = async (
     takes: Awaited<ReturnType<typeof performanceAudio.list>>
   ) => {

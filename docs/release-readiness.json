@@ -6,12 +6,12 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 366,
-      "status": "366 tests in 19 suites passed locally. Twenty-three new regressions cover capo lyric preservation, bounded dense-chord layout, concurrent transaction finalization, current-filter refresh after deletion, tuner accessibility, all guide steps and search, metadata-only import, application and Xcode configuration, Ukrainian spelling and corrupt global preferences. Original-code reproductions failed before verification of fixes."
+      "tests": 381,
+      "status": "381 tests in 19 suites passed locally. Fifteen added regressions cover section boundaries through import/editor round trips, annotated chord alignment, dense virtualized chord/lyric groups, legacy-field editing compatibility and stale pending purchase updates. Recognition unit tests now reject unplanned network requests."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
-    "sqlite": "Actual SQLite integration passed. New literal-search regressions execute the query and bound parameters emitted by the real Library component against node:sqlite for %, _, compound strings, the ! escape character and backslash.",
+    "sqlite": "Actual SQLite integration completed and passed, including version-1 backup restore with an oversized performer followed by a title-only edit. The deletion-error fixture now uses DeleteSongError; an overall 30-second completion deadline prevents silent success with an unresolved test promise.",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
@@ -25,7 +25,18 @@
       "full_register_frames": 3360,
       "octave_transition_regressions": 4,
       "octave_transition_frames": 240,
-      "recall_qualification": "Outstanding: repository WAVs are not labeled per frame. Passing register checks do not establish note recall, stable-onset latency or dropout rates; six-string labeled recordings and device checks are required."
+      "recall_qualification": "Outstanding: repository WAVs are not labeled per frame. Passing register checks do not establish note recall, stable-onset latency or dropout rates; six-string labeled recordings and device checks are required.",
+      "labeled_synthetic_continuity": {
+        "eligible_frames": 360,
+        "detected_frames": 360,
+        "recall_gate": 0.95,
+        "longest_gap_frames": 0,
+        "latest_onset_frames": 0,
+        "frame_rate": 15,
+        "maximum_allowed_gap_frames": 2,
+        "maximum_allowed_onset_frames": 2,
+        "qualification": "Synthetic known-frequency notes only. Unlabelled guitar recordings and physical microphone recall remain unqualified. The 6th_E.wav fixture still yields 31 detected frames of 125 above the energy floor; this patch does not claim to fix that recording."
+      }
     },
     "audio_bank": {
       "source": "Owner-provided acoustic guitar recordings",
@@ -36,7 +47,7 @@
       "original_open_string_takes": 11,
       "status": "Original approved WAVs preserved outside repository; gapless mobile chord banks and measured-pitch string references prepared."
     },
-    "android_bundle": "VersionCode 20 ARM64 test APK assembled with cached release script, R8 and release lint. 39918857 bytes. Prior test certificate, exact current Hermes hash, full-length independent string animation worklets, source-audit fixes, all 144 chord strokes, six tuner PCM references, WebP guides, ZIP integrity and ZIP/ARM64 ELF 16KB alignment passed. No new ARM32 APK, AAB or physical phone test.",
+    "android_bundle": "VersionCode 20 ARM64 test APK assembled with cached release script, R8 and release lint. 39918857 bytes. Prior test certificate, exact current Hermes hash, full-length independent string animation worklets, source-audit fixes, all 144 chord strokes, six tuner PCM references, WebP guides, ZIP integrity and ZIP/ARM64 ELF 16KB alignment passed. No new ARM32 APK, AAB or physical phone test. New source audit fixes after rc20 are not packaged in this historical APK.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "macOS 15 CI compiled and executed extracted production Swift pitch, capture lifecycle and recording-file methods. Capture route fixtures cover seven unavailable/invalid routes, retries and setup failures; file fixtures use real AAC. Full React Native iOS app/archive, real AVAudioSession and device checks remain unverified.",
     "device_tests": "owner to perform",
@@ -1789,5 +1800,35 @@
       "AGP version-control metadata is unsupported in this checkout; explicit source commit and exact rebuilt Hermes hash establish package provenance."
     ],
     "elapsed_seconds": 42.7
+  },
+  "source_audit_2617d14": {
+    "date": "2026-11-16",
+    "status": "source fixes verified; not in existing rc20 APK",
+    "design_changes": false,
+    "fixed": {
+      "1": "Recording filenames are atomically reserved with numeric retries. Existing final files, recoverable processing files and interruption markers are skipped. Failed startup cleanup only deletes the file owned by that attempt.",
+      "2": "Supported section headings and standalone ChordPro directives cannot be consumed as lyrics after a chord row. Import and edited-text round trips preserve sections.",
+      "3": "Chord anchors are parsed independently of bar/repeat annotations; annotations survive width-changing transpositions and subsequent layout.",
+      "4": "A whole chord-and-lyric group is one horizontal scrolling and vertical virtualization block, without four-row splitting.",
+      "5": "Validation and persistence use the same original-value compatibility policy. Unchanged legacy values within the 400000-character aggregate backup bound can persist; new/changed fields keep modern limits. Tested through actual editor/Formik and actual SQLite restore/edit.",
+      "6": "Completed or currently finalizing purchase IDs cannot be downgraded by stale pending events or store snapshots.",
+      "7": "Deletion errors have a localized specific message. Source-link failures reuse the existing LinkOpenError translation.",
+      "9": "Tempo lookup is mocked alongside chart lookup in recognition unit tests; fetch calls are rejected and asserted absent.",
+      "10_partial": "Known-frequency synthetic detector frames now have separate recall, consecutive-gap and onset gates. Real-recording frame suitability and recovery timing need labels and device measurements."
+    },
+    "verification": {
+      "jest": "381/381, 19 suites",
+      "typescript": "passed",
+      "eslint": "passed, zero warnings",
+      "sqlite": "passed, with completion guard and actual legacy restore/edit",
+      "android_kotlin": "compileReleaseKotlin passed against real Android dependencies; no APK assembled",
+      "native_checks": "Passed existing 200 capture cycles, 336 full-register combinations, 270 accuracy cases, 180 string transitions and 12 decay/drift sequences, plus deterministic recording-name collision reservation and 360 labelled synthetic detector frames. Device/codec boundaries are stubbed."
+    },
+    "remaining": [
+      "8: Update Podfile.lock on macOS and perform full simulator/app build; current iOS job only checks extracted production Swift methods. No native iOS build or lock regeneration was performed here.",
+      "10: Real guitar frame-level recall, long gaps and recovery remain unqualified without labelled suitable input. The unlabelled 6th_E.wav detection deficit remains reported.",
+      "11: Main branch protection and required status checks were not changed.",
+      "Actual devices, store approval/expiry/payment flows, audio routes and a new installation package remain separate checks."
+    ]
   }
 }

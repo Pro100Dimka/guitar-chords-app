@@ -95,6 +95,71 @@ function mockSongSave(id: number) {
 }
 let screen: Renderer.ReactTestRenderer | undefined;
 
+test.each([
+  "title",
+  "content",
+  "band_name",
+  "youtube_music",
+  "youtobe_lesson"
+] as const)(
+  "legacy %s is accepted unchanged but an oversized replacement is rejected",
+  async (key) => {
+    const {
+      validationSchema
+    } = require("../src/screens/create-song-chords/formik/validation-schema");
+    const { songFieldLimits } = require("../src/@interfaces");
+    const value = "x".repeat(songFieldLimits[key] + 1);
+    const original = {
+      ...initialSong,
+      id: 1,
+      title: "Title",
+      content: "Am\nWords",
+      ...(key === "band_name"
+        ? { fk_band: { ...initialSong.fk_band, name: value } }
+        : { [key]: value })
+    };
+    const changed =
+      key === "band_name"
+        ? { ...original, fk_band: { ...original.fk_band, name: value + "y" } }
+        : { ...original, [key]: value + "y" };
+    expect(await validationSchema(String, original).isValid(original)).toBe(
+      true
+    );
+    expect(await validationSchema(String, original).isValid(changed)).toBe(
+      false
+    );
+    expect(await validationSchema(String).isValid(original)).toBe(false);
+  }
+);
+
+test("virtualization keeps a dense chord group and its words in the same horizontal block", async () => {
+  jest.useFakeTimers();
+  require("../src/components/preferences")
+    .usePreferences.getState()
+    .updateSong(1, { transpose: 0, capo: 0 });
+  jest.mocked(crud.getAllItems).mockResolvedValue([
+    {
+      id: 1,
+      title: "Dense",
+      content:
+        "Long introduction text [Cmaj7]a[Am7]b[Dm7]c[Fmaj7]d words at the end of the long line\n" +
+        "Plain line\n".repeat(201)
+    }
+  ]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  const blocks: { line: string; onlyChords: boolean }[][] =
+    screen!.root.findByType(FlatList).props.data;
+  const chordBlock = blocks.find((block) =>
+    block.some((row) => row.onlyChords)
+  )!;
+  expect(chordBlock.some((row) => row.line.includes("words at the end"))).toBe(
+    true
+  );
+  expect(chordBlock.length).toBeGreaterThan(4);
+});
+
 test("long chord labels keep subsequent chords aligned with their lyric words", () => {
   const output = chordsAboveLyrics("[Cmaj7]I [D]go");
   const [chords, words] = output.split("\n");

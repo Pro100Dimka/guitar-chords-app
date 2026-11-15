@@ -94,6 +94,31 @@ const payButton = () =>
     .findAllByType(Action)
     .find((node) => node.props.label.includes("€1.99"))!;
 
+test("late pending events cannot downgrade a completed purchase", async () => {
+  await open();
+  await act(async () => mockCallbacks.onPurchaseSuccess!(purchase));
+  await act(async () =>
+    mockCallbacks.onPurchaseSuccess!({ ...purchase, purchaseState: "pending" })
+  );
+  expect(payButton().props.disabled).toBe(false);
+  expect(finishTransaction).toHaveBeenCalledTimes(1);
+});
+
+test("a stale purchase refresh cannot resurrect a completed pending transaction", async () => {
+  let resolve!: (items: Purchase[]) => void;
+  jest.mocked(getAvailablePurchases).mockImplementation(
+    () =>
+      new Promise((done) => {
+        resolve = done;
+      })
+  );
+  await open();
+  await act(async () => mockCallbacks.onPurchaseSuccess!(purchase));
+  await act(async () => resolve([{ ...purchase, purchaseState: "pending" }]));
+  expect(payButton().props.disabled).toBe(false);
+  expect(finishTransaction).toHaveBeenCalledTimes(1);
+});
+
 test("language refresh waits for an in-flight finalization before enabling payment", async () => {
   let finish!: () => void;
   jest.mocked(finishTransaction).mockImplementation(

@@ -1,4 +1,5 @@
 {
+  "DeleteSongError": "Could not delete the song. Please try again.",
   "SwitchTuner": "Switch tuner",
   "Tuning": "Tuning",
   "RecordingLocalHint": "Recordings stay on your device. Sound is enhanced automatically without keeping a separate original take.",

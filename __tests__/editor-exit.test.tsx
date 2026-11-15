@@ -97,6 +97,43 @@ async function change() {
     (node) => node.props.formik && node.props.name === "title"
   )[0].props.formik;
 }
+
+test("restored oversized performer can stay unchanged when editing the title", async () => {
+  const [restored] = libraryFiles.parseLibraryBackup(
+    JSON.stringify({
+      format: "freetune-library",
+      version: 1,
+      songs: [
+        {
+          title: "Old",
+          content: "Am\nWords",
+          band_name: "x".repeat(1001),
+          youtube_music: "",
+          youtobe_lesson: ""
+        }
+      ]
+    })
+  );
+  await act(async () => screen.unmount());
+  await act(async () => {
+    screen = Renderer.create(
+      <Editor song={{ ...restored, id: 7, band_id: 2 }} />
+    );
+  });
+  const current: FormikProps<FormValues> = screen.root.findAll(
+    (node) => node.props.formik && node.props.name === "title"
+  )[0].props.formik;
+  await act(async () => {
+    await current.setFieldValue("title", "Renamed");
+  });
+  const updated: FormikProps<FormValues> = screen.root.findAll(
+    (node) => node.props.formik && node.props.name === "title"
+  )[0].props.formik;
+  jest.mocked(db.transaction).mockClear();
+  await act(async () => updated.submitForm());
+  expect(db.transaction).toHaveBeenCalled();
+  expect(JSON.stringify(screen.toJSON())).not.toContain("FileTooLarge");
+});
 const trigger = (action: unknown) =>
   mockPreventRemove.mock.calls.at(-1)![1]({ data: { action } });
 const press = async (label: string) => {

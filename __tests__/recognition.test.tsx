@@ -23,7 +23,8 @@ import RecognizeSong from "../src/screens/recognize-song";
 jest.mock("../src/components/permissions", () => jest.fn());
 jest.mock("../src/components/song-autofill/lyrics", () => ({
   ...jest.requireActual("../src/components/song-autofill/lyrics"),
-  lookupSongContent: jest.fn()
+  lookupSongContent: jest.fn(),
+  lookupShazamTempo: jest.fn().mockResolvedValue(undefined)
 }));
 jest.mock("../src/components/library-files", () => ({
   readRemoteSongCover: jest.fn().mockResolvedValue(""),
@@ -51,6 +52,9 @@ let screen: Renderer.ReactTestRenderer | undefined;
 const previousNative = NativeModules.SongRecognition;
 const previousAppState = AppState.currentState;
 beforeEach(() => {
+  jest
+    .spyOn(globalThis, "fetch")
+    .mockRejectedValue(new Error("Unexpected unit-test network request"));
   mockMode = "mic";
   AppState.currentState = "active";
   jest.replaceProperty(Platform, "OS", "android");
@@ -69,6 +73,7 @@ beforeEach(() => {
     .mockResolvedValue(true);
 });
 afterEach(async () => {
+  expect(globalThis.fetch).not.toHaveBeenCalled();
   if (screen) await act(async () => screen!.unmount());
   screen = undefined;
   NativeModules.SongRecognition = previousNative;

@@ -56,16 +56,16 @@ export default function Support() {
   const complete = useCallback(
     async (purchase: Purchase) => {
       if (purchase.productId !== SUPPORT_PRODUCT) return;
+      const id = purchase.id;
+      if (completed.current.has(id)) return;
+      const current = processing.current.get(id);
+      if (current) return current;
       requesting.current = false;
       if (purchase.purchaseState !== "purchased") {
         pendingPurchases.current.add(purchase.id);
         updateState();
         return;
       }
-      const id = purchase.id;
-      const current = processing.current.get(id);
-      if (current) return current;
-      if (completed.current.has(id)) return;
       deferred.current = false;
       pendingPurchases.current.delete(id);
       const task = (async () => {
@@ -126,7 +126,9 @@ export default function Support() {
           .filter(
             (item) =>
               item.productId === SUPPORT_PRODUCT &&
-              item.purchaseState !== "purchased"
+              item.purchaseState !== "purchased" &&
+              !completed.current.has(item.id) &&
+              !processing.current.has(item.id)
           )
           .map((item) => item.id)
       );

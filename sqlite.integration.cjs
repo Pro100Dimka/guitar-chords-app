@@ -53,7 +53,7 @@ function load(relative) {
     require: (name) => {
       if (["../index", "./database", "@/components/database"].includes(name)) return {db};
       if (["react-native", "react-native-file-access", "@react-native-documents/picker", "@bam.tech/react-native-image-resizer"].includes(name)) return name === "react-native" ? {Alert:{alert(...args){alerts.push(args); if(deletionResult) {
-        if(args[0] === "Error") { deletionResult(false); deletionResult=undefined; }
+        if(args[0] === "DeleteSongError") { deletionResult(false); deletionResult=undefined; }
         else args[2]?.find(button=>button.style === "destructive")?.onPress?.();
       }}}} : {};
       if (name.endsWith("locales")) return {t:key=>key};
@@ -224,6 +224,17 @@ async function main() {
     const edited=(await read({tableName:"songs",filters:"id = ?",parameters:[saved.insertId]}))[0];
     assert.equal(edited.title,"Edited legacy");assert.equal(edited.youtube_music,"");assert.equal(edited.youtobe_lesson,"");
   } catch(error) {reviewFailures.push(`nullable edit: ${error.message}`);}
+  try {
+    const name="x".repeat(1001);
+    const backup=library.parseLibraryBackup(JSON.stringify({format:"freetune-library",version:1,songs:[{title:"Restored long performer",content:"Am\nWords",band_name:name,youtube_music:"",youtobe_lesson:""}]}));
+    await library.restoreLibrary(backup);
+    const row=sqlite.prepare("SELECT s.*, b.name AS band_name FROM songs s LEFT JOIN bands b ON b.id=s.band_id WHERE s.title = ?").get("Restored long performer");
+    const original={...row,cover:"",fk_band:{id:String(row.band_id),name:row.band_name,search_text_lower:row.band_name.toLowerCase()}};
+    const submit=load("src/screens/create-song-chords/formik/on-sabmit.tsx").default;
+    assert.equal(await submit({}, {...original,title:"Renamed restored song"},{replace(){}},undefined,original),true);
+    assert.equal(sqlite.prepare("SELECT s.title, b.name FROM songs s JOIN bands b ON b.id=s.band_id WHERE s.id = ?").get(row.id).name,name);
+    assert.equal(sqlite.prepare("SELECT title FROM songs WHERE id = ?").get(row.id).title,"Renamed restored song");
+  } catch(error) {reviewFailures.push(`legacy field edit: ${error.message}`);}
   assert.deepEqual(reviewFailures,[]);
   console.log("SQLite review regressions passed: real NULL video fields edit successfully; restored/deleted covers and preferences stay deleted after reload.");
   const submit=load("src/screens/create-song-chords/formik/on-sabmit.tsx").default;
@@ -287,4 +298,11 @@ async function main() {
   assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 99);
   console.log("SQLite integration passed: CRUD, bound search, rollback, legacy adoption, repeat migration, newer-version rejection.");
 }
-main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(() => sqlite.close());
+const deadline = setTimeout(() => {
+  console.error("SQLite integration did not complete within 30 seconds");
+  process.exitCode = 1;
+}, 30000);
+main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(() => {
+  clearTimeout(deadline);
+  sqlite.close();
+});

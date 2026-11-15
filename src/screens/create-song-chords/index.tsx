@@ -231,7 +231,8 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           actions,
           values,
           { replace: (...args) => finish(() => navigation.replace(...args)) },
-          () => finish(() => setIsEdit?.(false))
+          () => finish(() => setIsEdit?.(false)),
+          initialValuesState
         );
       } finally {
         actions.setSubmitting(false);
@@ -252,7 +253,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           <Formik
             initialValues={initialValuesState}
             enableReinitialize
-            validationSchema={validationSchema(t)}
+            validationSchema={validationSchema(t, initialValuesState)}
             onSubmit={handleSubmit}
           >
             {(formik) => (
@@ -448,7 +449,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                           const url = formik.values.contentSource?.url;
                           if (url)
                             void Linking.openURL(url).catch(() =>
-                              Alert.alert(t("Error"))
+                              Alert.alert(t("LinkOpenError"))
                             );
                         }}
                       >

@@ -55,13 +55,14 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     fun startTake(songId: String, promise: Promise) {
         if (!songId.matches(Regex("[1-9][0-9]*")) || recorder != null || processing.isNotEmpty()) { promise.reject("RECORDING_BUSY", "Recording unavailable"); return }
         stopPlayback()
-        val file = File(directory, "song-${songId}-${System.currentTimeMillis()}.m4a")
+        var ownedFile: File? = null
         var capture: PolishedRecorder? = null
         try {
             focus()
             val recording = PolishedRecorder()
             capture = recording
-            check(file.createNewFile())
+            val file = reserveRecordingFile(directory, songId)
+            ownedFile = file
             take = file
             recorder = recording
             lastTake = null
@@ -105,7 +106,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             capture?.release()
             recorder = null
             take = null
-            file.delete()
+            ownedFile?.delete()
             audioManager.abandonAudioFocus(focusListener)
             promise.reject("RECORDING_FAILED", error)
         }
@@ -312,6 +313,18 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     override fun invalidate() { finishTake(); stopPlayback(); clearGuitars(); worker.shutdown(); context.removeLifecycleEventListener(this); super.invalidate() }
     @ReactMethod fun addListener(name: String) {}
     @ReactMethod fun removeListeners(count: Int) {}
+}
+
+internal fun reserveRecordingFile(directory: File, songId: String, now: Long = System.currentTimeMillis()): File {
+    var timestamp = now
+    while (true) {
+        val file = File(directory, "song-$songId-$timestamp.m4a")
+        val partial = File(directory, "song-$songId-$timestamp.processing.m4a")
+        val marker = File(directory, "song-$songId-$timestamp.interrupted")
+        if (!partial.exists() && !marker.exists() && file.createNewFile()) return file
+        check(timestamp < Long.MAX_VALUE) { "No available recording name" }
+        timestamp++
+    }
 }
 
 private class PolishedRecorder {

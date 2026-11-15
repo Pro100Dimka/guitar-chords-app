@@ -13,6 +13,38 @@ jest.mock("../src/components/database", () => ({
 }));
 jest.mock("../src/locales", () => ({ t: String }));
 
+test.each(["[Verse]", "Verse:", "{start_of_chorus}"])(
+  "chord rows preserve structural heading %s through import and editing",
+  (heading) => {
+    const source = `C   G\n${heading}\nHello words`;
+    const imported = importedSong(source, "example.txt").content;
+    expect(imported).toContain(`\n${heading}\n`);
+    const state = createSongEditorState(imported);
+    const saved = songContentFromEditor(imported, state.text + "!", state);
+    expect(saved).toContain(`\n${heading}\n`);
+    expect(
+      require("../src/screens/song/chords")
+        .songSections(saved)
+        .some((section: { id: string }) => section.id)
+    ).toBe(true);
+  }
+);
+
+test.each(["C    | G", "C      G (x2)", "C/G  | Bb"])(
+  "annotated chord rows preserve word anchors when chord widths change: %s",
+  (row) => {
+    const second = row.includes("Bb") ? "Bb" : "G";
+    const position = row.lastIndexOf(second);
+    const source = `${row}\n${"Hello".padEnd(position)}world`;
+    const shifted = chordsAboveLyrics(transposeSong(source, 1)).split("\n");
+    expect(shifted[0].indexOf(transposeChord(second, 1))).toBe(
+      shifted[1].indexOf("world")
+    );
+    if (row.includes("|")) expect(shifted[0]).toContain("|");
+    if (row.includes("(x2)")) expect(shifted[0]).toContain("(x2)");
+  }
+);
+
 test("dense inline chords stay within the expansion budget in bounded time", () => {
   const input = "[C]".repeat(66665) + "words";
   const start = Date.now();

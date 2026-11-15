@@ -1,4 +1,5 @@
 import com.freetune.RecordingStoreProbe
+import com.freetune.reserveRecordingFile
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.WritableArray
 import java.io.File
@@ -16,6 +17,16 @@ fun checkRecordingFiles(directory: File) {
         var result: WritableArray?=null
         store.listTakes("1",object:Promise { override fun resolve(value: Any) { result=value as WritableArray } })
         return result ?: error("List did not resolve")
+    }
+    runCase("reserve-collision") { folder,_ ->
+        val existing=File(folder,"song-1-100.m4a").apply { writeText("saved take") }
+        val partial=File(folder,"song-1-101.processing.m4a").apply { writeText("recoverable take") }
+        val marker=File(folder,"song-1-102.interrupted").apply { createNewFile() }
+        val reserved=reserveRecordingFile(folder,"1",100)
+        check(reserved.name=="song-1-103.m4a" && reserved.exists())
+        check(existing.readText()=="saved take" && partial.readText()=="recoverable take" && marker.exists())
+        check(reserved.delete())
+        check(existing.readText()=="saved take")
     }
     runCase("invalid-interrupted") { folder,store ->
         val final=File(folder,"song-1-10.m4a").apply { createNewFile() }
