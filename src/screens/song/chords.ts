@@ -581,31 +581,42 @@ export function songContentFromEditor(
 }
 
 export function chordsAboveLyrics(content: string) {
-  const result = sectionChordRows(content)
-    .map((line) => {
-      if (isChordLine(line)) return chordLineParts(line).join("");
-      const parsed = inlineChordLine(line);
-      if (parsed && hasInternalChord(parsed))
-        return anchoredRows(parsed).join("\n");
-      let lyrics = "";
-      let chords = "";
-      let previous = 0;
-      for (const match of line.matchAll(/\[([^\[\]]+)\]/g)) {
-        const chord = normalizeChord(match[1]);
-        if (!chordNotationPattern.test(chord)) continue;
-        lyrics += line.slice(previous, match.index);
-        const column = [...lyrics].length;
-        const target = Math.max(column, chords.length ? chords.length + 1 : 0);
-        lyrics += " ".repeat(target - column);
-        chords = chords.padEnd(target) + chord;
-        previous = match.index + match[0].length;
-      }
-      if (!chords) return line;
-      lyrics += line.slice(previous);
-      return lyrics.trim() ? `${chords}\n${lyrics.trimEnd()}` : chords;
-    })
-    .join("\n");
-  return reflowChordPairs(result, 0);
+  const result: string[] = [],
+    normal: string[] = [];
+  const flush = () => {
+    if (normal.length) result.push(reflowChordPairs(normal.join("\n"), 0));
+    normal.length = 0;
+  };
+  for (const line of sectionChordRows(content)) {
+    const parsed = inlineChordLine(line);
+    const chordLine = isChordLine(line);
+    if (chordLine || !parsed) {
+      normal.push(chordLine ? chordLineParts(line).join("") : line);
+      continue;
+    }
+    flush();
+    if (hasInternalChord(parsed)) {
+      result.push(anchoredRows(parsed).join("\n"));
+      continue;
+    }
+    let lyrics = "",
+      chords = "",
+      previous = 0;
+    for (const match of line.matchAll(/\[([^\[\]]+)\]/g)) {
+      const chord = normalizeChord(match[1]);
+      if (!chordNotationPattern.test(chord)) continue;
+      lyrics += line.slice(previous, match.index);
+      const column = [...lyrics].length;
+      const target = Math.max(column, chords.length ? chords.length + 1 : 0);
+      lyrics += " ".repeat(target - column);
+      chords = chords.padEnd(target) + chord;
+      previous = match.index + match[0].length;
+    }
+    lyrics += line.slice(previous);
+    result.push(lyrics.trim() ? `${chords}\n${lyrics.trimEnd()}` : chords);
+  }
+  flush();
+  return result.join("\n");
 }
 
 export function isChordLine(line: string) {

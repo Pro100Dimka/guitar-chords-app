@@ -770,6 +770,12 @@ function TransitionPractice({
   );
 }
 
+const rhythmCounts: Record<number, string[]> = {
+  2: ["", "&"],
+  3: ["", "&", "a"],
+  4: ["", "e", "&", "a"]
+};
+
 export function RhythmGrid({
   pattern,
   meter,
@@ -779,11 +785,6 @@ export function RhythmGrid({
   meter: number;
   division?: number;
 }) {
-  const counts: Record<number, string[]> = {
-    2: ["", "&"],
-    3: ["", "&", "a"],
-    4: ["", "e", "&", "a"]
-  };
   const beatsPerRow = division > 2 ? (meter % 2 === 0 ? 2 : 1) : meter;
   const columns = beatsPerRow * division;
   const slots =
@@ -804,7 +805,7 @@ export function RhythmGrid({
                 <Text style={styles.beatCount}>
                   {beat % division === 0
                     ? beat / division + 1
-                    : counts[division][beat % division]}
+                    : rhythmCounts[division][beat % division]}
                 </Text>
                 <Text style={styles.beatSymbol}>{rhythmSymbols[symbol]}</Text>
               </View>
@@ -943,6 +944,7 @@ function RhythmPlayer({
     let context,engine,timer,playing=false,step=0,next=0,start=0,preparing=Promise.resolve(),playToken=0,lastChord=-1,singleStroke=false,activeFingering=0,loading=true,wantsPlay=false,instrumentToken=0;
     let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false;
     let chords=[],frequencies=[];
+    const beatCounts=${JSON.stringify(rhythmCounts)};
     const labels=${labels};
     const button=document.getElementById('play'), count=document.getElementById('count');button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);
     function stop(){playToken++;playing=false;wantsPlay=false;clearTimeout(timer);engine?.stop();button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);count.textContent='';}
@@ -962,7 +964,7 @@ function RhythmPlayer({
         next+=60/tempo/division;
       }
       const elapsed=Math.max(0,now-start),position=Math.floor(elapsed*tempo*division/60),chordIndex=Math.floor(position/(meter*division))%chords.length;
-      const beat=position%division===0?String(Math.floor(position/division)%meter+1):'&';
+      const beat=position%division===0?String(Math.floor(position/division)%meter+1):beatCounts[division][position%division];
       count.textContent=chords[chordIndex]+' · '+beat+(practice?' · '+Math.max(0,60-Math.floor(elapsed))+' '+labels.seconds:'');
       timer=setTimeout(tick,20);
     }

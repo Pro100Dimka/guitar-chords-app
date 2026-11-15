@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 271,
-      "status": "Passed locally and in source CI: 19 suites, 271 tests. Includes ordinary chord-row order on editor save/paste, editor-origin dense chord recovery, and native timeout message routing."
+      "tests": 276,
+      "status": "Passed locally: 19 suites, 276 tests. New real-editor SQL tests preserve dense chord order and positions when changing punctuation; production tick tests cover divisions 2, 3 and 4."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1166,5 +1166,29 @@
       "native_and_swift": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43719751526",
       "shazam_proof": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43719751531"
     }
+  },
+  "dense_coordinates_capture_count_review": {
+    "base_commit": "0490941c7a2c68c465c62546363b8863e9b162d2",
+    "dense_coordinates": "Generated inline-chord display blocks bypass plain chord/lyric reflow. All rows retain the same coordinate space and original lyric spacing. Normal rows still use existing reflow; ordinary chord-row order and editor provenance behavior remain covered.",
+    "ios_capture": "Before tap installation, capture checks session input availability plus finite positive sample rates and nonzero channel counts for hardware input and tap output formats. Failed setup clears engine/node state and deactivates the session. Tap installation is tracked so cleanup never removes an uninstalled tap.",
+    "rhythm_counts": "RhythmGrid and the embedded player use one subdivision table: eighths 1 &; triplets 1 & a; sixteenths 1 e & a. Stroke timing is unchanged.",
+    "baseline": [
+      "Real Editor/Formik UPDATE parameters changed Am,Em,F,G into Am,Em,G,F after adding !; the longer C,Am,Dm,G,F,Em case also moved the last chords.",
+      "Production tick emitted 1 & & and 1 & & & for divisions 3 and 4.",
+      "The iOS source had no availability/hardware/tap format guard before installTap; a physical iPhone failure was not reproduced."
+    ],
+    "verification": [
+      "276 Jest tests across 19 suites passed locally.",
+      "TypeScript, zero-warning ESLint and actual SQLite integration passed.",
+      "New test-ios-capture.py extracts the actual start/stop method bodies and runs them with route/engine fixtures in macOS CI. It covers seven unavailable/invalid route cases, retry, repeated start/stop, partial activation failure and engine failure. macOS execution pending source CI."
+    ],
+    "limits": [
+      "Windows does not provide the required macOS Swift/AVFoundation runtime; the new Swift harness is executed by CI.",
+      "Route fixtures do not validate real AVAudioSession or a full iOS app build, physical microphone, route-change races, calls or Bluetooth.",
+      "No APK/AAB/IPA built; existing artifacts remain historical.",
+      "Tuner recall qualification and branch protection remain outstanding."
+    ],
+    "input_contract_source": "https://developer.apple.com/documentation/avfaudio/avaudioengine/inputnode",
+    "design_changes": false
   }
 }

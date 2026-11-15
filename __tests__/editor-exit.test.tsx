@@ -573,3 +573,49 @@ test.each([false, true])(
     expect(songChordSequence(saved[0])).toEqual(["Am", "C", "F", "G"]);
   }
 );
+
+test.each(["[Am]Н[Em]очь  [F][G]придёт", "[C]а[Am]б[Dm]в [G]д  [F][Em]слово"])(
+  "editing only punctuation preserves all dense chord coordinates: %s",
+  async (content) => {
+    await act(async () => screen.unmount());
+    const saved: string[] = [];
+    jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+      const tx: SQLTransaction = {
+        executeSql: (sql, args, done) => {
+          if (sql.startsWith("UPDATE songs")) saved.push(String(args![1]));
+          done?.(tx, {
+            rowsAffected: 1,
+            insertId: 22,
+            rows: { length: 0, item: jest.fn() }
+          });
+        }
+      };
+      body(tx);
+      success?.();
+    });
+    await act(async () => {
+      screen = Renderer.create(
+        <Editor
+          song={{ id: 22, title: "Coordinates", content }}
+          setIsEdit={() => {}}
+        />
+      );
+    });
+    const form = () =>
+      screen.root.findAll(
+        (node) => node.props.formik && node.props.name === "title"
+      )[0].props.formik;
+    await act(async () =>
+      screen.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "EditLyrics")!
+        .props.onPress()
+    );
+    const input = screen.root
+      .findAllByType(TextInput)
+      .find((node) => node.props.accessibilityLabel === "ChordsLyrics")!;
+    await act(async () => input.props.onChangeText(input.props.value + "!"));
+    await act(async () => form().submitForm());
+    expect(saved).toEqual([content + "!"]);
+  }
+);

@@ -18,6 +18,7 @@ on:
       - ios/PerformanceAudio.swift
       - ios/MicrophoneStreamModule.swift
       - test-ios-pitch.py
+      - test-ios-capture.py
       - test-ios-recordings.py
       - .github/workflows/native-song-recognition.yml
       - scripts/verify-shazam.cjs
@@ -91,6 +92,9 @@ jobs:
       - uses: actions/checkout@v4
       - name: Production Swift pitch methods
         run: python3 test-ios-pitch.py
+      - name: Production Swift capture route guards (fixtures)
+        if: ${{ !cancelled() }}
+        run: python3 test-ios-capture.py
       - name: Production Swift recording file methods with real AAC
         if: ${{ !cancelled() }}
         run: python3 test-ios-recordings.py

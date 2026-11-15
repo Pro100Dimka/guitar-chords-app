@@ -20,6 +20,7 @@ class MicrophoneStream: RCTEventEmitter {
     private var audioEngine: AVAudioEngine?
     private var inputNode: AVAudioInputNode?
     private var isRecording = false
+    private var tapInstalled = false
 
     private var pitchHistory: [Float] = []
     private var harmonicCandidate = 0.0
@@ -91,19 +92,31 @@ class MicrophoneStream: RCTEventEmitter {
     func startRecording() {
         if isRecording { return }
 
+        let session = AVAudioSession.sharedInstance()
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
-            try AVAudioSession.sharedInstance().setActive(true)
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
+            try session.setActive(true)
         } catch {
             print("Audio session start error: \(error)")
+            stopRecording()
+            return
+        }
+        guard session.isInputAvailable else {
+            stopRecording()
             return
         }
 
         audioEngine = AVAudioEngine()
         inputNode = audioEngine?.inputNode
-        guard let inputNode = inputNode else { return }
+        guard let inputNode = inputNode else { stopRecording(); return }
 
+        let hardware = inputNode.inputFormat(forBus: 0)
         let format = inputNode.outputFormat(forBus: 0)
+        guard hardware.sampleRate.isFinite, hardware.sampleRate > 0, hardware.channelCount > 0,
+              format.sampleRate.isFinite, format.sampleRate > 0, format.channelCount > 0 else {
+            stopRecording()
+            return
+        }
         sampleRate = format.sampleRate
         let bufferSize = AVAudioFrameCount(max(sampleRate / Double(Self.BUF_PER_SEC), 2048))
 
@@ -145,6 +158,7 @@ class MicrophoneStream: RCTEventEmitter {
             }
             self.sendEvent("onAudioBuffer", body: noteData)
         }
+        tapInstalled = true
 
         do {
             try audioEngine?.start()
@@ -158,7 +172,8 @@ class MicrophoneStream: RCTEventEmitter {
     @objc
     func stopRecording() {
         isRecording = false
-        inputNode?.removeTap(onBus: 0)
+        if tapInstalled { inputNode?.removeTap(onBus: 0) }
+        tapInstalled = false
         inputNode = nil
         audioEngine?.stop()
         audioEngine = nil

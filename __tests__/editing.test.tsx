@@ -1297,3 +1297,63 @@ test("only editor-origin rows fold after line insertion and intermediate invalid
     "G"
   ]);
 });
+
+test.each([
+  [2, ["1", "&"]],
+  [3, ["1", "&", "a"]],
+  [4, ["1", "e", "&", "a"]]
+] as const)(
+  "live rhythm counter follows division %s",
+  async (division, expected) => {
+    jest.useFakeTimers();
+    const previousState = AppState.currentState;
+    AppState.currentState = "active";
+    try {
+      await act(async () => {
+        screen = Renderer.create(
+          <SongTools
+            initialTab="rhythm"
+            content={"Am\nWords"}
+            value={defaultSongPreferences}
+            onChange={() => {}}
+            onClose={() => {}}
+          />
+        );
+      });
+      const source = screen!.root.findByType(WebView).props.source.html;
+      const tick = source.slice(
+        source.indexOf("function tick(){"),
+        source.indexOf("function prepareAudio(){")
+      );
+      const table = source.match(/const beatCounts=.*?;/)?.[0] ?? "";
+      const counts: string[] = [];
+      for (let position = 0; position < division; position++) {
+        const count = { textContent: "" };
+        require("node:vm").runInNewContext(table + tick + "tick();", {
+          playing: true,
+          context: { currentTime: (position + 0.01) / division },
+          practice: false,
+          start: 0,
+          next: 100,
+          tempo: 60,
+          meter: 4,
+          division,
+          pattern: "-",
+          step: 0,
+          chords: ["Am"],
+          singleStroke: false,
+          activeFingering: 0,
+          lastChord: -1,
+          count,
+          timer: 0,
+          setTimeout: () => 1,
+          labels: {}
+        });
+        counts.push(count.textContent.split(" · ")[1]);
+      }
+      expect(counts).toEqual(expected);
+    } finally {
+      AppState.currentState = previousState;
+    }
+  }
+);
