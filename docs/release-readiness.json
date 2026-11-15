@@ -7,7 +7,7 @@
     "javascript": {
       "suites": 19,
       "tests": 271,
-      "status": "Passed locally: 19 suites, 271 tests. Includes ordinary chord-row order on editor save/paste, editor-origin dense chord recovery, and native timeout message routing."
+      "status": "Passed locally and in source CI: 19 suites, 271 tests. Includes ordinary chord-row order on editor save/paste, editor-origin dense chord recovery, and native timeout message routing."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1158,6 +1158,13 @@
       "Existing rc15 APKs and the historical AAB do not include current source fixes. Build and verify a uniquely identified final candidate before submission.",
       "Repository branch protection remains unchanged and is not claimed enforced."
     ],
-    "design_changes": false
+    "design_changes": false,
+    "source_ci": {
+      "commit": "ea9522ecb24432892758b35fe16d7cc914c967ca",
+      "status": "All three workflows passed. Native and ios jobs both passed. Live LRCLIB and strict Shazam recognition checks passed.",
+      "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43719751554",
+      "native_and_swift": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43719751526",
+      "shazam_proof": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43719751531"
+    }
   }
 }
