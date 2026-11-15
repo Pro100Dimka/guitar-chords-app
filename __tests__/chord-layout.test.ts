@@ -13,6 +13,19 @@ jest.mock("../src/components/database", () => ({
 }));
 jest.mock("../src/locales", () => ({ t: String }));
 
+test("dense inline chords stay within the expansion budget in bounded time", () => {
+  const input = "[C]".repeat(66665) + "words";
+  const start = Date.now();
+  expect(chordsAboveLyrics(input)).toBe(input);
+  expect(Date.now() - start).toBeLessThan(1500);
+});
+
+test("metadata-only ChordPro does not produce an empty draft", () => {
+  expect(() =>
+    importedSong("{title: No lyrics}\n{artist: Performer}", "song.cho")
+  ).toThrow("FileFormatError");
+});
+
 test("malformed short chord notation cannot block the parser process", () => {
   const filename = require("node:path").resolve("src/screens/song/chords.ts");
   const code = `

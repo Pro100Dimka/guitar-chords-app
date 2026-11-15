@@ -5,6 +5,15 @@ import Library from "../src/screens/library";
 import SearchBar from "../src/screens/library/search";
 import { Action } from "../src/screens/song/tools";
 import { getAllItems } from "../src/components/database/crud";
+import { requestSongDeletion } from "../src/components/library-files";
+
+jest.mock("../src/components/library-files", () => ({
+  requestSongDeletion: jest.fn()
+}));
+jest.mock("react-native-safe-area-context", () => ({
+  SafeAreaView: require("react-native").View,
+  useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 })
+}));
 
 jest.mock("../src/components/database/crud", () => ({
   getAllItems: jest.fn()
@@ -23,6 +32,30 @@ const songs = Array.from({ length: 10 }, (_, id) => ({
   id,
   title: `Song ${id}`
 }));
+
+test("deletion completion refreshes the current search instead of its captured filter", async () => {
+  jest.mocked(getAllItems).mockResolvedValue(songs);
+  await act(async () => {
+    screen = Renderer.create(<Library />);
+  });
+  const list = screen.root.findByType(FlatList);
+  const row = list.props.renderItem({ item: songs[0] });
+  await act(async () => row.props.onLongPress());
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Delete")!
+      .props.onPress()
+  );
+  const deleted = jest.mocked(requestSongDeletion).mock.calls[0][1];
+  await act(async () =>
+    screen.root.findByType(SearchBar).props.setFilters("match")
+  );
+  await act(async () => deleted());
+  expect(getAllItems).toHaveBeenLastCalledWith(
+    expect.objectContaining({ parameters: ["%match%"] })
+  );
+});
 afterEach(async () => {
   if (screen) await act(async () => screen.unmount());
   jest.resetAllMocks();

@@ -1,6 +1,6 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { AppState, TextInput, Dimensions } from "react-native";
+import { AppState, TextInput, Dimensions, View } from "react-native";
 import NoteIndicator from "../src/screens/tuner/note-indicator";
 import { Action } from "../src/screens/song/tools";
 import Tuner from "../src/screens/tuner/tuner";
@@ -32,7 +32,14 @@ jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: require("react-native").View,
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string, values?: Record<string, string>) =>
+      key === "TunerReading"
+        ? `${values?.note} ${values?.frequency} ${values?.status}`
+        : key
+  })
+}));
 jest.mock("@shopify/react-native-skia", () => ({
   Canvas: "Canvas",
   Group: "Group"
@@ -57,7 +64,12 @@ jest.mock("../src/screens/tuner/note-indicator", () => () => null);
 jest.mock("../src/screens/tuner/chormatic-wheel", () => ({
   __esModule: true,
   default: () => null,
-  chromaticLayout: () => ({ octaveLeft: 0, octaveTop: 0, octaveWidth: 100 })
+  chromaticLayout: () => ({
+    hole: { x: 0, y: 0, width: 100, height: 100 },
+    octaveLeft: 0,
+    octaveTop: 0,
+    octaveWidth: 100
+  })
 }));
 jest.mock("../src/screens/tuner/chormatic", () => () => null);
 jest.mock("../src/screens/tuner/buttons", () => () => null);
@@ -71,6 +83,96 @@ jest.mock("../src/screens/tuner/config", () => ({
 }));
 
 let screen: Renderer.ReactTestRenderer;
+
+test("guitar strings expose accessible selection and throttled pitch readings", async () => {
+  jest.useFakeTimers();
+  const previous = usePreferences.getState();
+  const config = require("../src/screens/tuner/config");
+  const originalStrings = config.instruments.guitar.stringNotes;
+  config.instruments.guitar.stringNotes = [40, 45, 50, 55, 59, 64].map(() => ({
+    name: "E",
+    octave: 2
+  }));
+  usePreferences.setState({ instrument: "guitar", autoDetect: true });
+  const play = jest
+    .spyOn(guitarAudio, "playGuitar")
+    .mockImplementation(() => {});
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Tuner active />);
+    });
+    const strings = screen.root.findAll(
+      (node) => node.props.accessibilityRole === "radio",
+      { deep: false }
+    );
+    expect(strings).toHaveLength(6);
+    expect(strings[0].props.accessibilityLabel).toBe("TunerStringLabel");
+    await act(async () => strings[1].props.onPress());
+    expect(usePreferences.getState().stringIndex).toBe(1);
+    expect(play).toHaveBeenCalledTimes(1);
+    expect(
+      screen.root.findAll((node) => node.props.accessibilityRole === "radio", {
+        deep: false
+      })[1].props.accessibilityState.selected
+    ).toBe(true);
+    await act(async () => {
+      jest.advanceTimersByTime(4000);
+    });
+    const listener = jest
+      .mocked(MicrophoneStream.addListener)
+      .mock.calls.at(-1)![0];
+    await act(async () =>
+      listener({
+        note: "A",
+        octave: 2,
+        pitch: 110,
+        refFreq: 110,
+        direction: "=",
+        rms: 0.1,
+        diff: 0
+      })
+    );
+    const reading = () =>
+      screen.root
+        .findAllByType(View)
+        .find((node) => node.props.accessibilityLabel === "TunerMeasurement")!
+        .props.accessibilityValue;
+    expect(reading()).toEqual({ text: "A2 110.0 TunerInTune" });
+    await act(async () =>
+      listener({
+        note: "A",
+        octave: 2,
+        pitch: 112,
+        refFreq: 110,
+        direction: ">",
+        rms: 0.1,
+        diff: 2
+      })
+    );
+    expect(reading()).toEqual({ text: "A2 110.0 TunerInTune" });
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+    });
+    await act(async () =>
+      listener({
+        note: "A",
+        octave: 2,
+        pitch: 112,
+        refFreq: 110,
+        direction: ">",
+        rms: 0.1,
+        diff: 2
+      })
+    );
+    expect(reading()).toEqual({ text: "A2 112.0 TunerHigh" });
+  } finally {
+    await act(async () => screen.unmount());
+    usePreferences.setState(previous);
+    config.instruments.guitar.stringNotes = originalStrings;
+    play.mockRestore();
+    jest.useRealTimers();
+  }
+});
 
 test("calibration updates live readings and reference playback without restarting capture", async () => {
   jest.useFakeTimers();

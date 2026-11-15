@@ -406,7 +406,9 @@ async function lookupPisennyk(
     .replace(/\n{4,}/g, "\n\n\n")
     .trim();
   const capoInstruction =
-    /(?:каподастр|капо|capo)\s*:?\s*(?:на\s*)?(\d{1,2}|[\p{L}'’]+)/iu;
+    /(?:^|[^\p{L}])(?:каподастр|капо|capo)(?=[:\s])\s*:?\s*(?:на\s*)?(\d{1,2}(?!\d)|[\p{L}'’]+)/iu;
+  const standaloneCapo =
+    /^\s*(?:каподастр|капо|capo)\s*:?\s*(?:на\s*)?(\d{1,2}|першому|другому|третьому|четвертому|п['’]?ятому|шостому|сьомому|восьмому|дев['’]?ятому|десятому|одинадцятому|дванадцятому)\s*(?:ладу|лад|ладе|fret|traste)?\s*(?:\(або тональність\s*\+\d{1,2} для оригінального звучання без капо\))?\s*$/iu;
   const metadata = DomUtils.findOne(
     (element) =>
       (element.attribs.class ?? "").split(/\s+/).includes("song-metadata"),
@@ -414,7 +416,10 @@ async function lookupPisennyk(
   );
   const capoToken = (
     capoInstruction.exec(metadata ? DomUtils.textContent(metadata) : "")?.[1] ??
-    capoInstruction.exec(content)?.[1] ??
+    content
+      .split("\n")
+      .map((line) => standaloneCapo.exec(line)?.[1])
+      .find(Boolean) ??
     ""
   )
     .toLocaleLowerCase()
@@ -446,7 +451,10 @@ async function lookupPisennyk(
   if (capo !== undefined)
     content = content
       .split("\n")
-      .filter((line) => !capoInstruction.test(line))
+      .filter((line) => {
+        const token = standaloneCapo.exec(line)?.[1];
+        return !token || (/^\d+$/.test(token) && Number(token) > 12);
+      })
       .join("\n")
       .trim();
   if (!content || content.length > 200000) return [];

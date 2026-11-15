@@ -3,13 +3,13 @@ import { getAllItems } from "../src/components/database/crud";
 jest.mock("react-native-vector-icons/Ionicons", () => "Icon");
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert, TouchableOpacity } from "react-native";
+import { Alert, TouchableOpacity, TextInput } from "react-native";
 import {
   StackRouter,
   StackActions,
   CommonActions
 } from "@react-navigation/routers";
-import { GuideArticle } from "../src/screens/guide";
+import Guide, { GuideArticle } from "../src/screens/guide";
 import { Action } from "../src/screens/song/tools";
 import SongModal from "../src/screens/song/header-modal";
 import {
@@ -31,11 +31,27 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }));
 jest.mock("../src/locales", () => ({ t: String }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) => {
+      if (!mockGuideLocale) return key;
+      return (
+        key
+          .split(".")
+          .reduce(
+            (value: any, part) => value?.[part],
+            require(`../src/locales/${mockGuideLocale}.json`)
+          ) ?? key
+      );
+    }
+  })
+}));
 jest.mock("@react-navigation/native", () => ({
   useNavigation: () => mockNavigation,
-  useRoute: () => ({ params: { id: "reading" } })
+  useRoute: () => ({ params: { id: mockGuideId } })
 }));
+let mockGuideId = "reading";
+let mockGuideLocale = "";
 const mockNavigation = { popTo: jest.fn(), setParams: jest.fn() };
 beforeEach(() => {
   jest.clearAllMocks();
@@ -71,7 +87,43 @@ beforeEach(() => {
   jest.mocked(performanceAudio.remove).mockResolvedValue(true);
   jest.mocked(deleteItem).mockResolvedValue(undefined);
 });
-afterEach(() => jest.restoreAllMocks());
+afterEach(() => {
+  mockGuideId = "reading";
+  mockGuideLocale = "";
+  jest.restoreAllMocks();
+});
+
+test.each(
+  ["en", "ru", "ua"].flatMap((locale) =>
+    ["backup", "restore"].map((id) => [locale, id])
+  )
+)("guide renders every step for %s / %s", async (locale, id) => {
+  mockGuideLocale = locale;
+  mockGuideId = id;
+  let screen!: Renderer.ReactTestRenderer;
+  await act(async () => {
+    screen = Renderer.create(<GuideArticle />);
+  });
+  const { steps } = require(`../src/locales/${locale}.json`).GuideArticles[id];
+  expect(JSON.stringify(screen.toJSON())).toContain(steps[3]);
+  await act(async () => screen.unmount());
+});
+
+test("guide search indexes the last backup step", async () => {
+  mockGuideLocale = "en";
+  let screen!: Renderer.ReactTestRenderer;
+  await act(async () => {
+    screen = Renderer.create(<Guide />);
+  });
+  const { steps } = require("../src/locales/en.json").GuideArticles.backup;
+  await act(async () =>
+    screen.root.findByType(TextInput).props.onChangeText(steps[3])
+  );
+  expect(JSON.stringify(screen.toJSON())).toContain(
+    require("../src/locales/en.json").GuideArticles.backup.title
+  );
+  await act(async () => screen.unmount());
+});
 const pressAlert = async (text: string) => {
   await act(async () => {
     jest

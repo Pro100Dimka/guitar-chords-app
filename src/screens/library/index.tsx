@@ -120,6 +120,8 @@ const Library: React.FC = () => {
     },
     [filters, collection, selection]
   );
+  const latestLoadSongs = useRef(loadSongs);
+  latestLoadSongs.current = loadSongs;
   useFocusEffect(
     useCallback(() => {
       loadSongs(0);
@@ -188,7 +190,7 @@ const Library: React.FC = () => {
               requestSongDeletion(
                 song.id,
                 () => {
-                  void loadSongs(0);
+                  void latestLoadSongs.current(0);
                 },
                 () =>
                   navigation.navigate("Song", {

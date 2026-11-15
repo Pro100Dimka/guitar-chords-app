@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 343,
-      "status": "343 tests in 19 suites passed locally. Thirteen added regressions cover adjacent capo metadata, symbol-bearing provider identities, virtualized terminal restoration, stale recorder opening and iOS consumable retry/recovery. TypeScript and full ESLint passed. Actual SQLite separately verifies a favorite update between editor metadata snapshot and transaction completion."
+      "tests": 366,
+      "status": "366 tests in 19 suites passed locally. Twenty-three new regressions cover capo lyric preservation, bounded dense-chord layout, concurrent transaction finalization, current-filter refresh after deletion, tuner accessibility, all guide steps and search, metadata-only import, application and Xcode configuration, Ukrainian spelling and corrupt global preferences. Original-code reproductions failed before verification of fixes."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -60,7 +60,7 @@
       "interpretation": "Evidence points to boot-time storage contention and paging. More RAM prevents the observed ANR in this repeat but does not eliminate the HDD cold-read delay. No speculative application-threading change was made."
     },
     "content_lookup": {
-      "status": "focused fixtures and live source execution passed; not packaged",
+      "status": "Historical provider fixes are packaged in rc19. New capo lyric-preservation fixes are verified in source only and are not in the existing APK. Live-source observations below are historical, not a current availability guarantee.",
       "regression_cases": [
         "canonical apostrophe URLs",
         "LRCLIB fallback after mismatched nonempty results",
@@ -1685,5 +1685,49 @@
       "AGP version-control info is unsupported in this nested checkout; provenance is recorded explicitly by source commit and exact rebuilt Hermes hash."
     ],
     "elapsed_seconds": 109.9
+  },
+  "source_audit_ten": {
+    "date": "2026-11-15",
+    "status": "source fixes verified; not packaged in a new APK/AAB/IPA",
+    "design_changes": false,
+    "fixed": {
+      "F01": "Only recognized standalone capo instructions are removed; ordinary capo-like words and their chords remain.",
+      "F02": "Inline chord layout advances its Unicode column incrementally and checks expansion budget inside the loop. Oversized output falls back to the original chord/text notation.",
+      "F03": "Finalization promises are shared by transaction ID. Refresh and purchase activity are aggregated, preventing a second refresh from enabling another purchase early.",
+      "F04": "Deletion completion calls the latest library loader, preserving the current filter and collection.",
+      "F05": "Transparent accessible string actions share the normal selection handler. A semantic measurement exposes note, frequency and tuning direction, updated at most once per second. TalkBack/VoiceOver device verification remains required.",
+      "F06": "Guide rendering and search consume all translated steps; backup hints explain numbered multipart backups.",
+      "F07": "Supported metadata is removed before checking whether imported song content is empty.",
+      "F08": "app.json is standard JSON.",
+      "F09": "Removed an obsolete Xcode scheme reference to a nonexistent test target. A macOS native test/archive was not performed.",
+      "F10": "Corrected Ukrainian chord-editor label.",
+      "G02": "A successful transaction cannot clear another failed transaction or its retry state.",
+      "G03_partial": "An empty unfinished iOS transaction list does not imply approval of Ask to Buy. Approval and cancellation callbacks control state. Expiry without a callback and real StoreKit behavior remain unverified.",
+      "G04": "Invalid global preference JSON is flagged while healthy per-song chunks still load.",
+      "G13": "Current source and historical APK lookup status are distinguished."
+    },
+    "verification": {
+      "jest": "366/366, 19 suites; support subset rerun after the final transaction-state refinement",
+      "typescript": "passed",
+      "eslint": "passed with zero warnings",
+      "sqlite": "passed actual SQLite integration",
+      "production_javascript": "Android and iOS Metro bundles and Hermes compilation passed; no copied asset tree or native package was produced",
+      "reproduction": "New targeted checks fail against original source. Dense 200000-character chord input took 30238 ms before the fix and now passes a 1500 ms guard."
+    },
+    "remaining_scope": {
+      "external_and_release": [
+        "Provider canonical URL discovery and live redirects (G01)",
+        "StoreKit deferred-request expiry and sandbox validation (G03)",
+        "Regenerate Podfile.lock and build/archive on macOS (G05)",
+        "Branch protection and required checks (G06)",
+        "Evaluate optional smoke step outcomes separately (G07)",
+        "Device, billing, public policy/support and store checks (G08)",
+        "Dependency advisory compatibility review (G09)",
+        "Historical unused bank storage/rights decision (G10)",
+        "Validate audio master format and take duration before future regeneration (G11)",
+        "External provider and unofficial recognition availability (G12)"
+      ],
+      "maintenance": "D01-D08 were not changed in this functional patch. They concern unused components/APIs, old locale keys, tooling configuration and the research notebook. No historical audio bank or unused source files were deleted."
+    }
   }
 }

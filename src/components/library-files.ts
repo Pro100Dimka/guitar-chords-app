@@ -264,7 +264,7 @@ export function importedSong(text: string, name: string) {
     ?.trim();
   const content = text
     .replace(
-      /^[^\S\r\n\u2028\u2029]*\{(title|t|capo|tuning):[^{}\r\n]+\}[^\S\r\n\u2028\u2029]*$/gim,
+      /^[^\S\r\n\u2028\u2029]*\{(title|t|artist|a|capo|tuning):[^{}\r\n]+\}[^\S\r\n\u2028\u2029]*$/gim,
       (line, directive: string) =>
         directive.toLowerCase() === "capo" && !capoDirective.test(line)
           ? line
@@ -285,15 +285,7 @@ export function importedSong(text: string, name: string) {
     capo,
     sourceTuning,
     rhythm: sourceArrangement(content),
-    content: transposeSong(
-      content
-        .replace(
-          /^[^\S\r\n\u2028\u2029]*\{(?:artist|a):[^{}\r\n]+\}[^\S\r\n\u2028\u2029]*$/gim,
-          ""
-        )
-        .trim(),
-      capo
-    ),
+    content: transposeSong(content, capo),
     fk_band: {
       id: "",
       name: artist,

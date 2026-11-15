@@ -1,3 +1,14 @@
+SOURCE AUDIT UPDATE, 15.11.2026
+Ten confirmed functional/configuration findings fixed in source, plus related
+transaction-state and corrupted global preference recovery cases. Design retained.
+366 tests / 19 suites, TypeScript, zero-warning ESLint and actual SQLite passed.
+Android and iOS production JavaScript and Hermes compilation passed.
+These changes are newer than the rc19 APK described below. No new native package
+was assembled for this audit. Tuner screen-reader behavior needs device checks;
+Xcode scheme cleanup does not constitute an iOS native build or archive.
+Details and unresolved external/maintenance scope: source_audit_ten in
+docs/release-readiness.json.
+
 FreeTune 1.0, Android versionCode 19. APK verification, 15.11.2026
 
 CURRENT SOURCE STATUS

@@ -136,9 +136,13 @@ export default function Guide() {
   const [section, setSection] = useState("all");
   const words = normalize(query).trim().split(/\s+/).filter(Boolean);
   const filtered = articles.filter((article) => {
+    const steps = t(`GuideArticles.${article.id}.steps`, {
+      returnObjects: true
+    });
     const text = normalize(
-      ["title", "summary", "tip", "keywords", "steps.0", "steps.1", "steps.2"]
+      ["title", "summary", "tip", "keywords"]
         .map((field) => t(`GuideArticles.${article.id}.${field}`))
+        .concat(Array.isArray(steps) ? steps : [])
         .join(" ")
     );
     return (
@@ -371,6 +375,7 @@ export function GuideArticle() {
       </View>
     );
   const key = `GuideArticles.${article.id}`;
+  const steps = t(`${key}.steps`, { returnObjects: true });
   const picture = article.picture ? pictures[article.picture] : undefined;
   const imageSize = picture ? Image.resolveAssetSource(picture) : undefined;
   const imageWidth = Math.min(width - 72, 340);
@@ -407,12 +412,12 @@ export function GuideArticle() {
         <Text style={styles.tip}>{t("GuideAndroidOnly")}</Text>
       )}
       <View style={styles.steps}>
-        {[0, 1, 2].map((step) => (
+        {(Array.isArray(steps) ? steps : []).map((text, step) => (
           <View key={step} style={styles.step}>
             <View style={styles.number}>
               <Text style={styles.numberText}>{step + 1}</Text>
             </View>
-            <Text style={styles.stepText}>{t(`${key}.steps.${step}`)}</Text>
+            <Text style={styles.stepText}>{text}</Text>
           </View>
         ))}
       </View>

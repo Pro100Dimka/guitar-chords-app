@@ -146,6 +146,34 @@ describe("content provider failover", () => {
     }
   );
 
+  it.each([
+    "Під капотом стало тихо",
+    "Un capolavoro senza nome",
+    "We sing capo in the song"
+  ])(
+    "Pisennyk preserves ordinary lyrics with capo-like words: %s",
+    async (words) => {
+      const candidate = "https://pisennyk.com.ua/test-artist/test-song";
+      request.mockImplementation(async (url) =>
+        String(url).startsWith("https://pisennyk.com.ua/search")
+          ? new Response(`<a href="${candidate}">${title} ${artist}</a>`)
+          : String(url) === candidate
+            ? new Response(
+                `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: title, byArtist: { name: artist } })}</script><div class="song-metadata">Каподастр: 2</div><div class="interpretation-content"><code data-chord="Am">Am</code>${words}<br>Capo: 2<br><code data-chord="C">C</code>Next line</div>`
+              )
+            : response(String(url))
+      );
+      const pending = lookup(title, artist);
+      await jest.advanceTimersByTimeAsync(10000);
+      const option = (await pending).find(
+        (entry) => entry.source === "Пісенник"
+      )!;
+      expect(option.content).toContain(words);
+      expect(option.content).not.toContain("Capo: 2");
+      expect(option.capo).toBe(2);
+    }
+  );
+
   it.each([2, 3])(
     "Pisennyk reads capo %s from adjacent page metadata",
     async (capo) => {

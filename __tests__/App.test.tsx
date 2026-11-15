@@ -41,6 +41,29 @@ jest.mock(
   () => require("react-native-safe-area-context/jest/mock").default
 );
 
+test("application manifest is standard JSON", () => {
+  const fs = require("node:fs");
+  expect(JSON.parse(fs.readFileSync("app.json", "utf8")).name).toBe("freetune");
+});
+
+test("shared Xcode scheme only references existing targets", () => {
+  const fs = require("node:fs");
+  const scheme = fs.readFileSync(
+    "ios/freetune.xcodeproj/xcshareddata/xcschemes/freetune.xcscheme",
+    "utf8"
+  );
+  const project = fs.readFileSync(
+    "ios/freetune.xcodeproj/project.pbxproj",
+    "utf8"
+  );
+  for (const match of scheme.matchAll(/BlueprintIdentifier = "([A-F0-9]+)"/g))
+    expect(project).toContain(match[1]);
+});
+
+test("Ukrainian chord editor uses the correct spelling", () => {
+  expect(require("../src/locales/ua.json").ChordsLyrics).toBe("Акорди / текст");
+});
+
 test("renders correctly", async () => {
   let screen: ReactTestRenderer.ReactTestRenderer;
   await ReactTestRenderer.act(() => {

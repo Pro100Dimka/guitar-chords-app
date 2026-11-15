@@ -99,6 +99,10 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const rms = useSharedValue(0);
   const plucks = useSharedValue<number[]>([]);
   const note = useSharedValue<INote | null>(null);
+  const [accessibleReading, setAccessibleReading] = useState<INote | null>(
+    null
+  );
+  const readingUpdatedAt = useRef(0);
   const [stringNotes, setStringNotes] = useState<IString[] | null>(null);
   const config = {
     ...defConfig,
@@ -262,6 +266,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   }, [active, stringNotes]);
   useEffect(() => {
     if (!active) {
+      setAccessibleReading(null);
       note.value = null;
       rms.value = 0;
       plucks.value = [];
@@ -271,6 +276,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       note.value = null;
       plucks.value = [];
     }
+    setAccessibleReading(null);
+    readingUpdatedAt.current = 0;
     let lastBufferAt = Date.now();
     const id = MicrophoneStream.addListener((input: AudioBufferEvent) => {
       const calibrated = isChromatic
@@ -299,6 +306,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         buffer.octave !== chromaticOctave
       ) {
         note.value = null;
+        setAccessibleReading(null);
         return;
       }
       const cents =
@@ -310,6 +318,20 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       const state = tuningState.current;
       if (now < Math.max(state.ignoreUntil, previewUntil.current)) return;
       const valid = Number.isFinite(cents) && buffer.rms > 0.003;
+      if (now - readingUpdatedAt.current >= 1000) {
+        readingUpdatedAt.current = now;
+        setAccessibleReading(
+          valid
+            ? {
+                name: buffer.note,
+                octave: buffer.octave,
+                pitch: buffer.pitch,
+                refFreq: buffer.refFreq,
+                direction: buffer.direction
+              }
+            : null
+        );
+      }
       if (valid && state.key !== key) {
         state.key = key;
         state.since = 0;
@@ -389,6 +411,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     next[index] = (next[index] ?? 0) + 1;
     plucks.value = next;
     note.value = null;
+    setAccessibleReading(null);
     rms.value = 0;
     previewUntil.current = Date.now() + 3100;
     if (cueTimer.current !== undefined) clearTimeout(cueTimer.current);
@@ -412,6 +435,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
 
   const currString = stringNotes?.length === 1 ? stringNotes[0] : null;
   const octaveLayout = chromaticLayout(stageWidth, layout.height);
+  const readingFrame = isChromatic ? octaveLayout.hole : guitar.hole;
   const selectOctave = (value: number | null) => {
     stopReference();
     note.value = null;
@@ -471,6 +495,10 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     >
       <View
         pointerEvents={painted && backgroundReady ? "auto" : "none"}
+        accessibilityElementsHidden={!painted || !backgroundReady}
+        importantForAccessibility={
+          !painted || !backgroundReady ? "no-hide-descendants" : "auto"
+        }
         style={[
           styles.flex,
           { width: stageWidth },
@@ -497,7 +525,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
           />
         )}
         <GestureDetector gesture={tapGesture}>
-          <Canvas ref={canvas} style={styles.flex}>
+          <Canvas ref={canvas} style={styles.flex} accessible={false}>
             {config.selectedInstrument === "guitar" ? (
               <>
                 <NoteIndicator
@@ -538,6 +566,68 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
             )}
           </Canvas>
         </GestureDetector>
+        <View
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={t("TunerMeasurement")}
+          accessibilityLiveRegion={active ? "polite" : "none"}
+          accessibilityValue={{
+            text: accessibleReading
+              ? t("TunerReading", {
+                  note: `${accessibleReading.name}${accessibleReading.octave}`,
+                  frequency: accessibleReading.pitch.toFixed(1),
+                  status: t(
+                    (
+                      {
+                        "=": "TunerInTune",
+                        "<": "TunerLow",
+                        ">": "TunerHigh"
+                      } as Record<string, string>
+                    )[accessibleReading.direction] ?? "TunerListening"
+                  )
+                })
+              : t("TunerListening")
+          }}
+          pointerEvents="none"
+          style={[
+            styles.accessibleReading,
+            {
+              left: readingFrame.x,
+              top: readingFrame.y,
+              width: readingFrame.width,
+              height: readingFrame.height
+            }
+          ]}
+        />
+        {!isChromatic && strings && (
+          <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
+            {strings.map((string, index) => {
+              const spacing =
+                guitar.stringWidth / Math.max(1, strings.length - 1);
+              return (
+                <Pressable
+                  key={index}
+                  accessibilityRole="radio"
+                  accessibilityLabel={t("TunerStringLabel", {
+                    number: strings.length - index,
+                    note: `${string.name}${string.octave}`
+                  })}
+                  accessibilityState={{
+                    selected: !autoDetect && selectedString === index
+                  }}
+                  onPress={() => selectString(index)}
+                  style={[
+                    styles.accessibleString,
+                    {
+                      left: guitar.stringLeft + spacing * index - spacing / 2,
+                      width: spacing
+                    }
+                  ]}
+                />
+              );
+            })}
+          </View>
+        )}
         {isChromatic && (
           <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
             <View
@@ -717,6 +807,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   );
 };
 const styles = StyleSheet.create({
+  accessibleReading: { position: "absolute" },
+  accessibleString: { position: "absolute", top: 15, height: 50 },
   referenceOptions: {
     position: "absolute",
     flexDirection: "row",

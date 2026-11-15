@@ -37,7 +37,9 @@ jest.mock("react-native-iap", () => ({
     DeferredPayment: "deferred-payment"
   }
 }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: mockTranslate })
+}));
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: require("react-native").View,
   useSafeAreaInsets: () => ({ top: 0, right: 0, bottom: 0, left: 0 })
@@ -45,6 +47,7 @@ jest.mock("react-native-safe-area-context", () => ({
 
 let mockCallbacks: NonNullable<Parameters<typeof useIAP>[0]>;
 let mockAvailable = true;
+let mockTranslate: (key: string) => string = String;
 let screen: Renderer.ReactTestRenderer;
 const mockRequestPurchase = jest.fn();
 const mockFetchProducts = jest.fn();
@@ -70,6 +73,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   jest.replaceProperty(Platform, "OS", "android");
   mockAvailable = true;
+  mockTranslate = String;
   useSupport.setState({ visible: true });
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   jest.mocked(finishTransaction).mockResolvedValue(undefined);
@@ -89,6 +93,40 @@ const payButton = () =>
   screen.root
     .findAllByType(Action)
     .find((node) => node.props.label.includes("€1.99"))!;
+
+test("language refresh waits for an in-flight finalization before enabling payment", async () => {
+  let finish!: () => void;
+  jest.mocked(finishTransaction).mockImplementation(
+    () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      })
+  );
+  jest.mocked(getAvailablePurchases).mockResolvedValue([purchase]);
+  await open();
+  mockTranslate = (key) => key;
+  await act(async () => screen.update(<Support />));
+  expect(finishTransaction).toHaveBeenCalledTimes(1);
+  expect(payButton().props.disabled).toBe(true);
+  await act(async () => payButton().props.onPress());
+  expect(mockRequestPurchase).not.toHaveBeenCalled();
+  await act(async () => finish());
+  expect(payButton().props.disabled).toBe(false);
+});
+
+test("one successful transaction cannot hide another failed finalization", async () => {
+  jest
+    .mocked(getAvailablePurchases)
+    .mockResolvedValue([purchase, { ...purchase, id: "transaction-2" }]);
+  jest.mocked(finishTransaction).mockRejectedValueOnce(new Error("offline"));
+  await open();
+  expect(payButton().props.disabled).toBe(true);
+  expect(
+    screen.root
+      .findAllByType(Action)
+      .some((node) => node.props.label === "Retry")
+  ).toBe(true);
+});
 
 test("opening support never purchases; explicit tap requests a one-time store purchase", async () => {
   await open();
@@ -188,6 +226,31 @@ test("deferred payment returned as a rejection blocks another charge", async () 
   await act(async () => payButton().props.onPress());
   expect(mockRequestPurchase).toHaveBeenCalledTimes(1);
   expect(finishTransaction).not.toHaveBeenCalled();
+});
+
+test("iOS retry does not treat an empty unfinished list as Ask to Buy approval", async () => {
+  jest.replaceProperty(Platform, "OS", "ios");
+  mockRequestPurchase.mockRejectedValueOnce({
+    code: ErrorCode.DeferredPayment
+  });
+  await open();
+  await act(async () => payButton().props.onPress());
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Retry")!
+      .props.onPress()
+  );
+  expect(payButton().props.disabled).toBe(true);
+  await act(async () => payButton().props.onPress());
+  expect(mockRequestPurchase).toHaveBeenCalledTimes(1);
+  await act(async () =>
+    mockCallbacks.onPurchaseError!({
+      code: ErrorCode.UserCancelled,
+      message: "Declined"
+    })
+  );
+  expect(payButton().props.disabled).toBe(false);
 });
 
 test("retry clears a pending purchase that is no longer returned by the store", async () => {

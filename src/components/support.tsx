@@ -34,44 +34,64 @@ export default function Support() {
   const [busy, setBusy] = useState(false);
   const [pending, setPending] = useState(false);
   const [status, setStatus] = useState("SupportUnavailable");
-  const processing = useRef(new Set<string>());
+  const processing = useRef(new Map<string, Promise<void>>());
   const completed = useRef(new Set<string>());
   const unfinished = useRef(new Map<string, Purchase>());
+  const refreshing = useRef(0);
+  const requesting = useRef(false);
+  const deferred = useRef(false);
+  const pendingPurchases = useRef(new Set<string>());
+  const updateState = useCallback((message?: string) => {
+    setBusy(
+      refreshing.current > 0 ||
+        requesting.current ||
+        processing.current.size > 0
+    );
+    const waiting = deferred.current || pendingPurchases.current.size > 0;
+    setPending(waiting || unfinished.current.size > 0);
+    if (unfinished.current.size) setStatus("SupportFinishError");
+    else if (waiting) setStatus("SupportPending");
+    else if (message !== undefined) setStatus(message);
+  }, []);
   const complete = useCallback(
     async (purchase: Purchase) => {
       if (purchase.productId !== SUPPORT_PRODUCT) return;
+      requesting.current = false;
       if (purchase.purchaseState !== "purchased") {
-        setBusy(false);
-        setPending(true);
-        setStatus("SupportPending");
+        pendingPurchases.current.add(purchase.id);
+        updateState();
         return;
       }
       const id = purchase.id;
-      if (processing.current.has(id) || completed.current.has(id)) return;
-      processing.current.add(id);
-      try {
-        await finishTransaction({ purchase, isConsumable: true });
-        completed.current.add(id);
-        unfinished.current.delete(id);
-        setPending(false);
-        setStatus("SupportThanks");
-        Alert.alert(t("SupportThanks"));
-      } catch {
-        unfinished.current.set(id, purchase);
-        setPending(true);
-        setStatus("SupportFinishError");
-      } finally {
-        processing.current.delete(id);
-        setBusy(false);
-      }
+      const current = processing.current.get(id);
+      if (current) return current;
+      if (completed.current.has(id)) return;
+      deferred.current = false;
+      pendingPurchases.current.delete(id);
+      const task = (async () => {
+        try {
+          await finishTransaction({ purchase, isConsumable: true });
+          completed.current.add(id);
+          unfinished.current.delete(id);
+          Alert.alert(t("SupportThanks"));
+        } catch {
+          unfinished.current.set(id, purchase);
+        } finally {
+          processing.current.delete(id);
+          updateState("SupportThanks");
+        }
+      })();
+      processing.current.set(id, task);
+      updateState();
+      return task;
     },
-    [t]
+    [t, updateState]
   );
   const showPurchaseError = (code: string) => {
     const message = purchaseErrors[code] ?? "SupportError";
-    setBusy(false);
-    setPending(message === "SupportPending");
-    setStatus(message);
+    requesting.current = false;
+    deferred.current = message === "SupportPending";
+    updateState(message);
   };
   const { connected, products, fetchProducts, requestPurchase, reconnect } =
     useIAP({
@@ -81,7 +101,8 @@ export default function Support() {
     });
   const product = products.find((item) => item.id === SUPPORT_PRODUCT);
   const refresh = useCallback(async () => {
-    setBusy(true);
+    refreshing.current++;
+    updateState();
     setStatus("SupportLoading");
     try {
       if (!connected && !(await reconnect())) {
@@ -100,29 +121,48 @@ export default function Support() {
           ])
         ).values()
       ];
-      setPending(
-        purchases.some(
-          (item) =>
-            item.productId === SUPPORT_PRODUCT &&
-            item.purchaseState !== "purchased"
-        )
+      pendingPurchases.current = new Set(
+        storePurchases
+          .filter(
+            (item) =>
+              item.productId === SUPPORT_PRODUCT &&
+              item.purchaseState !== "purchased"
+          )
+          .map((item) => item.id)
       );
-      await Promise.all(purchases.map(complete));
+      await Promise.all([
+        ...processing.current.values(),
+        ...purchases.map(complete)
+      ]);
       setStatus((current) =>
         current === "SupportLoading" ? "SupportUnavailable" : current
       );
     } catch {
       setStatus("SupportUnavailable");
     } finally {
-      setBusy(false);
+      refreshing.current--;
+      updateState();
     }
-  }, [connected, reconnect, fetchProducts, complete]);
+  }, [connected, reconnect, fetchProducts, complete, updateState]);
   useEffect(() => {
     if (connected) void refresh();
   }, [connected, refresh]);
   const purchase = async () => {
-    if (busy || pending || !product || !connected) return;
-    setBusy(true);
+    if (
+      busy ||
+      pending ||
+      requesting.current ||
+      refreshing.current ||
+      processing.current.size ||
+      unfinished.current.size ||
+      deferred.current ||
+      pendingPurchases.current.size ||
+      !product ||
+      !connected
+    )
+      return;
+    requesting.current = true;
+    updateState();
     setStatus("");
     try {
       await requestPurchase({

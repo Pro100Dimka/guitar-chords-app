@@ -46,6 +46,26 @@ jest.mock("../src/components/database/crud", () => ({
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
 
+test.each(["{broken", "null", "[]"])(
+  "corrupted global preferences still load healthy song chunks: %s",
+  async (value) => {
+    jest.mocked(getAllItems).mockImplementation(async (query) => {
+      if (query.fields === "length(value) AS length")
+        return [{ length: value.length }];
+      if (query.parameters?.[0] === "experience") return [{ value }];
+      return [
+        { key: "song:9:0", value: JSON.stringify({ tempo: 123, capo: 3 }) }
+      ];
+    });
+    await loadPreferences();
+    expect(usePreferences.getState().songs[9]).toMatchObject({
+      tempo: 123,
+      capo: 3
+    });
+    expect(usePreferences.getState().saveError).toBe(true);
+  }
+);
+
 test("a valid 38-cover library exports completely in individually restorable parts", async () => {
   const image =
     "data:image/jpeg;base64," +

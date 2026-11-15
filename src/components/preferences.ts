@@ -299,14 +299,14 @@ export async function loadPreferences() {
     if (!chunk) throw new Error("PreferenceReadFailed");
     text += chunk.value;
   }
-  let data: unknown;
+  let data: Record<string, unknown> = {};
   try {
-    data = text ? JSON.parse(text) : {};
+    const parsed: unknown = text ? JSON.parse(text) : {};
+    if (!record(parsed)) throw new Error("PreferenceReadFailed");
+    data = parsed;
   } catch {
     usePreferences.setState({ saveError: true });
-    return;
   }
-  if (!record(data)) return;
   const songs: Record<string, SongPreferences> = {};
   if (record(data.songs))
     Object.entries(data.songs).forEach(([id, song]) => {

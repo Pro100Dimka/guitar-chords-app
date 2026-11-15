@@ -657,14 +657,28 @@ export function chordsAboveLyrics(content: string) {
     }
     let lyrics = "",
       chords = "",
+      column = 0,
       previous = 0;
     for (const match of line.matchAll(/\[([^\[\]]+)\]/g)) {
       const chord = normalizeChord(match[1]);
       if (!chordNotationPattern.test(chord)) continue;
-      lyrics += line.slice(previous, match.index);
-      const column = [...lyrics].length;
+      const segment = line.slice(previous, match.index);
+      column += [...segment].length;
       const target = Math.max(column, chords.length ? chords.length + 1 : 0);
-      lyrics += " ".repeat(target - column);
+      if (
+        size +
+          lyrics.length +
+          segment.length +
+          target -
+          column +
+          target +
+          chord.length +
+          1 >
+        200000
+      )
+        return content;
+      lyrics += segment + " ".repeat(target - column);
+      column = target;
       chords = chords.padEnd(target) + chord;
       previous = match.index + match[0].length;
     }
