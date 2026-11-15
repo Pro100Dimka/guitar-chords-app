@@ -1,0 +1,58 @@
+name: ios-application
+on:
+  workflow_dispatch:
+    inputs:
+      refresh_lock:
+        description: Resolve native dependencies and upload updated lockfiles
+        type: boolean
+        default: false
+permissions:
+  contents: read
+jobs:
+  ios-application:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3'
+          bundler: '2.5.23'
+          bundler-cache: true
+      - run: npm ci
+      - name: Install native dependencies
+        env:
+          REFRESH_LOCK: ${{ inputs.refresh_lock }}
+        run: |
+          if [ "$REFRESH_LOCK" = 'true' ]; then
+            bundle exec pod install --project-directory=ios
+          else
+            bundle exec pod install --project-directory=ios --deployment
+            git diff --exit-code -- ios/Podfile.lock Gemfile.lock
+          fi
+      - name: Build complete iOS simulator application
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/freetune.xcworkspace -scheme freetune \
+            -configuration Debug -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$RUNNER_TEMP/freetune-ios-build" \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO \
+            build > "$RUNNER_TEMP/ios-application-build.log" 2>&1 || {
+              tail -n 120 "$RUNNER_TEMP/ios-application-build.log"
+              exit 1
+            }
+          tail -n 12 "$RUNNER_TEMP/ios-application-build.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-application-proof
+          path: |
+            ios/Podfile.lock
+            Gemfile.lock
+            ${{ runner.temp }}/ios-application-build.log
+          retention-days: 7
