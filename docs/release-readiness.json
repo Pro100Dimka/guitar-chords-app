@@ -6,12 +6,12 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 390,
-      "status": "390 tests in 19 suites passed locally. Nine new regressions cover annotated editor round trips, Android purchase-token identity, foreground and window-opening reconciliation, refresh coalescing and authoritative purchased receipts. The existing audio-engine mute regression now uses an unchanged chord."
+      "tests": 399,
+      "status": "399 tests in 19 suites passed locally, including raw storage limits, early editing, bounded chord blocks and explicit Ask to Buy retry regressions."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
-    "sqlite": "Actual SQLite integration completed and passed, including version-1 backup restore with an oversized performer followed by a title-only edit. The deletion-error fixture now uses DeleteSongError; an overall 30-second completion deadline prevents silent success with an unresolved test promise.",
+    "sqlite": "Actual SQLite integration passed, including aggregate 2 MiB row enforcement, legacy CJK restore/export and whitespace-preserving save/backup round trips.",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
@@ -1877,5 +1877,27 @@
       "Simulator compilation validates native integration, not physical audio routes, interruption behavior or real StoreKit/Google Play callbacks.",
       "Other historical release requirements and unlabelled real-recording tuner recall remain outside this audit scope."
     ]
+  },
+  "source_audit_1ec7948": {
+    "status": "Five findings fixed and locally verified; required PR checks pending; no new installation package",
+    "date": "2026-11-16",
+    "limits": [
+      "Real StoreKit approval, decline and expiry callbacks require sandbox/device verification.",
+      "No new APK/AAB/IPA; rc20 does not contain these fixes."
+    ],
+    "design_changes": false,
+    "verification": {
+      "sqlite": "passed, actual integration; five defect scenarios reproduced before implementation fixes",
+      "jest": "399/399, 19 suites",
+      "typescript": "passed",
+      "eslint": "passed, zero warnings"
+    },
+    "fixed": {
+      "validation": "Validate raw persisted strings and aggregate length without trimming musical indentation or line breaks.",
+      "storekit": "An explicit retry after successful store reconciliation can release a stale deferred gate; automatic refresh never treats absence as approval and real pending/finalizing receipts remain guarded.",
+      "editor": "Ignore Edit until the song load completes, leaving the in-flight load active.",
+      "backup": "Export explicit necessary columns without redundant search text; SQLite adapter now enforces aggregate row bytes.",
+      "virtualization": "Chunk independent chord rows into bounded blocks while retaining anchored chord-and-lyric groups."
+    }
   }
 }

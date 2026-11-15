@@ -95,6 +95,112 @@ function mockSongSave(id: number) {
 }
 let screen: Renderer.ReactTestRenderer | undefined;
 
+test.each(["title", "content"] as const)(
+  "raw %s whitespace counts toward the storage limit",
+  async (key) => {
+    const {
+      validationSchema
+    } = require("../src/screens/create-song-chords/formik/validation-schema");
+    const { songFieldLimits } = require("../src/@interfaces");
+    const values = {
+      ...initialSong,
+      title: "Title",
+      content: "  Am\n  Words\n",
+      [key]: "\n".repeat(songFieldLimits[key]) + "Words"
+    };
+    expect(await validationSchema(String).isValid(values)).toBe(false);
+  }
+);
+
+test("padded oversized content is rejected before opening a save transaction", async () => {
+  const writes = mockSongSave(91);
+  const error = jest.spyOn(console, "error").mockImplementation(() => {});
+  const values = {
+    ...initialSong,
+    title: "Padded",
+    content: "\n".repeat(2100000) + "Words"
+  };
+  try {
+    const saved = await onSubmit(
+      {} as FormikProps<typeof initialSong>,
+      values,
+      { replace: jest.fn() }
+    );
+    expect(saved).toBe(false);
+    expect(writes.length).toBe(0);
+  } finally {
+    error.mockRestore();
+  }
+});
+
+test("legacy field compatibility does not bypass the raw aggregate budget", async () => {
+  const {
+    validationSchema
+  } = require("../src/screens/create-song-chords/formik/validation-schema");
+  const original = {
+    ...initialSong,
+    id: 1,
+    title: " ".repeat(270000) + "Title",
+    content: "Words"
+  };
+  expect(await validationSchema(String, original).isValid(original)).toBe(true);
+  expect(
+    await validationSchema(String, original).isValid({
+      ...original,
+      content: "\n".repeat(150000) + "Words"
+    })
+  ).toBe(false);
+});
+
+test("an early edit action cannot strand a pending song load", async () => {
+  let finish!: (rows: { id: number; title: string; content: string }[]) => void;
+  jest.mocked(crud.getAllItems).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  await act(async () => screen!.root.findByType(Menu).props.setIsEdit(true));
+  await act(async () =>
+    finish([{ id: 1, title: "Loaded", content: "Am\nWords" }])
+  );
+  expect(JSON.stringify(screen!.toJSON()).includes("LoadingSong")).toBe(false);
+  await act(async () => screen!.root.findByType(Menu).props.setIsEdit(true));
+  expect(screen!.root.findAllByType(Editor).length).toBe(1);
+});
+
+test("independent chord runs produce bounded virtualized items", async () => {
+  jest.useFakeTimers();
+  require("../src/components/preferences")
+    .usePreferences.getState()
+    .updateSong(1, { transpose: 0, capo: 0 });
+  jest.mocked(crud.getAllItems).mockResolvedValue([
+    {
+      id: 1,
+      title: "Many chords",
+      content: "C\n".repeat(3000) + "Final words"
+    }
+  ]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  const blocks: { line: string; onlyChords: boolean }[][] =
+    screen!.root.findByType(FlatList).props.data;
+  expect(Math.max(...blocks.map((block) => block.length))).toBeLessThanOrEqual(
+    9
+  );
+  expect(
+    blocks.flatMap((block) => block).filter((row) => row.line === "C").length
+  ).toBe(3000);
+  const ending = blocks.find((block) =>
+    block.some((row) => row.line === "Final words")
+  )!;
+  expect(ending[ending.length - 2].line).toBe("C");
+});
+
 test.each([
   "title",
   "content",

@@ -313,12 +313,19 @@ const SongDetail: React.FC = () => {
         preferences.transpose - preferences.capo
       )
     );
-    const lyricStarts = new Set(display.groups.map((group) => group.end));
-    let offset = 0;
+    let offset = 0,
+      groupIndex = 0;
     const rows = display.text.split(/\r?\n/).map((line, index) => {
-      const onlyChords = !lyricStarts.has(offset) && isChordLine(line);
+      while (
+        groupIndex < display.groups.length &&
+        offset > display.groups[groupIndex].end
+      )
+        groupIndex++;
+      const group = display.groups[groupIndex];
+      const pair = group && offset >= group.start ? groupIndex : -1;
+      const onlyChords = group?.end !== offset && isChordLine(line);
       offset += line.length + 1;
-      return { line, index, onlyChords };
+      return { line, index, onlyChords, pair };
     });
     const virtualized = rows.length > 200 || display.text.length > 20000;
     const blocks: (typeof rows)[] = [];
@@ -330,8 +337,15 @@ const SongDetail: React.FC = () => {
         continue;
       }
       let end = index + 1;
-      while (end < rows.length && rows[end].onlyChords) end++;
-      if (rows[end]?.line.trim()) end++;
+      while (
+        end < rows.length &&
+        rows[end].onlyChords &&
+        (row.pair >= 0
+          ? rows[end].pair === row.pair
+          : rows[end].pair < 0 && (!virtualized || end - index < 8))
+      )
+        end++;
+      if (rows[end]?.line.trim() && !rows[end].onlyChords) end++;
       blocks.push(rows.slice(index, end));
       index = end;
     }
@@ -475,6 +489,7 @@ const SongDetail: React.FC = () => {
         />
         <SongModal
           setIsEdit={(edit) => {
+            if (edit && (loading || !song)) return;
             editorExitAllowed.current = false;
             setPlaying(false);
             setIsEdit(edit);
