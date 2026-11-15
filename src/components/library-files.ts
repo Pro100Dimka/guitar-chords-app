@@ -134,20 +134,20 @@ export function importedSong(text: string, name: string) {
   const title =
     text
       .match(
-        /^[^\S\r\n]*\{(?:title|t):[^\S\r\n]*([^{}\r\n]+)\}[^\S\r\n]*$/im
+        /^[^\S\r\n\u2028\u2029]*\{(?:title|t):[^\S\r\n\u2028\u2029]*([^{}\r\n]+)\}[^\S\r\n\u2028\u2029]*$/im
       )?.[1]
       ?.trim() ?? name.replace(/\.[^.]+$/, "");
   if (title.length > songFieldLimits.title) throw new Error("FileTooLarge");
   const capo = Math.min(
     12,
-    Number(text.match(/\{capo:[^\S\r\n]*(\d+)\}/i)?.[1] ?? 0)
+    Number(text.match(/\{capo:[^\S\r\n\u2028\u2029]*(\d+)\}/i)?.[1] ?? 0)
   );
   const sourceTuning = text
-    .match(/\{tuning:[^\S\r\n]*([^{}\r\n]+)\}/i)?.[1]
+    .match(/\{tuning:[^\S\r\n\u2028\u2029]*([^{}\r\n]+)\}/i)?.[1]
     ?.trim();
   const content = text
     .replace(
-      /^[^\S\r\n]*\{(?:title|t|capo|tuning):[^{}\r\n]+\}[^\S\r\n]*$/gim,
+      /^[^\S\r\n\u2028\u2029]*\{(?:title|t|capo|tuning):[^{}\r\n]+\}[^\S\r\n\u2028\u2029]*$/gim,
       ""
     )
     .trim();
@@ -155,7 +155,7 @@ export function importedSong(text: string, name: string) {
   const artist =
     text
       .match(
-        /^[^\S\r\n]*\{(?:artist|a):[^\S\r\n]*([^{}\r\n]+)\}[^\S\r\n]*$/im
+        /^[^\S\r\n\u2028\u2029]*\{(?:artist|a):[^\S\r\n\u2028\u2029]*([^{}\r\n]+)\}[^\S\r\n\u2028\u2029]*$/im
       )?.[1]
       ?.trim() ?? "";
   if (artist.length > songFieldLimits.band_name)
@@ -166,7 +166,10 @@ export function importedSong(text: string, name: string) {
     sourceTuning,
     content: transposeSong(
       content
-        .replace(/^[^\S\r\n]*\{(?:artist|a):[^{}\r\n]+\}[^\S\r\n]*$/gim, "")
+        .replace(
+          /^[^\S\r\n\u2028\u2029]*\{(?:artist|a):[^{}\r\n]+\}[^\S\r\n\u2028\u2029]*$/gim,
+          ""
+        )
         .trim(),
       capo
     ),
