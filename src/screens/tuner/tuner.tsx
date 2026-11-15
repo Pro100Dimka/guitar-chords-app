@@ -97,6 +97,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const { width, height } = Dimensions.get("window");
   const [layout, setLayout] = useState({ width, height });
   const rms = useSharedValue(0);
+  const plucks = useSharedValue<number[]>([]);
   const note = useSharedValue<INote | null>(null);
   const [stringNotes, setStringNotes] = useState<IString[] | null>(null);
   const config = {
@@ -263,9 +264,13 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     if (!active) {
       note.value = null;
       rms.value = 0;
+      plucks.value = [];
       return;
     }
-    if (isChromatic) note.value = null;
+    if (isChromatic) {
+      note.value = null;
+      plucks.value = [];
+    }
     let lastBufferAt = Date.now();
     const id = MicrophoneStream.addListener((input: AudioBufferEvent) => {
       const calibrated = isChromatic
@@ -365,11 +370,24 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       MicrophoneStream.removeListener(id);
       MicrophoneStream.stopRecording();
     };
-  }, [active, note, rms, fill, fillKey, signal, isChromatic, chromaticOctave]);
+  }, [
+    active,
+    note,
+    rms,
+    plucks,
+    fill,
+    fillKey,
+    signal,
+    isChromatic,
+    chromaticOctave
+  ]);
   const previewUntil = useRef(0);
   const selectString = (index: number) => {
     const string = strings?.[index];
     if (!string) return;
+    const next = [...plucks.value];
+    next[index] = (next[index] ?? 0) + 1;
+    plucks.value = next;
     note.value = null;
     rms.value = 0;
     previewUntil.current = Date.now() + 3100;
@@ -499,6 +517,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
                   width={stageWidth}
                   height={layout.height}
                   rms={rms}
+                  plucks={plucks}
                   fill={fill}
                   fillKey={fillKey}
                   note={note}

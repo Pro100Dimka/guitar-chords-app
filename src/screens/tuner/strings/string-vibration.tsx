@@ -74,9 +74,12 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
   thickness,
   baseColor,
   active,
-  volume
+  volume,
+  plucks,
+  index
 }) => {
   const progress = useSharedValue(0);
+  const pluckAmplitude = useSharedValue(0);
   const [path1, path2] = useMemo(
     () => [
       getStringPath(x, top, bottom, -15),
@@ -85,7 +88,22 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
     [x, top, bottom]
   );
   useAnimatedReaction(
-    () => active && volume.value > 0.003,
+    () => plucks.value[index] ?? 0,
+    (next, previous) => {
+      if (next === previous) return;
+      if (!next) {
+        pluckAmplitude.value = 0;
+        return;
+      }
+      pluckAmplitude.value = 1;
+      pluckAmplitude.value = withTiming(0, {
+        duration: 3000,
+        easing: Easing.out(Easing.exp)
+      });
+    }
+  );
+  useAnimatedReaction(
+    () => (active && volume.value > 0.003) || pluckAmplitude.value > 0.003,
     (sounding, previous) => {
       if (sounding === previous) return;
       if (sounding) {
@@ -100,14 +118,22 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
       }
     }
   );
-  useEffect(() => () => cancelAnimation(progress), [progress]);
+  useEffect(
+    () => () => {
+      cancelAnimation(progress);
+      cancelAnimation(pluckAmplitude);
+    },
+    [progress, pluckAmplitude]
+  );
   const amplitude = useDerivedValue(() =>
     withTiming(active ? Math.min(Math.max(volume.value, 0) / 0.15, 1) : 0, {
       duration: 100
     })
   );
   const vibration = useDerivedValue(
-    () => 0.5 + (progress.value - 0.5) * amplitude.value
+    () =>
+      0.5 +
+      (progress.value - 0.5) * Math.max(amplitude.value, pluckAmplitude.value)
   );
   const animatedPath = usePathInterpolation(vibration, [0, 1], [path1, path2]);
   return (

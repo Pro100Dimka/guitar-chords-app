@@ -24,6 +24,7 @@ export const NOTE_BOX_WIDTH = 50;
 
 const Strings: FC<{
   rms: SharedValue<number>;
+  plucks: SharedValue<number[]>;
   note: SharedValue<INote | null>;
   fill: SharedValue<number>;
   fillKey: SharedValue<string>;
@@ -38,6 +39,7 @@ const Strings: FC<{
     fill,
     fillKey,
     rms,
+    plucks,
     stringNotes,
     currString,
     width,
@@ -92,6 +94,8 @@ const Strings: FC<{
                 baseColor={s.baseColor || [0, 0, 0]}
                 active={active}
                 volume={rms}
+                plucks={plucks}
+                index={i}
               />
             </Group>
 

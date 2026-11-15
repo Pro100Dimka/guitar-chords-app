@@ -92,6 +92,8 @@ export interface StringWithVibrationProps {
   baseColor: number[];
   active: boolean;
   volume: SharedValue<number>;
+  plucks: SharedValue<number[]>;
+  index: number;
 }
 export interface IGetItems {
   orderBy?: string;
