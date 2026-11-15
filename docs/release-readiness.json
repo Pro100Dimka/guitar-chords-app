@@ -1,5 +1,5 @@
 {
-  "build": 18,
+  "build": 19,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
@@ -36,7 +36,7 @@
       "original_open_string_takes": 11,
       "status": "Original approved WAVs preserved outside repository; gapless mobile chord banks and measured-pitch string references prepared."
     },
-    "android_bundle": "VersionCode 18 ARM64 and ARM32 test APKs assembled with R8 and release lint; both below 40000000 bytes. Prior test signature, current rebuilt Hermes hash, latest audit properties, all 144 strokes, six unchanged tuner PCM references, WebP guides, ZIP integrity and ZIP/ARM64 ELF 16KB alignment passed. Native binaries match verified rc17 because native sources are unchanged. No new AAB or physical-device test.",
+    "android_bundle": "VersionCode 19 ARM64 test APK assembled using the cached release build script, with R8 and release lint. 39915005 bytes. Prior test certificate, exact rebuilt Hermes hash, latest feature markers, all 144 chord strokes, six unchanged tuner PCM references, WebP guides, ZIP integrity and ZIP/ARM64 ELF 16KB alignment passed. No new ARM32 APK, AAB or physical phone test.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "macOS 15 CI compiled and executed extracted production Swift pitch, capture lifecycle and recording-file methods. Capture route fixtures cover seven unavailable/invalid routes, retries and setup failures; file fixtures use real AAC. Full React Native iOS app/archive, real AVAudioSession and device checks remain unverified.",
     "device_tests": "owner to perform",
@@ -1625,5 +1625,65 @@
       "Uses the prior test certificate. Install over the prior matching test APK, not an unrelated signed build.",
       "No physical phone, native iOS archive, actual store billing or AAB test. Historical audit notes describe validation before packaging."
     ]
+  },
+  "android_rc19": {
+    "status": "signed_release_test_apk_verified",
+    "version_code": 19,
+    "source_commit": "241839ab928cd4007c9c5a090ca8aef195c8e110",
+    "artifacts": [
+      {
+        "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc19-arm64-v8a.apk",
+        "abi": "arm64-v8a",
+        "versionCode": 19,
+        "bytes": 39915005,
+        "sha256": "9a1c6bbc1af365a3c6da0fa37083698464b6c1c3de1ad8fe8d8971f15c529aae",
+        "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+        "bundleSha256": "081d278dc1b0ef930811143276cbd86f9145c348a8f9b1d5f1eed45a17db6c49",
+        "standaloneHermes": true,
+        "ownerRecordedStrokes": 144,
+        "rhythmPresets": 15,
+        "latestChromaticStrings": true,
+        "latestSongLookupStrings": true,
+        "nativeRecognitionLyrics": true,
+        "preparedNativePlayback": true,
+        "updatedGuide": true,
+        "manropeAssets": [
+          "assets/fonts/Manrope-OFL.txt",
+          "assets/fonts/Manrope-Regular.ttf",
+          "assets/fonts/Manrope-SemiBold.ttf"
+        ],
+        "nativeLibraries": 22,
+        "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+        "navigationFragmentNames": "preserved",
+        "zipIntegrity": "passed",
+        "source_commit": "241839ab928cd4007c9c5a090ca8aef195c8e110",
+        "latestBassAndLayout": true,
+        "nativeFileDeadlines": true,
+        "max_apk_bytes": 40000000,
+        "fingerpickingPresets": 7,
+        "sectionSpecificPatterns": true,
+        "independentStringVibration": true,
+        "recognizedTempoEnrichment": true,
+        "bundle_compressed": true,
+        "native_libraries_compressed": true,
+        "extractNativeLibs": true
+      }
+    ],
+    "verification_report": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc19-verification.json",
+    "build_log": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc19-build.log",
+    "source_checks": "78774b4 GitHub CI passed: 343 tests in 19 suites, TypeScript, full ESLint and SQLite. Embedded player JavaScript syntax also parsed locally. Version-only change followed for packaging.",
+    "changes": [
+      "Independent string-pluck envelopes with anchored vibrating string geometry.",
+      "Recognized tempo enrichment from a matching Shazam page, parallel with chart and cover loading.",
+      "Explicit source strumming import plus seven fingerpicking presets and section-specific pattern assignments.",
+      "Updated Russian, Ukrainian and English instructions."
+    ],
+    "limits": [
+      "Actual phone animation, fingerpicking sound and section switching remain unverified. Practice retains one bar per chord.",
+      "BPM lookup depends on source availability and validated song identity; missing or mismatched metadata cannot supply a BPM. Early opening of a partial recognition draft may precede enrichment.",
+      "No new ARM32 APK, AAB, IPA or full native iOS archive. Uses the existing local test certificate.",
+      "AGP version-control info is unsupported in this nested checkout; provenance is recorded explicitly by source commit and exact rebuilt Hermes hash."
+    ],
+    "elapsed_seconds": 109.9
   }
 }

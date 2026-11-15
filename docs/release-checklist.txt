@@ -1,27 +1,28 @@
-FreeTune 1.0, Android versionCode 18. Source and APK verification, 15.11.2026
+FreeTune 1.0, Android versionCode 19. APK verification, 15.11.2026
 
 CURRENT SOURCE STATUS
 Canonical verification and artifact status: docs/release-readiness.json.
-APK source: f954876878a93fbe5f670a2e5ba9a405211575ff.
-ARM64: E:/Releases/FreeTune/FreeTune-1.0-rc18-arm64-v8a.apk (39901981 bytes)
-ARM32: E:/Releases/FreeTune/FreeTune-1.0-rc18-armeabi-v7a.apk (38196005 bytes)
-Proof: E:/Releases/FreeTune/FreeTune-1.0-rc18-verification.json
-Both APKs pass the strict 40000000-byte gate and use the prior test certificate.
-Includes source_audit_five and source_audit_six fixes; rc17 predates both.
-Install over the previous matching test version; no uninstall is needed.
-343 tests, TypeScript, full ESLint and actual SQLite passed before packaging.
-Source cff3d75 CI passed. VersionCode 18 release assembly, R8 and release lint passed.
-Current rebuilt Hermes, 144 strokes, unchanged tuner PCM, WebP guides, signature,
-ZIP integrity and 16KB ZIP/ARM64 ELF alignment verified in both final APKs.
-Native binaries match rc17; native source is unchanged and cached binaries reused.
-Installed size is larger because Android extracts native libraries; the 40 MB
-limit applies to APK download size. No design or media changes in this build.
-No phone installation, physical playback/startup check or new AAB/IPA performed.
-Full iOS archive, device audio routes, labeled tuner recall, branch protection,
+APK source: 241839ab928cd4007c9c5a090ca8aef195c8e110.
+ARM64: E:/Releases/FreeTune/FreeTune-1.0-rc19-arm64-v8a.apk (39915005 bytes)
+Proof: E:/Releases/FreeTune/FreeTune-1.0-rc19-verification.json
+Signature matches prior test APKs. Install over the previous matching version.
+Includes independent string animations, tempo enrichment, seven fingerpicking
+presets, section-specific patterns, explicit pattern import and updated guide.
+Practice follows text sections with one bar per chord; it is not an audio-aligned
+performance transcription. Ambiguous source patterns remain manual.
+Source 78774b4 CI passed: 343 tests, TypeScript, full ESLint and SQLite.
+Version-only change followed; ARM64 release assembly, R8 and release lint passed.
+Exact current Hermes, all 144 strokes, unchanged tuner PCM, WebP guides,
+signature, ZIP integrity and ZIP/ARM64 ELF 16KB alignment verified.
+APK remains below 40000000 bytes. Installed size is larger than download size.
+No physical phone checks, new ARM32 APK, AAB or IPA in this build.
+rc18 ARM32 is historical and does not include the latest features.
+BPM enrichment requires a matching source page; unavailable metadata cannot
+supply tempo. Opening a partial draft may happen before enrichment completes.
+Full iOS archive, audio routes, labeled tuner recall, branch protection,
 public policy/support URLs and store sandbox configuration remain pending.
-External-service optional smoke outcomes must be evaluated separately from CI.
-Older source-review limits describe what was verified at the time of each review.
-Do not treat historical build checks below as checks of the current source.
+Optional external-service smoke outcomes must be evaluated separately from CI.
+Historical checks below do not qualify the current APK.
 
 HISTORICAL BUILD 8 NOTES (retained for artifact traceability)
 
