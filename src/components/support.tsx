@@ -1,6 +1,12 @@
 import palette from "../theme/palette";
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Image, StyleSheet, useWindowDimensions } from "react-native";
+import {
+  Alert,
+  Image,
+  Platform,
+  StyleSheet,
+  useWindowDimensions
+} from "react-native";
 import Text from "./styled-text";
 import { useTranslation } from "react-i18next";
 import { create } from "zustand";
@@ -8,6 +14,7 @@ import {
   ErrorCode,
   finishTransaction,
   getAvailablePurchases,
+  getPendingTransactionsIOS,
   Purchase,
   useIAP
 } from "react-native-iap";
@@ -29,6 +36,7 @@ export default function Support() {
   const [status, setStatus] = useState("SupportUnavailable");
   const processing = useRef(new Set<string>());
   const completed = useRef(new Set<string>());
+  const unfinished = useRef(new Map<string, Purchase>());
   const complete = useCallback(
     async (purchase: Purchase) => {
       if (purchase.productId !== SUPPORT_PRODUCT) return;
@@ -44,10 +52,12 @@ export default function Support() {
       try {
         await finishTransaction({ purchase, isConsumable: true });
         completed.current.add(id);
+        unfinished.current.delete(id);
         setPending(false);
         setStatus("SupportThanks");
         Alert.alert(t("SupportThanks"));
       } catch {
+        unfinished.current.set(id, purchase);
         setPending(true);
         setStatus("SupportFinishError");
       } finally {
@@ -71,6 +81,7 @@ export default function Support() {
     });
   const product = products.find((item) => item.id === SUPPORT_PRODUCT);
   const refresh = useCallback(async () => {
+    setBusy(true);
     setStatus("SupportLoading");
     try {
       if (!connected && !(await reconnect())) {
@@ -78,7 +89,17 @@ export default function Support() {
         return;
       }
       await fetchProducts({ skus: [SUPPORT_PRODUCT], type: "in-app" });
-      const purchases = await getAvailablePurchases();
+      const storePurchases = await (Platform.OS === "ios"
+        ? getPendingTransactionsIOS()
+        : getAvailablePurchases());
+      const purchases = [
+        ...new Map(
+          [...unfinished.current.values(), ...storePurchases].map((item) => [
+            item.id,
+            item
+          ])
+        ).values()
+      ];
       setPending(
         purchases.some(
           (item) =>
@@ -92,6 +113,8 @@ export default function Support() {
       );
     } catch {
       setStatus("SupportUnavailable");
+    } finally {
+      setBusy(false);
     }
   }, [connected, reconnect, fetchProducts, complete]);
   useEffect(() => {

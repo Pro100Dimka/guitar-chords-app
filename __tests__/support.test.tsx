@@ -1,13 +1,14 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert } from "react-native";
+import { Alert, Platform } from "react-native";
 import {
   ErrorCode,
   finishTransaction,
   getAvailablePurchases,
+  getPendingTransactionsIOS,
   useIAP
 } from "react-native-iap";
-import type { Purchase } from "react-native-iap";
+import type { Purchase, PurchaseIOS } from "react-native-iap";
 import Support, {
   SUPPORT_PRODUCT,
   useSupport
@@ -29,6 +30,7 @@ jest.mock("react-native-iap", () => ({
   },
   finishTransaction: jest.fn(),
   getAvailablePurchases: jest.fn(),
+  getPendingTransactionsIOS: jest.fn(),
   ErrorCode: {
     UserCancelled: "user-cancelled",
     Pending: "pending",
@@ -58,13 +60,21 @@ const purchase: Purchase = {
   isAutoRenewing: false,
   purchaseToken: "test-token"
 };
+const iosPurchase: PurchaseIOS = {
+  ...purchase,
+  platform: "ios",
+  store: "apple",
+  transactionId: "transaction-1"
+};
 beforeEach(() => {
   jest.clearAllMocks();
+  jest.replaceProperty(Platform, "OS", "android");
   mockAvailable = true;
   useSupport.setState({ visible: true });
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
   jest.mocked(finishTransaction).mockResolvedValue(undefined);
   jest.mocked(getAvailablePurchases).mockResolvedValue([]);
+  jest.mocked(getPendingTransactionsIOS).mockResolvedValue([]);
 });
 afterEach(async () => {
   if (screen) await act(async () => screen.unmount());
@@ -193,4 +203,57 @@ test("retry clears a pending purchase that is no longer returned by the store", 
       .props.onPress()
   );
   expect(payButton().props.disabled).toBe(false);
+});
+
+test("iOS retries a known unfinished consumable even when active entitlements are empty", async () => {
+  const platform = jest.replaceProperty(Platform, "OS", "ios");
+  try {
+    await open();
+    jest.mocked(finishTransaction).mockRejectedValueOnce(new Error("offline"));
+    await act(async () => mockCallbacks.onPurchaseSuccess!(iosPurchase));
+    expect(payButton().props.disabled).toBe(true);
+    await act(async () =>
+      screen.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "Retry")!
+        .props.onPress()
+    );
+    expect(finishTransaction).toHaveBeenCalledTimes(2);
+    expect(mockRequestPurchase).not.toHaveBeenCalled();
+    expect(payButton().props.disabled).toBe(false);
+  } finally {
+    platform.restore();
+  }
+});
+
+test("iOS recovers unfinished consumables from the pending transaction API at startup", async () => {
+  const platform = jest.replaceProperty(Platform, "OS", "ios");
+  try {
+    const item = iosPurchase;
+    jest.mocked(getPendingTransactionsIOS).mockResolvedValue([item]);
+    await open();
+    expect(getAvailablePurchases).not.toHaveBeenCalled();
+    expect(getPendingTransactionsIOS).toHaveBeenCalledTimes(1);
+    expect(finishTransaction).toHaveBeenCalledWith({
+      purchase: item,
+      isConsumable: true
+    });
+    expect(mockRequestPurchase).not.toHaveBeenCalled();
+  } finally {
+    platform.restore();
+  }
+});
+
+test("a second failed finalization keeps another payment blocked", async () => {
+  await open();
+  jest.mocked(finishTransaction).mockRejectedValue(new Error("offline"));
+  await act(async () => mockCallbacks.onPurchaseSuccess!(purchase));
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Retry")!
+      .props.onPress()
+  );
+  expect(finishTransaction).toHaveBeenCalledTimes(2);
+  expect(payButton().props.disabled).toBe(true);
 });

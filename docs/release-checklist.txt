@@ -9,9 +9,12 @@ Proofs: E:/Releases/FreeTune/FreeTune-1.0-rc17-verification.json
 Media: E:/Releases/FreeTune/FreeTune-1.0-rc17-resource-verification.json
 Both APKs pass the strict 40000000-byte gate and use the prior test certificate.
 Install over the previous test version; no uninstall is needed.
-Current source: 330 tests, TypeScript, full ESLint and SQLite passed.
+Current source: 343 tests, TypeScript, full ESLint and SQLite passed.
 Five audit defects fixed: cancellable cover processing, stale string readings,
 tab-aligned chords, whitespace in capo directives and virtualized reading offsets.
+Six follow-up defects fixed: adjacent capo metadata, concurrent favorites,
+terminal reading positions, stale recorder opening, symbol-bearing provider
+identities and unfinished iOS support transactions. See source_audit_six.
 These source fixes are NOT included in the rc17 APKs listed above.
 The earlier APK verification used 316 tests; its isolated full run passed.
 R8 release assembly, signing, ZIP/ARM64 ELF alignment, exact current Hermes,

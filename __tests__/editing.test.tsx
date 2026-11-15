@@ -1482,3 +1482,40 @@ test.each(["[C]Am", "A[C]m", "[C]Am[Dm]", "[C]Am [G]Dm"])(
     }
   }
 );
+
+test.each([false, true])(
+  "late recording list cannot reopen after deactivation, reactivated=%s",
+  async (reactivate) => {
+    let finish!: (takes: []) => void;
+    jest.mocked(performanceAudio.list).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const onStart = jest.fn();
+    await act(async () => {
+      screen = Renderer.create(
+        <SongRecorder songId={1} active onStart={onStart} />
+      );
+    });
+    await act(async () =>
+      screen!.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "RecordPerformance")!
+        .props.onPress()
+    );
+    await act(async () =>
+      screen!.update(
+        <SongRecorder songId={1} active={false} onStart={onStart} />
+      )
+    );
+    if (reactivate)
+      await act(async () =>
+        screen!.update(<SongRecorder songId={1} active onStart={onStart} />)
+      );
+    await act(async () => finish([]));
+    expect(
+      screen!.root.findAllByType(require("../src/screens/song/tools").Sheet)
+    ).toHaveLength(0);
+  }
+);

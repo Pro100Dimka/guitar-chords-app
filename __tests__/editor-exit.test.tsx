@@ -913,3 +913,58 @@ test.each([false, true])(
     }
   }
 );
+
+test.each([false, true])(
+  "virtualized reading completes restoration at the measured final item, scroll last=%s",
+  async (scrollLast) => {
+    jest.useFakeTimers();
+    await act(async () => screen.unmount());
+    mockParams = { id: "22" };
+    usePreferences.getState().updateSong(22, { position: 18000 });
+    jest
+      .mocked(getAllItems)
+      .mockResolvedValue([
+        { id: 22, title: "Shortened", content: "Words\n".repeat(301) }
+      ]);
+    try {
+      await act(async () => {
+        screen = Renderer.create(<Song />);
+      });
+      const list = screen.root.findByType(FlatList);
+      const scroll = jest
+        .spyOn(list.instance, "scrollToOffset")
+        .mockImplementation(() => {});
+      await act(async () => {
+        list.props.onLayout({ nativeEvent: { layout: { height: 400 } } });
+        list.props.onContentSizeChange(360, 10000);
+        if (!scrollLast)
+          list.props.onScroll({ nativeEvent: { contentOffset: { y: 9600 } } });
+        list.props.onViewableItemsChanged?.({
+          viewableItems: [
+            {
+              index: list.props.data.length - 1,
+              isViewable: true,
+              item: list.props.data.at(-1),
+              key: "last"
+            }
+          ],
+          changed: []
+        });
+        if (scrollLast)
+          list.props.onScroll({ nativeEvent: { contentOffset: { y: 9600 } } });
+      });
+      scroll.mockClear();
+      await act(async () =>
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "ScrollLyrics")!
+          .props.onPress()
+      );
+      await act(async () => jest.advanceTimersByTime(1000));
+      expect(scroll.mock.calls.length).toBeGreaterThan(0);
+    } finally {
+      jest.clearAllTimers();
+      jest.useRealTimers();
+    }
+  }
+);

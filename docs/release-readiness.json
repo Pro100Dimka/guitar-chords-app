@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 330,
-      "status": "330 tests in 19 suites passed locally after five audit fixes. Fourteen added regressions cover cloud cover cancellation/deadlines, late resized-file cleanup, string switching, tabs, capo directives and virtualized reading restoration."
+      "tests": 343,
+      "status": "343 tests in 19 suites passed locally. Thirteen added regressions cover adjacent capo metadata, symbol-bearing provider identities, virtualized terminal restoration, stale recorder opening and iOS consumable retry/recovery. TypeScript and full ESLint passed. Actual SQLite separately verifies a favorite update between editor metadata snapshot and transaction completion."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1507,6 +1507,29 @@
       "Native picker, resizer and scrolling boundaries are controlled in component regressions. No physical cloud-provider, frame-rate or phone measurement is claimed.",
       "No design or media resources changed. No new APK, AAB or IPA was built for these fixes. Existing rc17 APKs predate this audit work.",
       "Full native iOS archive, device interruptions/routes/billing, labeled tuner recall, branch protection and separately evaluated external-service smoke results remain outstanding."
+    ]
+  },
+  "source_audit_six": {
+    "date": "2026-11-15",
+    "baseline": "All six reported defects reproduced on c62c099 before production changes: ten targeted Jest cases failed, and the actual SQLite integration failed on a later favorite update being lost.",
+    "changes": [
+      "Pisennyk reads capo from adjacent song-metadata as well as instructions in the chart, then transposes into the sounding-chord storage contract.",
+      "Editor metadata is merged into current song preferences after commit, preserving later favorite and other playback changes. The persisted transaction snapshot remains separate so the existing serialized writer persists newer changes.",
+      "Virtualized reading can finish restoration when the actual final item is visible at the current end. Partial content clamps still keep the original target pending; autoscroll resumes without a manual drag.",
+      "Pending recorder opening is invalidated on deactivation or unmount. Late list completion cannot reopen the sheet, including after reactivation, and inactive sheets are not rendered.",
+      "Chord provider eligibility checks letter script separately from symbols so plus signs do not disable Latin-language sources.",
+      "Support retries known failed consumables, queries pending iOS transactions rather than current entitlements and deduplicates by transaction ID. Android retains its available-purchases path."
+    ],
+    "verification": [
+      "343 Jest tests in 19 suites passed locally; TypeScript and full ESLint with zero warnings passed.",
+      "Actual SQLite integration passed, including a favorite toggle after snapshot creation and its preservation after preference reload.",
+      "Reading tests cover both orders of final-item visibility and final scroll events, and retain previous late-layout regressions.",
+      "iOS purchase fixtures cover empty active entitlements, unfinished consumables at startup and repeated finalization failure without enabling another payment."
+    ],
+    "limits": [
+      "Provider HTML and StoreKit boundaries use controlled fixtures; no claim of current catalog coverage or real billing validation.",
+      "No design, audio or image resources changed. No new APK, AAB or IPA built. Existing rc17 APKs do not include these source fixes.",
+      "Physical devices, full native iOS archive, StoreKit Sandbox, audio routes/interruptions, labeled tuner recall and branch protection remain outstanding. Optional external-service smoke steps require separate outcome review."
     ]
   }
 }

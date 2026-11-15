@@ -44,6 +44,13 @@ const onSabmit = async (
       )
     )
       throw new Error("FileTooLarge");
+    const metadata = {
+      cover,
+      contentSource,
+      ...(tempo !== undefined ? { tempo } : {}),
+      ...(capo !== undefined ? { capo, transpose: 0 } : {}),
+      ...(sourceTuning ? { sourceTuning } : {})
+    };
     resume = suspendPreferenceSaving();
     await new Promise<void>((resolve, reject) =>
       db.transaction(
@@ -55,11 +62,7 @@ const onSabmit = async (
               const preferences = normalizeSongPreferences({
                 ...defaultSongPreferences,
                 ...state.songs[songId],
-                cover,
-                contentSource,
-                ...(tempo !== undefined ? { tempo } : {}),
-                ...(capo !== undefined ? { capo, transpose: 0 } : {}),
-                ...(sourceTuning ? { sourceTuning } : {})
+                ...metadata
               });
               persisted = { [songId]: preferences };
               writePreferences(tx, {
@@ -114,7 +117,14 @@ const onSabmit = async (
       )
     );
     usePreferences.setState((state) => ({
-      songs: { ...state.songs, ...persisted }
+      songs: {
+        ...state.songs,
+        [savedId]: normalizeSongPreferences({
+          ...persisted?.[savedId],
+          ...state.songs[savedId],
+          ...metadata
+        })
+      }
     }));
   } catch (error) {
     persisted = undefined;

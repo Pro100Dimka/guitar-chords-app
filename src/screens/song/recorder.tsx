@@ -47,17 +47,18 @@ export default function SongRecorder({
   activeRef.current = active;
   const mounted = useRef(true);
   const operation = useRef(false);
+  const opening = useRef<AbortController | null>(null);
   const pendingStart = useRef<AbortController | null>(null);
   const load = useCallback(async () => {
     const files = await performanceAudio.list(songId);
     if (mounted.current) setTakes(files);
   }, [songId]);
   useEffect(() => {
-    if (!open) return;
+    if (!open || !active) return;
     setVisible(true);
     void load().catch(() => Alert.alert(t("RecordingError")));
     onOpened?.();
-  }, [open, load, onOpened, t]);
+  }, [open, active, load, onOpened, t]);
   const run = async (action: () => Promise<void>) => {
     if (operation.current) return;
     operation.current = true;
@@ -112,6 +113,7 @@ export default function SongRecorder({
     });
     return () => {
       mounted.current = false;
+      opening.current?.abort();
       pendingStart.current?.abort();
       listener.remove();
       background.remove();
@@ -122,6 +124,7 @@ export default function SongRecorder({
   }, [load, t]);
   useEffect(() => {
     if (!active) {
+      opening.current?.abort();
       pendingStart.current?.abort();
       setVisible(false);
       performanceAudio.stopPlayback();
@@ -221,19 +224,26 @@ export default function SongRecorder({
           disabled={busy || !controlsEnabled}
           onPress={() =>
             void run(async () => {
+              const request = new AbortController();
+              opening.current = request;
               if (recording) {
                 await performanceAudio.stop();
                 recordingRef.current = false;
                 setRecording(false);
               }
               await load();
-              setVisible(true);
+              if (
+                mounted.current &&
+                activeRef.current &&
+                !request.signal.aborted
+              )
+                setVisible(true);
             })
           }
         />
       )}
       {recording && <Text style={styles.elapsed}>{time}</Text>}
-      {visible && (
+      {visible && active && (
         <Sheet
           musical
           title={t(takes.length ? "MyRecordings" : "RecordPerformance")}

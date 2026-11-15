@@ -13,6 +13,7 @@ import {
   Platform,
   ScrollView,
   type ScrollViewProps,
+  type ViewToken,
   StyleSheet,
   Text,
   View
@@ -89,7 +90,8 @@ const SongDetail: React.FC = () => {
     content: 0,
     viewport: 0,
     restored: false,
-    target: preferences.position
+    target: preferences.position,
+    endVisible: false
   });
   const change = (patch: Partial<typeof preferences>) => {
     if (deletedSong.current !== songId) updateSong(songId, patch);
@@ -102,11 +104,26 @@ const SongDetail: React.FC = () => {
     )
       updateSong(songId, { position: metrics.current.position });
   }, [songId, updateSong]);
+  const finishRestoration = useCallback(() => {
+    const bounds = metrics.current;
+    const end = Math.max(0, bounds.content - bounds.viewport);
+    if (
+      !bounds.restored &&
+      bounds.content > 0 &&
+      bounds.viewport > 0 &&
+      bounds.endVisible &&
+      bounds.position >= end - 1
+    ) {
+      bounds.target = Math.min(bounds.target, end);
+      bounds.restored = true;
+    }
+  }, []);
   useFocusEffect(
     useCallback(() => {
       if (isEdit) return;
       let active = true;
       metrics.current.restored = false;
+      metrics.current.endVisible = false;
       metrics.current.target =
         usePreferences.getState().songs[songId]?.position ?? 0;
       setLoading(true);
@@ -146,7 +163,8 @@ const SongDetail: React.FC = () => {
       content: 0,
       viewport: 0,
       restored: false,
-      target: usePreferences.getState().songs[songId]?.position ?? 0
+      target: usePreferences.getState().songs[songId]?.position ?? 0,
+      endVisible: false
     };
   }, [songId, isEdit]);
   useEffect(() => {
@@ -352,6 +370,16 @@ const SongDetail: React.FC = () => {
     preferences.fontSize,
     t
   ]);
+  const lastBlock = useRef(0);
+  lastBlock.current = content.blocks.length - 1;
+  const viewableItemsChanged = useRef(
+    ({ viewableItems }: { viewableItems: ViewToken[] }) => {
+      metrics.current.endVisible = viewableItems.some(
+        (item) => item.isViewable && item.index === lastBlock.current
+      );
+      finishRestoration();
+    }
+  ).current;
   const scrollEvents: Pick<
     ScrollViewProps,
     | "onLayout"
@@ -375,6 +403,7 @@ const SongDetail: React.FC = () => {
       metrics.current.position = Math.max(0, nativeEvent.contentOffset.y);
       if (Math.abs(metrics.current.position - metrics.current.target) < 1)
         metrics.current.restored = true;
+      finishRestoration();
     },
     onScrollBeginDrag: () => {
       metrics.current.restored = true;
@@ -489,6 +518,7 @@ const SongDetail: React.FC = () => {
               ref={list}
               {...scrollEvents}
               data={content.blocks}
+              onViewableItemsChanged={viewableItemsChanged}
               keyExtractor={(block) => String(block[0].index)}
               renderItem={({ item }) => content.renderBlock(item)}
               initialNumToRender={4}

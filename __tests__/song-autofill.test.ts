@@ -146,6 +146,53 @@ describe("content provider failover", () => {
     }
   );
 
+  it.each([2, 3])(
+    "Pisennyk reads capo %s from adjacent page metadata",
+    async (capo) => {
+      const candidate = "https://pisennyk.com.ua/test-artist/test-song";
+      request.mockImplementation(async (url) =>
+        String(url).startsWith("https://pisennyk.com.ua/search")
+          ? new Response(`<a href="${candidate}">${title} ${artist}</a>`)
+          : String(url) === candidate
+            ? new Response(
+                `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: title, byArtist: { name: artist } })}</script><div class="song-metadata">Каподастр: ${capo}</div><div class="interpretation-content"><code data-chord="Am">Am</code>Example words</div>`
+              )
+            : response(String(url))
+      );
+      const pending = lookup(title, artist);
+      await jest.advanceTimersByTimeAsync(10000);
+      const option = (await pending).find(
+        (entry) => entry.source === "Пісенник"
+      )!;
+      expect(option.capo).toBe(capo);
+      const { songChordSequence } = require("../src/screens/song/chords");
+      expect(songChordSequence(option.content)).toEqual([
+        capo === 2 ? "Bm" : "Cm"
+      ]);
+    }
+  );
+
+  it.each(["cifraclub.com", "e-chords.com", "cifras.com.br", "guitaretab.com"])(
+    "symbols do not disable source %s",
+    async (domain) => {
+      const name = "1+1";
+      const performer = "Florence + The Machine";
+      request.mockImplementation(async (url) =>
+        String(url).includes(domain)
+          ? new Response(
+              `<h1>${name}</h1><h2>${performer}</h2><pre>Am C\nExample words</pre>`
+            )
+          : response(String(url))
+      );
+      const pending = lookup(name, performer);
+      await jest.advanceTimersByTimeAsync(20000);
+      await pending;
+      expect(
+        request.mock.calls.some(([url]) => String(url).includes(domain))
+      ).toBe(true);
+    }
+  );
+
   it("Pisennyk keeps lyric paragraphs after a spelled capo instruction", async () => {
     const candidate = "https://pisennyk.com.ua/test-artist/test-song";
     request.mockImplementation(async (url) =>

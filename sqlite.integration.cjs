@@ -255,6 +255,23 @@ async function main() {
   sqlite.exec("DELETE FROM settings; DELETE FROM songs; DELETE FROM bands;");
   sqlite.prepare("INSERT INTO settings (key,value) VALUES (?,?)").run("experience",JSON.stringify({songs:{}}));
   await preferences.loadPreferences();
+  const concurrentId=(await create({tableName:"songs",data:{title:"Concurrent",content:"Am\nWords"}})).insertId;
+  preferences.usePreferences.getState().updateSong(concurrentId,{favorite:false});
+  await preferences.flushPreferences();
+  const originalTransaction=db.transaction;
+  db.transaction=function(body,error,success){
+    return originalTransaction.call(db,body,error,()=>{
+      db.transaction=originalTransaction;
+      preferences.usePreferences.getState().updateSong(concurrentId,{favorite:true});
+      success?.();
+    });
+  };
+  await submit({}, {id:concurrentId,title:"Concurrent edited",content:"Am\nWords",youtube_music:"",youtobe_lesson:"",cover:"",fk_band:{id:"",name:"",search_text_lower:""}}, {replace(){}});
+  await preferences.flushPreferences();
+  assert.equal(preferences.usePreferences.getState().songs[concurrentId].favorite,true,"Editor commit must preserve the later favorite change");
+  preferences.usePreferences.setState({songs:{}});await preferences.loadPreferences();
+  assert.equal(preferences.usePreferences.getState().songs[concurrentId].favorite,true,"Later favorite change must persist in SQLite");
+  console.log("Concurrent editor favorite regression passed in state and actual SQLite.");
   const staleId=(await create({tableName:"songs",data:{title:"Deleted",content:"Am\nWords"}})).insertId;
   await remove({tableName:"songs",filters:`id = ${staleId}`});
   alerts.length=0;let staleClosed=false;

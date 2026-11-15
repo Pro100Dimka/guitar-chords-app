@@ -327,11 +327,18 @@ async function lookupPisennyk(
     .trim();
   const capoInstruction =
     /(?:каподастр|капо|capo)\s*:?\s*(?:на\s*)?(\d{1,2}|[\p{L}'’]+)/iu;
-  const capoToken =
-    capoInstruction
-      .exec(content)?.[1]
-      .toLocaleLowerCase()
-      .replace(/['’]/g, "") ?? "";
+  const metadata = DomUtils.findOne(
+    (element) =>
+      (element.attribs.class ?? "").split(/\s+/).includes("song-metadata"),
+    page.children
+  );
+  const capoToken = (
+    capoInstruction.exec(metadata ? DomUtils.textContent(metadata) : "")?.[1] ??
+    capoInstruction.exec(content)?.[1] ??
+    ""
+  )
+    .toLocaleLowerCase()
+    .replace(/['’]/g, "");
   const ordinalFrets = [
     "",
     "перш",
@@ -641,8 +648,8 @@ export async function lookupSongContent(
   const abort = () => controller.abort();
   signal?.addEventListener("abort", abort, { once: true });
   try {
-    const sources = /^[\p{Script=Latin}\p{N}\p{P}\p{Z}\p{M}]+$/u.test(
-      `${title} ${artist}`
+    const sources = /^\p{Script=Latin}+$/u.test(
+      `${title} ${artist}`.replace(/[^\p{L}]/gu, "")
     )
       ? Object.keys(chordSources)
       : [];
