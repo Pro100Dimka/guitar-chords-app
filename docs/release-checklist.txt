@@ -1,24 +1,26 @@
-FreeTune 1.0, Android versionCode 16. Source and APK verification, 15.11.2026
+FreeTune 1.0, Android versionCode 17. Source and APK verification, 15.11.2026
 
 CURRENT SOURCE STATUS
 Canonical verification and artifact status: docs/release-readiness.json.
-Current test APK source: 4013ec653e2bc7a998c3f93887c83c4534f9d458.
-ARM64: E:/Releases/FreeTune/FreeTune-1.0-rc16-arm64-v8a.apk
-ARM32: E:/Releases/FreeTune/FreeTune-1.0-rc16-armeabi-v7a.apk
-Checks: E:/Releases/FreeTune/FreeTune-1.0-rc16-verification.json
-Current source: 315 tests in 19 suites, TypeScript, full ESLint and SQLite passed.
-The listed rc16 APKs predate the editor fixes, backup read cancellation,
-Unicode validation and large-document safeguards.
-No replacement APK/AAB/IPA was assembled for these source reviews.
-Their recorded packaging checks remain tied to source 4013ec6.
-Current source native Android and extracted Swift fixture checks passed in CI.
-Local release assembly with R8, signing, ZIP/ARM64 ELF alignment and exact
-embedded Hermes, audio banks and latest fix markers passed for both APKs.
-Same test certificate as prior phone APKs; install over the previous test version.
-No connected phone was available for installation or real playback verification.
-No new AAB/IPA; full phone/provider tests, Bluetooth/calls, labeled tuner recall
-and a full native iOS archive remain pending. Branch protection is unchanged.
-Earlier review entries describe checks available when each review was completed.
+APK source: 1d18cf1ce8556487e80a96b89ee804a52a90fe80.
+ARM64: E:/Releases/FreeTune/FreeTune-1.0-rc17-arm64-v8a.apk (39904165 bytes)
+ARM32: E:/Releases/FreeTune/FreeTune-1.0-rc17-armeabi-v7a.apk (38198189 bytes)
+Proofs: E:/Releases/FreeTune/FreeTune-1.0-rc17-verification.json
+Media: E:/Releases/FreeTune/FreeTune-1.0-rc17-resource-verification.json
+Both APKs pass the strict 40000000-byte gate and use the prior test certificate.
+Install over the previous test version; no uninstall is needed.
+316 tests, TypeScript, full ESLint and SQLite passed. Two child-process timing
+fixtures timed out during an earlier concurrent Gradle run; the complete isolated
+rerun passed. No timeout threshold or test expectation was relaxed.
+R8 release assembly, signing, ZIP/ARM64 ELF alignment, exact current Hermes,
+144 chord strokes, unchanged tuner PCM and WebP assets passed packaging checks.
+All latest editor, backup/cancellation and large-document fixes are included.
+Both code and native APK entries are compressed. Installed size is larger because
+Android extracts native libraries; the 40 MB target applies to the APK file.
+No phone installation, physical playback/startup check or new AAB/IPA performed.
+Full iOS archive, device audio routes, labeled tuner recall, branch protection,
+public policy/support URLs and store sandbox configuration remain pending.
+Older source-review limits describe what was verified at the time of each review.
 Do not treat historical build checks below as checks of the current source.
 
 HISTORICAL BUILD 8 NOTES (retained for artifact traceability)

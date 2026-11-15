@@ -7,7 +7,7 @@
     "javascript": {
       "suites": 19,
       "tests": 316,
-      "status": "316 Jest tests in 19 suites passed locally. Final VBR 4.25 bank also passed all 31 recorded-audio cases; TypeScript, full ESLint and actual SQLite passed."
+      "status": "316 tests in 19 suites passed locally after final resource changes, without concurrent Gradle compilation. An earlier concurrent run timed out two bounded child-process startup fixtures; isolated complete rerun passed. TypeScript, full ESLint and SQLite passed; source CI JS also passed."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -36,7 +36,7 @@
       "original_open_string_takes": 11,
       "status": "Original approved WAVs preserved outside repository; gapless mobile chord banks and measured-pitch string references prepared."
     },
-    "android_bundle": "VersionCode 16 ARM64 and ARM32 release APKs built with R8 and checked: exact freshly generated Hermes hash, latest bass/layout/file-timeout markers, all 144 recorded chord strokes, six recorded string PCM references, 15 rhythm markers, existing test signing certificate, ZIP integrity, 16 KB ZIP alignment and ARM64 ELF alignment. No current AAB built. No connected device installation performed.",
+    "android_bundle": "VersionCode 17 ARM64 and ARM32 test APKs assembled with R8; both below 40000000 bytes. Signature, exact current Hermes hash, compressed bundle/native entries, extractNativeLibs, all 144 owner-recorded strokes, six unchanged tuner PCM references, WebP guide assets, ZIP integrity, 16KB ZIP alignment and ARM64 ELF alignment passed. No AAB or physical device test.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "macOS 15 CI compiled and executed extracted production Swift pitch, capture lifecycle and recording-file methods. Capture route fixtures cover seven unavailable/invalid routes, retries and setup failures; file fixtures use real AAC. Full React Native iOS app/archive, real AVAudioSession and device checks remain unverified.",
     "device_tests": "owner to perform",
@@ -739,30 +739,30 @@
       "status": "historical_only_not_current_distribution_bundle"
     },
     "apk_arm64": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc16-arm64-v8a.apk",
-      "bytes": 111084803,
-      "sha256": "86f39b38ed987a67c026dc8340b81dfdeaf36b08e55fb36b7486cc7fa90b9892",
-      "version_code": 16,
-      "source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
-      "contains_current_fixes": false,
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc17-arm64-v8a.apk",
+      "bytes": 39904165,
+      "sha256": "6253bd4262b9d73de1a153aa4bcbf63e276a37b2a2b7fd6adf51b75e1309322d",
+      "version_code": 17,
+      "source_commit": "1d18cf1ce8556487e80a96b89ee804a52a90fe80",
+      "contains_current_fixes": true,
       "certificate_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
-      "hermes_sha256": "075aa97bbbc385b76a04fb3a408f3fddae95e5846801a82e60f30736889ce839"
+      "hermes_sha256": "032701b5c08830a9348373b41add80e814866b93101f299bb92b57c5bf3d2b08"
     },
     "apk_arm32": {
-      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc16-armeabi-v7a.apk",
-      "bytes": 100252903,
-      "sha256": "58d85bfe9d6c24b97bd14875a713ce2f600cfa0d370520b67b491db3ddc9ca73",
-      "version_code": 16,
-      "source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
-      "contains_current_fixes": false,
+      "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc17-armeabi-v7a.apk",
+      "bytes": 38198189,
+      "sha256": "8b00a55c91bf2e09608cfff6a882660d56a429ca7bfe58eb2b27c1ac5777207e",
+      "version_code": 17,
+      "source_commit": "1d18cf1ce8556487e80a96b89ee804a52a90fe80",
+      "contains_current_fixes": true,
       "certificate_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
-      "hermes_sha256": "075aa97bbbc385b76a04fb3a408f3fddae95e5846801a82e60f30736889ce839"
+      "hermes_sha256": "032701b5c08830a9348373b41add80e814866b93101f299bb92b57c5bf3d2b08"
     },
-    "version_code": 16
+    "version_code": 17
   },
   "reviewed_on": "2026-11-15",
-  "review_scope": "Four backup/large-document fixes: byte-valid UTF-8 imports, cancellable timed library reading, unchanged accepted editor content and document-wide display/render budgets. Native CI push filters now include dependency manifests, patches, wrapper scripts, native module configuration and all iOS files. Normal song styling and audio data unchanged.",
-  "artifact_scope": "Listed rc16 APKs were built from 4013ec653e2bc7a998c3f93887c83c4534f9d458. They do not contain subsequent editor fixes, Unicode backup/cancellation fixes or large-document safeguards. No APK/AAB/IPA built for these source reviews. Physical phone behavior and full native iOS remain unverified. The listed AAB is historical versionCode 7.",
+  "review_scope": "APK size reduction with preserved layout and guitar content: VBR encoding from approved WAV masters, WebP artwork for both app and native splash, compressed Hermes/native APK entries and complete media build inputs.",
+  "artifact_scope": "Verified rc17 APKs contain source through 1d18cf1ce8556487e80a96b89ee804a52a90fe80, including all post-rc16 editor/backup/large-document fixes. ARM64 is 39904165 bytes; ARM32 is 38198189 bytes. Both use the prior test certificate. Source and resource proofs are listed in android_rc17. Older APK/AAB entries are historical; no new AAB/IPA or device install.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
@@ -1367,7 +1367,7 @@
     ]
   },
   "android_rc17": {
-    "status": "preparing_final_native_artwork_build",
+    "status": "signed_release_test_apks_verified",
     "version_code": 17,
     "target_max_apk_bytes": 40000000,
     "changes": [
@@ -1401,15 +1401,91 @@
       "MP3 VBR and WebP RGB compression are lossy. Approved WAV masters and original artwork remain available outside the working files/in Git history; no lossless audio claim.",
       "Tuner PCM is byte-identical. All chord strokes decode to 403200 stereo frames (8.4 seconds at 48000 Hz); all string samples decode to 176400 mono frames at 22050 Hz.",
       "APK download size is distinct from installed size: Android extracts compressed native libraries.",
-      "Final APK sizes, integrity, signing, bundle identity and alignment await assembly verification.",
-      "Full physical-phone playback/startup and full native iOS archive remain unverified."
+      "Full physical-phone playback/startup and full native iOS archive remain unverified.",
+      "Compressed native libraries are extracted on installation, so installed application size exceeds the APK download size. No claim of a 40 MB installed footprint."
     ],
-    "build_attempt": "Initial generated-resource duplicates avoided by using a separate generated resource directory; the blocked directory was retained. First successful candidate exposed 12.6 MB of separate native Android splash PNGs; eight of these are now converted to 0.95 MB of WebP without resizing or alpha changes. Final assembly/size checks remain pending.",
-    "cleanup_status": "Automatic approval review rejected removal of obsolete generated resources without a stated reason. Cleanup is not claimed; no alternate deletion mechanism is used.",
+    "build_attempt": "Final release assembly passed for both ARM ABIs after compressing eight native Android splash bitmap variants. No layout dimensions, alpha channel, rhythm presets or recording lengths were changed.",
+    "cleanup_status": "Obsolete generated PNG/WebP output was retained after automatic cleanup rejection. Final assembly used generated/res/react/rc17-webp instead and did not remove the blocked output.",
     "first_compressed_candidate_bytes": {
       "arm64-v8a": 48994865,
       "armeabi-v7a": 47288889
     },
-    "remaining_generated_resource_path": "E:/CodexTemp/freetune-ui-polish/app-build/generated/res/react/release"
+    "source_commit": "1d18cf1ce8556487e80a96b89ee804a52a90fe80",
+    "artifacts": [
+      {
+        "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc17-armeabi-v7a.apk",
+        "abi": "armeabi-v7a",
+        "versionCode": 17,
+        "bytes": 38198189,
+        "sha256": "8b00a55c91bf2e09608cfff6a882660d56a429ca7bfe58eb2b27c1ac5777207e",
+        "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+        "bundleSha256": "032701b5c08830a9348373b41add80e814866b93101f299bb92b57c5bf3d2b08",
+        "standaloneHermes": true,
+        "ownerRecordedStrokes": 144,
+        "rhythmPresets": 15,
+        "latestChromaticStrings": true,
+        "latestSongLookupStrings": true,
+        "nativeRecognitionLyrics": true,
+        "preparedNativePlayback": true,
+        "updatedGuide": true,
+        "manropeAssets": [
+          "assets/fonts/Manrope-OFL.txt",
+          "assets/fonts/Manrope-Regular.ttf",
+          "assets/fonts/Manrope-SemiBold.ttf"
+        ],
+        "nativeLibraries": 22,
+        "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+        "navigationFragmentNames": "preserved",
+        "zipIntegrity": "passed",
+        "source_commit": "1d18cf1ce8556487e80a96b89ee804a52a90fe80",
+        "latestBassAndLayout": true,
+        "nativeFileDeadlines": true,
+        "max_apk_bytes": 40000000,
+        "bundle_compressed": true,
+        "native_libraries_compressed": true,
+        "extractNativeLibs": true
+      },
+      {
+        "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc17-arm64-v8a.apk",
+        "abi": "arm64-v8a",
+        "versionCode": 17,
+        "bytes": 39904165,
+        "sha256": "6253bd4262b9d73de1a153aa4bcbf63e276a37b2a2b7fd6adf51b75e1309322d",
+        "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+        "bundleSha256": "032701b5c08830a9348373b41add80e814866b93101f299bb92b57c5bf3d2b08",
+        "standaloneHermes": true,
+        "ownerRecordedStrokes": 144,
+        "rhythmPresets": 15,
+        "latestChromaticStrings": true,
+        "latestSongLookupStrings": true,
+        "nativeRecognitionLyrics": true,
+        "preparedNativePlayback": true,
+        "updatedGuide": true,
+        "manropeAssets": [
+          "assets/fonts/Manrope-OFL.txt",
+          "assets/fonts/Manrope-Regular.ttf",
+          "assets/fonts/Manrope-SemiBold.ttf"
+        ],
+        "nativeLibraries": 22,
+        "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+        "navigationFragmentNames": "preserved",
+        "zipIntegrity": "passed",
+        "source_commit": "1d18cf1ce8556487e80a96b89ee804a52a90fe80",
+        "latestBassAndLayout": true,
+        "nativeFileDeadlines": true,
+        "max_apk_bytes": 40000000,
+        "bundle_compressed": true,
+        "native_libraries_compressed": true,
+        "extractNativeLibs": true
+      }
+    ],
+    "verification_report": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc17-verification.json",
+    "resource_report": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc17-resource-verification.json",
+    "size_reduction_arm64_percent": 64.08,
+    "ci": {
+      "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43743871527",
+      "native": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43743871466"
+    },
+    "retained_generated_resource_path": "E:/CodexTemp/freetune-ui-polish/app-build/generated/res/react/release"
   }
 }
