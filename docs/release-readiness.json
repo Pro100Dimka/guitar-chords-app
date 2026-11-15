@@ -7,7 +7,7 @@
     "javascript": {
       "suites": 19,
       "tests": 261,
-      "status": "Passed locally: 19 suites, 261 tests. Includes section/chord editor roundtrips, recording permission/foreground ordering and unsupported rhythm feedback. Current source CI recorded below when complete."
+      "status": "Passed locally and in source CI: 19 suites, 261 tests. Includes section/chord editor roundtrips, recording permission/foreground ordering and unsupported rhythm feedback."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1093,6 +1093,13 @@
       "No physical phone permissions, cloud provider or full native iOS app tested.",
       "No APK/AAB/IPA built.",
       "Repository branch protection is unchanged; modifying repository policy is outside these source fixes."
-    ]
+    ],
+    "source_ci": {
+      "commit": "4962af334c84c013feb194f3c5e08a46434d95f6",
+      "status": "All three source workflows passed. Native and ios jobs both passed; the live LRCLIB step and genuine Shazam POST step also passed.",
+      "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43713697365",
+      "native_and_swift": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43713697487",
+      "shazam_proof": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43713697374"
+    }
   }
 }
