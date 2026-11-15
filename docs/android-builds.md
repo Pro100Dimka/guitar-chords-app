@@ -43,7 +43,11 @@ not disposable per-run copies. Do not clear them or run `gradlew clean` routinel
 
 Changes to tests and build scripts no longer invalidate the production JS bundle.
 Application JS/TS, assets, package manifests, Babel and Metro configurations remain
-tracked inputs. Git revision is an input to Android version-control metadata.
+tracked inputs. Git revision invalidates Android's version-control metadata task.
+AGP reported `NO_SUPPORTED_VCS_FOUND` for this nested Windows checkout, even
+after that task reran. Release source provenance must therefore come from the
+explicit commit and Hermes hash in the artifact verification report, not that
+optional AGP field.
 
 Do not bump `versionCode` just to time a rebuild. A real version change modifies
 native application classes and can require R8 to run again. Increase it when
