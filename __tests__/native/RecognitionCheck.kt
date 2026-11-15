@@ -27,7 +27,40 @@ fun checkRecognitionCancellation() {
     session.finish()
     session.cancel({}, { completed.incrementAndGet() })
     check(completed.get() == 3)
-    val executor = ThreadPoolExecutor(2, 2, 0, TimeUnit.SECONDS, SynchronousQueue())
+    val releasedResults = CountDownLatch(2)
+    val returnWorkers = CountDownLatch(1)
+    val submitted = CountDownLatch(1)
+    val submissions = AtomicInteger()
+    val scheduling = object : ThreadPoolExecutor(2, 2, 0, TimeUnit.SECONDS, ArrayBlockingQueue<Runnable>(2)) {
+        override fun execute(task: Runnable) {
+            val number = submissions.incrementAndGet()
+            try { super.execute(task) } finally { if (number == 3) submitted.countDown() }
+        }
+        override fun afterExecute(task: Runnable, error: Throwable?) {
+            releasedResults.countDown()
+            returnWorkers.await()
+        }
+    }
+    try {
+        repeat(2) { check(AudioFileRead(scheduling, Executor { it.run() }) { shortArrayOf(7) }.await()[0] == 7.toShort()) }
+        check(releasedResults.await(2, TimeUnit.SECONDS))
+        val next = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+        val accepted = Thread {
+            try { check(AudioFileRead(scheduling, Executor { it.run() }) { shortArrayOf(8) }.await()[0] == 8.toShort()) }
+            catch (error: Throwable) { next.set(error) }
+        }.apply { start() }
+        // Both completed results are visible while their workers are still returning.
+        check(submitted.await(2, TimeUnit.SECONDS))
+        returnWorkers.countDown()
+        accepted.join(2000)
+        check(!accepted.isAlive && next.get() == null) { "Completed reads caused false Busy: ${next.get()}" }
+    } finally { returnWorkers.countDown(); scheduling.shutdownNow(); check(scheduling.awaitTermination(2, TimeUnit.SECONDS)) }
+    val finishedTasks = LinkedBlockingQueue<Boolean>()
+    val submittedTasks = LinkedBlockingQueue<Runnable>()
+    val executor = object : ThreadPoolExecutor(2, 2, 0, TimeUnit.SECONDS, ArrayBlockingQueue<Runnable>(2)) {
+        override fun execute(task: Runnable) { super.execute(task); submittedTasks.add(task) }
+        override fun afterExecute(task: Runnable, error: Throwable?) { finishedTasks.add(true) }
+    }
     val cancellationExecutor = Executors.newSingleThreadExecutor()
     try {
         for (phase in listOf("open", "read")) {
@@ -73,6 +106,7 @@ fun checkRecognitionCancellation() {
                 check(closed.count == 0L && published.get() == 0) { "Cancelled provider leaked a descriptor or returned stale data" }
                 fileWorker.join(1000)
                 check(!fileWorker.isAlive)
+                repeat(2) { check(finishedTasks.poll(2, TimeUnit.SECONDS) == true) }
             } finally { provider.countDown(); fileWorker.join(2000) }
         }
         val gate = CountDownLatch(1)
@@ -88,10 +122,20 @@ fun checkRecognitionCancellation() {
         try {
             check(entered.await(1, TimeUnit.SECONDS))
             jobs.forEach { it.cancel() }
-            var busy = false
-            try { AudioFileRead(executor, cancellationExecutor) { shortArrayOf() }.await() }
-            catch (error: IllegalStateException) { busy = error.message == "Busy" }
-            check(busy) { "Blocked providers created unbounded decode workers" }
+            submittedTasks.clear()
+            val invoked = AtomicInteger()
+            val queued = AudioFileRead(executor, cancellationExecutor) { invoked.incrementAndGet(); shortArrayOf() }
+            val queuedResult = java.util.concurrent.atomic.AtomicReference<Throwable?>()
+            val queuedWaiter = Thread { try { queued.await() } catch (error: Throwable) { queuedResult.set(error) } }.apply { start() }
+            try {
+                check(submittedTasks.poll(2, TimeUnit.SECONDS) != null)
+                check(executor.poolSize == 2 && executor.queue.size == 1 && invoked.get() == 0) { "Blocked providers created extra workers" }
+                queued.cancel()
+                queuedWaiter.join(2000)
+                check(!queuedWaiter.isAlive && queuedResult.get()?.message == "Cancelled")
+                check(executor.queue.isEmpty()) { "Cancelled pending read still occupies the bounded queue" }
+            } finally { queued.cancel(); queuedWaiter.join(2000) }
+
         } finally { gate.countDown(); waiters.forEach { it.join(2000) } }
     } finally {
         executor.shutdownNow()

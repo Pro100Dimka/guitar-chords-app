@@ -36,6 +36,12 @@ export async function recognizeMicrophone(
   if (!granted) throw new Error("MicrophonePermissionDenied");
   await cancellation;
   if (signal?.aborted) throw new Error("Cancelled");
+  await waitForAppActive(signal);
+  const recognizer = native();
+  onCaptureReady?.();
+  return recognizer.recognizeMicrophone();
+}
+export async function waitForAppActive(signal?: AbortSignal) {
   while (AppState.currentState !== "active") {
     await new Promise<void>((resolve, reject) => {
       const cleanup = () => {
@@ -61,9 +67,6 @@ export async function recognizeMicrophone(
     });
   }
   if (signal?.aborted) throw new Error("Cancelled");
-  const recognizer = native();
-  onCaptureReady?.();
-  return recognizer.recognizeMicrophone();
 }
 export async function recognizeAudioFile(
   signal?: AbortSignal

@@ -141,7 +141,11 @@ image-size 2, which no longer accepts file paths. The existing `postinstall`
 command applies this patch. Do not skip install scripts in release environments;
 check both production bundles with a clean Metro cache when updating image tools.
 
-Release preparation (build 6): 71 JavaScript tests, SQLite integration and Android
+Current source and binary verification is recorded in `docs/release-readiness.json`.
+Previously delivered APKs do not include later source changes. Historical build
+notes below describe their original artifacts, not the current checkout.
+
+Historical release preparation (build 6): 71 JavaScript tests, SQLite integration and Android
 native regression checks pass. Type checking, lint and signed bundle verification
 are recorded with the release artifacts. Physical device testing, iOS native
 compilation and real store billing remain unverified. Store copy and submission
@@ -255,4 +259,4 @@ Song preference storage uses bounded per-song SQLite rows. Existing aggregate pr
 
 Imported capo arrangements store sounding chord names in song content and retain the source capo in song preferences. Display and fingering selection subtract the capo; playback applies it back to the chosen shape. Source tuning metadata is preserved in song preferences and backups. Alternate source tunings do not change the application's standard-tuning chord-shape engine.
 
-Android cloud-audio recognition opens files with a per-request cancellation signal. Decode work is isolated from the recognition worker so cancelling does not wait for a stalled provider. Late results are discarded and file descriptors close when provider I/O returns; no more than two blocked decodes are retained. If both workers remain blocked, further file requests report Busy. Provider cancellation/close is also bounded and runs outside the bridge lock. Physical cloud-provider checks remain required before release.
+Android cloud-audio recognition opens files with a per-request cancellation signal. Decode work is isolated from the recognition worker so cancelling does not wait for a stalled provider. Late results are discarded and file descriptors close when provider I/O returns; no more than two blocked decoder threads are retained, with a bounded queue of two pending tasks to accept requests while finished workers return to their pool. Cancelling a queued request removes it immediately. Excess requests report Busy. Provider cancellation/close is also bounded and runs outside the bridge lock. Physical cloud-provider checks remain required before release.

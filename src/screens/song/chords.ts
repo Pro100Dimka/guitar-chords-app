@@ -409,17 +409,23 @@ function reflowChordPairs(content: string, semitones: number) {
   return output.join("\n");
 }
 
+const sectionPattern =
+  /\[(?:intro|verse|chorus|bridge|outro|solo|interlude|instrumental|приспів|куплет|припев)[^\[\]]*\]/gi;
 function chordTokens(line: string) {
-  return chordLineParts(
-    line.replace(
-      /\[(?:intro|verse|chorus|bridge|outro|solo|interlude|instrumental|приспів|куплет|припев)[^\[\]]*\]/gi,
-      " "
-    )
-  ).filter(
+  return chordLineParts(line.replace(sectionPattern, " ")).filter(
     (token) =>
       !/^(?:\s+|[|:]+|[-()[\]]+|\(?[xх×]\d+\)?|\(?\d+[xх×]\)?)$/i.test(token)
   );
 }
+function sectionChordRows(content: string) {
+  return content.split(/\r?\n/).flatMap((line) => {
+    const sections = line.match(sectionPattern);
+    return sections && isChordLine(line)
+      ? [...sections, line.replace(sectionPattern, "").trimStart()]
+      : [line];
+  });
+}
+
 type AnchoredLine = {
   lyrics: string;
   anchors: { chord: string; column: number }[];
@@ -521,8 +527,7 @@ export function songContentFromEditor(previous: string, edited: string) {
 }
 
 export function chordsAboveLyrics(content: string) {
-  const result = content
-    .split(/\r?\n/)
+  const result = sectionChordRows(content)
     .map((line) => {
       if (isChordLine(line)) return chordLineParts(line).join("");
       const parsed = inlineChordLine(line);
@@ -569,7 +574,7 @@ export function songChordSequence(content: string) {
     );
 }
 export function transposeSong(content: string, semitones: number) {
-  const lines = content.split(/\r?\n/),
+  const lines = sectionChordRows(content),
     result: string[] = [],
     normal: string[] = [];
   const flush = () => {

@@ -11,7 +11,8 @@ import {
   AppState,
   NativeModules,
   Alert,
-  Platform
+  Platform,
+  type AppStateStatus
 } from "react-native";
 import Select from "../src/components/fields/api-select";
 import Song from "../src/screens/song";
@@ -352,6 +353,12 @@ test("each rhythm can be selected once through its full pattern and applied", as
       screen!.root
         .findByType(WebView)
         .props.onMessage({ nativeEvent: { data: "ready" } })
+    );
+    expect(previews().some((node) => node.props.icon === "pause")).toBe(false);
+    await act(async () =>
+      screen!.root
+        .findByType(WebView)
+        .props.onMessage({ nativeEvent: { data: "started" } })
     );
     expect(change).not.toHaveBeenCalled();
     const configuration = injectJavaScript.mock.calls.at(-1)![0];
@@ -1128,4 +1135,114 @@ test("all 24 recorded defaults and explicit selections use one fingering resolve
     expect(chordShapes(chord)[selectedChordShape(chord).index]).toEqual(frets);
     expect(selectedChordShape(chord, 0).index).toBe(0);
   }
+});
+
+test.each(["[Intro]Am", "[Verse]C G", "[Verse] C G"])(
+  "section chord row survives editor save/reopen/transposition: %s",
+  (line) => {
+    const {
+      transposeSong,
+      songChordSequence,
+      songContentFromEditor
+    } = require("../src/screens/song/chords");
+    const original = `${line}\nHello words`;
+    const saved = songContentFromEditor(original, chordsAboveLyrics(original));
+    const reopened = transposeSong(saved, 0);
+    expect(reopened).toContain(
+      line.startsWith("[Intro]") ? "[Intro]" : "[Verse]"
+    );
+    expect(songChordSequence(reopened)).toEqual(
+      line.startsWith("[Intro]") ? ["Am"] : ["C", "G"]
+    );
+    expect(chordsAboveLyrics(reopened).split("\n").at(-1)).toBe("Hello words");
+    expect(songChordSequence(transposeSong(saved, 2))).toEqual(
+      line.startsWith("[Intro]") ? ["Bm"] : ["D", "A"]
+    );
+  }
+);
+
+test.each([false, true])(
+  "recording waits for foreground after permission and cancels on exit: %s",
+  async (leave) => {
+    jest.mocked(performanceAudio.list).mockResolvedValue([]);
+    jest.mocked(performanceAudio.stop).mockResolvedValue(null);
+    const previous = AppState.currentState;
+    AppState.currentState = "active";
+    const listeners = new Set<(state: AppStateStatus) => void>();
+    jest
+      .mocked(AppState.addEventListener)
+      .mockImplementation((_event, callback) => {
+        listeners.add(callback);
+        return { remove: () => listeners.delete(callback) };
+      });
+    let grant!: (value: boolean) => void;
+    jest
+      .spyOn(require("../src/components/permissions"), "default")
+      .mockImplementation(
+        () =>
+          new Promise<boolean>((resolve) => {
+            grant = resolve;
+          })
+      );
+    const onStart = jest.fn();
+    const state = (value: "active" | "background") => {
+      AppState.currentState = value;
+      [...listeners].forEach((listener) => listener(value));
+    };
+    try {
+      await act(async () => {
+        screen = Renderer.create(
+          <SongRecorder songId={1} active open onStart={onStart} />
+        );
+      });
+      await act(async () => {
+        screen!.root
+          .find(
+            (node) =>
+              node.props.accessibilityLabel === "StartRecording" &&
+              typeof node.props.onPress === "function"
+          )
+          .props.onPress();
+      });
+      await act(async () => state("background"));
+      await act(async () => grant(true));
+      expect(performanceAudio.start).not.toHaveBeenCalled();
+      if (leave)
+        await act(async () => {
+          screen!.update(
+            <SongRecorder songId={1} active={false} onStart={onStart} />
+          );
+        });
+      await act(async () => state("active"));
+      expect(performanceAudio.start).toHaveBeenCalledTimes(leave ? 0 : 1);
+      expect(onStart).toHaveBeenCalledTimes(leave ? 0 : 1);
+    } finally {
+      AppState.currentState = previous;
+    }
+  }
+);
+
+test("unsupported song chord explains and disables rhythm auditions", async () => {
+  await act(async () => {
+    screen = Renderer.create(
+      <SongTools
+        initialTab="rhythm"
+        content={"Am C6/9 G\nWords"}
+        value={defaultSongPreferences}
+        onChange={() => {}}
+        onClose={() => {}}
+      />
+    );
+  });
+  const previews = screen!.root
+    .findAllByType(Action)
+    .filter((node) => String(node.props.label).startsWith("ListenRhythm:"));
+  expect(previews).toHaveLength(rhythms.length);
+  expect(previews.every((node) => node.props.disabled)).toBe(true);
+  expect(
+    screen!.root
+      .findAllByType(Text)
+      .some((node) => JSON.stringify(node.props.children).includes("C6/9"))
+  ).toBe(true);
+  expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
 });

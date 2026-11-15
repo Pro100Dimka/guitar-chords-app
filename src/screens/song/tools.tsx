@@ -825,6 +825,7 @@ function RhythmPlayer({
   autoplay = false,
   autoStart = autoplay,
   onStopped,
+  onStarted,
   practice,
   chords = ["Am", "C", "G", "Em"],
   capo = 0,
@@ -843,6 +844,7 @@ function RhythmPlayer({
   activeFingering?: number;
   autoStart?: boolean;
   onStopped?: () => void;
+  onStarted?: () => void;
   practice?: string[];
   compact?: boolean;
   chords?: string[];
@@ -982,7 +984,7 @@ function RhythmPlayer({
         const prepared=prepareAudio();await context.resume();await prepared;
         if(token!==playToken||document.hidden)return;
         step=0;lastChord=-1;start=context.currentTime+.015;next=start;playing=true;
-        button.textContent=${compact ? JSON.stringify("❚❚") : "labels.stop"};button.setAttribute('aria-label',labels.stop);tick();
+        button.textContent=${compact ? JSON.stringify("❚❚") : "labels.stop"};button.setAttribute('aria-label',labels.stop);tick();window.ReactNativeWebView?.postMessage('started');
       }catch(e){stop();window.ReactNativeWebView?.postMessage('stopped');button.textContent=${compact ? JSON.stringify("!") : "labels.error"};button.setAttribute('aria-label',labels.error);}
       finally{if(token===playToken||!playing)button.disabled=false;}
     }
@@ -1073,6 +1075,7 @@ function RhythmPlayer({
                 `${instrument ? `window.loadInstrument(${instrument});` : ""}window.configurePlayer(${playConfig});true;`
               );
             }
+            if (nativeEvent.data === "started") onStarted?.();
             if (nativeEvent.data === "stopped") onStopped?.();
           }}
           onShouldStartLoadWithRequest={({ url }) => url === "about:blank"}
@@ -1098,6 +1101,10 @@ function RhythmEditor({
   const [browsing, setBrowsing] = useState(!value.strum);
   const [editing, setEditing] = useState(false);
   const [audition, setAudition] = useState("");
+  const [playingAudition, setPlayingAudition] = useState("");
+  const unavailable = chords.filter(
+    (chord) => !selectedChordShape(chord, value.shapes[chord])
+  );
   const previewRhythm = rhythms.find((item) => item.id === audition);
   const preset = rhythms.find(
     (item) =>
@@ -1111,6 +1118,11 @@ function RhythmEditor({
         <Text style={[styles.title, styles.glassText]}>
           {t("RhythmCatalog")}
         </Text>
+        {unavailable.length > 0 && (
+          <Text style={styles.description}>
+            {t("NoFingering")}: {unavailable.join(", ")}
+          </Text>
+        )}
         {rhythms.map((item) => (
           <View
             key={item.id}
@@ -1146,9 +1158,13 @@ function RhythmEditor({
             <View style={styles.rhythmControls}>
               <Action
                 primary
-                icon={audition === item.id ? "pause" : "play"}
-                label={`${t(audition === item.id ? "Pause" : "ListenRhythm")}: ${t(item.title)}`}
-                onPress={() => setAudition(audition === item.id ? "" : item.id)}
+                disabled={unavailable.length > 0}
+                icon={playingAudition === item.id ? "pause" : "play"}
+                label={`${t(playingAudition === item.id ? "Pause" : "ListenRhythm")}: ${t(item.title)}`}
+                onPress={() => {
+                  setPlayingAudition("");
+                  setAudition(audition === item.id ? "" : item.id);
+                }}
               />
               <Action
                 icon={preset?.id === item.id ? "check-circle" : "check"}
@@ -1176,7 +1192,11 @@ function RhythmEditor({
           chords={chords}
           capo={value.capo}
           shapes={value.shapes}
-          onStopped={() => setAudition("")}
+          onStarted={() => setPlayingAudition(audition)}
+          onStopped={() => {
+            setPlayingAudition("");
+            setAudition("");
+          }}
         />
 
         <Action

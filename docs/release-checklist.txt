@@ -1,3 +1,15 @@
+FreeTune 1.0, Android versionCode 15. Source verification, 15.11.2026
+
+CURRENT SOURCE STATUS
+Canonical verification and artifact status: docs/release-readiness.json.
+The binary versionCode remains 15. Previously delivered rc15 APKs do not contain
+subsequent source fixes. No APK, AAB or IPA is built for this review.
+The section_rhythm_permission_review entry records the current source verification.
+Full phone/provider tests, Bluetooth/calls and a native iOS archive remain pending.
+Do not treat historical build checks below as checks of the current source.
+
+HISTORICAL BUILD 8 NOTES (retained for artifact traceability)
+
 FreeTune 1.0, версия Android 8. Подготовка Google Play, 14.11.2026
 
 ТЕКУЩИЙ ЭТАП

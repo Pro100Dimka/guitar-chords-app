@@ -36,7 +36,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     private val worker = Executors.newSingleThreadExecutor()
     private val captureWorker = Executors.newSingleThreadExecutor()
     private val session = RecognitionSession()
-    private val fileWorkers = ThreadPoolExecutor(2, 2, 0, TimeUnit.SECONDS, SynchronousQueue())
+    private val fileWorkers = ThreadPoolExecutor(2, 2, 0, TimeUnit.SECONDS, ArrayBlockingQueue(2))
     private val fileCancellation = ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, ArrayBlockingQueue(2))
     private val fileRead = AtomicReference<AudioFileRead?>()
     @Volatile private var recorder: AudioRecord? = null
@@ -446,6 +446,7 @@ internal class AudioFileRead(
     fun cancel() {
         if (!cancelled.compareAndSet(false, true)) return
         task.cancel(true)
+        (executor as? ThreadPoolExecutor)?.remove(task)
         // Provider cancellation and descriptor close may themselves block remote I/O.
         runCatching { cancellationExecutor.execute {
             runCatching { signal.cancel() }

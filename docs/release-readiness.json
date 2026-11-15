@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 255,
-      "status": "Passed full local verification: 19 suites, 255 tests, including interrupted-take notification, persistent status and playback/export controls. See interruption_recovery_review for current native proof and boundaries."
+      "tests": 261,
+      "status": "Passed locally: 19 suites, 261 tests. Includes section/chord editor roundtrips, recording permission/foreground ordering and unsupported rhythm feedback. Current source CI recorded below when complete."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1045,7 +1045,7 @@
   "interruption_recovery_review": {
     "base_commit": "39d1540722a1f03ddd4fd6aa6f621e9650223725",
     "android_recording": "Read failure after captured frames finalizes the same processed AAC with its fading effect tail. A persisted interrupted marker is shown using existing recording styles; list/restart preserves status and delete removes the marker. Completed temporary AAC files recovered at startup are marked interrupted. Empty capture and encoder-finalization failures still reject.",
-    "cloud_files": "ContentResolver receives a CancellationSignal. Each decode owns its cancellation state and descriptor until cleanup. Cancellation releases the recognition waiter independently of provider open/read, prevents stale results after retry, and requests provider cancellation/close outside the bridge lock. At most two blocked decoder workers are retained; additional file requests reject Busy instead of accumulating threads. Remote cancellation uses one bounded worker with two queued requests.",
+    "cloud_files": "ContentResolver receives per-request cancellation. Decoder threads are bounded to two with a two-task pending queue that accepts requests while completed workers return. Cancellation removes queued tasks immediately, does not wait for a blocked provider and rejects stale results. Excess queued requests report Busy. Remote cancellation has one bounded worker and a two-task queue.",
     "reproduced_before": [
       "Actual recorder threw Microphone capture failed: 0 after 4096 captured frames.",
       "RecognitionSession cancellation remained pending while a simulated provider open was blocked."
@@ -1064,5 +1064,35 @@
       "No full native iOS build or device test performed; iOS implementation unchanged."
     ],
     "design_changes": false
+  },
+  "section_rhythm_permission_review": {
+    "base_commit": "6a63bef7be1e680cae29abc365d5fad6819656f2",
+    "source_version": {
+      "versionName": "1.0",
+      "versionCode": 15,
+      "binary_status": "No new binary built; old rc15 APKs do not include current source fixes."
+    },
+    "sections": "One shared section pattern separates labels from chord-only rows before normalization/transposition. Labels, all chords and lyric words survive editor conversion, save-content normalization, reopening and transposition.",
+    "recording_permission": "Recorder reuses the existing abortable foreground wait from recognition after microphone permission. Leaving the screen or unmounting aborts pending start. Active capture still stops on background.",
+    "rhythm_feedback": "Catalogue lists unsupported chords using existing text styles and disables audition actions. Playback confirmation, rather than tapping a button, changes the action to Pause.",
+    "native_scheduling": "Bounded pending queue replaces zero-capacity handoff. Cancelled queued futures are removed. Deterministic afterExecute barriers reproduce the old false Busy window and verify admission before workers return; provider phases wait for explicit task-finished signals rather than sleeping.",
+    "baseline_reproductions": [
+      "Section/chord inputs threw an undefined anchor error or lost labels/chords.",
+      "Permission resolved while backgrounded, then active: zero native recording starts.",
+      "Unsupported C6/9 left all audition buttons enabled with no feedback.",
+      "Controlled completed-worker window rejected the next read with Busy."
+    ],
+    "local_verification": [
+      "261 Jest tests in 19 suites passed.",
+      "TypeScript, zero-warning ESLint and actual SQLite integration passed.",
+      "Full native Kotlin suite passed, including the controlled scheduling regression, blocked-provider cancellation and recorder recovery.",
+      "Android compileReleaseKotlin passed with installed SDK and reused unchanged fingerprint libraries."
+    ],
+    "documentation": "Release checklist identifies historical build 8 notes; README marks build 6 results historical. This file is the canonical source and binary verification ledger.",
+    "limits": [
+      "No physical phone permissions, cloud provider or full native iOS app tested.",
+      "No APK/AAB/IPA built.",
+      "Repository branch protection is unchanged; modifying repository policy is outside these source fixes."
+    ]
   }
 }

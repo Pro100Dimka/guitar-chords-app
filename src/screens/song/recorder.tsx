@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { saveDocuments } from "@react-native-documents/picker";
 import { Action, Sheet } from "./tools";
 import { performanceAudio, Take } from "../../components/performance-audio";
+import { waitForAppActive } from "../../components/song-autofill/recognition";
 import checkMicPermission from "../../components/permissions";
 import { fileCanceled } from "../../components/library-files";
 import palette from "../../theme/palette";
@@ -44,6 +45,7 @@ export default function SongRecorder({
   activeRef.current = active;
   const mounted = useRef(true);
   const operation = useRef(false);
+  const pendingStart = useRef<AbortController | null>(null);
   const load = useCallback(async () => {
     const files = await performanceAudio.list(songId);
     if (mounted.current) setTakes(files);
@@ -61,9 +63,14 @@ export default function SongRecorder({
     try {
       await action();
     } catch (error) {
-      if (!fileCanceled(error) && mounted.current)
+      if (
+        !fileCanceled(error) &&
+        mounted.current &&
+        !pendingStart.current?.signal.aborted
+      )
         Alert.alert(t("RecordingError"), t("RecordingErrorHint"));
     } finally {
+      pendingStart.current = null;
       operation.current = false;
       if (mounted.current) setBusy(false);
     }
@@ -103,6 +110,7 @@ export default function SongRecorder({
     });
     return () => {
       mounted.current = false;
+      pendingStart.current?.abort();
       listener.remove();
       background.remove();
       performanceAudio.stopPlayback();
@@ -112,6 +120,7 @@ export default function SongRecorder({
   }, [load, t]);
   useEffect(() => {
     if (!active) {
+      pendingStart.current?.abort();
       setVisible(false);
       performanceAudio.stopPlayback();
       if (recordingRef.current)
@@ -151,7 +160,11 @@ export default function SongRecorder({
         style={[styles.recordRing, takes.length > 0 && styles.compactRing]}
         onPress={() =>
           void run(async () => {
-            if (!(await checkMicPermission(true))) {
+            const controller = new AbortController();
+            pendingStart.current = controller;
+            const granted = await checkMicPermission(true);
+            if (controller.signal.aborted) return;
+            if (!granted) {
               Alert.alert(t("ErrorMicAccess"), t("ConfigurePermissions"), [
                 { text: t("Cancel"), style: "cancel" },
                 {
@@ -161,7 +174,8 @@ export default function SongRecorder({
               ]);
               return;
             }
-            if (!mounted.current || AppState.currentState !== "active") return;
+            await waitForAppActive(controller.signal);
+            if (!mounted.current || !activeRef.current) return;
             performanceAudio.stopPlayback();
             await performanceAudio.start(songId);
             recordingRef.current = true;
