@@ -1,5 +1,9 @@
 name: ios-application
 on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
   workflow_dispatch:
     inputs:
       refresh_lock:
@@ -20,7 +24,7 @@ jobs:
           cache: npm
       - uses: ruby/setup-ruby@v1
         with:
-          ruby-version: '3.3'
+          ruby-version: '3.3.13'
           bundler: '2.5.23'
           bundler-cache: true
       - run: npm ci
