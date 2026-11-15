@@ -1,5 +1,5 @@
 {
-  "build": 19,
+  "build": 20,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
@@ -36,7 +36,7 @@
       "original_open_string_takes": 11,
       "status": "Original approved WAVs preserved outside repository; gapless mobile chord banks and measured-pitch string references prepared."
     },
-    "android_bundle": "VersionCode 19 ARM64 test APK assembled using the cached release build script, with R8 and release lint. 39915005 bytes. Prior test certificate, exact rebuilt Hermes hash, latest feature markers, all 144 chord strokes, six unchanged tuner PCM references, WebP guides, ZIP integrity and ZIP/ARM64 ELF 16KB alignment passed. No new ARM32 APK, AAB or physical phone test.",
+    "android_bundle": "VersionCode 20 ARM64 test APK assembled with cached release script, R8 and release lint. 39918857 bytes. Prior test certificate, exact current Hermes hash, full-length independent string animation worklets, source-audit fixes, all 144 chord strokes, six tuner PCM references, WebP guides, ZIP integrity and ZIP/ARM64 ELF 16KB alignment passed. No new ARM32 APK, AAB or physical phone test.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
     "ios_native": "macOS 15 CI compiled and executed extracted production Swift pitch, capture lifecycle and recording-file methods. Capture route fixtures cover seven unavailable/invalid routes, retries and setup failures; file fixtures use real AAC. Full React Native iOS app/archive, real AVAudioSession and device checks remain unverified.",
     "device_tests": "owner to perform",
@@ -60,7 +60,7 @@
       "interpretation": "Evidence points to boot-time storage contention and paging. More RAM prevents the observed ANR in this repeat but does not eliminate the HDD cold-read delay. No speculative application-threading change was made."
     },
     "content_lookup": {
-      "status": "Historical provider fixes are packaged in rc19. New capo lyric-preservation fixes are verified in source only and are not in the existing APK. Live-source observations below are historical, not a current availability guarantee.",
+      "status": "Provider fixes including standalone capo-instruction filtering are packaged in rc20. Live-source observations below are historical, not a current availability guarantee.",
       "regression_cases": [
         "canonical apostrophe URLs",
         "LRCLIB fallback after mismatched nonempty results",
@@ -1688,7 +1688,7 @@
   },
   "source_audit_ten": {
     "date": "2026-11-15",
-    "status": "source fixes verified; not packaged in a new APK/AAB/IPA",
+    "status": "Source fixes verified and packaged in Android rc20; no new iOS native package.",
     "design_changes": false,
     "fixed": {
       "F01": "Only recognized standalone capo instructions are removed; ordinary capo-like words and their chords remain.",
@@ -1729,5 +1729,65 @@
       ],
       "maintenance": "D01-D08 were not changed in this functional patch. They concern unused components/APIs, old locale keys, tooling configuration and the research notebook. No historical audio bank or unused source files were deleted."
     }
+  },
+  "android_rc20": {
+    "status": "signed_release_test_apk_verified",
+    "version_code": 20,
+    "source_commit": "8e495aa43e38d9c72be358d223e062510a6a4d56",
+    "artifacts": [
+      {
+        "path": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc20-arm64-v8a.apk",
+        "abi": "arm64-v8a",
+        "versionCode": 20,
+        "bytes": 39918857,
+        "sha256": "61e4c1049b9fa38adb6170aa7f29a9dd059f0849d53e5b075f6a6f7ffe232ef7",
+        "certificateSha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
+        "bundleSha256": "e86e590969977afa9f80d1313d95a450188770871e843b6a78953a3f659183a2",
+        "standaloneHermes": true,
+        "ownerRecordedStrokes": 144,
+        "rhythmPresets": 15,
+        "latestChromaticStrings": true,
+        "latestSongLookupStrings": true,
+        "nativeRecognitionLyrics": true,
+        "preparedNativePlayback": true,
+        "updatedGuide": true,
+        "manropeAssets": [
+          "assets/fonts/Manrope-OFL.txt",
+          "assets/fonts/Manrope-Regular.ttf",
+          "assets/fonts/Manrope-SemiBold.ttf"
+        ],
+        "nativeLibraries": 22,
+        "alignment": "ZIP 16KB pages; ARM64 ELF PT_LOAD alignment >=16KB",
+        "navigationFragmentNames": "preserved",
+        "zipIntegrity": "passed",
+        "source_commit": "8e495aa43e38d9c72be358d223e062510a6a4d56",
+        "latestBassAndLayout": true,
+        "independentFullLengthStringAnimation": true,
+        "sourceAuditTenFixes": true,
+        "nativeFileDeadlines": true,
+        "max_apk_bytes": 40000000,
+        "fingerpickingPresets": 7,
+        "sectionSpecificPatterns": true,
+        "recognizedTempoEnrichment": true,
+        "bundle_compressed": true,
+        "native_libraries_compressed": true,
+        "extractNativeLibs": true
+      }
+    ],
+    "verification_report": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc20-verification.json",
+    "build_log": "E:\\Releases\\FreeTune\\FreeTune-1.0-rc20-build.log",
+    "source_checks": "Source-audit fixes: 366 tests in 19 suites, TypeScript, full ESLint and actual SQLite passed locally. Subsequent string-only changes passed TypeScript and focused ESLint; that patch did not rerun automated tests. Version-only packaging change followed. Current release assembly, R8, lint, signature and package verification passed.",
+    "changes": [
+      "Vibration uses an off-screen upper endpoint and the visible section of a full-length string.",
+      "Individual pluck counters and oscillator state retain independent decay; playback microphone input cannot boost a previous string animation.",
+      "Includes source audit fixes for lyric preservation, dense chord parsing, payment finalization, filtered deletion refresh, tuner accessibility, guide steps, empty imports and configuration/localization."
+    ],
+    "limits": [
+      "Actual phone animation and TalkBack/VoiceOver checks remain with device testing.",
+      "No new ARM32 APK, AAB or IPA. Existing local test certificate is retained for in-place test updates.",
+      "Real store payments, audio routes and full native iOS archive remain unverified.",
+      "AGP version-control metadata is unsupported in this checkout; explicit source commit and exact rebuilt Hermes hash establish package provenance."
+    ],
+    "elapsed_seconds": 42.7
   }
 }

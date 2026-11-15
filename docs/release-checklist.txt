@@ -1,14 +1,21 @@
-SOURCE AUDIT UPDATE, 15.11.2026
-Ten confirmed functional/configuration findings fixed in source, plus related
-transaction-state and corrupted global preference recovery cases. Design retained.
-366 tests / 19 suites, TypeScript, zero-warning ESLint and actual SQLite passed.
-Android and iOS production JavaScript and Hermes compilation passed.
-These changes are newer than the rc19 APK described below. No new native package
-was assembled for this audit. Tuner screen-reader behavior needs device checks;
-Xcode scheme cleanup does not constitute an iOS native build or archive.
-Details and unresolved external/maintenance scope: source_audit_ten in
-docs/release-readiness.json.
+FreeTune 1.0, Android versionCode 20. APK verification, 15.11.2026
 
+CURRENT SOURCE AND PACKAGE STATUS
+APK source: 8e495aa43e38d9c72be358d223e062510a6a4d56.
+ARM64: E:/Releases/FreeTune/FreeTune-1.0-rc20-arm64-v8a.apk (39918857 bytes).
+Proof: E:/Releases/FreeTune/FreeTune-1.0-rc20-verification.json.
+Contains full-length independent string animations and all source-audit fixes.
+Background and visual design retained. Same local test certificate as prior APKs.
+Cached release assembly, R8, release lint and package checks passed in 42.7 s.
+Exact rebuilt Hermes, animation worklets, 144 strokes, six tuner PCM references,
+fonts, WebP guides, ZIP integrity and ZIP/ARM64 ELF 16KB alignment verified.
+Audit source passed 366 tests, TypeScript, ESLint and actual SQLite; later
+string-only patch passed TypeScript and focused ESLint. No new phone test.
+Install over the matching prior test APK to preserve data.
+No new ARM32 APK, AAB or IPA. Store, device and full iOS archive checks remain.
+Canonical status and remaining scope: docs/release-readiness.json.
+
+HISTORICAL RC19 PACKAGE NOTES
 FreeTune 1.0, Android versionCode 19. APK verification, 15.11.2026
 
 CURRENT SOURCE STATUS
