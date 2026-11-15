@@ -27,7 +27,11 @@ import {
 import { WebView } from "react-native-webview";
 import Svg, { Circle, Line, Text as SvgText } from "react-native-svg";
 import { useTranslation } from "react-i18next";
-import { SongPreferences } from "@/components/preferences";
+import {
+  SongPreferences,
+  SongRhythm,
+  normalizeRhythm
+} from "@/components/preferences";
 import palette from "@/theme/palette";
 import {
   acousticBank,
@@ -42,10 +46,19 @@ import {
   Frets,
   songChords,
   songChordSequence,
+  songSections,
   guitarMidi,
   transposeChord
 } from "./chords";
-import { rhythms, rhythmSymbols, rhythmReference } from "./rhythms";
+import {
+  rhythms,
+  pickingPatterns,
+  allRhythms,
+  rhythmSymbols,
+  rhythmReference,
+  pickingReference,
+  rhythmMeterLabel
+} from "./rhythms";
 
 export function Action({
   label,
@@ -717,14 +730,19 @@ function TransitionPractice({
   onChange: (patch: Partial<SongPreferences>) => void;
 }) {
   const { t } = useTranslation();
-  const sequence = songChordSequence(content).map((chord) =>
-    transposeChord(chord, value.transpose - value.capo)
+  const entries = songSections(content).flatMap((section) =>
+    songChordSequence(section.content).map((chord) => ({
+      chord: transposeChord(chord, value.transpose - value.capo),
+      section: section.id
+    }))
   );
+  const sequence = entries.map((entry) => entry.chord);
   const chords = [...new Set(sequence)];
   const [start, setStart] = useState(0);
   if (!sequence.length)
     return <Text style={styles.description}>{t("NoSongChords")}</Text>;
   const ordered = [...sequence.slice(start), ...sequence.slice(0, start)];
+  const orderedEntries = [...entries.slice(start), ...entries.slice(0, start)];
   return (
     <>
       <RhythmPlayer
@@ -733,6 +751,14 @@ function TransitionPractice({
         division={value.strum ? value.strumDivision : 2}
         tempo={value.tempo}
         practice={ordered}
+        arrangements={
+          Object.keys(value.rhythmSections ?? {}).length
+            ? orderedEntries.map(
+                (entry) =>
+                  value.rhythmSections[entry.section] ?? normalizeRhythm(value)
+              )
+            : undefined
+        }
         chords={ordered}
         capo={value.capo}
         shapes={value.shapes}
@@ -835,8 +861,10 @@ function RhythmPlayer({
   previewKeys,
   onPreviewReady,
   activeFingering = 0,
-  stroke
+  stroke,
+  arrangements
 }: {
+  arrangements?: SongRhythm[];
   autoplay?: boolean;
   stroke?: number;
   fingerings?: Frets[];
@@ -937,12 +965,13 @@ function RhythmPlayer({
     practice: !!practice,
     stroke: stroke ?? null,
     activeFingering,
+    arrangements,
     requested: autoplay ? autoStart : null
   });
   const preview = useMemo(
     () => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{background:transparent}body{margin:0;background:transparent;font-family:system-ui;color:${palette.glass.ink}}button{width:100%;height:48px;border:1px solid ${palette.glass.edge};border-radius:14px;background:${palette.glass.play};color:${palette.gold.ink};box-shadow:0 0 12px #ffb00077,inset 0 1px 1px #fff9c9;border-color:#ffe59b;background:linear-gradient(#fff2a6,#ffd65a 16%,#ffbc08 48%,#ffaa00 52%,#ffd34a);font:600 19px system-ui}#count{height:28px;line-height:28px;text-align:center;font-size:13px}${compact ? "button{width:44px;height:44px;border-radius:50%;margin:2px;box-shadow:0 0 2px #ffb00077,inset 0 1px 1px #fff9c9}#count{display:none}" : ""}</style></head><body><button id="play"></button><div id="count"></div><script>
     let context,engine,timer,playing=false,step=0,next=0,start=0,preparing=Promise.resolve(),playToken=0,lastChord=-1,singleStroke=false,activeFingering=0,loading=true,wantsPlay=false,instrumentToken=0;
-    let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false;
+    let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false,arrangements=[],bar=0,slot=0,patternStep=0,planKey='',scheduled=[];
     let chords=[],frequencies=[];
     const beatCounts=${JSON.stringify(rhythmCounts)};
     const labels=${labels};
@@ -955,17 +984,26 @@ function RhythmPlayer({
       if(next<now){const delay=now+.025-next;start+=delay;next+=delay;}
       while(next<now+.5){
         if(practice&&next>=start+60)break;
-        const position=step++,index=position%pattern.length,hit=pattern[index],chordIndex=singleStroke?activeFingering:Math.floor(position/(meter*division))%chords.length;
+        const chordIndex=singleStroke?activeFingering:bar%chords.length;
+        const plan=arrangements[chordIndex]||{strum:pattern,strumMeter:meter,strumDivision:division};
+        const beats=plan.strumMeter||meter,parts=plan.strumDivision||division;
+        const raw=plan.strum||'-'.repeat(beats*parts),activePattern=raw.padEnd(Math.ceil(raw.length/(beats*parts))*beats*parts,'-');
+        const key=activePattern+':'+beats+':'+parts;
+        if(key!==planKey){patternStep=0;planKey=key;}
+        const index=patternStep++%activePattern.length,hit=activePattern[index];
+        scheduled.push({when:next,chordIndex,beat:slot%parts===0?String(Math.floor(slot/parts)+1):beatCounts[parts][slot%parts]});
+        step++;
         if(hit!=='-'){
-          const end=engine.stroke(frequencies[chordIndex],hit,next,index,lastChord!==-1&&lastChord!==chordIndex,pattern);
+          const end=engine.stroke(frequencies[chordIndex],hit,next,index,lastChord!==-1&&chords[lastChord]!==chords[chordIndex],activePattern);
           lastChord=chordIndex;
           if(singleStroke){timer=setTimeout(()=>{stop();},Math.max(0,(end||next+1)-context.currentTime)*1000);return;}
         }
-        next+=60/tempo/division;
+        next+=60/tempo/parts;
+        if(++slot>=beats*parts){slot=0;bar++;}
       }
-      const elapsed=Math.max(0,now-start),position=Math.floor(elapsed*tempo*division/60),chordIndex=Math.floor(position/(meter*division))%chords.length;
-      const beat=position%division===0?String(Math.floor(position/division)%meter+1):beatCounts[division][position%division];
-      count.textContent=chords[chordIndex]+' · '+beat+(practice?' · '+Math.max(0,60-Math.floor(elapsed))+' '+labels.seconds:'');
+      while(scheduled.length>1&&scheduled[1].when<=now)scheduled.shift();
+      const current=scheduled[0],elapsed=Math.max(0,now-start);
+      if(current&&current.when<=now)count.textContent=chords[current.chordIndex]+' · '+current.beat+(practice?' · '+Math.max(0,60-Math.floor(elapsed))+' '+labels.seconds:'');
       timer=setTimeout(tick,20);
     }
     function prepareAudio(){if(!context){context=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});engine=createAcousticPlayer(context);}return preparing;}
@@ -985,7 +1023,7 @@ function RhythmPlayer({
       try{
         const prepared=prepareAudio();await context.resume();await prepared;
         if(token!==playToken||document.hidden)return;
-        step=0;lastChord=-1;start=context.currentTime+.015;next=start;playing=true;
+        step=0;bar=0;slot=0;patternStep=0;planKey='';scheduled=[];lastChord=-1;start=context.currentTime+.015;next=start;playing=true;
         button.textContent=${compact ? JSON.stringify("❚❚") : "labels.stop"};button.setAttribute('aria-label',labels.stop);tick();window.ReactNativeWebView?.postMessage('started');
       }catch(e){stop();window.ReactNativeWebView?.postMessage('stopped');button.textContent=${compact ? JSON.stringify("!") : "labels.error"};button.setAttribute('aria-label',labels.error);}
       finally{if(token===playToken||!playing)button.disabled=false;}
@@ -1002,7 +1040,7 @@ function RhythmPlayer({
     };
     window.configurePlayer=config=>{
       const resume=config.requested===null?(playing||wantsPlay):config.requested;
-      stop();pattern=config.pattern;tempo=config.tempo;meter=config.meter;division=config.division||2;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
+      stop();arrangements=config.arrangements||[];pattern=config.pattern;tempo=config.tempo;meter=config.meter;division=config.division||2;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
       wantsPlay=resume;if(resume&&!loading)play();
     };
     button.onclick=()=>{if(playing||wantsPlay){stop();return;}if(loading){wantsPlay=true;return;}play();};
@@ -1097,18 +1135,155 @@ function RhythmEditor({
   onChange: (patch: Partial<SongPreferences>) => void;
 }) {
   const { t } = useTranslation();
+  const [scope, setScope] = useState("");
+  const blocks = useMemo(
+    () =>
+      songSections(content).map((section) => ({
+        ...section,
+        chords: songChordSequence(section.content)
+      })),
+    [content]
+  );
+  const sections = [
+    ...new Map(
+      blocks
+        .filter((section) => section.id)
+        .map((section) => [section.id, section])
+    ).values()
+  ].slice(0, 128);
+  const selected = sections.find((section) => section.id === scope);
+  const override = selected ? value.rhythmSections?.[selected.id] : undefined;
+  const current = { ...value, ...override };
+  const arrangements = Object.keys(value.rhythmSections ?? {}).length
+    ? blocks.flatMap((section) =>
+        section.chords.map(
+          () => value.rhythmSections[section.id] ?? normalizeRhythm(value)
+        )
+      )
+    : undefined;
+  const change = (patch: Partial<SongPreferences>) => {
+    if (patch.tempo !== undefined) {
+      onChange({ tempo: patch.tempo });
+      return;
+    }
+    if (selected)
+      onChange({
+        rhythmSections: {
+          ...value.rhythmSections,
+          [selected.id]: normalizeRhythm({ ...current, ...patch })
+        }
+      });
+    else onChange(patch);
+  };
+  return (
+    <>
+      <Text style={styles.label}>{t("PatternForSection")}</Text>
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={[styles.row, styles.sectionChoices]}
+      >
+        <Action
+          glass
+          label={t("WholeSong")}
+          selected={!selected}
+          onPress={() => setScope("")}
+        />
+        {sections.map((section) => (
+          <Action
+            glass
+            key={section.id}
+            label={section.title}
+            selected={selected?.id === section.id}
+            onPress={() => setScope(section.id)}
+          />
+        ))}
+      </ScrollView>
+      {!sections.length && (
+        <Text style={styles.description}>{t("AddSongSectionsHint")}</Text>
+      )}
+      {selected && (
+        <Text style={styles.description}>
+          {t(override ? "SectionPatternOwn" : "SectionPatternInherited")}
+        </Text>
+      )}
+      {selected && override && (
+        <Action
+          glass
+          label={t("UseWholeSongPattern")}
+          onPress={() => {
+            const next = { ...value.rhythmSections };
+            delete next[selected.id];
+            onChange({ rhythmSections: next });
+          }}
+        />
+      )}
+      <PatternEditor
+        key={selected?.id ?? ""}
+        content={
+          selected
+            ? blocks
+                .filter((block) => block.id === selected.id)
+                .map((block) => block.content)
+                .join("\n")
+            : content
+        }
+        value={current}
+        onChange={change}
+        arrangements={selected ? undefined : arrangements}
+      />
+    </>
+  );
+}
+
+function PatternEditor({
+  content,
+  value,
+  onChange,
+  arrangements
+}: {
+  arrangements?: SongRhythm[];
+  content: string;
+  value: SongPreferences;
+  onChange: (patch: Partial<SongPreferences>) => void;
+}) {
+  const { t } = useTranslation();
   const chords = songChordSequence(content).map((chord) =>
     transposeChord(chord, value.transpose - value.capo)
   );
-  const [browsing, setBrowsing] = useState(!value.strum);
+  const [kind, setKind] = useState<"strum" | "picking">(
+    /[1-6]/.test(value.strum) ? "picking" : "strum"
+  );
+  const catalog = kind === "picking" ? pickingPatterns : rhythms;
+  const [browsing, setBrowsing] = useState(
+    !value.strum && !arrangements?.some((setting) => setting.strum)
+  );
   const [editing, setEditing] = useState(false);
   const [audition, setAudition] = useState("");
   const [playingAudition, setPlayingAudition] = useState("");
+  const modes = (
+    <View style={styles.row}>
+      {(["strum", "picking"] as const).map((mode) => (
+        <Action
+          glass
+          key={mode}
+          label={t(mode === "strum" ? "Strumming" : "Fingerpicking")}
+          selected={kind === mode}
+          onPress={() => {
+            setKind(mode);
+            setBrowsing(true);
+            setAudition("");
+            setEditing(false);
+          }}
+        />
+      ))}
+    </View>
+  );
   const unavailable = chords.filter(
     (chord) => !selectedChordShape(chord, value.shapes[chord])
   );
-  const previewRhythm = rhythms.find((item) => item.id === audition);
-  const preset = rhythms.find(
+  const previewRhythm = allRhythms.find((item) => item.id === audition);
+  const preset = allRhythms.find(
     (item) =>
       item.id === value.strumPreset &&
       item.pattern === value.strum &&
@@ -1117,6 +1292,10 @@ function RhythmEditor({
   if (browsing)
     return (
       <>
+        {modes}
+        {kind === "picking" && (
+          <Text style={styles.description}>{t("PickingNotationHint")}</Text>
+        )}
         <Text style={[styles.title, styles.glassText]}>
           {t("RhythmCatalog")}
         </Text>
@@ -1125,7 +1304,7 @@ function RhythmEditor({
             {t("NoFingering")}: {unavailable.join(", ")}
           </Text>
         )}
-        {rhythms.map((item) => (
+        {catalog.map((item) => (
           <View
             key={item.id}
             style={[
@@ -1149,7 +1328,9 @@ function RhythmEditor({
             >
               <View style={[styles.rhythmHeading, styles.rhythmCardTitle]}>
                 <Text style={styles.label}>{t(item.title)}</Text>
-                <Text style={styles.positionLabel}>{item.meter}/4</Text>
+                <Text style={styles.positionLabel}>
+                  {rhythmMeterLabel(item.meter, item.division)}
+                </Text>
               </View>
               <RhythmGrid
                 pattern={item.pattern}
@@ -1213,18 +1394,22 @@ function RhythmEditor({
           glass
           label={t("RhythmReference")}
           onPress={() => {
-            Linking.openURL(rhythmReference).catch(() =>
-              Alert.alert(t("LinkOpenError"))
-            );
+            Linking.openURL(
+              kind === "picking" ? pickingReference : rhythmReference
+            ).catch(() => Alert.alert(t("LinkOpenError")));
           }}
         />
       </>
     );
   return (
     <>
+      {modes}
       <View style={styles.row}>
         <Text style={[styles.title, styles.glassText]}>
-          {t(preset?.title ?? "MyStrum")}
+          {t(
+            preset?.title ??
+              (arrangements && !value.strum ? "SectionArrangement" : "MyStrum")
+          )}
         </Text>
         <Action
           glass
@@ -1240,9 +1425,12 @@ function RhythmEditor({
           division={value.strumDivision}
         />
       ) : (
-        <Text style={styles.description}>{t("NoStrum")}</Text>
+        <Text style={styles.description}>
+          {t(arrangements ? "SectionArrangement" : "NoStrum")}
+        </Text>
       )}
-      {/[DUXB]/.test(value.strum) && (
+      {(/[DUXBA1-6]/.test(value.strum) ||
+        arrangements?.some((setting) => /[DUXBA1-6]/.test(setting.strum))) && (
         <RhythmPlayer
           pattern={value.strum}
           meter={value.strumMeter}
@@ -1251,6 +1439,7 @@ function RhythmEditor({
           chords={chords}
           capo={value.capo}
           shapes={value.shapes}
+          arrangements={arrangements}
         />
       )}
       <View style={styles.row}>
@@ -1280,11 +1469,11 @@ function RhythmEditor({
         <>
           <View style={styles.row}>
             <Text style={styles.label}>{t("Meter")}</Text>
-            {([3, 4] as const).map((meter) => (
+            {([2, 3, 4] as const).map((meter) => (
               <Action
                 glass
                 key={meter}
-                label={`${meter}/4`}
+                label={rhythmMeterLabel(meter, value.strumDivision)}
                 selected={value.strumMeter === meter}
                 onPress={() => onChange({ strumMeter: meter, strumPreset: "" })}
               />
@@ -1294,17 +1483,24 @@ function RhythmEditor({
           <Text style={styles.label}>{t("EditRhythm")}</Text>
 
           <View style={styles.row}>
-            {Object.entries(rhythmSymbols).map(([symbol, label]) => (
-              <Action
-                glass
-                key={symbol}
-                label={label}
-                disabled={value.strum.length >= 16}
-                onPress={() =>
-                  onChange({ strum: value.strum + symbol, strumPreset: "" })
-                }
-              />
-            ))}
+            {Object.entries(rhythmSymbols)
+              .filter(([symbol]) =>
+                (kind === "picking"
+                  ? ["B", "A", "1", "2", "3", "4", "5", "6", "-"]
+                  : ["D", "U", "X", "B", "-"]
+                ).includes(symbol)
+              )
+              .map(([symbol, label]) => (
+                <Action
+                  glass
+                  key={symbol}
+                  label={label}
+                  disabled={value.strum.length >= 16}
+                  onPress={() =>
+                    onChange({ strum: value.strum + symbol, strumPreset: "" })
+                  }
+                />
+              ))}
             <Action
               glass
               label={t("Undo")}
@@ -1321,6 +1517,7 @@ function RhythmEditor({
 }
 
 export const styles = StyleSheet.create({
+  sectionChoices: { flexWrap: "nowrap", paddingBottom: 8 },
   iconAction: {
     width: 48,
     height: 48,

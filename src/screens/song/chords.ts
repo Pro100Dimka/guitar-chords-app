@@ -438,8 +438,21 @@ function reflowChordPairs(content: string, semitones: number) {
   return output.join("\n");
 }
 
-const sectionPattern =
-  /\[(?:intro|verse|chorus|bridge|outro|solo|interlude|instrumental|приспів|куплет|припев)[^\[\]]*\]/gi;
+const sectionNames =
+  "intro|verse|chorus|bridge|outro|solo|interlude|instrumental|pre-chorus|post-chorus|refrain|coda|приспів|куплет|припев|вступ|вступление|бридж|брідж|програш|проигрыш|інтро|интро|аутро|соло|кода|рефрен|предприпев|передприспів";
+const sectionPattern = new RegExp(`\\[(?:${sectionNames})[^\\[\\]]*\\]`, "gi");
+const sectionHeading = new RegExp(
+  `^((?:${sectionNames})(?:\\s+(?:\\d+|[ivx]+))?(?:\\s*\\([^()\\n]{0,70}\\))?)(?:\\s*:\\s*(.*)|\\s*)$`,
+  "i"
+);
+const chordProSectionTitles: Record<string, string | undefined> = {
+  start_of_verse: "Verse",
+  sov: "Verse",
+  start_of_chorus: "Chorus",
+  soc: "Chorus",
+  start_of_bridge: "Bridge",
+  sob: "Bridge"
+};
 function chordTokens(line: string) {
   return chordLineParts(line.replace(sectionPattern, " ")).filter(
     (token) =>
@@ -681,6 +694,43 @@ export function songChordSequence(content: string) {
             .filter((token) => chordNotationPattern.test(token))
     );
 }
+
+export function songSections(content: string) {
+  const sections = [{ id: "", title: "", content: "" }];
+  for (const line of content.split(/\r?\n/)) {
+    if (
+      /^\s*\{(?:end_of_(?:verse|chorus|bridge)|eov|eoc|eob)\}\s*$/i.test(line)
+    ) {
+      sections.push({ id: "", title: "", content: "" });
+      continue;
+    }
+    const directive = line
+      .trim()
+      .match(
+        /^\{(start_of_verse|start_of_chorus|start_of_bridge|sov|soc|sob)(?::\s*([^{}]+))?\}$/i
+      );
+    const bracket = line.match(sectionPattern)?.[0];
+    const plain = sectionHeading.exec(line.trim());
+    const heading = directive
+      ? (directive[2] ?? chordProSectionTitles[directive[1].toLowerCase()])
+      : bracket && line.trimStart().startsWith(bracket)
+        ? bracket
+        : plain?.[1];
+    if (heading && heading.length <= 100) {
+      const title = heading.replace(/^[\[{]|[\]}:]$/g, "").trim();
+      sections.push({
+        id: title.normalize("NFKC").toLowerCase().replace(/\s+/g, " "),
+        title,
+        content:
+          (bracket
+            ? line.trimStart().slice(bracket.length)
+            : (plain?.[2] ?? "")) + "\n"
+      });
+    } else sections[sections.length - 1].content += line + "\n";
+  }
+  return sections;
+}
+
 export function transposeSong(content: string, semitones: number) {
   const lines = sectionChordRows(expandTabs(content)),
     result: string[] = [],

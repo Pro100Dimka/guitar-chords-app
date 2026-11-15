@@ -4,6 +4,7 @@ import { performanceAudio } from "./performance-audio";
 import { deleteItem } from "./database/crud";
 import { songFieldLimits } from "@/@interfaces";
 import { transposeSong } from "../screens/song/chords";
+import { sourceArrangement } from "../screens/song/rhythms";
 import {
   errorCodes,
   isErrorWithCode,
@@ -283,6 +284,7 @@ export function importedSong(text: string, name: string) {
     title,
     capo,
     sourceTuning,
+    rhythm: sourceArrangement(content),
     content: transposeSong(
       content
         .replace(

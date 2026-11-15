@@ -81,7 +81,7 @@
   "Capo": "Capo fret",
   "ScrollSpeed": "Scroll speed",
   "CapoHint": "Transpose changes the song by semitones. Capo shows the chord shapes to play at that fret, keeping the chosen key.",
-  "MyStrum": "My strumming pattern",
+  "MyStrum": "My pattern",
   "StrumHint": "↓ down, ↑ up, × muted stroke, · no stroke. Keep your hand moving during silent steps.",
   "NoStrum": "Not set",
   "Undo": "Undo",
@@ -117,7 +117,7 @@
   "FewerShapes": "Show fewer",
   "AllShapes": "All shapes ({{count}})",
   "Reading": "Reading",
-  "Rhythm": "Rhythm",
+  "Rhythm": "Guitar patterns",
   "RhythmCatalog": "Rhythm library",
   "RhythmCatalogHint": "Tap a rhythm to select it for this song. The round button previews the selected rhythm.",
   "RhythmQuarter": "Steady quarters",
@@ -131,7 +131,7 @@
   "ListenRhythm": "▶ Listen",
   "RhythmAudioError": "Audio unavailable",
   "UseRhythm": "Use for this song",
-  "CustomRhythm": "Make my own",
+  "CustomRhythm": "Custom pattern",
   "RhythmReference": "How to count eighth notes",
   "LinkOpenError": "Could not open the link",
   "ChooseRhythm": "Choose",
@@ -211,7 +211,7 @@
   "SearchTunings": "Find tuning: Drop, Open…",
   "AlternateTuningHint": "Low, open and Nashville tunings may need different strings and a guitar setup. Do not overtighten strings. Song fingerings assume standard tuning.",
   "MoreShapes": "More fingerings · {{count}} remaining",
-  "FullPracticeHint": "{{count}} chords in song order, including repeats. One bar per chord. Start with any chord and play for one minute.",
+  "FullPracticeHint": "Song order, one bar per chord. Patterns switch at section boundaries; sections without an override use the whole-song pattern.",
   "PracticeStartChord": "Start from a chord",
   "TapChordHint": "Tap a highlighted chord to choose a fingering.",
   "RecordPerformance": "Record",
@@ -437,15 +437,16 @@
       "keywords": "chord fingering diagram position open mute barre preview"
     },
     "rhythm": {
-      "title": "Choose and preview a strum",
-      "summary": "Listening to a pattern and selecting it are separate actions.",
+      "title": "Guitar patterns",
+      "summary": "Choose a strumming or fingerpicking pattern for the whole song or a section.",
       "steps": [
-        "Open the gear in a song, then Strum.",
-        "Use a pattern's round play button to listen; pause it with the same button. Use its select button or card to choose it.",
-        "Adjust tempo and meter. In the editor, add down/up strokes, muted hits or rests to make your own pattern."
+        "Open the song gear and select Guitar patterns.",
+        "Choose Whole song or a section heading, then Strumming or Fingerpicking. Preview a card and select it with the check button.",
+        "Add Verse:, Chorus: and other section headings in the song text. Assign each its pattern or reset it to the whole-song pattern.",
+        "Practice switches patterns in song order, one bar per chord. B selects a playable bass; numbered steps pick individual strings."
       ],
-      "tip": "Down strokes go from bass to treble; up strokes go the other way. Preview the pattern before choosing.",
-      "keywords": "rhythm strum down up muted rest tempo meter preview choose"
+      "tip": "Six-note 6/8 and waltz 3/4 patterns have different pulse groupings. Check the meter on the card. Explicit source patterns can be imported; ambiguous or image-only instructions stay manual.",
+      "keywords": "rhythm strum down up muted rest tempo meter preview choose fingerpicking arpeggio verse chorus section перебор перебір куплет припев приспів"
     },
     "practice": {
       "title": "Practise chord changes",
@@ -660,5 +661,22 @@
   "RecordedGuitar": "FreeTune acoustic recordings",
   "RhythmFour": "Four strokes",
   "SongMissing": "This song no longer exists. Your draft remains in the editor. Copy it before leaving.",
-  "RecordingCleanupPending": "The song was deleted. Remaining recording files will be cleaned up on the next launch."
+  "RecordingCleanupPending": "The song was deleted. Remaining recording files will be cleaned up on the next launch.",
+  "Strumming": "Strumming",
+  "Fingerpicking": "Fingerpicking",
+  "PickingEight": "Eight-note arpeggio",
+  "PickingFour": "Four-note arpeggio",
+  "PickingSix": "Six-note arpeggio",
+  "PickingWaltz": "Waltz arpeggio",
+  "PickingInside": "Inside-out picking",
+  "PickingTravis": "Travis: alternating bass",
+  "PickingRise": "Ascending and descending",
+  "PatternForSection": "Pattern for",
+  "WholeSong": "Whole song",
+  "SectionPatternOwn": "This section has its own pattern.",
+  "SectionPatternInherited": "This section uses the whole-song pattern.",
+  "UseWholeSongPattern": "Use whole-song pattern",
+  "SectionArrangement": "Patterns by section",
+  "PickingNotationHint": "1 is the thinnest string, 6 the thickest. B is the chord bass; B₂ is another playable bass string. Muted strings in the fingering stay silent.",
+  "AddSongSectionsHint": "Add headings such as Verse: and Chorus: to the lyrics to assign different patterns."
 }

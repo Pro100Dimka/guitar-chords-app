@@ -54,7 +54,7 @@ export interface FormValues {
   tempo?: number;
   rhythm?: Pick<
     SongPreferences,
-    "strum" | "strumMeter" | "strumDivision" | "strumPreset"
+    "strum" | "strumMeter" | "strumDivision" | "strumPreset" | "rhythmSections"
   >;
   sourceTuning?: string;
   contentSource?: SongPreferences["contentSource"];

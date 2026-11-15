@@ -18,11 +18,16 @@ export interface SongPreferences {
   opened: number;
   shapes: Record<string, number>;
   strum: string;
-  strumMeter: 3 | 4;
+  strumMeter: 2 | 3 | 4;
   strumDivision: number;
   strumPreset: string;
   tempo: number;
+  rhythmSections: Record<string, SongRhythm>;
 }
+export type SongRhythm = Pick<
+  SongPreferences,
+  "strum" | "strumMeter" | "strumDivision" | "strumPreset"
+>;
 export const defaultSongPreferences: SongPreferences = {
   fontSize: 20,
   transpose: 0,
@@ -36,6 +41,7 @@ export const defaultSongPreferences: SongPreferences = {
   strumMeter: 4,
   strumDivision: 2,
   strumPreset: "",
+  rhythmSections: {},
   tempo: 80
 };
 interface Preferences {
@@ -247,17 +253,32 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
     favorite: song.favorite === true,
     opened: number(song.opened, 0, 0, Number.MAX_SAFE_INTEGER),
     shapes,
-    strum:
-      typeof song.strum === "string"
-        ? song.strum.replace(/[^DUXB-]/g, "").slice(0, 16)
-        : "",
-    strumMeter: song.strumMeter === 3 ? 3 : 4,
-    strumDivision: [2, 3, 4].includes(Number(song.strumDivision))
-      ? Number(song.strumDivision)
-      : 2,
-    strumPreset:
-      typeof song.strumPreset === "string" ? song.strumPreset.slice(0, 32) : "",
+    ...normalizeRhythm(song),
+    rhythmSections: Object.fromEntries(
+      Object.entries(record(song.rhythmSections) ? song.rhythmSections : {})
+        .filter(([key]) => key.length > 0 && key.length <= 100)
+        .slice(0, 128)
+        .map(([key, rhythm]) => [key, normalizeRhythm(rhythm)])
+    ),
     tempo: Math.round(number(song.tempo, 80, 40, 200))
+  };
+}
+export function normalizeRhythm(value: unknown): SongRhythm {
+  const rhythm = record(value) ? value : {};
+  return {
+    strum:
+      typeof rhythm.strum === "string"
+        ? rhythm.strum.replace(/[^DUXBA1-6-]/g, "").slice(0, 16)
+        : "",
+    strumMeter:
+      ([2, 3, 4] as const).find((meter) => meter === rhythm.strumMeter) ?? 4,
+    strumDivision:
+      [2, 3, 4].find((division) => division === Number(rhythm.strumDivision)) ??
+      2,
+    strumPreset:
+      typeof rhythm.strumPreset === "string"
+        ? rhythm.strumPreset.slice(0, 32)
+        : ""
   };
 }
 export async function loadPreferences() {

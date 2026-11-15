@@ -1,6 +1,6 @@
 import { songChords, transposeSong } from "../../screens/song/chords";
 import { Parser, parseDocument, DomUtils } from "htmlparser2";
-import { sourceRhythm } from "../../screens/song/rhythms";
+import { sourceArrangement } from "../../screens/song/rhythms";
 
 export interface LyricsOption {
   id: number;
@@ -11,7 +11,7 @@ export interface LyricsOption {
   duration: number | null;
   capo?: number;
   tuning?: string;
-  rhythm?: ReturnType<typeof sourceRhythm>;
+  rhythm?: ReturnType<typeof sourceArrangement>;
   source:
     | "LRCLIB"
     | "Пісенник"
@@ -176,14 +176,14 @@ function chartRhythm(
   text: string,
   metadata?: Parameters<typeof DomUtils.getChildren>[0] | null
 ) {
-  return sourceRhythm(
+  return sourceArrangement(
     [
-      text,
       ...(metadata
         ? DomUtils.getChildren(metadata).map((node) =>
             DomUtils.textContent(node)
           )
-        : [])
+        : []),
+      text
     ].join("\n")
   );
 }

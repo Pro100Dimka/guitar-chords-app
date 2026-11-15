@@ -179,7 +179,8 @@ export const acousticEngine = `function createAcousticPlayer(audio, prepared) {
     const up=hit==='U',muted=hit==='X',six=pattern==='D-DU-UDU';
     const index=six?[0,-1,1,2,-1,3,4,5][position%8]:-1;
     const key=notes.map(note=>note.string+':'+Math.round(69+12*Math.log2(note.frequency/440))).join(',');
-    const recording=hit==='B'?null:recordings.find(item=>item.key===key);
+    const picked=/^[1-6]$/.test(hit),fingerstyle=/[1-6]/.test(pattern);
+    const recording=['B','A'].includes(hit)||picked?null:recordings.find(item=>item.key===key);
     if(recording){
       const direction=up?'up':'down',cursorKey=key+direction,cursor=cursors.get(cursorKey)||0;
       const sample=recording[direction][cursor%recording[direction].length];cursors.set(cursorKey,cursor+1);
@@ -194,7 +195,11 @@ export const acousticEngine = `function createAcousticPlayer(audio, prepared) {
       sounding.add(voice);source.onended=()=>{sounding.delete(voice);source.disconnect();gain.disconnect();};source.start(at);if(muted)source.stop(at+duration);
       return at+duration;
     }
-    if(hit==='B')notes=[notes.reduce((bass,note)=>note.frequency<bass.frequency?note:bass)];
+    if(['B','A'].includes(hit)){
+      const bass=notes.reduce((bass,note)=>note.frequency<bass.frequency?note:bass);
+      notes=[hit==='B'?bass:notes.find(note=>note.string===2&&note!==bass)||notes.find(note=>note.string<=2&&note!==bass)||bass];
+    }else if(picked)notes=notes.filter(note=>note.string===6-Number(hit));
+    if(!notes.length)return;
     let ordered=up?[...notes].reverse().slice(0,index===3?4:3):notes;
     if(index===1)ordered=ordered.slice(1);
     const duration=(index>=0?[.065,.055,.034,.042,.060,.032][index]:(up?.037:.065))*(.94+random()*.12);
@@ -209,7 +214,7 @@ export const acousticEngine = `function createAcousticPlayer(audio, prepared) {
       const midi=69+12*Math.log2(note.frequency/440);
       const distance=sample=>Math.abs(sample.midi-midi)+(sample.string===note.string?0:1000);
       const sample=buffers.reduce((best,item)=>distance(item)<distance(best)?item:best);
-      const buffer=up||(index===1&&note.string>=3)?sample.soft:sample.medium;
+      const buffer=fingerstyle||up||(index===1&&note.string>=3)?sample.soft:sample.medium;
       const sourceMidi=buffer===sample.soft?(sample.softMidi??sample.midi):(sample.mediumMidi??sample.midi);
       const rate=Math.pow(2,(midi-sourceMidi)/12),at=when+offset+timing;
       damp(voices[note.string],at);
