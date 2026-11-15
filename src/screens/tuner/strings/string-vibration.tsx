@@ -49,10 +49,11 @@ const getStringPath = (
 ) => {
   const path = Skia.Path.Make();
   const steps = 32;
-  const dy = (bottom - top) / steps;
+  const visibleTop = Math.max(0, top);
+  const dy = (bottom - visibleTop) / steps;
   for (let i = 0; i <= steps; i++) {
-    const y = top + i * dy;
-    const offset = amplitude * Math.sin((i / steps) * Math.PI);
+    const y = visibleTop + i * dy;
+    const offset = amplitude * Math.sin(((y - top) / (bottom - top)) * Math.PI);
     const px = x + offset;
     if (i === 0) path.moveTo(px, y);
     else path.lineTo(px, y);
@@ -72,6 +73,8 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
 }) => {
   const progress = useSharedValue(0);
   const pluckAmplitude = useSharedValue(0);
+  const lastPluck = useSharedValue(0);
+  const oscillating = useSharedValue(false);
   const [path1, path2] = useMemo(
     () => [
       getStringPath(x, top, bottom, -Math.min(9, 4 + thickness)),
@@ -81,8 +84,9 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
   );
   useAnimatedReaction(
     () => plucks.value[index] ?? 0,
-    (next, previous) => {
-      if (next === previous) return;
+    (next) => {
+      if (next === lastPluck.value) return;
+      lastPluck.value = next;
       if (!next) {
         pluckAmplitude.value = 0;
         return;
@@ -96,8 +100,9 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
   );
   useAnimatedReaction(
     () => (active && volume.value > 0.003) || pluckAmplitude.value > 0.003,
-    (sounding, previous) => {
-      if (sounding === previous) return;
+    (sounding) => {
+      if (sounding === oscillating.value) return;
+      oscillating.value = sounding;
       if (sounding) {
         progress.value = withRepeat(
           withTiming(1, {

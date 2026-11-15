@@ -10,8 +10,12 @@ import palette from "../../../theme/palette";
 import StringWithVibration from "./string-vibration";
 import {
   SharedValue,
+  cancelAnimation,
   useAnimatedReaction,
-  useDerivedValue
+  useDerivedValue,
+  useSharedValue,
+  withDelay,
+  withTiming
 } from "react-native-reanimated";
 import { runOnJS } from "react-native-worklets";
 import { useParagraphBuilder } from "../paragraphs";
@@ -47,6 +51,22 @@ const Strings: FC<{
     onReady
   } = props;
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
+  const microphoneGain = useSharedValue(1);
+  useAnimatedReaction(
+    () => plucks.value,
+    (next, previous) => {
+      if (!next.length) {
+        microphoneGain.value = 1;
+        return;
+      }
+      if (!next.some((count, index) => count > (previous?.[index] ?? 0)))
+        return;
+      microphoneGain.value = 0;
+      microphoneGain.value = withDelay(3100, withTiming(1, { duration: 100 }));
+    }
+  );
+  const stringVolume = useDerivedValue(() => rms.value * microphoneGain.value);
+  useEffect(() => () => cancelAnimation(microphoneGain), [microphoneGain]);
   const { centered, fonts } = useParagraphBuilder();
   useEffect(() => {
     if (fonts && stringNotes?.length) onReady?.();
@@ -67,6 +87,7 @@ const Strings: FC<{
   } = guitarLayout(width, height);
   const spacing = stringWidth / Math.max(1, stringNotes.length - 1);
   const boxWidth = Math.min(NOTE_BOX_WIDTH, spacing - 4);
+  const nutY = Math.min(-height, bottom - stringWidth * 12);
   const top = 0;
   const boxTop = 15;
   const stringClip = Skia.Path.Make();
@@ -88,12 +109,12 @@ const Strings: FC<{
             <Group clip={stringClip}>
               <StringWithVibration
                 x={x}
-                top={top}
+                top={nutY}
                 bottom={bottom}
                 thickness={s.thickness || 1}
                 baseColor={s.baseColor || [0, 0, 0]}
                 active={active}
-                volume={rms}
+                volume={stringVolume}
                 plucks={plucks}
                 index={i}
               />
