@@ -1,3 +1,18 @@
+SOURCE AUDIT UPDATE, 16.11.2026 (2cb7ff9 findings)
+Six source/build findings addressed; design retained.
+390 Jest tests / 19 suites, TypeScript, ESLint and actual SQLite passed.
+Editor annotations survive reopening; Android purchases use a stable token key,
+reconcile on foreground/open and coalesce refreshes; X mutes unchanged chords.
+iOS recording names are reserved exclusively; Swift filesystem checks passed.
+Complete ARM64 iOS simulator app built on macOS in run 43770697344.
+Generated Podfile.lock and Gemfile.lock committed; native module set is complete.
+CI enforces pod install --deployment, unchanged locks and a complete app build.
+Main now requires PRs and validation/native/ios/ios-application checks, including
+for administrators. Zero approvals permits a solo owner to merge a checked PR.
+Force pushes and deletion are disabled. Current work follows this PR process.
+No new APK/AAB/IPA; rc20 below remains historical. Device/store tests remain.
+Canonical scope and proof: source_audit_2cb7ff9 in release-readiness.json.
+
 SOURCE AUDIT UPDATE, 16.11.2026
 Seven functional/localization issues after 2617d14 fixed in source.
 381 tests / 19 suites, TypeScript, zero-warning ESLint and actual SQLite passed.

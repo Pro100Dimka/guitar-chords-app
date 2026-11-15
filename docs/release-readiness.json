@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 381,
-      "status": "381 tests in 19 suites passed locally. Fifteen added regressions cover section boundaries through import/editor round trips, annotated chord alignment, dense virtualized chord/lyric groups, legacy-field editing compatibility and stale pending purchase updates. Recognition unit tests now reject unplanned network requests."
+      "tests": 390,
+      "status": "390 tests in 19 suites passed locally. Nine new regressions cover annotated editor round trips, Android purchase-token identity, foreground and window-opening reconciliation, refresh coalescing and authoritative purchased receipts. The existing audio-engine mute regression now uses an unchanged chord."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -49,7 +49,7 @@
     },
     "android_bundle": "VersionCode 20 ARM64 test APK assembled with cached release script, R8 and release lint. 39918857 bytes. Prior test certificate, exact current Hermes hash, full-length independent string animation worklets, source-audit fixes, all 144 chord strokes, six tuner PCM references, WebP guides, ZIP integrity and ZIP/ARM64 ELF 16KB alignment passed. No new ARM32 APK, AAB or physical phone test. New source audit fixes after rc20 are not packaged in this historical APK.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
-    "ios_native": "macOS 15 CI compiled and executed extracted production Swift pitch, capture lifecycle and recording-file methods. Capture route fixtures cover seven unavailable/invalid routes, retries and setup failures; file fixtures use real AAC. Full React Native iOS app/archive, real AVAudioSession and device checks remain unverified.",
+    "ios_native": "Complete ARM64 iOS simulator application built successfully on macOS in run 43770697344, source 311ebbb. Generated Podfile.lock and Gemfile.lock were retrieved and committed in 00b1802; all six missing native pods and NitroModules 0.35.2 are pinned. ios-application CI installs with --deployment, rejects lockfile changes and builds the complete app. Extracted production Swift tests also pass, including exclusive recording-name reservation with real filesystem/AAC fixtures. Store/device execution and a signed IPA/archive remain unverified.",
     "device_tests": "owner to perform",
     "store_billing": "store product configuration and sandbox tests not verified",
     "recording_polish": "passed: silence, rumble, gain, compression, limiting and room decay at 22050, 44100 and 48000 Hz; actual codec/device verification pending",
@@ -641,6 +641,24 @@
       "decay_sequences": 12,
       "guitar_recordings": 10,
       "boundary": "Production methods extracted unchanged into a standalone driver; not a full iOS application or hardware test."
+    },
+    "branch_protection": {
+      "branch": "main",
+      "protected": true,
+      "enforce_admins": true,
+      "required_status_checks": [
+        "validation",
+        "native",
+        "ios",
+        "ios-application"
+      ],
+      "strict": true,
+      "pull_request_required": true,
+      "required_approvals": 0,
+      "force_pushes": false,
+      "deletion": false,
+      "conversation_resolution_required": true,
+      "verification": "Protection configuration and protected=true were read back from GitHub API. Zero approvals permits a solo maintainer to merge their own checked PR; direct pushes remain prohibited."
     }
   },
   "privacy_forms_draft": [
@@ -1829,6 +1847,35 @@
       "10: Real guitar frame-level recall, long gaps and recovery remain unqualified without labelled suitable input. The unlabelled 6th_E.wav detection deficit remains reported.",
       "11: Main branch protection and required status checks were not changed.",
       "Actual devices, store approval/expiry/payment flows, audio routes and a new installation package remain separate checks."
+    ]
+  },
+  "source_audit_2cb7ff9": {
+    "date": "2026-11-16",
+    "status": "all six source/build findings addressed; branch protection enabled; no new APK/IPA",
+    "design_changes": false,
+    "fixed": {
+      "1": "Only chord-only rows can collapse back to inline anchors. Repeat markers, barlines and section headings remain structural text through editing and reopening.",
+      "2": "Android purchaseToken is the stable key in every purchase-state collection, retry merge and de-duplication path. The pending-token to purchased-order-ID transition clears waiting state correctly.",
+      "3": "Support reconciles purchases on opening and foreground transitions; concurrent triggers share one refresh promise. Known purchased receipts take precedence over stale pending snapshots.",
+      "4": "An X stroke damps existing voices even when the chord name is unchanged. Recorded samples and audio files were not modified.",
+      "5": "iOS exclusively reserves a free recording URL using withoutOverwriting, skips active/partial files and only deletes an owned URL if startup fails.",
+      "6": "A macOS-generated Podfile.lock includes the six missing modules and the installed NitroModules version. Gemfile.lock pins Ruby dependencies. Complete simulator builds and immutable deployment installs are now CI jobs. The released image-resizer podspec needed a tracked patch to use the React Native dependency helper instead of obsolete hardcoded RCT-Folly/React-Codegen dependencies.",
+      "main_protection": "PRs, up-to-date checks and the four named Actions checks are required, including for administrators. Force pushes and deletion are disabled."
+    },
+    "verification": {
+      "jest": "390/390, 19 suites; new functional regressions failed against the original implementation before fixes",
+      "typescript": "passed",
+      "eslint": "passed with zero warnings",
+      "sqlite": "actual integration completed and passed",
+      "ios_swift": "Production pitch/capture/recording checks passed on macOS, including new exclusive filename collision cases",
+      "android_native": "Native workflow 43770697355 passed: Rust, deterministic Kotlin checks and Android Kotlin compilation",
+      "ios_application": "Full ARM64 simulator build passed: workflow 43770697344, job 132985733881. Updated locks were checked against all six missing native modules and the installed NitroModules version. Deployment-mode checks are required before merging the final readiness PR.",
+      "patch_reproducibility": "Image-resizer patch was applied successfully to the clean published 3.0.11 podspec; CocoaPods then resolved and the complete app compiled."
+    },
+    "limits": [
+      "No new APK, AAB, IPA, device microphone test or real-money/sandbox payment was performed. Existing rc20 does not include these fixes.",
+      "Simulator compilation validates native integration, not physical audio routes, interruption behavior or real StoreKit/Google Play callbacks.",
+      "Other historical release requirements and unlabelled real-recording tuner recall remain outside this audit scope."
     ]
   }
 }
