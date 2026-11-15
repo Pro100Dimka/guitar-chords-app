@@ -46,10 +46,20 @@ export const matchingIdentity = (expected: string, actual: string) =>
   !!normalize(trackTitle(expected)) &&
   normalize(trackTitle(expected)) === normalize(trackTitle(actual));
 
-export function preferredSongContent(options: LyricsOption[], album = "") {
+export function preferredSongContent(
+  options: LyricsOption[],
+  album = "",
+  duration?: number
+) {
   const score = (option: LyricsOption) =>
     (option.hasChords ? 1000 : 0) +
-    (album && normalize(album) === normalize(option.album) ? 100 : 0);
+    (album && normalize(album) === normalize(option.album) ? 100 : 0) +
+    (duration &&
+    duration > 0 &&
+    option.duration &&
+    Math.abs(option.duration - duration) <= 5
+      ? 50 - Math.abs(option.duration - duration)
+      : 0);
   const best = Math.max(...options.map(score));
   const candidates = options.filter((option) => score(option) === best);
   return candidates.filter(
@@ -305,6 +315,7 @@ async function lookupPisennyk(
       content += text.replace(/\r?\n[ \t]*/g, "").replace(/\u00a0/g, " ");
     },
     onclosetag(name) {
+      if (["p", "div", "li"].includes(name)) content += "\n";
       if (name === "code" && inChord) {
         content += "]";
         inChord = false;
@@ -318,11 +329,49 @@ async function lookupPisennyk(
     .join("\n")
     .replace(/\n{4,}/g, "\n\n\n")
     .trim();
+  const capoInstruction =
+    /(?:каподастр|капо|capo)\s*:?\s*(?:на\s*)?(\d{1,2}|[\p{L}'’]+)/iu;
+  const capoToken =
+    capoInstruction
+      .exec(content)?.[1]
+      .toLocaleLowerCase()
+      .replace(/['’]/g, "") ?? "";
+  const ordinalFrets = [
+    "",
+    "перш",
+    "друг",
+    "трет",
+    "четверт",
+    "пят",
+    "шост",
+    "сьом",
+    "восьм",
+    "девят",
+    "десят",
+    "одинадцят",
+    "дванадцят"
+  ];
+  const capoValue = /^\d+$/.test(capoToken)
+    ? Number(capoToken)
+    : ordinalFrets.findIndex(
+        (prefix) => !!prefix && capoToken.startsWith(prefix)
+      );
+  const capo =
+    Number.isInteger(capoValue) && capoValue >= 0 && capoValue <= 12
+      ? capoValue
+      : undefined;
+  if (capo !== undefined)
+    content = content
+      .split("\n")
+      .filter((line) => !capoInstruction.test(line))
+      .join("\n")
+      .trim();
   if (!content || content.length > 200000) return [];
   return [
     {
       ...identity,
-      content: chordsAboveLyrics(content),
+      content: transposeSong(content, capo ?? 0),
+      capo,
       album: "",
       duration: null,
       source: "Пісенник",

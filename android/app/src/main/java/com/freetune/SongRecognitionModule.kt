@@ -77,6 +77,8 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
                     putString("artist", result.optString("subtitle"))
                     putString("cover", result.optJSONObject("images")?.optString("coverarthq") ?: "")
                     putString("genre", result.optJSONObject("genres")?.optString("primary") ?: "")
+                    val duration = result.optDouble("duration")
+                    if (duration.isFinite() && duration > 0 && duration <= 86400) putDouble("duration", duration)
                     val tempo = sequenceOf(result.optDouble("bpm"), result.optDouble("tempo"))
                         .firstOrNull { it.isFinite() && it in 40.0..200.0 }
                     tempo?.let { putDouble("tempo", it) }

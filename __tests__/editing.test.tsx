@@ -1035,3 +1035,53 @@ test.each(["Cm(maj7)", "CmMaj7", "Cø7", "C°7", "C+", "DbM9/Ab", "C6/9"])(
     expect(transposeChord(chord, 2)).not.toBe(chord);
   }
 );
+
+test("an evicted native fingering is rebuilt from its rendered waveform and plays once", async () => {
+  jest.replaceProperty(performanceAudio, "preparedFingeringSupported", true);
+  let cached = false;
+  jest
+    .mocked(performanceAudio.prepareFingering)
+    .mockImplementation(async (_key, wave) => {
+      if (wave) cached = true;
+      return cached;
+    });
+  await act(async () => {
+    screen = Renderer.create(
+      <ChordSheet chord="Am" onChange={() => {}} onClose={() => {}} />
+    );
+  });
+  await act(async () =>
+    jest.mocked(AppState.addEventListener).mock.calls.at(-1)![1]("active")
+  );
+  const card = screen!.root.findAll(
+    (node) =>
+      typeof node.props.onPressIn === "function" &&
+      String(node.props.accessibilityLabel).startsWith("Fingering ")
+  )[0];
+  const key =
+    "fingering:" +
+    JSON.stringify([
+      0,
+      ...String(card.props.accessibilityLabel)
+        .split(": ")[1]
+        .split(", ")
+        .map((value) => (value === "×" ? null : Number(value)))
+    ]);
+  await act(async () =>
+    screen!.root
+      .findByType(WebView)
+      .props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: "fingering", key, wave: "AAAA" })
+        }
+      })
+  );
+  cached = false;
+  jest.mocked(performanceAudio.prepareFingering).mockClear();
+  jest.mocked(performanceAudio.playPreparedGuitar).mockImplementation(() => {
+    expect(cached).toBe(true);
+  });
+  await act(async () => card.props.onPressIn());
+  expect(performanceAudio.prepareFingering).toHaveBeenCalledWith(key, "AAAA");
+  expect(performanceAudio.playPreparedGuitar).toHaveBeenCalledTimes(1);
+});

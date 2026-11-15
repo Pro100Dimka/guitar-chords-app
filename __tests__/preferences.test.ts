@@ -83,6 +83,10 @@ test("a valid 38-cover library exports completely in individually restorable par
 });
 beforeEach(() => {
   jest.useFakeTimers();
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    body({ executeSql: jest.fn() });
+    success?.();
+  });
   usePreferences.setState({ songs: {}, saveError: false });
 });
 afterEach(() => {
@@ -186,6 +190,7 @@ test.each([false, true])(
   async (fail) => {
     usePreferences.getState().updateSong(9, { favorite: true, tempo: 92 });
     const original = { ...usePreferences.getState().songs };
+    flushPreferences();
     const songs = parseLibraryBackup(
       JSON.stringify({
         format: "freetune-library",
@@ -378,4 +383,95 @@ test("backup rejects a single text row too large for bounded SQLite reads", () =
       })
     )
   ).toThrow("BackupInvalid");
+});
+
+test("song chunks load even when the global experience row is absent", async () => {
+  jest
+    .mocked(getAllItems)
+    .mockImplementation(async (query) =>
+      query.filters === "key LIKE ?"
+        ? [{ key: "song:17:0", value: JSON.stringify({ tempo: 123, capo: 3 }) }]
+        : []
+    );
+  await loadPreferences();
+  expect(usePreferences.getState().songs[17]).toMatchObject({
+    tempo: 123,
+    capo: 3
+  });
+});
+
+test("preference flushes serialize pending transactions and save the latest revision", () => {
+  const commits: (() => void)[] = [];
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    body({ executeSql: jest.fn() });
+    commits.push(() => success?.());
+  });
+  usePreferences.getState().updateSong(17, { tempo: 90 });
+  flushPreferences();
+  usePreferences.getState().updateSong(17, { tempo: 120 });
+  flushPreferences();
+  expect(commits).toHaveLength(1);
+  commits[0]();
+  expect(commits).toHaveLength(2);
+  commits[1]();
+  flushPreferences();
+  expect(commits).toHaveLength(2);
+  expect(usePreferences.getState().songs[17].tempo).toBe(120);
+});
+
+test("modern backups enforce each field limit and legacy oversized records remain recoverable", () => {
+  const song = {
+    title: "Title",
+    content: "Am\nWords",
+    band_name: "Artist",
+    youtube_music: "",
+    youtobe_lesson: "",
+    preferences: {}
+  };
+  const encode = (version: number, patch: object) =>
+    JSON.stringify({
+      format: "freetune-library",
+      version,
+      songs: [{ ...song, ...patch }]
+    });
+  expect(parseLibraryBackup(encode(2, {}))).toHaveLength(1);
+  for (const [key, length] of Object.entries({
+    title: 1001,
+    band_name: 1001,
+    content: 200001,
+    youtube_music: 4001,
+    youtobe_lesson: 4001
+  }))
+    expect(() =>
+      parseLibraryBackup(encode(2, { [key]: "x".repeat(length) }))
+    ).toThrow("BackupInvalid");
+  expect(
+    parseLibraryBackup(encode(1, { band_name: "x".repeat(1001) }))[0].band_name
+  ).toHaveLength(1001);
+});
+
+test("a failed pending preference save remains retryable with the newest values", async () => {
+  const calls: Parameters<typeof db.transaction>[] = [];
+  jest.mocked(db.transaction).mockImplementation((...args) => {
+    calls.push(args);
+  });
+  usePreferences.getState().updateSong(17, { tempo: 90 });
+  const first = flushPreferences();
+  usePreferences.getState().updateSong(17, { tempo: 123 });
+  flushPreferences();
+  expect(calls).toHaveLength(1);
+  calls[0][1]?.(Object.assign(new Error("disk full"), { code: 1 }));
+  await first;
+  expect(usePreferences.getState().saveError).toBe(true);
+  const second = flushPreferences();
+  const writes: string[] = [];
+  calls[1][0]({
+    executeSql: (_sql, args) => {
+      if (args?.[1]) writes.push(String(args[1]));
+    }
+  });
+  expect(writes.some((text) => text.includes('"tempo":123'))).toBe(true);
+  calls[1][2]?.();
+  await second;
+  expect(usePreferences.getState().saveError).toBe(false);
 });

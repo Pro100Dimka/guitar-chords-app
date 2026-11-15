@@ -31,6 +31,8 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
     private var previousRms = 0.0
     private var pendingPitch = 0f
     private var missingFrames = 0
+    private var harmonicCandidate = 0.0
+    private var harmonicFrames = 0
     @Volatile private var targetNotes: List<NoteSpec> = emptyList()
     data class NoteSpec(
         val name: String,
@@ -78,6 +80,8 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         previousRms = 0.0
         pendingPitch = 0f
         missingFrames = 0
+        harmonicCandidate = 0.0
+        harmonicFrames = 0
     }
 
     private fun smoothPitch(pitch: Float): Float {
@@ -232,10 +236,12 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
             }
         }
         if (refined != null) detected = frequency(refined)
+        harmonicFrames = if (harmonicCandidate > 0 && kotlin.math.abs(1200 * kotlin.math.log2(detected / harmonicCandidate)) < 50) harmonicFrames + 1 else 1
+        harmonicCandidate = detected
         val previous = pitchHistory.firstOrNull()?.toDouble() ?: return detected.toFloat()
         val ratio = maxOf(detected, previous) / minOf(detected, previous)
         val harmonic = Math.round(ratio)
-        if (!sustaining || harmonic !in 2..12 || kotlin.math.abs(1200 * kotlin.math.log2(ratio / harmonic)) > 70) return detected.toFloat()
+        if ((harmonicFrames > 10 && detected < previous && amplitude(detected) > amplitude(previous) * 0.08) || !sustaining || harmonic !in 2..12 || kotlin.math.abs(1200 * kotlin.math.log2(ratio / harmonic)) > 70) return detected.toFloat()
         val trackedLag = peaks.filter {
             correlations[it] >= maxOf(0.45, bestCorr * 0.5) &&
                 kotlin.math.abs(1200 * kotlin.math.log2(frequency(it) / previous)) < 50

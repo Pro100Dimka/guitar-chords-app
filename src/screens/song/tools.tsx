@@ -332,7 +332,7 @@ export function ChordSheet({
     ({ frets }) => `fingering:${JSON.stringify([capo, ...frets])}`
   );
   const previewKeysKey = JSON.stringify(previewKeys);
-  const preparedPreviews = useRef(new Set<string>());
+  const preparedPreviews = useRef(new Map<string, string>());
   const pendingPreview = useRef<string | null>(null);
   const previewOwner = useRef(true);
   useEffect(() => {
@@ -345,7 +345,8 @@ export function ChordSheet({
   }, []);
   const playWhenReady = useCallback((key: string, prepared: boolean) => {
     if (!prepared || !previewOwner.current) return;
-    preparedPreviews.current.add(key);
+    if (!preparedPreviews.current.has(key))
+      preparedPreviews.current.set(key, "");
     if (pendingPreview.current === key) {
       pendingPreview.current = null;
       performanceAudio.playPreparedGuitar(key);
@@ -401,6 +402,7 @@ export function ChordSheet({
         previewKeys={nativePreview ? previewKeys : undefined}
         onPreviewReady={(key, wave) => {
           if (!previewKeys.includes(key)) return;
+          preparedPreviews.current.set(key, wave);
           void performanceAudio
             .prepareFingering(key, wave)
             .then((prepared) => playWhenReady(key, prepared))
@@ -438,10 +440,13 @@ export function ChordSheet({
                 if (nativePreview) {
                   const key = previewKeys[visibleIndex];
                   pendingPreview.current = key;
-                  if (preparedPreviews.current.has(key)) {
-                    pendingPreview.current = null;
-                    performanceAudio.playPreparedGuitar(key);
-                  }
+                  void performanceAudio
+                    .prepareFingering(
+                      key,
+                      preparedPreviews.current.get(key) ?? ""
+                    )
+                    .then((prepared) => playWhenReady(key, prepared))
+                    .catch(() => preparedPreviews.current.delete(key));
                 }
                 setAudition((previous) => ({
                   index,

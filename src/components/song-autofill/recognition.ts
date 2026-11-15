@@ -9,6 +9,7 @@ export interface RecognizedSong {
   cover?: string;
   album?: string;
   tempo?: number;
+  duration?: number;
   genre?: string;
   lyrics?: string;
   lyricsCredit?: string;

@@ -56,3 +56,25 @@ test("ChordPro capo import and display recover the original word positions", () 
     "C G\na b"
   );
 });
+
+test("unclosed section brackets parse within a bounded process", () => {
+  const filename = require("node:path").resolve("src/screens/song/chords.ts");
+  const code = `
+    const fs=require('fs'),babel=require('@babel/core'),module={exports:{}};
+    const source=babel.transformSync(fs.readFileSync(${JSON.stringify(filename)},'utf8'),{
+      filename:'chords.ts',configFile:false,babelrc:false,
+      presets:[['@babel/preset-env',{targets:{node:'current'}}],'@babel/preset-typescript']
+    }).code;
+    new Function('module','exports',source)(module,module.exports);
+    const input='[intro '.repeat(28000);
+    if(module.exports.chordsAboveLyrics(input)!==input) throw Error('Changed text');
+    process.stdout.write('ok');
+  `;
+  expect(
+    require("node:child_process").execFileSync(
+      require("node:process").execPath,
+      ["-e", code],
+      { timeout: 4000, encoding: "utf8" }
+    )
+  ).toBe("ok");
+});

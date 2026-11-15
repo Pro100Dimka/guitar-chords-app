@@ -22,6 +22,8 @@ class MicrophoneStream: RCTEventEmitter {
     private var isRecording = false
 
     private var pitchHistory: [Float] = []
+    private var harmonicCandidate = 0.0
+    private var harmonicFrames = 0
     private var previousRms = 0.0
     private var pendingPitch: Float = 0
     private var missingFrames = 0
@@ -184,6 +186,8 @@ class MicrophoneStream: RCTEventEmitter {
 
     private func resetPitch() {
         pitchHistory.removeAll()
+        harmonicCandidate = 0
+        harmonicFrames = 0
         previousRms = 0
         pendingPitch = 0
         missingFrames = 0
@@ -344,10 +348,13 @@ class MicrophoneStream: RCTEventEmitter {
             return (2...3).contains(multiple) && abs(1200 * log2(ratio / multiple)) < 35 &&
                 amplitude(candidate) > amplitude(detected) * 4
         }) { detected = frequency(refined) }
+        harmonicFrames = harmonicCandidate > 0 && abs(1200 * log2(detected / harmonicCandidate)) < 50 ? harmonicFrames + 1 : 1
+        harmonicCandidate = detected
         guard let lastPitch = pitchHistory.first else { return Float(detected) }
         let previous = Double(lastPitch)
         let ratio = max(detected, previous) / min(detected, previous)
         let harmonic = ratio.rounded()
+        if harmonicFrames > 10, detected < previous, amplitude(detected) > amplitude(previous) * 0.08 { return Float(detected) }
         guard sustaining, (2...12).contains(harmonic), abs(1200 * log2(ratio / harmonic)) <= 70 else { return Float(detected) }
         guard let trackedLag = peaks.filter({
             correlations[$0] >= max(0.45, bestCorrelation * 0.5) &&

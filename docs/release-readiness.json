@@ -6,12 +6,12 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 214,
-      "status": "Passed full local run and source main CI, including independent regressions for all six review scenarios."
+      "tests": 231,
+      "status": "Passed full local run: 19 suites, 231 tests. The final preference-pause change around deletion also passed the 17 related menu/editor tests and actual SQLite checks. Source CI pending."
     },
-    "typescript": "Passed tsc --noEmit locally and in source main CI.",
-    "eslint": "Passed full repository ESLint with zero warnings locally and in source main CI.",
-    "sqlite": "Passed actual SQLite integration, including missing-row UPDATE rejection, rollback of performer and metadata writes, and preservation of the editor without a success result.",
+    "typescript": "Passed local tsc --noEmit for the review fixes.",
+    "eslint": "Passed local full repository ESLint with zero warnings for the review fixes.",
+    "sqlite": "Passed actual SQLite, including failed deletion rolling back the cleanup journal without removing recordings; interrupted committed deletion cleanup; distinct arrangements, repeat import and restoration of existing song settings; all prior migration and atomic-save checks.",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
@@ -612,7 +612,7 @@
       "status": "Passed extracted production-method regressions: incomplete orphan cleanup, complete interrupted-file recovery, active-take protection and companion-file deletion.",
       "boundary": "MediaExtractor is stubbed in the host regression harness. Actual AAC recovery and physical process interruption remain device checks."
     },
-    "android_kotlin_review": "Passed local compileReleaseKotlin using the current Android SDK and existing unchanged Rust JNI libraries, plus clean-environment Android Kotlin compilation in source main CI. No APK assembled.",
+    "android_kotlin_review": "Passed local compileReleaseKotlin for the current native sources using existing unchanged Rust JNI libraries. No APK assembled. Source CI pending.",
     "six_scenario_source_ci": {
       "commit": "aae4ec7ba64b518fd060b00f7dc4932cdf1e41bf",
       "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43654518820",
@@ -743,8 +743,8 @@
     "version_code": 15
   },
   "reviewed_on": "2026-11-15",
-  "review_scope": "Six review fixes: bounded chord parsing, confirmed deletion and missing-row save, pending-save input locking, paired chord/lyrics transposition, interrupted recording reconciliation, and complete numbered backup export. Visual styles unchanged.",
-  "artifact_scope": "Listed rc15 APKs contain implementation changes through 1e3829bf647eb9a8701492863e9741326f29ae1b. They do not contain the six subsequent review fixes. No new APK or AAB was built for this review. Physical phone behavior and native iOS remain unverified. The listed AAB is historical versionCode 7.",
+  "review_scope": "Two review reports addressed: octave reacquisition, native fingering cache revalidation, source capo normalization, malformed bracket parsing, editable recognition results during enrichment, nested performer errors, recording deletion safety, serialized preference saves, independent song-settings loading, full arrangement restore, backup field validation and duration-aware version ranking. Visual styles unchanged.",
+  "artifact_scope": "Listed rc15 APKs contain implementation changes through 1e3829bf647eb9a8701492863e9741326f29ae1b. They do not contain the subsequent review fixes or recognition tempo changes. No new APK or AAB was built for this review. Physical phone behavior and native iOS remain unverified. The listed AAB is historical versionCode 7.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
@@ -807,5 +807,96 @@
       "before": "The library exceeded the aggregate backup limit and threw FileTooLarge.",
       "after": "Every numbered JSON file is at most 5 MiB and independently parseable; restoring all parts preserves every song, artwork and preference; temporary export files are removed."
     }
-  ]
+  ],
+  "latest_review": {
+    "base_commit": "c4c082920d58b5a1c9a0542a7a590fc6caf409df",
+    "octave_tracking": {
+      "before": "Synthetic D3-to-D2 transition held about 146.9 Hz instead of 73.4 Hz.",
+      "after": "Four high-to-low cases at two sample rates, 240 low-note frames, pass together with the pre-existing register, decay, recording and capture checks. Persistent lower fundamentals require measurable independent energy before overriding harmonic history.",
+      "tests": [
+        "__tests__/native/Check.kt"
+      ],
+      "limits": "Android production algorithms with device stubs; Swift parity change is not compiled on Windows."
+    },
+    "fingering_cache": {
+      "before": "The component skipped native preparation after PCM eviction.",
+      "after": "Visible fingering waveforms are retained for cache-miss recovery and readiness is revalidated on tap; the evicted-preview regression plays exactly once.",
+      "tests": [
+        "__tests__/editing.test.tsx"
+      ]
+    },
+    "source_capo": {
+      "before": "Pisennyk returned no capo and unshifted source chords.",
+      "after": "Numeric and spelled Ukrainian capo instructions normalize to sounding chords; paragraph-separated lyrics are retained.",
+      "tests": [
+        "__tests__/song-autofill.test.ts"
+      ],
+      "live_check": "Direct page retrieval returned HTTP 502 during this review; parsing is proved with deterministic numeric, spelled and paragraph fixtures. Public instruction independently checked at https://pisennyk.com.ua/o-torvald/nashi-lyudi-vsyudi."
+    },
+    "bracket_parsing": {
+      "after": "Section labels, inline chords and rendered song brackets stop at a new opening bracket; a 196,000-character malformed input has a bounded child-process regression.",
+      "tests": [
+        "__tests__/chord-layout.test.ts"
+      ]
+    },
+    "recognition_enrichment": {
+      "before": "Ready draft card was disabled and no enrichment-cancel action was available.",
+      "after": "Ready drafts open immediately; optional enrichment can be cancelled while retaining metadata; navigation invalidates and aborts outstanding requests.",
+      "tests": [
+        "__tests__/recognition.test.tsx"
+      ]
+    },
+    "performer_validation": {
+      "before": "Overlong nested performer values blocked saving without a visible error.",
+      "after": "Common fields read nested Formik values/errors/touched through getIn, retaining the existing performer-change behavior and showing the field error.",
+      "tests": [
+        "__tests__/editor-exit.test.tsx"
+      ]
+    },
+    "recording_deletion": {
+      "before": "Both audio files were removed before an injected SQL deletion failure.",
+      "after": "The song deletion and durable cleanup journal commit in one transaction before any file removal. SQL failure preserves files. Cleanup retries surviving files after partial failure or restart, and aborts file removal when the song still exists.",
+      "tests": [
+        "__tests__/release-navigation.test.tsx",
+        "sqlite.integration.cjs"
+      ]
+    },
+    "preferences": {
+      "before": "Two flushes opened two unfinished transactions; absent global experience prevented reading independent song chunks.",
+      "after": "One save is in flight; successful commits drain newer revisions; failed writes retain a visible retryable error. Nested pauses are counted. Song chunks load independently of the global experience row.",
+      "tests": [
+        "__tests__/preferences.test.ts",
+        "sqlite.integration.cjs"
+      ]
+    },
+    "backup_restore": {
+      "before": "Two permitted arrangements restored as one and existing settings were skipped.",
+      "after": "Exports persist stable record identities, including across numbered parts. Restore matches each existing record at most once per part, preserves distinct arrangements and restores backup preferences onto matches in the same transaction. The confirmation explains that matching settings and artwork are replaced.",
+      "tests": [
+        "__tests__/preferences.test.ts",
+        "sqlite.integration.cjs"
+      ]
+    },
+    "backup_limits": {
+      "after": "New normal backups use format version 2 with per-field limits. Legacy version 1 remains readable and exportable for existing oversized data; users receive visible form errors when correcting those fields.",
+      "compatibility": "Older application versions cannot read version 2 backups. Legacy oversized data is intentionally retained rather than truncated or discarded.",
+      "tests": [
+        "__tests__/preferences.test.ts"
+      ]
+    },
+    "duration_ranking": {
+      "after": "Known optional recognition duration disambiguates versions within five seconds while preserving chord and album priority. Unknown duration does not invent a match.",
+      "tests": [
+        "__tests__/song-autofill.test.ts"
+      ]
+    },
+    "remaining_boundaries": [
+      "Physical Android microphone contention, calls, Bluetooth and background interruption checks are still required.",
+      "Native iOS compilation and device checks require macOS/Xcode.",
+      "Shazam remains an unofficial external dependency; current cancellation, timeout and rate-limit handling do not guarantee availability or usage rights.",
+      "Existing versioned migrations and controlled CRUD SQL callers were reviewed; no unsupported migration or SQL-injection claim is marked fixed.",
+      "No dependency downgrade or unverified advisory workaround was applied.",
+      "No APK, AAB or release R8 assembly was produced in this task."
+    ]
+  }
 }

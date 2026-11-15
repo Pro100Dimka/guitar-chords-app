@@ -1,6 +1,7 @@
 import {
   lookupLyrics,
-  matchingIdentity
+  matchingIdentity,
+  preferredSongContent
 } from "../src/components/song-autofill/lyrics";
 
 describe("lyrics-only fallback", () => {
@@ -111,6 +112,59 @@ describe("content provider failover", () => {
       "Esus4",
       "B7sus4"
     ]);
+  });
+
+  it.each([
+    "3 ладу",
+    "третьому ладу (або тональність +3 для оригінального звучання без капо)"
+  ])(
+    "Pisennyk capo instruction preserves sounding pitch and playable shapes: %s",
+    async (instruction) => {
+      const candidate = "https://pisennyk.com.ua/test-artist/test-song";
+      request.mockImplementation(async (url) =>
+        String(url).startsWith("https://pisennyk.com.ua/search")
+          ? new Response(`<a href="${candidate}">${title} ${artist}</a>`)
+          : String(url) === candidate
+            ? new Response(
+                `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: title, byArtist: { "@type": "MusicGroup", name: artist } })}</script><div class="interpretation-content">Каподастр на ${instruction}<br><code data-chord="Gm">Gm</code>Example words</div>`
+              )
+            : response(String(url))
+      );
+      const pending = lookup(title, artist);
+      await jest.advanceTimersByTimeAsync(10000);
+      const options = await pending;
+      const option = options.find((entry) => entry.source === "Пісенник")!;
+      expect(option.capo).toBe(3);
+      const {
+        songChordSequence,
+        transposeSong
+      } = require("../src/screens/song/chords");
+      expect(songChordSequence(option.content)).toEqual(["A#m"]);
+      expect(
+        songChordSequence(transposeSong(option.content, -option.capo!))
+      ).toEqual(["Gm"]);
+    }
+  );
+
+  it("Pisennyk keeps lyric paragraphs after a spelled capo instruction", async () => {
+    const candidate = "https://pisennyk.com.ua/test-artist/test-song";
+    request.mockImplementation(async (url) =>
+      String(url).startsWith("https://pisennyk.com.ua/search")
+        ? new Response(`<a href="${candidate}">${title} ${artist}</a>`)
+        : String(url) === candidate
+          ? new Response(
+              `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: title, byArtist: { "@type": "MusicGroup", name: artist } })}</script><div class="interpretation-content"><p>Каподастр на третьому ладу</p><p><code data-chord="Gm">Gm</code>Example words</p></div>`
+            )
+          : response(String(url))
+    );
+    const pending = lookup(title, artist);
+    await jest.advanceTimersByTimeAsync(10000);
+    expect(
+      (await pending).find((option) => option.source === "Пісенник")
+    ).toMatchObject({
+      capo: 3,
+      content: expect.stringContaining("Example words")
+    });
   });
 
   it.each([true, false])(
@@ -477,4 +531,19 @@ describe("content provider failover", () => {
     await jest.advanceTimersByTimeAsync(0);
     await expect(result).resolves.toEqual([]);
   });
+});
+
+test("known duration separates equally ranked lyric versions", () => {
+  const base = {
+    title: "Track",
+    artist: "Artist",
+    source: "LRCLIB" as const,
+    album: "Studio"
+  };
+  const options = [
+    { ...base, id: 1, duration: 300, content: "Live version" },
+    { ...base, id: 2, duration: 201, content: "Studio version" }
+  ];
+  expect(preferredSongContent(options, "Studio", 200)).toEqual([options[1]]);
+  expect(preferredSongContent(options, "Studio")).toEqual(options);
 });

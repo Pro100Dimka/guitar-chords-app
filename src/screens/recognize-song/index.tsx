@@ -214,7 +214,11 @@ export default function RecognizeSong() {
         readRemoteSongCover(result.cover ?? "", abort.signal).catch(() => "")
       ]);
       if (request !== generation.current) return;
-      const candidates = preferredSongContent(lyrics.options, result.album);
+      const candidates = preferredSongContent(
+        lyrics.options,
+        result.album,
+        result.duration
+      );
       const selected =
         candidates.length > 1
           ? await new Promise<LyricsOption | undefined>((resolve) => {
@@ -394,14 +398,12 @@ export default function RecognizeSong() {
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={t("AddSongEditResult")}
-          disabled={!draft || busy}
-          onPress={() =>
-            draft &&
-            navigation.replace("createSong", {
-              draft,
-              notice: lyricsNotice
-            })
-          }
+          disabled={!draft || stopping}
+          onPress={() => {
+            if (!draft) return;
+            void stop();
+            navigation.replace("createSong", { draft, notice: lyricsNotice });
+          }}
           style={({ pressed }) => [styles.result, pressed && styles.pressed]}
         >
           <Image
@@ -441,6 +443,14 @@ export default function RecognizeSong() {
             <Text style={styles.hint}>{t(lyricsNotice)}</Text>
           )}
         </Pressable>
+      )}
+      {!!found && busy && (
+        <Action
+          label={t("Cancel")}
+          icon="close"
+          disabled={stopping}
+          onPress={() => void stop()}
+        />
       )}
       {!!versions.length && (
         <Sheet

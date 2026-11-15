@@ -412,7 +412,7 @@ function reflowChordPairs(content: string, semitones: number) {
 function chordTokens(line: string) {
   return chordLineParts(
     line.replace(
-      /\[(?:intro|verse|chorus|bridge|outro|solo|interlude|instrumental|приспів|куплет|припев)[^\]]*\]/gi,
+      /\[(?:intro|verse|chorus|bridge|outro|solo|interlude|instrumental|приспів|куплет|припев)[^\[\]]*\]/gi,
       " "
     )
   ).filter(
@@ -428,7 +428,7 @@ export function chordsAboveLyrics(content: string) {
       let lyrics = "";
       let chords = "";
       let previous = 0;
-      for (const match of line.matchAll(/\[([^\]]+)\]/g)) {
+      for (const match of line.matchAll(/\[([^\[\]]+)\]/g)) {
         const chord = normalizeChord(match[1]);
         if (!chordNotationPattern.test(chord)) continue;
         lyrics += line.slice(previous, match.index);
@@ -460,7 +460,7 @@ export function songChordSequence(content: string) {
     .flatMap((line) =>
       isChordLine(line)
         ? chordTokens(line).filter((token) => chordNotationPattern.test(token))
-        : [...line.matchAll(/\[([^\]]+)\]/g)]
+        : [...line.matchAll(/\[([^\[\]]+)\]/g)]
             .map((match) => normalizeChord(match[1]))
             .filter((token) => chordNotationPattern.test(token))
     );

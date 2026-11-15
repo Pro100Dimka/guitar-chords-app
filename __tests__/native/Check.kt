@@ -41,6 +41,19 @@ fun checkAccuracy(module: MicrophoneStreamModule, recordingsDirectory: File) {
         registerCases++
         if (pitches.drop(3).any { it <= 0 || abs(1200 * log2(it / frequency)) > 3 }) failures.add("Register rate=$rate midi=$midi harmonics=$harmonics expected=$frequency pitches=$pitches")
     }
+
+    for (rate in listOf(44100, 48000)) for (low in listOf(73.4162, 82.4069)) {
+        reset.invoke(module)
+        repeat(8) { frame -> track(tone(low * 2, rate, frame, 1.0), rate) }
+        val pitches = (0 until 60).map { frame ->
+            val samples=ShortArray(rate / 15) { i ->
+                val phase=2*PI*low*(frame*(rate/15)+i)/rate
+                ((0.035*sin(phase)+0.35*sin(2*phase)+0.01*sin(3*phase))*0.3*32767).toInt().toShort()
+            }
+            track(samples, rate)
+        }
+        check(pitches.drop(12).all { it > 0 && abs(1200*log2(it/low)) < 3 }) { "Octave lock after high-to-low transition: rate=$rate low=$low last=${pitches.last()}" }
+    }
     println("Full-register matrix: $registerCases combinations, ${registerCases * 10} frames")
     for (rate in listOf(44100, 48000)) {
         for (reference in listOf(400.0, 480.0)) {

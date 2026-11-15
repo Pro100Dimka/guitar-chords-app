@@ -177,7 +177,7 @@
   "ExportLibrary": "Save backup to file",
   "RestoreLibrary": "Open a backup",
   "RestorePreview": "Songs in backup: {{count}}",
-  "RestoreSafeHint": "Only missing songs will be added. Matching title, text, artist and links are skipped. Your current library and existing song settings are preserved.",
+  "RestoreSafeHint": "Missing songs and distinct arrangements will be added. Matching songs receive the settings and artwork from this backup. Save a current backup first if you want to keep your present settings.",
   "RestoreConfirm": "Add to library",
   "RestoreDone": "Library restored",
   "RestoreResult": "Added: {{added}}. Already present: {{skipped}}.",
@@ -657,5 +657,6 @@
   "RhythmNine": "Nine strokes (2 bars)",
   "RecordedGuitar": "FreeTune acoustic recordings",
   "RhythmFour": "Four strokes",
-  "SongMissing": "This song no longer exists. Your draft remains in the editor. Copy it before leaving."
+  "SongMissing": "This song no longer exists. Your draft remains in the editor. Copy it before leaving.",
+  "RecordingCleanupPending": "The song was deleted. Remaining recording files will be cleaned up on the next launch."
 }

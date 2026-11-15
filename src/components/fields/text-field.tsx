@@ -1,3 +1,4 @@
+import { getIn } from "formik";
 import React from "react";
 import { StyleSheet, TextInput, TextInputProps, View } from "react-native";
 import Text from "../styled-text";
@@ -34,12 +35,15 @@ const TextField: React.FC<ITextFieldProps> = ({
   formik,
   name
 }) => {
-  const fieldValue = formik && name ? formik.values[name] : value;
+  const fieldValue = formik && name ? getIn(formik.values, name) : value;
   const handleChange =
-    formik && name ? formik.handleChange(name) : onChangeText;
+    onChangeText ?? (formik && name ? formik.handleChange(name) : undefined);
   const error =
-    formik && name ? formik.touched[name] && !!formik.errors[name] : null;
-  const helperText = formik && name ? error && formik.errors[name] : null;
+    formik && name
+      ? getIn(formik.touched, name) && !!getIn(formik.errors, name)
+      : null;
+  const helperText =
+    formik && name ? error && getIn(formik.errors, name) : null;
   const enabled = editable && !formik?.isSubmitting;
 
   return (
@@ -64,7 +68,9 @@ const TextField: React.FC<ITextFieldProps> = ({
         placeholderTextColor={palette.glass.muted}
         multiline={multiline}
         onFocus={onFocus}
-        onBlur={onBlur}
+        onBlur={
+          onBlur ?? (formik && name ? formik.handleBlur(name) : undefined)
+        }
         textAlignVertical={multiline ? "top" : "center"}
         autoCorrect={false}
         autoCapitalize="none"

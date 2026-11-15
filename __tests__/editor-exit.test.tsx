@@ -235,3 +235,19 @@ test("rendered inputs do not accept new edits while the save transaction is pend
   await act(async () => finish());
   expect(mockNavigation.replace).toHaveBeenCalledWith("Song", { id: "91" });
 });
+
+test("overlong performer shows its field error instead of silently refusing save", async () => {
+  const fields = screen.root.findAllByType(TextInput);
+  const performer = fields.find((x) => x.props.accessibilityLabel === "Band")!;
+  await act(async () => performer.props.onChangeText("x".repeat(1001)));
+  const current = screen.root.findAll(
+    (node) => node.props.formik && node.props.name === "title"
+  )[0].props.formik;
+  await act(async () => {
+    await current.setFieldValue("title", "Example");
+    await current.setFieldValue("content", "Am\nWords");
+  });
+  await act(async () => current.submitForm());
+  expect(JSON.stringify(screen.toJSON())).toContain("FileTooLarge");
+  expect(mockNavigation.replace).not.toHaveBeenCalled();
+});

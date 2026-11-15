@@ -229,7 +229,7 @@ const SongDetail: React.FC = () => {
       const onlyChords = isChordLine(line);
       const parts = onlyChords
         ? chordLineParts(line)
-        : line.split(/(\[[^\]]+\])/);
+        : line.split(/(\[[^\[\]]+\])/);
       return (
         <Text
           key={index}

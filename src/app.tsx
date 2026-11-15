@@ -1,3 +1,4 @@
+import { finishPendingRecordingDeletions } from "./components/library-files";
 import React, { FC, useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -56,6 +57,9 @@ const App: FC = () => {
         await initDatabase();
         await initLanguage();
         await loadPreferences();
+        void finishPendingRecordingDeletions().catch((error) =>
+          console.error("Recording cleanup pending:", error)
+        );
         if (active) setReady(true);
       } catch (error) {
         console.error("Application initialization failed:", error);

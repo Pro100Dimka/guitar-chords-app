@@ -8,6 +8,9 @@ const babel = require("@babel/core");
 const WebSQLDatabase = require("websql/lib/websql/WebSQLDatabase");
 const root = __dirname;
 const alerts=[];
+let deletionResult;
+const recordingFiles = new Map();
+const audio = { stop:async()=>{},stopPlayback(){},list:async(id)=>[...recordingFiles.values()].filter(take=>take.path.includes(`song-${id}-`)),remove:async(path)=>recordingFiles.delete(path) };
 const sqlite = new DatabaseSync(":memory:");
 let failure;
 const adapter = {
@@ -49,9 +52,12 @@ function load(relative) {
     setTimeout, clearTimeout,
     require: (name) => {
       if (["../index", "./database", "@/components/database"].includes(name)) return {db};
-      if (["react-native", "react-native-file-access", "@react-native-documents/picker", "@bam.tech/react-native-image-resizer"].includes(name)) return name === "react-native" ? {Alert:{alert(...args){alerts.push(args);}}} : {};
+      if (["react-native", "react-native-file-access", "@react-native-documents/picker", "@bam.tech/react-native-image-resizer"].includes(name)) return name === "react-native" ? {Alert:{alert(...args){alerts.push(args); if(deletionResult) {
+        if(args[0] === "Error") { deletionResult(false); deletionResult=undefined; }
+        else args[2]?.find(button=>button.style === "destructive")?.onPress?.();
+      }}}} : {};
       if (name.endsWith("locales")) return {t:key=>key};
-      if (name === "./performance-audio") return {performanceAudio:{}};
+      if (name === "./performance-audio") return {performanceAudio:audio};
       if (name.startsWith("@/")) { const target=path.join(root,"src",name.slice(2)); return load(fs.existsSync(target+".ts")?target+".ts":path.join(target,"index.ts")); }
       if (!name.startsWith(".")) return require(name);
       const target = path.resolve(path.dirname(filename), name);
@@ -93,6 +99,45 @@ async function main() {
   await remove({ tableName: "bands", filters: `id = ${insertId}` });
   assert.equal((await read({ tableName: "bands" })).length, 0);
   const preferences = load("src/components/preferences.ts");
+
+  const library=load("src/components/library-files.ts");
+
+  const takeSong=await create({tableName:"songs",data:{title:"Recorded",content:"Am\nWords"}});
+  const takePath=`/private/performances/song-${takeSong.insertId}-1.m4a`;
+  recordingFiles.set(takePath,{path:takePath,date:1,bytes:100});
+  failure="DELETE FROM songs WHERE id = ?";
+  const deleted=await new Promise(resolve=>{deletionResult=resolve;library.requestSongDeletion(takeSong.insertId,()=>{deletionResult=undefined;resolve(true);},()=>{});});
+  failure=undefined;
+  assert.equal(deleted,false);
+  assert.equal(recordingFiles.size,1,"Failed SQL deletion must preserve recordings");
+  assert.equal((await read({tableName:"songs",filters:"id = ?",parameters:[takeSong.insertId]})).length,1);
+  assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE 'recording-delete:%'").get().n,0,"Failed SQL deletion rolls back the cleanup journal");
+  await remove({tableName:"songs",filters:`id = ${takeSong.insertId}`});
+  sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run(`recording-delete:${takeSong.insertId}`,JSON.stringify([takePath]));
+  await library.finishPendingRecordingDeletions();
+  assert.equal(recordingFiles.size,0,"Committed deletion resumes file cleanup after restart");
+  assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE 'recording-delete:%'").get().n,0);
+  const arrangement=(tempo,capo)=>({title:"Two arrangements",content:"Am\nWords",band_name:"",youtube_music:"",youtobe_lesson:"",preferences:{tempo,capo}});
+  const backup=library.parseLibraryBackup(JSON.stringify({format:"freetune-library",version:1,songs:[arrangement(80,0),arrangement(120,2)]}));
+  const imported=await library.restoreLibrary(backup);
+  assert.equal(imported.added,2,"Distinct arrangements in one backup must both restore");
+  const copies=await read({tableName:"songs",filters:"title = ?",parameters:["Two arrangements"]});
+  assert.equal(copies.length,2);
+  const repeated=await library.restoreLibrary(backup);
+  assert.equal(repeated.added,0,"Reimport must not multiply arrangements");
+  assert.deepEqual(Array.from(copies,song=>preferences.usePreferences.getState().songs[song.id].tempo),[80,120]);
+  preferences.usePreferences.getState().updateSong(copies[1].id,{tempo:95});
+  await library.restoreLibrary(backup);
+  assert.equal(preferences.usePreferences.getState().songs[copies[1].id].tempo,120,"Restoration applies backup preferences to existing records");
+
+  const identified = backup.map((song,index)=>({...song,preferences:{...song.preferences,backupId:`test-origin-${index}`}}));
+  await library.restoreLibrary(identified);
+  assert.equal((await library.restoreLibrary([identified[0]])).added,0);
+  assert.equal((await library.restoreLibrary([identified[1]])).added,0);
+  assert.equal((await read({tableName:"songs",filters:"title = ?",parameters:["Two arrangements"]})).length,2,"Numbered parts retain distinct record identities on reimport");
+  for(const row of copies) { await remove({tableName:"songs",filters:`id = ${row.id}`}); preferences.usePreferences.getState().removeSong(row.id); }
+  await preferences.flushPreferences();
+  await new Promise(resolve => db.transaction(()=>{},undefined,resolve));
   const legacy = JSON.stringify({instrument:"chromatic",songs:Object.fromEntries(Array.from({length:144},(_,i)=>[i+1,{cover:"data:image/jpeg;base64,"+"a".repeat(15000),favorite:true,capo:2}]))});
   sqlite.prepare("INSERT OR REPLACE INTO settings (key,value) VALUES (?,?)").run("experience",legacy);
   await assert.rejects(read({tableName:"settings",filters:"key = ?",parameters:["experience"]}), /CursorWindow/);

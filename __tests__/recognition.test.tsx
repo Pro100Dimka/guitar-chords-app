@@ -397,3 +397,68 @@ test.each([
     "AutofillRecognitionError"
   );
 });
+
+test("ready recognition can open immediately and cancels late enrichment", async () => {
+  const lyrics = deferred<Awaited<ReturnType<typeof lookupSongContent>>>();
+  jest.mocked(lookupSongContent).mockReturnValue(lyrics.promise);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (x) =>
+          x.props.accessibilityLabel === "AddSongStart" &&
+          typeof x.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  const card = screen!.root.find(
+    (x) =>
+      x.props.accessibilityLabel === "AddSongEditResult" &&
+      typeof x.props.onPress === "function"
+  );
+  expect(card.props.disabled).toBe(false);
+  await act(async () => card.props.onPress());
+  expect(mockNavigation.replace).toHaveBeenCalledWith(
+    "createSong",
+    expect.objectContaining({
+      draft: expect.objectContaining({ title: "Track" })
+    })
+  );
+  expect(jest.mocked(lookupSongContent).mock.calls.at(-1)![2]!.aborted).toBe(
+    true
+  );
+  await act(async () => lyrics.resolve([]));
+  expect(mockNavigation.replace).toHaveBeenCalledTimes(1);
+});
+
+test("additional enrichment can be cancelled without losing the recognized draft", async () => {
+  const lyrics = deferred<Awaited<ReturnType<typeof lookupSongContent>>>();
+  jest.mocked(lookupSongContent).mockReturnValue(lyrics.promise);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (x) =>
+          x.props.accessibilityLabel === "AddSongStart" &&
+          typeof x.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  const cancel = screen!.root.findAll(
+    (x) => x.props.label === "Cancel" && typeof x.props.onPress === "function"
+  );
+  expect(cancel.length).toBeGreaterThan(0);
+  await act(async () => cancel[0].props.onPress());
+  expect(
+    screen!.root.find(
+      (x) =>
+        x.props.accessibilityLabel === "AddSongEditResult" &&
+        typeof x.props.onPress === "function"
+    ).props.disabled
+  ).toBe(false);
+  await act(async () => lyrics.resolve([]));
+});

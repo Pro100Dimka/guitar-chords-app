@@ -183,7 +183,8 @@ export function parseLibraryBackup(text: string): BackupSong[] {
   if (
     !record(data) ||
     data.format !== "freetune-library" ||
-    data.version !== 1 ||
+    typeof data.version !== "number" ||
+    ![1, 2].includes(data.version) ||
     !Array.isArray(data.songs) ||
     data.songs.length > 2000
   )
@@ -191,9 +192,12 @@ export function parseLibraryBackup(text: string): BackupSong[] {
   return data.songs.map((song: unknown) => {
     if (!record(song)) throw new Error("BackupInvalid");
     const strings: Record<string, string> = {};
-    for (const key of Object.keys(songFieldLimits)) {
+    for (const [key, limit] of Object.entries(songFieldLimits)) {
       const value = song[key];
-      if (typeof value !== "string" || value.length > maxBytes)
+      if (
+        typeof value !== "string" ||
+        value.length > (data.version === 1 ? maxBytes : limit)
+      )
         throw new Error("BackupInvalid");
       strings[key] = value;
     }
@@ -221,10 +225,55 @@ export async function exportLibrary() {
     fields: "songs.*, COALESCE(bands.name, '') AS band_name",
     joins: ["LEFT JOIN bands ON songs.band_id = bands.id"]
   });
-  const preferences = usePreferences.getState().songs;
+  const state = usePreferences.getState();
+  const identities = Object.fromEntries(
+    songs
+      .filter((song) => !state.songs[song.id]?.backupId)
+      .map((song) => [
+        song.id,
+        {
+          ...normalizeSongPreferences(state.songs[song.id]),
+          backupId: `${Date.now().toString(36)}-${song.id}-${Math.random().toString(36).slice(2)}`
+        }
+      ])
+  );
+  const preferences = { ...state.songs, ...identities };
+  if (Object.keys(identities).length) {
+    const resume = suspendPreferenceSaving();
+    let committed = false;
+    try {
+      await new Promise<void>((resolve, reject) =>
+        db.transaction(
+          (tx) => writePreferences(tx, { ...state, songs: preferences }),
+          reject,
+          resolve
+        )
+      );
+      committed = true;
+      usePreferences.setState((current) => ({
+        songs: {
+          ...current.songs,
+          ...Object.fromEntries(
+            Object.entries(identities).map(([id, song]) => [
+              id,
+              { ...current.songs[id], backupId: song.backupId }
+            ])
+          )
+        }
+      }));
+    } finally {
+      resume(committed ? preferences : undefined);
+    }
+  }
   const header = {
     format: "freetune-library",
-    version: 1,
+    version: songs.some((song) =>
+      Object.entries(songFieldLimits).some(
+        ([key, limit]) => String(song[key as keyof typeof song]).length > limit
+      )
+    )
+      ? 1
+      : 2,
     createdAt: new Date().toISOString()
   };
   const overhead = JSON.stringify({ ...header, songs: [] }).length;
@@ -283,6 +332,7 @@ export async function restoreLibrary(songs: BackupSong[]) {
   const addedPreferences: Record<string, SongPreferences> = {};
   let added = 0;
   let committed = false;
+  const matched = new Set<number>();
   try {
     await new Promise<void>((resolve, reject) =>
       db.transaction(
@@ -300,10 +350,26 @@ export async function restoreLibrary(songs: BackupSong[]) {
             const { title, content, band_name, youtube_music, youtobe_lesson } =
               song;
             tx.executeSql(
-              "SELECT songs.id FROM songs LEFT JOIN bands ON bands.id = songs.band_id WHERE title = ? AND content = ? AND COALESCE(bands.name, '') = ? AND COALESCE(youtube_music, '') = ? AND COALESCE(youtobe_lesson, '') = ? LIMIT 1",
+              "SELECT songs.id FROM songs LEFT JOIN bands ON bands.id = songs.band_id WHERE title = ? AND content = ? AND COALESCE(bands.name, '') = ? AND COALESCE(youtube_music, '') = ? AND COALESCE(youtobe_lesson, '') = ? ORDER BY songs.id",
               [title, content, band_name, youtube_music, youtobe_lesson],
               (_, existing) => {
-                if (existing.rows.length) {
+                const candidates = Array.from(
+                  { length: existing.rows.length },
+                  (_, i) => existing.rows.item(i).id as number
+                ).filter((id) => !matched.has(id));
+                const current = usePreferences.getState().songs;
+                const match =
+                  candidates.find(
+                    (id) =>
+                      song.preferences.backupId &&
+                      current[id]?.backupId === song.preferences.backupId
+                  ) ??
+                  candidates.find(
+                    (id) => !song.preferences.backupId || !current[id]?.backupId
+                  );
+                if (match !== undefined) {
+                  matched.add(match);
+                  addedPreferences[match] = song.preferences;
                   insertNext(index + 1);
                   return;
                 }
@@ -319,6 +385,7 @@ export async function restoreLibrary(songs: BackupSong[]) {
                       title.toLowerCase()
                     ],
                     (_tx, result) => {
+                      matched.add(result.insertId);
                       addedPreferences[result.insertId] = song.preferences;
                       added++;
                       insertNext(index + 1);
@@ -360,6 +427,54 @@ export async function restoreLibrary(songs: BackupSong[]) {
   }
 }
 
+let recordingCleanup: Promise<void> | undefined;
+export function finishPendingRecordingDeletions(): Promise<void> {
+  if (recordingCleanup) return recordingCleanup;
+  recordingCleanup = (async () => {
+    const pending = await getAllItems<{ key: string; value: string }>({
+      tableName: "settings",
+      filters: "key LIKE ?",
+      parameters: ["recording-delete:%"]
+    });
+    for (const item of pending) {
+      const match = /^recording-delete:(\d+)$/.exec(item.key);
+      if (!match) continue;
+      const songId = Number(match[1]);
+      const songs = await getAllItems({
+        tableName: "songs",
+        filters: "id = ?",
+        parameters: [songId]
+      });
+      if (!songs.length) {
+        const paths: unknown = JSON.parse(item.value);
+        if (
+          !Array.isArray(paths) ||
+          !paths.every((path) => typeof path === "string")
+        )
+          throw new Error("RecordingDeleteFailed");
+        const remaining = await performanceAudio.list(songId);
+        for (const take of remaining.filter((take) =>
+          paths.includes(take.path)
+        )) {
+          if (take.processing || !(await performanceAudio.remove(take.path)))
+            throw new Error("RecordingDeleteFailed");
+        }
+      }
+      await new Promise<void>((resolve, reject) =>
+        db.transaction(
+          (tx) =>
+            tx.executeSql("DELETE FROM settings WHERE key = ?", [item.key]),
+          reject,
+          resolve
+        )
+      );
+    }
+  })().finally(() => {
+    recordingCleanup = undefined;
+  });
+  return recordingCleanup;
+}
+
 export function requestSongDeletion(
   songId: number,
   onDeleted: () => void,
@@ -369,19 +484,48 @@ export function requestSongDeletion(
   const remove = async (
     takes: Awaited<ReturnType<typeof performanceAudio.list>>
   ) => {
+    const resumeSaving = suspendPreferenceSaving();
     try {
       if (takes.some((take) => take.processing))
         throw new Error("RecordingBusy");
       performanceAudio.stopPlayback();
-      for (const take of takes) {
-        if (!(await performanceAudio.remove(take.path)))
-          throw new Error("RecordingDeleteFailed");
-      }
-      await deleteItem({ tableName: "songs", filters: `id = ${songId}` });
+      if (takes.length)
+        await new Promise<void>((resolve, reject) =>
+          db.transaction(
+            (tx) => {
+              tx.executeSql(
+                "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
+                [
+                  `recording-delete:${songId}`,
+                  JSON.stringify(takes.map((take) => take.path))
+                ]
+              );
+              tx.executeSql(
+                "DELETE FROM songs WHERE id = ?",
+                [songId],
+                (_, result) => {
+                  if (result.rowsAffected !== 1) throw new Error("SongMissing");
+                }
+              );
+              tx.executeSql("DELETE FROM settings WHERE key LIKE ?", [
+                `song:${songId}:%`
+              ]);
+            },
+            reject,
+            resolve
+          )
+        );
+      else await deleteItem({ tableName: "songs", filters: `id = ${songId}` });
       usePreferences.getState().removeSong(songId);
       onDeleted();
+      if (takes.length)
+        await finishPendingRecordingDeletions().catch(() =>
+          Alert.alert(t("RecordingCleanupPending"))
+        );
     } catch {
       fail();
+    } finally {
+      resumeSaving();
     }
   };
   Alert.alert(t("Delete"), t("DeleteSongConfirm"), [

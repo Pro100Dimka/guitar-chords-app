@@ -5,6 +5,7 @@ import { db } from "./database";
 import { getAllItems } from "./database/crud";
 
 export interface SongPreferences {
+  backupId?: string;
   cover?: string;
   sourceTuning?: string;
   contentSource?: { name: string; url: string; credit?: string };
@@ -57,7 +58,8 @@ interface PreferencesStore extends Preferences {
   removeSong: (id: number) => void;
 }
 let pending: ReturnType<typeof setTimeout> | undefined;
-let savingPaused = false;
+let savingPaused = 0;
+let saving: Promise<void> | undefined;
 let revision = 0;
 let savedRevision = 0;
 let savedSongs: Record<string, SongPreferences> = {};
@@ -103,31 +105,45 @@ function scheduleSave() {
 }
 export function suspendPreferenceSaving() {
   flushPreferences();
-  savingPaused = true;
+  savingPaused++;
   return (persistedSongs?: Record<string, SongPreferences>) => {
     if (persistedSongs) savedSongs = { ...savedSongs, ...persistedSongs };
-    savingPaused = false;
+    savingPaused--;
     flushPreferences();
   };
 }
 export function flushPreferences() {
-  if (savingPaused) return;
+  if (savingPaused) return Promise.resolve();
+  if (saving) return saving;
   if (pending !== undefined) clearTimeout(pending);
   pending = undefined;
   const state = usePreferences.getState();
   if (revision === savedRevision && !usePreferences.getState().saveError)
-    return;
+    return Promise.resolve();
   const savingRevision = revision;
+  let finish!: () => void;
+  const result = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  saving = result;
   db.transaction(
     (tx) => writePreferences(tx, state),
-    () => usePreferences.setState({ saveError: true }),
     () => {
+      saving = undefined;
+      usePreferences.setState({ saveError: true });
+      finish();
+    },
+    () => {
+      saving = undefined;
       savedRevision = savingRevision;
       savedSongs = state.songs;
-      if (savingRevision === revision)
+      if (savingRevision === revision) {
         usePreferences.setState({ saveError: false });
+        finish();
+      } else void flushPreferences().then(finish);
     }
   );
+  return result;
 }
 export function writePreferences(tx: SQLTransaction, state: Preferences) {
   const { songs } = state;
@@ -182,6 +198,11 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
         shapes[chord] = index;
     });
   return {
+    backupId:
+      typeof song.backupId === "string" &&
+      /^[a-zA-Z0-9:-]{1,100}$/.test(song.backupId)
+        ? song.backupId
+        : undefined,
     sourceTuning:
       typeof song.sourceTuning === "string"
         ? song.sourceTuning.slice(0, 100)
@@ -246,9 +267,8 @@ export async function loadPreferences() {
     filters: "key = ?",
     parameters: ["experience"]
   });
-  if (!size) return;
   let text = "";
-  for (let offset = 1; offset <= size.length; offset += 65536) {
+  for (let offset = 1; offset <= (size?.length ?? 0); offset += 65536) {
     const [chunk] = await getAllItems<{ value: string }>({
       tableName: "settings",
       fields: `substr(value, ${offset}, 65536) AS value`,
@@ -260,7 +280,7 @@ export async function loadPreferences() {
   }
   let data: unknown;
   try {
-    data = JSON.parse(text);
+    data = text ? JSON.parse(text) : {};
   } catch {
     usePreferences.setState({ saveError: true });
     return;

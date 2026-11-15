@@ -1,3 +1,5 @@
+import { db } from "../src/components/database";
+import { getAllItems } from "../src/components/database/crud";
 jest.mock("react-native-vector-icons/Ionicons", () => "Icon");
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
@@ -10,7 +12,10 @@ import {
 import { GuideArticle } from "../src/screens/guide";
 import { Action } from "../src/screens/song/tools";
 import SongModal from "../src/screens/song/header-modal";
-import { requestSongDeletion } from "../src/components/library-files";
+import {
+  finishPendingRecordingDeletions,
+  requestSongDeletion
+} from "../src/components/library-files";
 import { deleteItem } from "../src/components/database/crud";
 import { performanceAudio } from "../src/components/performance-audio";
 import { usePreferences } from "../src/components/preferences";
@@ -35,6 +40,33 @@ const mockNavigation = { popTo: jest.fn(), setParams: jest.fn() };
 beforeEach(() => {
   jest.clearAllMocks();
   jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const journals = new Map<string, string>();
+  let deleted = false;
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    body({
+      executeSql: (sql, args, done) => {
+        if (sql.startsWith("INSERT"))
+          journals.set(String(args![0]), String(args![1]));
+        if (sql === "DELETE FROM songs WHERE id = ?") deleted = true;
+        if (sql === "DELETE FROM settings WHERE key = ?")
+          journals.delete(String(args![0]));
+        done?.(
+          { executeSql: jest.fn() },
+          { rowsAffected: 1, insertId: 0, rows: { length: 0, item: jest.fn() } }
+        );
+      }
+    });
+    success?.();
+  });
+  jest
+    .mocked(getAllItems)
+    .mockImplementation(async (query) =>
+      query.tableName === "settings"
+        ? [...journals].map(([key, value]) => ({ key, value }))
+        : deleted
+          ? []
+          : [{ id: 7 }]
+    );
   jest.mocked(performanceAudio.list).mockResolvedValue([]);
   jest.mocked(performanceAudio.remove).mockResolvedValue(true);
   jest.mocked(deleteItem).mockResolvedValue(undefined);
@@ -92,11 +124,11 @@ test("recordings remain accessible until the owner explicitly deletes both", asy
   await pressAlert("Delete");
   await pressAlert("DeleteSongAndRecordings");
   expect(performanceAudio.remove).toHaveBeenCalledWith(takes[0].path);
-  expect(deleteItem).toHaveBeenCalledTimes(1);
+  expect(deleteItem).not.toHaveBeenCalled();
   expect(done).toHaveBeenCalledTimes(1);
   expect(usePreferences.getState().songs[7]).toBeUndefined();
 });
-test("recording read or deletion failures preserve the song", async () => {
+test("recording read failures preserve the song and post-commit file failures retain a cleanup journal", async () => {
   jest
     .mocked(performanceAudio.list)
     .mockRejectedValueOnce(new Error("read failed"));
@@ -111,6 +143,7 @@ test("recording read or deletion failures preserve the song", async () => {
   await pressAlert("Delete");
   await pressAlert("DeleteSongAndRecordings");
   expect(deleteItem).not.toHaveBeenCalled();
+  expect(Alert.alert).toHaveBeenLastCalledWith("RecordingCleanupPending");
 });
 test("repeated root returns do not accumulate Tabs or resurrect deleted Song routes", () => {
   const router = StackRouter({ initialRouteName: "Tabs" });
@@ -191,4 +224,88 @@ test("root return also works when opened without a Tabs route", () => {
     options
   )!;
   expect(next.routes.map((x) => x.name)).toEqual(["Tabs"]);
+});
+
+test("a failed database deletion never destroys any recorded take", async () => {
+  const takes = [1, 2].map((i) => ({
+    path: `song-7-${i}.m4a`,
+    bytes: 100,
+    date: i
+  }));
+  jest.mocked(performanceAudio.list).mockResolvedValue(takes);
+  jest
+    .mocked(db.transaction)
+    .mockImplementation((_body, error) =>
+      error?.(Object.assign(new Error("disk failure"), { code: 1 }))
+    );
+  requestSongDeletion(7, jest.fn(), jest.fn());
+  await pressAlert("Delete");
+  await pressAlert("DeleteSongAndRecordings");
+  expect(performanceAudio.remove).not.toHaveBeenCalled();
+});
+
+test("post-commit cleanup retries remaining files without deleting the first take twice", async () => {
+  const files = new Map(
+    [1, 2].map((i) => [
+      `song-7-${i}.m4a`,
+      { path: `song-7-${i}.m4a`, bytes: 100, date: i }
+    ])
+  );
+  let fail = true;
+  jest
+    .mocked(performanceAudio.list)
+    .mockImplementation(async () => [...files.values()]);
+  jest.mocked(performanceAudio.remove).mockImplementation(async (path) => {
+    if (path.endsWith("-2.m4a") && fail) return false;
+    return files.delete(path);
+  });
+  const done = jest.fn();
+  requestSongDeletion(7, done, jest.fn());
+  await pressAlert("Delete");
+  await pressAlert("DeleteSongAndRecordings");
+  expect(done).toHaveBeenCalledTimes(1);
+  expect(files.size).toBe(1);
+  fail = false;
+  await finishPendingRecordingDeletions();
+  expect(files.size).toBe(0);
+  expect(
+    jest
+      .mocked(performanceAudio.remove)
+      .mock.calls.filter(([path]) => path.endsWith("-1.m4a"))
+  ).toHaveLength(1);
+});
+
+test("an aborted deletion journal never removes recordings of a surviving song", async () => {
+  jest
+    .mocked(getAllItems)
+    .mockImplementation(async (query) =>
+      query.tableName === "settings"
+        ? [
+            {
+              key: "recording-delete:7",
+              value: JSON.stringify(["song-7-1.m4a"])
+            }
+          ]
+        : [{ id: 7 }]
+    );
+  await finishPendingRecordingDeletions();
+  expect(performanceAudio.remove).not.toHaveBeenCalled();
+});
+
+test("failure to commit the cleanup journal leaves both song and recordings untouched", async () => {
+  jest
+    .mocked(performanceAudio.list)
+    .mockResolvedValue([{ path: "song-7-1.m4a", bytes: 100, date: 1 }]);
+  jest
+    .mocked(db.transaction)
+    .mockImplementation((_body, error) =>
+      error?.(Object.assign(new Error("disk full"), { code: 1 }))
+    );
+  const done = jest.fn();
+  requestSongDeletion(7, done, jest.fn());
+  await pressAlert("Delete");
+  await pressAlert("DeleteSongAndRecordings");
+  expect(deleteItem).not.toHaveBeenCalled();
+  expect(performanceAudio.remove).not.toHaveBeenCalled();
+  expect(done).not.toHaveBeenCalled();
 });

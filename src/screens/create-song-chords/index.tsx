@@ -316,7 +316,8 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                       <TextField
                         label={t("Band")}
                         placeholder={t("Band")}
-                        value={formik.values.fk_band.name}
+                        formik={formik}
+                        name="fk_band.name"
                         editable={!formik.isSubmitting}
                         onChangeText={(name) =>
                           void formik.setFieldValue("fk_band", {
