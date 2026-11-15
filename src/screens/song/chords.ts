@@ -504,6 +504,8 @@ export function createSongEditorState(content: string) {
   const groups: { start: number; end: number }[] = [];
   for (const line of content.split("\n")) {
     const display = chordsAboveLyrics(line);
+    if (text.length + display.length > 200000)
+      return { text: content, groups: [] };
     const parsed = inlineChordLine(line);
     if (parsed && display.includes("\n"))
       groups.push({
@@ -582,11 +584,17 @@ export function songContentFromEditor(
 export function chordsAboveLyrics(content: string) {
   const result: string[] = [],
     normal: string[] = [];
+  let size = 0;
+  const append = (text: string) => {
+    size += text.length + (result.length ? 1 : 0);
+    result.push(text);
+  };
   const flush = () => {
-    if (normal.length) result.push(reflowChordPairs(normal.join("\n"), 0));
+    if (normal.length) append(reflowChordPairs(normal.join("\n"), 0));
     normal.length = 0;
   };
   for (const line of sectionChordRows(content)) {
+    if (size > 200000) return content;
     const parsed = inlineChordLine(line);
     const chordLine = isChordLine(line);
     if (chordLine || !parsed) {
@@ -595,7 +603,7 @@ export function chordsAboveLyrics(content: string) {
     }
     flush();
     if (hasInternalChord(parsed)) {
-      result.push(anchoredRows(parsed).join("\n"));
+      append(anchoredRows(parsed).join("\n"));
       continue;
     }
     let lyrics = "",
@@ -612,10 +620,10 @@ export function chordsAboveLyrics(content: string) {
       previous = match.index + match[0].length;
     }
     lyrics += line.slice(previous);
-    result.push(lyrics.trim() ? `${chords}\n${lyrics.trimEnd()}` : chords);
+    append(lyrics.trim() ? `${chords}\n${lyrics.trimEnd()}` : chords);
   }
   flush();
-  return result.join("\n");
+  return size > 200000 ? content : result.join("\n");
 }
 
 export function isChordLine(line: string) {
@@ -685,7 +693,12 @@ export function transposeSong(content: string, semitones: number) {
     normal.push(lines[i]);
   }
   flush();
-  return result.join("\n");
+  const transposed = result.join("\n");
+  return semitones === 0 &&
+    content.length <= 200000 &&
+    transposed.length > 200000
+    ? content
+    : transposed;
 }
 
 export function songChords(content: string) {

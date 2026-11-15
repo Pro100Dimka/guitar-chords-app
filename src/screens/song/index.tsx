@@ -7,10 +7,12 @@ import React, {
 } from "react";
 import {
   AppState,
+  FlatList,
   ImageBackground,
   Modal,
   Platform,
   ScrollView,
+  type ScrollViewProps,
   StyleSheet,
   Text,
   View
@@ -76,6 +78,12 @@ const SongDetail: React.FC = () => {
   );
   const updateSong = usePreferences((state) => state.updateSong);
   const scroll = useRef<ScrollView>(null);
+  const list = useRef<FlatList>(null);
+  const scrollTo = useCallback((position: number) => {
+    if (list.current)
+      list.current.scrollToOffset({ offset: position, animated: false });
+    else scroll.current?.scrollTo({ y: position, animated: false });
+  }, []);
   const metrics = useRef({
     position: 0,
     content: 0,
@@ -167,7 +175,7 @@ const SongDetail: React.FC = () => {
             (Math.min(time - previous, 100) / 1000) * preferences.speed
         );
       previous = time;
-      scroll.current?.scrollTo({ y: bounds.position, animated: false });
+      scrollTo(bounds.position);
       if (bounds.position >= end) {
         setPlaying(false);
         savePosition();
@@ -189,7 +197,8 @@ const SongDetail: React.FC = () => {
     isEdit,
     loading,
     preferences.speed,
-    savePosition
+    savePosition,
+    scrollTo
   ]);
   const restorePosition = () => {
     const bounds = metrics.current;
@@ -199,7 +208,7 @@ const SongDetail: React.FC = () => {
         Math.max(0, bounds.content - bounds.viewport)
       );
       bounds.restored = true;
-      scroll.current?.scrollTo({ y: bounds.position, animated: false });
+      scrollTo(bounds.position);
     }
   };
   const startScrolling = () => {
@@ -207,7 +216,7 @@ const SongDetail: React.FC = () => {
     const end = Math.max(0, bounds.content - bounds.viewport);
     if (end > 0 && bounds.position >= end - 1) {
       bounds.position = 0;
-      scroll.current?.scrollTo({ y: 0, animated: false });
+      scrollTo(0);
     }
     setPlaying(true);
   };
@@ -253,13 +262,15 @@ const SongDetail: React.FC = () => {
             }
           ]}
         >
-          {parts.map((part, i) => {
-            const token = onlyChords ? part : part.slice(1, -1);
-            return (onlyChords || /^\[.*\]$/.test(part)) &&
-              chordNotationPattern.test(token)
-              ? renderChord(token, i)
-              : part;
-          })}
+          {parts.length > 256
+            ? line
+            : parts.map((part, i) => {
+                const token = onlyChords ? part : part.slice(1, -1);
+                return (onlyChords || /^\[.*\]$/.test(part)) &&
+                  chordNotationPattern.test(token)
+                  ? renderChord(token, i)
+                  : part;
+              })}
           {line ? "" : " "}
         </Text>
       );
@@ -277,20 +288,29 @@ const SongDetail: React.FC = () => {
       offset += line.length + 1;
       return { line, index, onlyChords };
     });
-    const blocks: React.ReactNode[] = [];
+    const virtualized = rows.length > 200 || display.text.length > 20000;
+    const blocks: (typeof rows)[] = [];
     for (let index = 0; index < rows.length; ) {
       const row = rows[index];
       if (!row.onlyChords) {
-        blocks.push(renderLine(row.line, row.index, false));
+        blocks.push([row]);
         index++;
         continue;
       }
       let end = index + 1;
       while (end < rows.length && rows[end].onlyChords) end++;
       if (rows[end]?.line.trim()) end++;
-      blocks.push(
+      const batch = virtualized ? 4 : end - index;
+      for (let start = index; start < end; start += batch)
+        blocks.push(rows.slice(start, Math.min(start + batch, end)));
+      index = end;
+    }
+    const renderBlock = (block: typeof rows) => {
+      const row = block[0];
+      if (!row.onlyChords) return renderLine(row.line, row.index, false);
+      return (
         <ScrollView
-          key={index}
+          key={row.index}
           horizontal
           nestedScrollEnabled
           directionalLockEnabled
@@ -299,17 +319,18 @@ const SongDetail: React.FC = () => {
           onScrollBeginDrag={() => setPlaying(false)}
         >
           <View>
-            {rows
-              .slice(index, end)
-              .map((item) =>
-                renderLine(item.line, item.index, item.onlyChords, true)
-              )}
+            {block.map((item) =>
+              renderLine(item.line, item.index, item.onlyChords, true)
+            )}
           </View>
         </ScrollView>
       );
-      index = end;
-    }
-    return blocks;
+    };
+    return {
+      blocks,
+      renderBlock,
+      virtualized
+    };
   }, [
     song?.content,
     preferences.transpose,
@@ -317,6 +338,67 @@ const SongDetail: React.FC = () => {
     preferences.fontSize,
     t
   ]);
+  const scrollEvents: Pick<
+    ScrollViewProps,
+    | "onLayout"
+    | "onContentSizeChange"
+    | "scrollEventThrottle"
+    | "onScroll"
+    | "onScrollBeginDrag"
+    | "onScrollEndDrag"
+    | "onMomentumScrollEnd"
+  > = {
+    onLayout: ({ nativeEvent }) => {
+      metrics.current.viewport = nativeEvent.layout.height;
+      restorePosition();
+    },
+    onContentSizeChange: (_, height) => {
+      metrics.current.content = height;
+      restorePosition();
+    },
+    scrollEventThrottle: 32,
+    onScroll: ({ nativeEvent }) => {
+      metrics.current.position = Math.max(0, nativeEvent.contentOffset.y);
+    },
+    onScrollBeginDrag: () => setPlaying(false),
+    onScrollEndDrag: savePosition,
+    onMomentumScrollEnd: savePosition
+  };
+  const metadata = (
+    <>
+      {(preferences.transpose !== 0 || preferences.capo !== 0) && (
+        <Text style={styles.metadata}>
+          {t("Transpose")}: {preferences.transpose > 0 ? "+" : ""}
+          {preferences.transpose} · {t("Capo")}: {preferences.capo}
+        </Text>
+      )}
+      {!!preferences.sourceTuning && (
+        <Text style={styles.metadata}>
+          {t("Tuning")}: {preferences.sourceTuning}
+        </Text>
+      )}
+      {!!song?.band_name && (
+        <Text style={styles.metadata}>{song.band_name}</Text>
+      )}
+    </>
+  );
+  const videoContent = (
+    <>
+      {(song?.youtube_music || song?.youtobe_lesson) && (
+        <Action
+          glass
+          label={t(videos ? "HideVideos" : "ShowVideos")}
+          onPress={() => {
+            setPlaying(false);
+            setVideos(!videos);
+          }}
+        />
+      )}
+      {song && videos && focused && !tuner && !tools && !chord && (
+        <VideoTabs {...song} />
+      )}
+    </>
+  );
   const previewChord = chord || songChords(song?.content ?? "")[0];
   return (
     <ImageBackground
@@ -383,60 +465,37 @@ const SongDetail: React.FC = () => {
         </>
       ) : (
         <>
-          <ScrollView
-            ref={scroll}
-            onLayout={({ nativeEvent }) => {
-              metrics.current.viewport = nativeEvent.layout.height;
-              restorePosition();
-            }}
-            onContentSizeChange={(_, height) => {
-              metrics.current.content = height;
-              restorePosition();
-            }}
-            scrollEventThrottle={32}
-            onScroll={({ nativeEvent }) => {
-              metrics.current.position = Math.max(
-                0,
-                nativeEvent.contentOffset.y
-              );
-            }}
-            onScrollBeginDrag={() => setPlaying(false)}
-            onScrollEndDrag={savePosition}
-            onMomentumScrollEnd={savePosition}
-            contentContainerStyle={styles.scroll}
-          >
-            <View style={styles.paper}>
-              {(preferences.transpose !== 0 || preferences.capo !== 0) && (
-                <Text style={styles.metadata}>
-                  {t("Transpose")}: {preferences.transpose > 0 ? "+" : ""}
-                  {preferences.transpose} · {t("Capo")}: {preferences.capo}
-                </Text>
-              )}
-              {!!preferences.sourceTuning && (
-                <Text style={styles.metadata}>
-                  {t("Tuning")}: {preferences.sourceTuning}
-                </Text>
-              )}
-              {!!song.band_name && (
-                <Text style={styles.metadata}>{song.band_name}</Text>
-              )}
-
-              {content}
-            </View>
-            {(song.youtube_music || song.youtobe_lesson) && (
-              <Action
-                glass
-                label={t(videos ? "HideVideos" : "ShowVideos")}
-                onPress={() => {
-                  setPlaying(false);
-                  setVideos(!videos);
-                }}
-              />
-            )}
-            {videos && focused && !tuner && !tools && !chord && (
-              <VideoTabs {...song} />
-            )}
-          </ScrollView>
+          {content.virtualized ? (
+            <FlatList
+              ref={list}
+              {...scrollEvents}
+              data={content.blocks}
+              keyExtractor={(block) => String(block[0].index)}
+              renderItem={({ item }) => content.renderBlock(item)}
+              initialNumToRender={4}
+              maxToRenderPerBatch={4}
+              windowSize={3}
+              contentContainerStyle={[styles.scroll, styles.virtualScroll]}
+              ListHeaderComponent={
+                <View style={styles.listHeader}>{metadata}</View>
+              }
+              ListFooterComponent={
+                <View style={styles.listFooter}>{videoContent}</View>
+              }
+            />
+          ) : (
+            <ScrollView
+              ref={scroll}
+              {...scrollEvents}
+              contentContainerStyle={styles.scroll}
+            >
+              <View style={styles.paper}>
+                {metadata}
+                {content.blocks.map(content.renderBlock)}
+              </View>
+              {videoContent}
+            </ScrollView>
+          )}
           <View
             style={[
               styles.toolbar,
@@ -529,6 +588,9 @@ const styles = StyleSheet.create({
     borderRadius: 16
   },
   scroll: { padding: 20, gap: 16, paddingBottom: 28 },
+  virtualScroll: { gap: 0 },
+  listHeader: { paddingTop: 12 },
+  listFooter: { paddingTop: 28, gap: 16 },
   paper: {
     borderRadius: 20,
     paddingVertical: 12,

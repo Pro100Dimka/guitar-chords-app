@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 291,
-      "status": "Passed locally: 19 suites, 291 tests. Three added real Editor/Formik/submit-handler regressions reproduce the reported failures before the fix and now pass through save/reopen; four additional cases cover inline lyric identity across transposition and editor round trips."
+      "tests": 315,
+      "status": "Passed locally: 19 suites, 315 tests. Added end-to-end Unicode backup reading/restoration, Settings cloud-copy close/back/timeout cases, malformed UTF-8 and valid boundary cases, cancellation during stat/read, pre-cancellation, restore transaction locking, maximum-size editor saves and bounded large-song rendering."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -761,8 +761,8 @@
     "version_code": 16
   },
   "reviewed_on": "2026-11-15",
-  "review_scope": "Preserve musical order after removing a sole chord from an editor-origin display row, and preserve explicit inline lyric identity through normalization, saving and reopening. Design and native audio code unchanged.",
-  "artifact_scope": "Listed rc16 APKs were built from 4013ec653e2bc7a998c3f93887c83c4534f9d458 and verified before this review. They do not contain the subsequent editor chord-deletion and simple inline-lyric identity fixes. No APK/AAB/IPA built for this review. Physical phone behavior and full native iOS remain unverified. The listed AAB is historical versionCode 7.",
+  "review_scope": "Four backup/large-document fixes: byte-valid UTF-8 imports, cancellable timed library reading, unchanged accepted editor content and document-wide display/render budgets. Native CI push filters now include dependency manifests, patches, wrapper scripts, native module configuration and all iOS files. Normal song styling and audio data unchanged.",
+  "artifact_scope": "Listed rc16 APKs were built from 4013ec653e2bc7a998c3f93887c83c4534f9d458. They do not contain subsequent editor fixes, Unicode backup/cancellation fixes or large-document safeguards. No APK/AAB/IPA built for these source reviews. Physical phone behavior and full native iOS remain unverified. The listed AAB is historical versionCode 7.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
@@ -1332,5 +1332,38 @@
       "Native sources, tuner recall qualification, full iOS integration, branch protection and store preparation are unchanged."
     ],
     "design_changes": false
+  },
+  "backup_large_document_review": {
+    "base_commit": "d4c10b2bfa8fa36c4b4c6bdca1f58e5acc98a531",
+    "baseline": [
+      "Actual export, picker/local-copy reader and parser rejected the exported valid Unicode replacement character with FileEncodingError.",
+      "Actual Settings/Sheet close and Android-style back remained blocked while keepLocalCopy was pending; advancing 60 seconds left operations disabled.",
+      "Actual Editor/Formik save of a renamed accepted 200000-character song returned FileTooLarge instead of issuing UPDATE songs.",
+      "createSongEditorState expanded the supplied 199160-character many-line document to 25515360 characters. A separate component regression confirmed the absence of windowed rendering.",
+      "An added same-size text edit also reproduced zero-shift normalization exceeding the accepted save limit."
+    ],
+    "changes": [
+      "Validate original UTF-8 bytes, including overlong encodings, surrogate encodings and code points beyond U+10FFFF; valid U+FFFD is retained. Existing base64-js supplies bytes; no new dependency.",
+      "Library reading accepts an AbortSignal, bounds post-picker copying/stat/reading to 30 seconds, removes listeners/timers and discards/cleans a late successful local copy. Text-song import passes its existing signal too.",
+      "Settings tracks the active file operation so read cancellation or unmount cannot publish a late preview, alert or stale busy state. Export/restore writes remain non-cancellable; close stays blocked during the actual restore transaction.",
+      "Editor initialization and metadata saving preserve accepted source text. Zero-shift normalization keeps the source if expansion alone would cross the 200000-character save limit.",
+      "Document expansion uses a total 200000-character budget and falls back to compact original notation. Large song views lazily render FlatList blocks; very dense rows avoid thousands of individual nested chord spans. Source/practice chord data is retained.",
+      "Native CI push filters include package manifests/lockfile, patches, native module config, Gradle wrapper scripts and all ios/** files."
+    ],
+    "verification": [
+      "315 Jest tests in 19 suites passed locally.",
+      "TypeScript, full ESLint with zero warnings and actual SQLite integration passed.",
+      "Production Settings/Sheet tests verify close/back/timeout, late-copy cleanup and blocking close during a deferred restore transaction.",
+      "Production Song component cases use a 300-line song and the exact 199160-character dense fixture. Initial rendered Text node count stays below 100, all source rows remain available to the virtualized list, initial batch is four and windowSize is three.",
+      "UTF-8 tests cover ten malformed byte sequences plus valid boundary code points, BOM, line endings, emoji and the legitimate replacement character."
+    ],
+    "limits": [
+      "File picker/cloud/filesystem and database boundaries in component regressions use controlled adapters. Actual SQLite has its separate integration check; no physical cloud-provider timing claim is made.",
+      "The picker copy API itself cannot be aborted by JavaScript. Cancellation releases the waiting UI, rejects stale results and cleans a returned temporary copy; an unresponsive native provider can remain active until its own call finishes.",
+      "Extreme rows with more than 256 parsed parts display compact text without creating an interactive span for each chord. Normal rows retain individual fingering actions; original musical data is unchanged.",
+      "FlatList windowing and text-budget checks are component-level proof, not Android/iPhone memory or frame-rate measurements.",
+      "Native source is unchanged. Expanded CI coverage does not establish a full iOS app/archive build, device audio-route behavior or labeled tuner recall.",
+      "No new APK/AAB/IPA. RC16 is the earlier verified candidate; store forms, branch protection and public URLs remain pending."
+    ]
   }
 }

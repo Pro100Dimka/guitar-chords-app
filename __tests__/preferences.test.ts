@@ -1,10 +1,30 @@
-jest.mock("../src/locales", () => ({ t: String }));
+jest.mock("../src/locales", () => ({ t: String, langs: [], languages: [] }));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({ t: String, i18n: { language: "en" } })
+}));
+jest.mock("react-native-safe-area-context", () => ({
+  SafeAreaView: require("react-native").View,
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
+}));
+jest.mock("../src/components/support", () => ({
+  useSupport: { setState: jest.fn() }
+}));
+import React from "react";
+import Renderer, { act } from "react-test-renderer";
+import { Alert } from "react-native";
+import Settings from "../src/screens/settings";
+import { Action, Sheet } from "../src/screens/song/tools";
 import { db } from "../src/components/database";
 import { getAllItems } from "../src/components/database/crud";
 import { FileSystem } from "react-native-file-access";
-import { saveDocuments } from "@react-native-documents/picker";
+import {
+  saveDocuments,
+  pick,
+  keepLocalCopy
+} from "@react-native-documents/picker";
 import {
   exportLibrary,
+  readLibraryFile,
   parseLibraryBackup,
   restoreLibrary
 } from "../src/components/library-files";
@@ -474,4 +494,454 @@ test("a failed pending preference save remains retryable with the newest values"
   calls[1][2]?.();
   await second;
   expect(usePreferences.getState().saveError).toBe(false);
+});
+
+const fileMetadata = {
+  error: null,
+  type: null,
+  nativeType: null,
+  isVirtual: false,
+  convertibleToMimeTypes: null,
+  hasRequestedType: true
+};
+
+test("exported Unicode backup survives real file reading and restoration", async () => {
+  const content = "[Am]Hello � world 🎵\nПривіт 世界";
+  const files = new Map<string, string>();
+  const inserted: unknown[][] = [];
+  jest.mocked(getAllItems).mockResolvedValue([
+    {
+      id: 1,
+      title: "Unicode",
+      content,
+      band_name: "",
+      youtube_music: "",
+      youtobe_lesson: ""
+    }
+  ]);
+  jest.mocked(FileSystem.writeFile).mockImplementation(async (path, text) => {
+    files.set(path, text);
+  });
+  jest
+    .mocked(FileSystem.stat)
+    .mockResolvedValue({ size: 1000 } as Awaited<
+      ReturnType<typeof FileSystem.stat>
+    >);
+  jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+  jest
+    .mocked(saveDocuments)
+    .mockResolvedValue([
+      {
+        ...fileMetadata,
+        uri: "content://backup.json",
+        name: "backup.json",
+        error: null
+      }
+    ]);
+  await exportLibrary();
+  const text = [...files.values()][0];
+  jest
+    .mocked(pick)
+    .mockResolvedValue([
+      {
+        ...fileMetadata,
+        uri: "content://backup.json",
+        name: "backup.json",
+        size: 1000
+      }
+    ]);
+  jest.mocked(keepLocalCopy).mockResolvedValue([
+    {
+      status: "success",
+      localUri: "file:///backup.json",
+      sourceUri: "content://backup.json"
+    }
+  ]);
+  jest
+    .mocked(FileSystem.readFile)
+    .mockImplementation(async (_path, encoding) =>
+      encoding === "base64"
+        ? require("node:buffer").Buffer.from(text, "utf8").toString("base64")
+        : text
+    );
+  const read = await readLibraryFile("backup");
+  const songs = parseLibraryBackup(read.text);
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    const tx: SQLTransaction = {
+      executeSql: (sql, args, done) => {
+        if (sql.startsWith("INSERT INTO songs")) inserted.push(args ?? []);
+        done?.(tx, {
+          insertId: 10,
+          rowsAffected: 1,
+          rows: { length: 0, item: jest.fn() }
+        });
+      }
+    };
+    body(tx);
+    success?.();
+  });
+  await expect(restoreLibrary(songs)).resolves.toMatchObject({ added: 1 });
+  expect(inserted[0]).toContain(content);
+});
+
+test.each(["close", "back", "timeout"])(
+  "cloud backup reading can end safely through %s",
+  async (exit) => {
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
+    let finish!: (value: Awaited<ReturnType<typeof keepLocalCopy>>) => void;
+    jest
+      .mocked(pick)
+      .mockResolvedValue([
+        {
+          ...fileMetadata,
+          uri: "content://backup.json",
+          name: "backup.json",
+          size: 1000
+        }
+      ]);
+    jest.mocked(keepLocalCopy).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+    jest
+      .mocked(FileSystem.stat)
+      .mockResolvedValue({ size: 1000 } as Awaited<
+        ReturnType<typeof FileSystem.stat>
+      >);
+    jest
+      .mocked(FileSystem.readFile)
+      .mockResolvedValue(
+        JSON.stringify({ format: "freetune-library", version: 2, songs: [] })
+      );
+    let screen!: Renderer.ReactTestRenderer;
+    await act(async () => {
+      screen = Renderer.create(React.createElement(Settings));
+    });
+    try {
+      const open = async () =>
+        act(async () =>
+          screen.root
+            .findAll(
+              (node) =>
+                typeof node.props.onPress === "function" &&
+                node.findAll(
+                  (child) => child.props.children === "LibraryBackup"
+                ).length > 0
+            )[0]
+            .props.onPress()
+        );
+      await open();
+      await act(async () => {
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "RestoreLibrary")!
+          .props.onPress();
+      });
+      if (exit === "timeout") {
+        await act(async () => {
+          await jest.advanceTimersByTimeAsync(60000);
+        });
+        expect(
+          screen.root
+            .findAllByType(Action)
+            .filter((node) =>
+              ["RestoreLibrary", "ExportLibrary"].includes(node.props.label)
+            )
+            .every((node) => !node.props.disabled)
+        ).toBe(true);
+      } else {
+        await act(async () => {
+          if (exit === "back")
+            screen.root
+              .findAll(
+                (node) => typeof node.props.onRequestClose === "function"
+              )[0]
+              .props.onRequestClose();
+          else
+            screen.root
+              .findAllByType(Action)
+              .find((node) => node.props.label === "Close")!
+              .props.onPress();
+        });
+        expect(screen.root.findAllByType(Sheet)).toHaveLength(0);
+        await open();
+      }
+      jest.mocked(db.transaction).mockClear();
+      await act(async () =>
+        finish([
+          {
+            status: "success",
+            sourceUri: "content://backup.json",
+            localUri: "file:///late-backup.json"
+          }
+        ])
+      );
+      expect(db.transaction).not.toHaveBeenCalled();
+      expect(
+        screen.root
+          .findAllByType(Action)
+          .some((node) => node.props.label === "RestoreConfirm")
+      ).toBe(false);
+      expect(FileSystem.unlink).toHaveBeenCalledWith(
+        "file:///late-backup.json"
+      );
+      if (exit !== "timeout") expect(alert).not.toHaveBeenCalled();
+    } finally {
+      await act(async () => screen.unmount());
+      jest.restoreAllMocks();
+    }
+  }
+);
+
+test.each([
+  [0x80],
+  [0xc0, 0xaf],
+  [0xc2],
+  [0xc2, 0x41],
+  [0xe0, 0x80, 0x80],
+  [0xed, 0xa0, 0x80],
+  [0xe2, 0x82],
+  [0xf0, 0x80, 0x80, 0x80],
+  [0xf4, 0x90, 0x80, 0x80],
+  [0xf5, 0x80, 0x80, 0x80]
+])("text import rejects malformed UTF-8 bytes: %j", async (...bytes) => {
+  const data = require("node:buffer").Buffer.from(bytes);
+  jest
+    .mocked(pick)
+    .mockResolvedValue([
+      {
+        ...fileMetadata,
+        uri: "content://bad.txt",
+        name: "bad.txt",
+        size: data.length
+      }
+    ]);
+  jest.mocked(keepLocalCopy).mockResolvedValue([
+    {
+      status: "success",
+      sourceUri: "content://bad.txt",
+      localUri: "file:///bad.txt"
+    }
+  ]);
+  jest
+    .mocked(FileSystem.stat)
+    .mockResolvedValue({ size: data.length } as Awaited<
+      ReturnType<typeof FileSystem.stat>
+    >);
+  jest
+    .mocked(FileSystem.readFile)
+    .mockImplementation(async (_path, encoding) => data.toString(encoding));
+  jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+  await expect(readLibraryFile("song")).rejects.toThrow("FileEncodingError");
+  expect(FileSystem.unlink).toHaveBeenCalledWith("file:///bad.txt");
+});
+
+test("already-cancelled file reading never opens the picker", async () => {
+  const controller = new AbortController();
+  controller.abort();
+  await expect(
+    readLibraryFile("backup", controller.signal)
+  ).rejects.toMatchObject({ code: "cancelled" });
+  expect(pick).not.toHaveBeenCalled();
+});
+
+test.each(["stat", "readFile"] as const)(
+  "backup cancellation interrupts a pending %s and cleans its local copy",
+  async (stage) => {
+    jest
+      .mocked(pick)
+      .mockResolvedValue([
+        {
+          ...fileMetadata,
+          uri: "content://backup.json",
+          name: "backup.json",
+          size: 1000
+        }
+      ]);
+    jest.mocked(keepLocalCopy).mockResolvedValue([
+      {
+        status: "success",
+        localUri: "file:///pending.json",
+        sourceUri: "content://backup.json"
+      }
+    ]);
+    jest
+      .mocked(FileSystem.stat)
+      .mockResolvedValue({ size: 1000 } as Awaited<
+        ReturnType<typeof FileSystem.stat>
+      >);
+    jest.mocked(FileSystem.readFile).mockReturnValue(new Promise(() => {}));
+    if (stage === "stat")
+      jest.mocked(FileSystem.stat).mockReturnValue(new Promise(() => {}));
+    jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+    const controller = new AbortController();
+    const result = readLibraryFile("backup", controller.signal).catch(
+      (error) => error
+    );
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(FileSystem[stage]).toHaveBeenCalled();
+    controller.abort();
+    expect(await result).toMatchObject({ code: "cancelled" });
+    expect(FileSystem.unlink).toHaveBeenCalledWith("file:///pending.json");
+  }
+);
+
+test("valid UTF-8 boundaries, BOM, Unicode and line endings remain readable", async () => {
+  const words =
+    "�" +
+    String.fromCodePoint(
+      0x7f,
+      0x80,
+      0x7ff,
+      0x800,
+      0xd7ff,
+      0xe000,
+      0xffff,
+      0x10000,
+      0x10ffff
+    );
+  const source = "\uFEFF[Am]" + words + "\r\nNext\rLine";
+  const bytes = require("node:buffer").Buffer.from(source, "utf8");
+  jest
+    .mocked(pick)
+    .mockResolvedValue([
+      {
+        ...fileMetadata,
+        uri: "content://valid.txt",
+        name: "valid.txt",
+        size: bytes.length
+      }
+    ]);
+  jest.mocked(keepLocalCopy).mockResolvedValue([
+    {
+      status: "success",
+      localUri: "file:///valid.txt",
+      sourceUri: "content://valid.txt"
+    }
+  ]);
+  jest
+    .mocked(FileSystem.stat)
+    .mockResolvedValue({ size: bytes.length } as Awaited<
+      ReturnType<typeof FileSystem.stat>
+    >);
+  jest
+    .mocked(FileSystem.readFile)
+    .mockImplementation(async (_path, encoding) => bytes.toString(encoding));
+  jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+  await expect(readLibraryFile("song")).resolves.toEqual({
+    name: "valid.txt",
+    text: "[Am]" + words + "\nNext\nLine"
+  });
+});
+
+test("closing the backup sheet stays blocked during the restore transaction", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  jest.spyOn(console, "error").mockImplementation(() => {});
+  const text = JSON.stringify({
+    format: "freetune-library",
+    version: 2,
+    songs: [
+      {
+        title: "Imported",
+        content: "[Am]Words",
+        band_name: "",
+        youtube_music: "",
+        youtobe_lesson: ""
+      }
+    ]
+  });
+  jest
+    .mocked(pick)
+    .mockResolvedValue([
+      {
+        ...fileMetadata,
+        uri: "content://backup.json",
+        name: "backup.json",
+        size: 1000
+      }
+    ]);
+  jest.mocked(keepLocalCopy).mockResolvedValue([
+    {
+      status: "success",
+      localUri: "file:///backup.json",
+      sourceUri: "content://backup.json"
+    }
+  ]);
+  jest
+    .mocked(FileSystem.stat)
+    .mockResolvedValue({ size: 1000 } as Awaited<
+      ReturnType<typeof FileSystem.stat>
+    >);
+  jest
+    .mocked(FileSystem.readFile)
+    .mockImplementation(async (_path, encoding) =>
+      encoding === "base64"
+        ? require("node:buffer").Buffer.from(text).toString("base64")
+        : text
+    );
+  jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+  let screen!: Renderer.ReactTestRenderer;
+  await act(async () => {
+    screen = Renderer.create(React.createElement(Settings));
+  });
+  try {
+    await act(async () =>
+      screen.root
+        .findAll(
+          (node) =>
+            typeof node.props.onPress === "function" &&
+            node.findAll((child) => child.props.children === "LibraryBackup")
+              .length > 0
+        )[0]
+        .props.onPress()
+    );
+    await act(async () => {
+      screen.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "RestoreLibrary")!
+        .props.onPress();
+    });
+    let commit!: () => void;
+    jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+      const tx: SQLTransaction = {
+        executeSql: (_sql, _args, done) =>
+          done?.(tx, {
+            insertId: 1,
+            rowsAffected: 1,
+            rows: { length: 0, item: jest.fn() }
+          })
+      };
+      body(tx);
+      commit = () => success?.();
+    });
+    await act(async () => {
+      screen.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "RestoreConfirm")!
+        .props.onPress();
+    });
+    await act(async () =>
+      screen.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "Close")!
+        .props.onPress()
+    );
+    expect(screen.root.findAllByType(Sheet)).toHaveLength(1);
+    expect(alert).not.toHaveBeenCalled();
+    await act(async () => commit());
+    expect(alert).toHaveBeenCalledWith("RestoreDone", "RestoreResult");
+    await act(async () =>
+      screen.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "Close")!
+        .props.onPress()
+    );
+    expect(screen.root.findAllByType(Sheet)).toHaveLength(0);
+  } finally {
+    await act(async () => screen.unmount());
+    jest.restoreAllMocks();
+  }
 });

@@ -6,17 +6,21 @@ on:
   push:
     branches: [main, feature/song-autofill]
     paths:
+      - package.json
+      - package-lock.json
+      - react-native.config.*
+      - patches/**
       - android/song-fingerprint/**
       - android/app/src/main/**
       - android/*.gradle
       - android/gradle/**
+      - android/gradlew*
       - android/gradle.properties
       - android/app/*.gradle
       - android/app/proguard-rules.pro
       - __tests__/native/**
       - test-native.ps1
-      - ios/PerformanceAudio.swift
-      - ios/MicrophoneStreamModule.swift
+      - ios/**
       - test-ios-pitch.py
       - test-ios-capture.py
       - test-ios-recordings.py

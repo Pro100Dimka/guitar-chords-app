@@ -13,7 +13,7 @@ import {
 import Text from "../components/styled-text";
 import LinearGradient from "react-native-linear-gradient";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { changeLanguage, langs, languages } from "../locales";
 import { Action, Sheet } from "./song/tools";
@@ -31,15 +31,29 @@ const Settings: React.FC = () => {
   const { height } = useWindowDimensions();
   const [backup, setBackup] = useState(false);
   const [busy, setBusy] = useState(false);
+  const operation = useRef<{ controller?: AbortController } | null>(null);
+  useEffect(
+    () => () => {
+      operation.current?.controller?.abort();
+      operation.current = null;
+    },
+    []
+  );
   const [pending, setPending] = useState<ReturnType<
     typeof parseLibraryBackup
   > | null>(null);
-  const fileAction = async (action: () => Promise<void>) => {
+  const fileAction = async (
+    action: (signal?: AbortSignal) => Promise<void>,
+    cancelable = false
+  ) => {
+    if (operation.current) return;
+    const task = { controller: cancelable ? new AbortController() : undefined };
+    operation.current = task;
     setBusy(true);
     try {
-      await action();
+      await action(task.controller?.signal);
     } catch (error) {
-      if (!fileCanceled(error))
+      if (operation.current === task && !fileCanceled(error))
         Alert.alert(
           t("LibraryFileError"),
           t(
@@ -55,7 +69,10 @@ const Settings: React.FC = () => {
           )
         );
     } finally {
-      setBusy(false);
+      if (operation.current === task) {
+        operation.current = null;
+        setBusy(false);
+      }
     }
   };
   const [privacy, setPrivacy] = useState(false);
@@ -300,10 +317,12 @@ const Settings: React.FC = () => {
           musical
           title={t("LibraryBackup")}
           onClose={() => {
-            if (!busy) {
-              setBackup(false);
-              setPending(null);
-            }
+            if (busy && !operation.current?.controller) return;
+            operation.current?.controller?.abort();
+            operation.current = null;
+            setBusy(false);
+            setBackup(false);
+            setPending(null);
           }}
         >
           <Image
@@ -360,10 +379,11 @@ const Settings: React.FC = () => {
                 label={t("RestoreLibrary")}
                 disabled={busy}
                 onPress={() =>
-                  void fileAction(async () => {
-                    const file = await readLibraryFile("backup");
-                    setPending(parseLibraryBackup(file.text));
-                  })
+                  void fileAction(async (signal) => {
+                    const file = await readLibraryFile("backup", signal);
+                    if (!signal?.aborted)
+                      setPending(parseLibraryBackup(file.text));
+                  }, true)
                 }
               />
             </>

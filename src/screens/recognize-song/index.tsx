@@ -174,7 +174,7 @@ export default function RecognizeSong() {
     );
     try {
       if (mode === "text") {
-        const file = await readLibraryFile("song");
+        const file = await readLibraryFile("song", abort.signal);
         const imported = importedSong(file.text, file.name);
         if (request === generation.current)
           navigation.replace("createSong", {

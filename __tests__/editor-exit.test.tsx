@@ -2,7 +2,7 @@ import * as libraryFiles from "../src/components/library-files";
 import type { SQLTransaction } from "react-native-sqlite-2";
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert, TextInput, ScrollView } from "react-native";
+import { Alert, TextInput, ScrollView, FlatList, Text } from "react-native";
 import { Formik, FormikProps } from "formik";
 import Editor, { FormValues } from "../src/screens/create-song-chords";
 import initialValues from "../src/screens/create-song-chords/formik/initial-values";
@@ -697,3 +697,88 @@ test.each([
     }
   }
 );
+
+test("renaming a restored maximum-size song preserves its accepted text", async () => {
+  const content = "C D\nHello\n".repeat(20000);
+  const [restored] = libraryFiles.parseLibraryBackup(
+    JSON.stringify({
+      format: "freetune-library",
+      version: 2,
+      songs: [
+        {
+          title: "Original",
+          content,
+          band_name: "",
+          youtube_music: "",
+          youtobe_lesson: ""
+        }
+      ]
+    })
+  );
+  const saved: unknown[][] = [];
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    const tx: SQLTransaction = {
+      executeSql: (sql, args, done) => {
+        if (sql.startsWith("UPDATE songs")) saved.push(args ?? []);
+        done?.(tx, {
+          insertId: 22,
+          rowsAffected: 1,
+          rows: { length: 0, item: jest.fn() }
+        });
+      }
+    };
+    body(tx);
+    success?.();
+  });
+  await act(async () => screen.unmount());
+  await act(async () => {
+    screen = Renderer.create(
+      <Editor song={{ ...restored, id: 22 }} setIsEdit={() => {}} />
+    );
+  });
+  const form = () =>
+    screen.root.findAll(
+      (node) => node.props.formik && node.props.name === "title"
+    )[0].props.formik;
+  await act(async () => form().setFieldValue("title", "Renamed"));
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "SaveSong")!
+      .props.onPress()
+  );
+  expect(form().errors).toEqual({});
+  expect(saved).toHaveLength(1);
+  expect(saved[0].slice(0, 2)).toEqual(["Renamed", content]);
+});
+
+test.each([
+  "[Am]Words\n".repeat(300),
+  ("x".repeat(750) + "[C]".repeat(260) + "y\n").repeat(130)
+])("large song documents render through a windowed list", async (content) => {
+  jest.useFakeTimers();
+  try {
+    await act(async () => screen.unmount());
+    jest
+      .mocked(getAllItems)
+      .mockResolvedValue([{ id: 22, title: "Large song", content }]);
+    mockParams = { id: "22" };
+    await act(async () => {
+      screen = Renderer.create(<Song />);
+    });
+    expect(screen.root.findAllByType(FlatList)).toHaveLength(1);
+    expect(screen.root.findAllByType(Text).length).toBeLessThan(100);
+    const list = screen.root.findByType(FlatList);
+    expect(list.props.initialNumToRender).toBe(4);
+    expect(list.props.windowSize).toBe(3);
+    const rows = list.props.data
+      .flat()
+      .map((row: { line: string }) => row.line);
+    if (content.startsWith("x")) expect(rows.join("\n")).toBe(content);
+    else expect(rows).toHaveLength(601);
+  } finally {
+    await act(async () => screen.unmount());
+    jest.clearAllTimers();
+    jest.useRealTimers();
+  }
+});

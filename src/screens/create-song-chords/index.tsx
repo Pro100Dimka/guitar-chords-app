@@ -1,9 +1,4 @@
-import {
-  chordsAboveLyrics,
-  transposeSong,
-  songContentFromEditor,
-  createSongEditorState
-} from "../song/chords";
+import { songContentFromEditor, createSongEditorState } from "../song/chords";
 // src/screens/create-song-chords/index.tsx
 import {
   useFocusEffect,
@@ -157,7 +152,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           setInitialValuesState({
             ...initialValues,
             ...songProps,
-            content: transposeSong(songProps.content ?? "", 0),
+            content: songProps.content ?? "",
             youtube_music: songProps.youtube_music ?? "",
             youtobe_lesson: songProps.youtobe_lesson ?? "",
             tempo: usePreferences.getState().songs[song.id]?.tempo,
@@ -178,12 +173,12 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
               ? {
                   ...initialValues,
                   title: t("ExampleTitle"),
-                  content: transposeSong(t("ExampleLyrics"), 0)
+                  content: t("ExampleLyrics")
                 }
               : {
                   ...initialValues,
                   ...route.params?.draft,
-                  content: transposeSong(route.params?.draft?.content ?? "", 0)
+                  content: route.params?.draft?.content ?? ""
                 }
           );
         }
@@ -207,7 +202,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
       try {
         await onSubmit(
           actions,
-          { ...values, content: transposeSong(values.content, 0) },
+          values,
           { replace: (...args) => finish(() => navigation.replace(...args)) },
           () => finish(() => setIsEdit?.(false))
         );
@@ -458,7 +453,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         !formik.values.content && styles.lyricsPlaceholder
                       ]}
                     >
-                      {chordsAboveLyrics(formik.values.content) ||
+                      {createSongEditorState(formik.values.content).text ||
                         t("PasteSongHint")}
                     </Text>
                   </Pressable>

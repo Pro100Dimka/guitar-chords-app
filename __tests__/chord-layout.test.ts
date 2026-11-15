@@ -2,7 +2,8 @@ import {
   chordsAboveLyrics,
   transposeChord,
   transposeSong,
-  songContentFromEditor
+  songContentFromEditor,
+  createSongEditorState
 } from "../src/screens/song/chords";
 import { importedSong } from "../src/components/library-files";
 
@@ -136,4 +137,22 @@ test("extremely dense internal anchors keep the presentation bounded", () => {
   const canonical = transposeSong(source, 0);
   expect(canonical).toBe(source);
   expect(chordsAboveLyrics(canonical).length).toBeLessThanOrEqual(200000);
+});
+
+test("many dense lines share a document-wide display budget", () => {
+  const source = ("x".repeat(750) + "[C]".repeat(260) + "y\n").repeat(130);
+  expect(source.length).toBeLessThanOrEqual(200000);
+  const state = createSongEditorState(source);
+  expect(chordsAboveLyrics(source).length).toBeLessThanOrEqual(200000);
+  expect(state.text.length).toBeLessThanOrEqual(200000);
+  expect(songContentFromEditor(source, state.text, state)).toBe(source);
+});
+
+test("editing accepted maximum-size text does not expand it past the save limit", () => {
+  const source = "C D\nHello\n".repeat(20000);
+  const state = createSongEditorState(source);
+  const edited = state.text.replace("Hello", "World");
+  const saved = songContentFromEditor(source, edited, state);
+  expect(saved.length).toBe(edited.length);
+  expect(saved === edited).toBe(true);
 });

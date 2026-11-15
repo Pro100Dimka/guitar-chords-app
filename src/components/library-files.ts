@@ -14,6 +14,7 @@ import {
 } from "@react-native-documents/picker";
 import { Dirs, FileSystem } from "react-native-file-access";
 import ImageResizer from "@bam.tech/react-native-image-resizer";
+import { toByteArray } from "base64-js";
 import { db } from "./database";
 import { getAllItems } from "./database/crud";
 import {
@@ -99,33 +100,109 @@ export async function readRemoteSongCover(url: string, signal: AbortSignal) {
   }
 }
 
-export async function readLibraryFile(kind: "song" | "backup") {
-  const [file] = await pick({ allowMultiSelection: false });
-  const extension = file.name?.split(".").pop()?.toLowerCase() ?? "";
-  if (
-    !(
-      kind === "backup" ? ["json"] : ["txt", "pro", "cho", "chordpro"]
-    ).includes(extension)
-  )
-    throw new Error("FileFormatError");
-  if (file.size !== null && file.size > maxBytes)
-    throw new Error("FileTooLarge");
-  const [copy] = await keepLocalCopy({
-    destination: "cachesDirectory",
-    files: [{ uri: file.uri, fileName: `freetune-import-${Date.now()}.txt` }]
+export async function readLibraryFile(
+  kind: "song" | "backup",
+  signal?: AbortSignal
+) {
+  let stopped: Error | undefined;
+  let reject!: (error: Error) => void;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let localUri: string | undefined;
+  const interrupted = new Promise<never>((_resolve, fail) => {
+    reject = fail;
   });
-  if (copy.status !== "success") throw new Error("FileReadError");
+  const stop = (error: Error) => {
+    stopped = error;
+    reject(error);
+  };
+  const abort = () =>
+    stop(
+      Object.assign(new Error("Cancelled"), {
+        code: errorCodes.OPERATION_CANCELED
+      })
+    );
+  const wait = <T>(promise: Promise<T>) => Promise.race([promise, interrupted]);
+  signal?.addEventListener("abort", abort, { once: true });
   try {
-    const stat = await FileSystem.stat(copy.localUri);
+    if (signal?.aborted) {
+      abort();
+      await interrupted;
+    }
+    const [file] = await wait(pick({ allowMultiSelection: false }));
+    timer = setTimeout(() => stop(new Error("FileReadError")), 30000);
+    const extension = file.name?.split(".").pop()?.toLowerCase() ?? "";
+    if (
+      !(
+        kind === "backup" ? ["json"] : ["txt", "pro", "cho", "chordpro"]
+      ).includes(extension)
+    )
+      throw new Error("FileFormatError");
+    if (file.size !== null && file.size > maxBytes)
+      throw new Error("FileTooLarge");
+    const [copy] = await wait(
+      keepLocalCopy({
+        destination: "cachesDirectory",
+        files: [
+          {
+            uri: file.uri,
+            fileName: `freetune-import-${Date.now()}-${Math.random().toString(36).slice(2)}.txt`
+          }
+        ]
+      }).then((copies) => {
+        if (stopped)
+          for (const copy of copies)
+            if (copy.status === "success")
+              void FileSystem.unlink(copy.localUri).catch(() => undefined);
+        return copies;
+      })
+    );
+    if (copy.status !== "success") throw new Error("FileReadError");
+    localUri = copy.localUri;
+    const stat = await wait(FileSystem.stat(localUri));
     if (stat.size > maxBytes) throw new Error("FileTooLarge");
-    const text = (await FileSystem.readFile(copy.localUri, "utf8"))
+    const bytes = toByteArray(
+      await wait(FileSystem.readFile(localUri, "base64"))
+    );
+    if (bytes.length > maxBytes) throw new Error("FileTooLarge");
+    for (let i = 0; i < bytes.length; ) {
+      const lead = bytes[i++];
+      if (lead < 0x80) continue;
+      const count =
+        lead >= 0xc2 && lead <= 0xdf
+          ? 1
+          : lead >= 0xe0 && lead <= 0xef
+            ? 2
+            : lead >= 0xf0 && lead <= 0xf4
+              ? 3
+              : 0;
+      if (!count || i + count > bytes.length)
+        throw new Error("FileEncodingError");
+      for (let offset = 0; offset < count; offset++) {
+        const byte = bytes[i++];
+        const min =
+          offset === 0 && lead === 0xe0
+            ? 0xa0
+            : offset === 0 && lead === 0xf0
+              ? 0x90
+              : 0x80;
+        const max =
+          offset === 0 && lead === 0xed
+            ? 0x9f
+            : offset === 0 && lead === 0xf4
+              ? 0x8f
+              : 0xbf;
+        if (byte < min || byte > max) throw new Error("FileEncodingError");
+      }
+    }
+    const text = (await wait(FileSystem.readFile(localUri, "utf8")))
       .replace(/^\uFEFF/, "")
       .replace(/\r\n?/g, "\n");
-    if (text.includes("\0") || text.includes("\uFFFD"))
-      throw new Error("FileEncodingError");
+    if (text.includes("\0")) throw new Error("FileEncodingError");
     return { text, name: file.name ?? "" };
   } finally {
-    await FileSystem.unlink(copy.localUri).catch(() => undefined);
+    if (timer !== undefined) clearTimeout(timer);
+    signal?.removeEventListener("abort", abort);
+    if (localUri) await FileSystem.unlink(localUri).catch(() => undefined);
   }
 }
 
