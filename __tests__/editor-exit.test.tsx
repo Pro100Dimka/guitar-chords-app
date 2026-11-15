@@ -623,3 +623,77 @@ test.each([
     expect(saved).toEqual([content + "!"]);
   }
 );
+
+test.each([
+  { source: "[Am]a[C]b[F]c[G]d", remove: "C", expected: "[Am]ab[F]c[G]d" },
+  { source: "[Am]a[C]b[F]c[G]d", remove: "F", expected: "[Am]a[C]bc[G]d" },
+  { source: "[C]Am\nNext line", remove: "", expected: "[C]Am\nNext line!" }
+])(
+  "real editor save/reopen preserves chord deletion and lyric identity: $remove $source",
+  async ({ source, remove, expected }) => {
+    const saved: string[] = [];
+    jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+      const tx: SQLTransaction = {
+        executeSql: (sql, args, done) => {
+          if (sql.startsWith("UPDATE songs")) saved.push(String(args![1]));
+          done?.(tx, {
+            rowsAffected: 1,
+            insertId: 22,
+            rows: { length: 0, item: jest.fn() }
+          });
+        }
+      };
+      body(tx);
+      success?.();
+    });
+    for (let cycle = 0; cycle < 2; cycle++) {
+      await act(async () => screen.unmount());
+      await act(async () => {
+        screen = Renderer.create(
+          <Editor
+            song={{
+              id: 22,
+              title: "Round trip",
+              content: saved.at(-1) ?? source
+            }}
+            setIsEdit={() => {}}
+          />
+        );
+      });
+      await act(async () =>
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "EditLyrics")!
+          .props.onPress()
+      );
+      const input = screen.root
+        .findAllByType(TextInput)
+        .find((node) => node.props.accessibilityLabel === "ChordsLyrics")!;
+      const draft = input.props.value;
+      if (cycle === 0) {
+        if (remove) expect(draft).toBe("Am G\n C\n  F\nabcd");
+        await act(async () =>
+          input.props.onChangeText(
+            remove ? draft.replace(remove, "") : draft + "!"
+          )
+        );
+      }
+      await act(async () =>
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "CollapseEditor")!
+          .props.onPress()
+      );
+      const form = screen.root.findAll(
+        (node) => node.props.formik && node.props.name === "title"
+      )[0].props.formik;
+      await act(async () => form.submitForm());
+      expect(saved).toHaveLength(cycle + 1);
+      expect(saved[cycle]).toBe(expected);
+      const { songChordSequence } = require("../src/screens/song/chords");
+      expect(songChordSequence(saved[cycle])).toEqual(
+        songChordSequence(expected)
+      );
+    }
+  }
+);

@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 284,
-      "status": "Passed locally: 19 suites, 284 tests. New tests cover editor-origin lyrics matching chord names, cleared lyrics, lowest-pitch bass strokes and shared horizontal lyric/chord layout at font sizes 16 and 32."
+      "tests": 291,
+      "status": "Passed locally: 19 suites, 291 tests. Three added real Editor/Formik/submit-handler regressions reproduce the reported failures before the fix and now pass through save/reopen; four additional cases cover inline lyric identity across transposition and editor round trips."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -744,7 +744,7 @@
       "sha256": "86f39b38ed987a67c026dc8340b81dfdeaf36b08e55fb36b7486cc7fa90b9892",
       "version_code": 16,
       "source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
-      "contains_current_fixes": true,
+      "contains_current_fixes": false,
       "certificate_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
       "hermes_sha256": "075aa97bbbc385b76a04fb3a408f3fddae95e5846801a82e60f30736889ce839"
     },
@@ -754,15 +754,15 @@
       "sha256": "58d85bfe9d6c24b97bd14875a713ce2f600cfa0d370520b67b491db3ddc9ca73",
       "version_code": 16,
       "source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
-      "contains_current_fixes": true,
+      "contains_current_fixes": false,
       "certificate_sha256": "fac61745dc0903786fb9ede62a962b399f7348f0bb6f899b8332667591033b9c",
       "hermes_sha256": "075aa97bbbc385b76a04fb3a408f3fddae95e5846801a82e60f30736889ce839"
     },
     "version_code": 16
   },
   "reviewed_on": "2026-11-15",
-  "review_scope": "Latest source fixes preserve editor-origin lyrics, select bass by minimum sounding pitch, and keep chord/lyric rows in one horizontal viewport. VersionCode 16 signed release APKs assembled and checked; typography/colors unchanged.",
-  "artifact_scope": "Current rc16 APKs contain implementation changes through source commit 4013ec653e2bc7a998c3f93887c83c4534f9d458. R8 assembly, signing, exact embedded Hermes/audio resources and alignment verified. Prior rc15 packages are historical. Physical phone behavior and full native iOS remain unverified. The listed AAB is historical versionCode 7.",
+  "review_scope": "Preserve musical order after removing a sole chord from an editor-origin display row, and preserve explicit inline lyric identity through normalization, saving and reopening. Design and native audio code unchanged.",
+  "artifact_scope": "Listed rc16 APKs were built from 4013ec653e2bc7a998c3f93887c83c4534f9d458 and verified before this review. They do not contain the subsequent editor chord-deletion and simple inline-lyric identity fixes. No APK/AAB/IPA built for this review. Physical phone behavior and full native iOS remain unverified. The listed AAB is historical versionCode 7.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
     "developer_account": "Owner has started account verification; its current Console status is not inspected in this review.",
@@ -1306,5 +1306,31 @@
       "Existing unchanged fingerprint JNI libraries reused locally; current native CI separately compiled JNI and Kotlin.",
       "No new AAB or IPA."
     ]
+  },
+  "editor_deletion_inline_identity_review": {
+    "base_commit": "81102c71c6658e0e969f7f6f468dc31c648075dd",
+    "audited_source_commit": "4013ec653e2bc7a998c3f93887c83c4534f9d458",
+    "baseline": [
+      "Real Editor/Formik/UPDATE songs regressions failed before the implementation change for removal of C, removal of F, and editing only the following line of [C]Am.",
+      "A whitespace-only editor-origin chord row invalidated the whole coordinate group; remaining chords were parsed in display-row order.",
+      "transposeSong(source, 0) expanded ordinary explicit inline lyrics before editor provenance existed, making the literal lyric Am a bare chord row."
+    ],
+    "changes": [
+      "Within known editor-origin groups, blank chord rows provide zero anchors; non-chord text still rejects folding. Other rows retain their columns and musical order.",
+      "Explicit inline lines remain anchored during transposition and normalization. Ordinary manually entered chord rows keep their existing interpretation.",
+      "Every explicit inline line expanded to chord/lyric display rows gets provenance, including a single chord row."
+    ],
+    "verification": [
+      "291 tests in 19 Jest suites passed locally.",
+      "Three actual editor regressions check full open, edit, collapse, SQL save and reopen/save cycles, including exact stored content and musical order.",
+      "Four additional inline cases check chord-like lyrics, single internal anchors, trailing anchors and multiple chord-like words at -2, 0 and +2 semitones.",
+      "TypeScript, full ESLint with zero warnings and actual SQLite integration passed."
+    ],
+    "limits": [
+      "Editor regressions use actual Editor, Formik and production submit handler with database/navigation/native test adapters; they are not physical phone runs.",
+      "No APK/AAB/IPA assembled for these fixes. Existing rc16 APKs remain the previously verified source snapshot.",
+      "Native sources, tuner recall qualification, full iOS integration, branch protection and store preparation are unchanged."
+    ],
+    "design_changes": false
   }
 }

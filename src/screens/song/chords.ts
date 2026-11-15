@@ -505,7 +505,7 @@ export function createSongEditorState(content: string) {
   for (const line of content.split("\n")) {
     const display = chordsAboveLyrics(line);
     const parsed = inlineChordLine(line);
-    if (parsed && hasInternalChord(parsed) && display.split("\n").length > 2)
+    if (parsed && display.includes("\n"))
       groups.push({
         start: text.length,
         end: text.length + display.lastIndexOf("\n") + 1
@@ -555,7 +555,7 @@ export function songContentFromEditor(
     if ((start > 0 && edited[start - 1] !== "\n") || edited[end - 1] !== "\n")
       continue;
     const rows = edited.slice(start, end).split("\n").slice(0, -1);
-    const tokens = rows.map(chordRowAnchors);
+    const tokens = rows.map((row) => (row.trim() ? chordRowAnchors(row) : []));
     if (tokens.some((row) => !row)) continue;
     const newline = edited.indexOf("\n", end);
     const lyricEnd = newline < 0 ? edited.length : newline;
@@ -650,9 +650,14 @@ export function transposeSong(content: string, semitones: number) {
     }
   };
   for (let i = 0; i < lines.length; i++) {
-    let parsed = inlineChordLine(lines[i]);
+    const parsed = inlineChordLine(lines[i]);
+    if (parsed) {
+      flush();
+      result.push(anchoredContent(parsed, semitones));
+      continue;
+    }
     const tokens = chordRowAnchors(lines[i]);
-    if (!parsed && tokens) {
+    if (tokens) {
       let end = i + 1;
       while (end < lines.length && chordRowAnchors(lines[end])) end++;
       if (end > i + 1) {
@@ -662,25 +667,22 @@ export function transposeSong(content: string, semitones: number) {
       }
       const lyrics = lines[i + 1];
       if (lyrics?.trim() && !isChordLine(lyrics) && !inlineChordLine(lyrics)) {
-        parsed = {
+        const pair = {
           lyrics,
           anchors: tokens.map((match) => ({
             chord: normalizeChord(match[0]),
             column: match.index
           }))
         };
-        if (hasInternalChord(parsed)) {
+        if (hasInternalChord(pair)) {
           flush();
-          result.push(anchoredContent(parsed, semitones));
+          result.push(anchoredContent(pair, semitones));
           i++;
           continue;
         }
       }
     }
-    if (parsed && hasInternalChord(parsed)) {
-      flush();
-      result.push(anchoredContent(parsed, semitones));
-    } else normal.push(lines[i]);
+    normal.push(lines[i]);
   }
   flush();
   return result.join("\n");

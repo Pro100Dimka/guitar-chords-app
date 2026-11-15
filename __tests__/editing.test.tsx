@@ -1449,3 +1449,36 @@ test("known editor chord rows retain musical order when their lyric is cleared",
   );
   expect(songChordSequence(result)).toEqual(["C", "Am", "Dm"]);
 });
+
+test.each(["[C]Am", "A[C]m", "[C]Am[Dm]", "[C]Am [G]Dm"])(
+  "all explicit inline lyrics retain their identity across transpose and editor round trips: %s",
+  (source) => {
+    const {
+      createSongEditorState,
+      songContentFromEditor,
+      songChordSequence,
+      transposeSong,
+      transposeChord
+    } = require("../src/screens/song/chords");
+    for (const shift of [-2, 0, 2]) {
+      const content = transposeSong(source, shift);
+      expect(content.replace(/\[[^\]]+\]/g, "")).toBe(
+        source.replace(/\[[^\]]+\]/g, "")
+      );
+      const expected = songChordSequence(source).map((chord: string) =>
+        transposeChord(chord, shift)
+      );
+      expect(songChordSequence(content)).toEqual(expected);
+      const state = createSongEditorState(content);
+      expect(state.groups).toHaveLength(1);
+      const saved = songContentFromEditor(
+        content,
+        state.text + "\nWords!",
+        state
+      );
+      expect(saved).toBe(content + "\nWords!");
+      expect(songChordSequence(saved)).toEqual(expected);
+      expect(transposeSong(saved, 0)).toBe(saved);
+    }
+  }
+);
