@@ -45,22 +45,14 @@ const getStringPath = (
   x: number,
   top: number,
   bottom: number,
-  amplitude = 0,
-  frequency = 0.4,
-  harmonics = true
+  amplitude: number
 ) => {
   const path = Skia.Path.Make();
-  const steps = 80;
+  const steps = 32;
   const dy = (bottom - top) / steps;
   for (let i = 0; i <= steps; i++) {
-    // отражаем Y
-    const y = bottom - i * dy; // ← переворот строки
-    const damping = Math.sin((i / steps) * Math.PI);
-    let offset = amplitude * Math.sin(i * frequency * Math.PI * 2) * damping;
-    if (harmonics) {
-      offset +=
-        amplitude * 0.3 * Math.sin(i * frequency * Math.PI * 4 + 0.5) * damping;
-    }
+    const y = top + i * dy;
+    const offset = amplitude * Math.sin((i / steps) * Math.PI);
     const px = x + offset;
     if (i === 0) path.moveTo(px, y);
     else path.lineTo(px, y);
@@ -82,10 +74,10 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
   const pluckAmplitude = useSharedValue(0);
   const [path1, path2] = useMemo(
     () => [
-      getStringPath(x, top, bottom, -15),
-      getStringPath(x, top, bottom, 15)
+      getStringPath(x, top, bottom, -Math.min(9, 4 + thickness)),
+      getStringPath(x, top, bottom, Math.min(9, 4 + thickness))
     ],
-    [x, top, bottom]
+    [x, top, bottom, thickness]
   );
   useAnimatedReaction(
     () => plucks.value[index] ?? 0,
@@ -108,7 +100,10 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
       if (sounding === previous) return;
       if (sounding) {
         progress.value = withRepeat(
-          withTiming(1, { duration: 180, easing: Easing.inOut(Easing.sin) }),
+          withTiming(1, {
+            duration: Math.max(35, 70 - index * 6),
+            easing: Easing.inOut(Easing.sin)
+          }),
           -1,
           true
         );
