@@ -7,7 +7,7 @@
     "javascript": {
       "suites": 19,
       "tests": 276,
-      "status": "Passed locally: 19 suites, 276 tests. New real-editor SQL tests preserve dense chord order and positions when changing punctuation; production tick tests cover divisions 2, 3 and 4."
+      "status": "Passed locally and in source CI: 19 suites, 276 tests. Real-editor SQL tests preserve dense chord order and positions when changing punctuation; production tick tests cover divisions 2, 3 and 4."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -38,7 +38,7 @@
     },
     "android_bundle": "VersionCode 15 ARM64 and ARM32 APKs built and checked: exact current Hermes hash, all 144 recorded chord strokes, six recorded string PCM references, 15 rhythm markers, existing signing certificate, ZIP integrity, 16 KB ZIP alignment and ARM64 ELF alignment. No current AAB built.",
     "ios_javascript": "Historical candidate only: passed: production JavaScript bundle; all 250 recordings present, old Strummed Acoustic bank absent. Not a native archive.",
-    "ios_native": "macOS 15 CI compiled and executed extracted production Swift pitch and recording-file methods with real AAC fixtures. Full React Native iOS app/archive, AVAudioSession and device checks remain unverified.",
+    "ios_native": "macOS 15 CI compiled and executed extracted production Swift pitch, capture lifecycle and recording-file methods. Capture route fixtures cover seven unavailable/invalid routes, retries and setup failures; file fixtures use real AAC. Full React Native iOS app/archive, real AVAudioSession and device checks remain unverified.",
     "device_tests": "owner to perform",
     "store_billing": "store product configuration and sandbox tests not verified",
     "recording_polish": "passed: silence, rumble, gain, compression, limiting and room decay at 22050, 44100 and 48000 Hz; actual codec/device verification pending",
@@ -1180,7 +1180,7 @@
     "verification": [
       "276 Jest tests across 19 suites passed locally.",
       "TypeScript, zero-warning ESLint and actual SQLite integration passed.",
-      "New test-ios-capture.py extracts the actual start/stop method bodies and runs them with route/engine fixtures in macOS CI. It covers seven unavailable/invalid route cases, retry, repeated start/stop, partial activation failure and engine failure. macOS execution pending source CI."
+      "macOS CI executed test-ios-capture.py successfully on extracted production start/stop methods: seven unavailable/invalid route cases, retry, repeated start/stop, partial activation failure and engine failure. This does not exercise a physical device or real AVAudioSession."
     ],
     "limits": [
       "Windows does not provide the required macOS Swift/AVFoundation runtime; the new Swift harness is executed by CI.",
@@ -1189,6 +1189,12 @@
       "Tuner recall qualification and branch protection remain outstanding."
     ],
     "input_contract_source": "https://developer.apple.com/documentation/avfaudio/avaudioengine/inputnode",
-    "design_changes": false
+    "design_changes": false,
+    "source_ci": {
+      "commit": "2c9ef7c645e5626a04beb6d7d965e604639c0cf9",
+      "status": "Both source workflows passed, including native and ios jobs. New Swift capture fixture step passed.",
+      "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43723507276",
+      "native_and_swift": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43723507287"
+    }
   }
 }
