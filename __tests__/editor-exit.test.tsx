@@ -2,7 +2,7 @@ import * as libraryFiles from "../src/components/library-files";
 import type { SQLTransaction } from "react-native-sqlite-2";
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert, TextInput } from "react-native";
+import { Alert, TextInput, ScrollView } from "react-native";
 import { Formik, FormikProps } from "formik";
 import Editor, { FormValues } from "../src/screens/create-song-chords";
 import initialValues from "../src/screens/create-song-chords/formik/initial-values";
@@ -346,4 +346,57 @@ test("editing and saving imported internal chord changes preserves the word and 
   expect(transposeSong(backup[0].content, -backup[0].preferences.capo)).toBe(
     "По[C]ве[Am]рь мне"
   );
+});
+
+test("deleting the open scrolled song does not recreate its preferences on unmount", async () => {
+  await act(async () => screen.unmount());
+  mockParams = { id: "1" };
+  jest.mocked(getAllItems).mockResolvedValue([
+    {
+      id: 1,
+      title: "Title",
+      content: "Am\nWords",
+      band_name: "",
+      youtube_music: "",
+      youtobe_lesson: ""
+    }
+  ]);
+  jest.mocked(deleteItem).mockResolvedValue(undefined);
+  jest.mocked(performanceAudio.list).mockResolvedValue([]);
+  usePreferences.getState().updateSong(1, { favorite: true });
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  const scroll = screen.root
+    .findAllByType(ScrollView)
+    .find((node) => typeof node.props.onContentSizeChange === "function")!;
+  await act(async () => {
+    scroll.props.onLayout({ nativeEvent: { layout: { height: 400 } } });
+    scroll.props.onContentSizeChange(360, 1600);
+  });
+  await act(async () =>
+    scroll.props.onScroll({ nativeEvent: { contentOffset: { y: 200 } } })
+  );
+  await act(async () =>
+    screen.root
+      .findByType(Menu)
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "SongTools" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  const item = screen.root
+    .findByType(Menu)
+    .findAll(
+      (node) =>
+        typeof node.props.onPress === "function" &&
+        node.props.children?.props?.children === "Delete"
+    )[0];
+  await act(async () => item.props.onPress());
+  await press("Delete");
+  expect(usePreferences.getState().songs[1]).toBeUndefined();
+  await act(async () => screen.unmount());
+  expect(usePreferences.getState().songs[1]).toBeUndefined();
 });

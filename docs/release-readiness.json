@@ -6,12 +6,12 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 242,
-      "status": "Passed full local verification and current source main CI, including operation-combination regressions and LF/Unicode line-separator imports."
+      "tests": 254,
+      "status": "Passed full local verification: 19 suites, 254 tests, including permission pause/resume, denied permission, cancellation, rapid backgrounding, deletion cleanup and literal SQLite search. Current source CI pending."
     },
-    "typescript": "Passed tsc --noEmit locally and in current source main CI.",
-    "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
-    "sqlite": "Passed actual SQLite, including a new cleanup journal committed while an earlier cleanup pass is waiting on file I/O; both callers drain their own work. Prior deletion rollback, backup identity, arrangement restore, migration and atomic-save checks also pass.",
+    "typescript": "Passed local tsc --noEmit.",
+    "eslint": "Passed full local ESLint with zero warnings.",
+    "sqlite": "Actual SQLite integration passed. New literal-search regressions execute the query and bound parameters emitted by the real Library component against node:sqlite for %, _, compound strings, the ! escape character and backslash.",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
@@ -754,7 +754,7 @@
     "version_code": 15
   },
   "reviewed_on": "2026-11-15",
-  "review_scope": "Six operation-combination fixes: cover readiness across exit saves, preservation of lyrics and internal chord anchors, bounded directive parsing, serialized recording cleanup passes, iOS interrupted-file reconciliation and consistent default fingering selection. Visual styles and image assets unchanged.",
+  "review_scope": "Three review fixes: permission-dialog lifecycle handling, preventing preference recreation after deleting an open song, and literal library search. README backup restoration semantics corrected. Visual styles unchanged; native code unchanged.",
   "artifact_scope": "Listed rc15 APKs contain implementation changes through 1e3829bf647eb9a8701492863e9741326f29ae1b. They do not contain the subsequent review fixes or recognition tempo changes. No new APK or AAB was built for this review. Physical phone behavior and native iOS remain unverified. The listed AAB is historical versionCode 7.",
   "google_play_preparation": {
     "status": "draft materials, not submitted",
@@ -1002,5 +1002,38 @@
       "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43665341725",
       "native_and_swift": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43665341712"
     }
+  },
+  "permission_search_review": {
+    "base_commit": "059e334743f4b55ed78ccdb868cc1d2c94573411",
+    "permission_lifecycle": {
+      "before": "The real recognition screen cancelled during the permission Activity pause, then made zero native capture calls after permission was granted.",
+      "after": "Permission and foreground readiness are separate from native capture. Background events before capture do not cancel the permission request; capture waits for active AppState and an unaborted operation. Closing the screen still aborts waiting; backgrounding after capture starts still cancels. A brief active/background sequence is rechecked before starting.",
+      "tests": [
+        "__tests__/recognition.test.tsx"
+      ],
+      "boundary": "Component/native-boundary tests only; physical Android permission UI was not exercised."
+    },
+    "deleted_song_preferences": {
+      "before": "Unmount after confirmed deletion recreated default preferences with the last scroll position.",
+      "after": "Successful deletion marks that song ID before navigation. Position writes require a live preference record and an undeleted owner; stale load results and generic edits also respect the deletion marker.",
+      "tests": [
+        "__tests__/editor-exit.test.tsx"
+      ]
+    },
+    "literal_search": {
+      "before": "Actual SQLite queries for %, _, A_B and 100% returned unrelated titles.",
+      "after": "The real Library query escapes !, % and _ and declares ! as its SQL LIKE escape character. Values remain bound parameters. Backslash remains literal.",
+      "tests": [
+        "__tests__/library.test.tsx"
+      ]
+    },
+    "readme": "README now states that restore applies backup preferences and artwork to matching records, preserves distinct arrangements by backup identity, and uses numbered parts. It advises saving current settings first.",
+    "supplementary_risks": {
+      "interrupted_android_take": "Unchanged: a capture/read or encoding failure can discard the Android take, as explicitly documented in README. Recovery of captured frames needs a separate native change and tests.",
+      "cloud_provider_cancellation": "Unchanged, source-level risk: ContentResolver opening/reading is not proven cancellable against a delaying provider. A device/provider scenario and cancellation latency measurement remain necessary.",
+      "native_checks": "No current native source changes. Previous successful Android compilation, Kotlin/Rust and macOS Swift/AAC method checks remain relevant but do not exercise the full application, AVAudioSession or content-provider recognition path.",
+      "external_checks": "Optional external steps in combined workflows do not establish service availability by overall workflow status. The separate shazam-real-audio-proof workflow has a strict recognition assertion; inspect actual live-step outcomes before release."
+    },
+    "artifacts": "No APK, AAB or IPA built for these source fixes."
   }
 }

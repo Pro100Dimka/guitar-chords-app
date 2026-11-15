@@ -1,4 +1,4 @@
-import { NativeModules, Platform } from "react-native";
+import { AppState, NativeModules, Platform } from "react-native";
 import { pick, types } from "@react-native-documents/picker";
 import checkMicPermission from "../permissions";
 
@@ -27,7 +27,8 @@ const native = (): NativeRecognizer => {
 };
 let cancellation: Promise<void> = Promise.resolve();
 export async function recognizeMicrophone(
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  onCaptureReady?: () => void
 ): Promise<RecognizedSong | null> {
   if (signal?.aborted) throw new Error("Cancelled");
   const granted = await checkMicPermission(true);
@@ -35,7 +36,34 @@ export async function recognizeMicrophone(
   if (!granted) throw new Error("MicrophonePermissionDenied");
   await cancellation;
   if (signal?.aborted) throw new Error("Cancelled");
-  return native().recognizeMicrophone();
+  while (AppState.currentState !== "active") {
+    await new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        subscription.remove();
+        signal?.removeEventListener("abort", abort);
+      };
+      const abort = () => {
+        cleanup();
+        reject(new Error("Cancelled"));
+      };
+      const subscription = AppState.addEventListener("change", (state) => {
+        if (state === "active") {
+          cleanup();
+          resolve();
+        }
+      });
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) abort();
+      else if (AppState.currentState === "active") {
+        cleanup();
+        resolve();
+      }
+    });
+  }
+  if (signal?.aborted) throw new Error("Cancelled");
+  const recognizer = native();
+  onCaptureReady?.();
+  return recognizer.recognizeMicrophone();
 }
 export async function recognizeAudioFile(
   signal?: AbortSignal

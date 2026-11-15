@@ -84,7 +84,7 @@ const Library: React.FC = () => {
           limit: PAGE_LIMIT,
           filters: [
             filters &&
-              "LOWER(COALESCE(b.search_text_lower, '') || ' ' || s.search_text_lower) LIKE ? COLLATE NOCASE",
+              "LOWER(COALESCE(b.search_text_lower, '') || ' ' || s.search_text_lower) LIKE ? ESCAPE '!' COLLATE NOCASE",
             collection !== "AllSongs" && `s.id IN (${selection || "NULL"})`
           ]
             .filter(Boolean)
@@ -96,7 +96,9 @@ const Library: React.FC = () => {
                   .map((id, index) => `WHEN ${id} THEN ${index}`)
                   .join(" ")} END`
               : "s.title COLLATE NOCASE, s.id",
-          parameters: filters ? [`%${filters.toLowerCase()}%`] : [],
+          parameters: filters
+            ? [`%${filters.toLowerCase().replace(/[!%_]/g, "!$&")}%`]
+            : [],
           fields: "b.search_text_lower band, s.title, b.name as band_name, s.id"
         });
 

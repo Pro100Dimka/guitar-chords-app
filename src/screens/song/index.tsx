@@ -65,6 +65,7 @@ const SongDetail: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isEdit, setIsEdit] = useState(false);
   const editorExitAllowed = useRef(false);
+  const deletedSong = useRef<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [tools, setTools] = useState<false | "reading" | "rhythm">(false);
   const [tuner, setTuner] = useState(false);
@@ -81,10 +82,15 @@ const SongDetail: React.FC = () => {
     viewport: 0,
     restored: false
   });
-  const change = (patch: Partial<typeof preferences>) =>
-    updateSong(songId, patch);
+  const change = (patch: Partial<typeof preferences>) => {
+    if (deletedSong.current !== songId) updateSong(songId, patch);
+  };
   const savePosition = useCallback(() => {
-    if (metrics.current.restored)
+    if (
+      metrics.current.restored &&
+      deletedSong.current !== songId &&
+      usePreferences.getState().songs[songId]
+    )
       updateSong(songId, { position: metrics.current.position });
   }, [songId, updateSong]);
   useFocusEffect(
@@ -103,7 +109,7 @@ const SongDetail: React.FC = () => {
         limit: 1
       })
         .then(([found]) => {
-          if (active) {
+          if (active && deletedSong.current !== songId) {
             setSong(found);
             if (found) updateSong(songId, { opened: Date.now() });
           }
@@ -304,6 +310,7 @@ const SongDetail: React.FC = () => {
           }}
           songId={songId}
           onDeleted={() => {
+            deletedSong.current = songId;
             editorExitAllowed.current = true;
             navigation.popTo("Tabs", { screen: "library" });
           }}

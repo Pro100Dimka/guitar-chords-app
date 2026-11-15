@@ -6,6 +6,7 @@ import React from "react";
 import Renderer, { act } from "react-test-renderer";
 import {
   AppState,
+  type AppStateStatus,
   AccessibilityInfo,
   NativeModules,
   Platform
@@ -48,8 +49,10 @@ function deferred<T>() {
 }
 let screen: Renderer.ReactTestRenderer | undefined;
 const previousNative = NativeModules.SongRecognition;
+const previousAppState = AppState.currentState;
 beforeEach(() => {
   mockMode = "mic";
+  AppState.currentState = "active";
   jest.replaceProperty(Platform, "OS", "android");
   NativeModules.SongRecognition = {
     recognizeMicrophone: jest.fn().mockResolvedValue({
@@ -69,6 +72,7 @@ afterEach(async () => {
   if (screen) await act(async () => screen!.unmount());
   screen = undefined;
   NativeModules.SongRecognition = previousNative;
+  AppState.currentState = previousAppState;
   jest.restoreAllMocks();
   jest.clearAllMocks();
 });
@@ -461,4 +465,200 @@ test("additional enrichment can be cancelled without losing the recognized draft
     ).props.disabled
   ).toBe(false);
   await act(async () => lyrics.resolve([]));
+});
+
+test("granting microphone permission after Activity pause resumes recognition once active", async () => {
+  const permission = deferred<boolean>();
+  jest.mocked(checkMicPermission).mockReturnValue(permission.promise);
+  jest.mocked(lookupSongContent).mockResolvedValue([]);
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      listeners.add(listener);
+      return { remove: () => listeners.delete(listener) };
+    });
+  const state = (value: "active" | "background") => {
+    AppState.currentState = value;
+    for (const listener of [...listeners]) listener(value);
+  };
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "AddSongStart" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  await act(async () => state("background"));
+  await act(async () => permission.resolve(true));
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).not.toHaveBeenCalled();
+  await act(async () => state("active"));
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(1);
+  expect(JSON.stringify(screen!.toJSON())).not.toContain(
+    "AutofillSearchCancelled"
+  );
+});
+
+test("leaving the recognition screen while a granted permission awaits foreground prevents capture", async () => {
+  const permission = deferred<boolean>();
+  jest.mocked(checkMicPermission).mockReturnValue(permission.promise);
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      listeners.add(listener);
+      return { remove: () => listeners.delete(listener) };
+    });
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "AddSongStart" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  await act(async () => {
+    AppState.currentState = "background";
+    for (const listener of [...listeners]) listener("background");
+  });
+  await act(async () => permission.resolve(true));
+  await act(async () => screen!.unmount());
+  screen = undefined;
+  await act(async () => {
+    AppState.currentState = "active";
+    for (const listener of [...listeners]) listener("active");
+  });
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).not.toHaveBeenCalled();
+});
+
+test("real backgrounding after capture starts still cancels recognition", async () => {
+  const capture = deferred<null>();
+  NativeModules.SongRecognition.recognizeMicrophone.mockReturnValue(
+    capture.promise
+  );
+  let background!: (state: AppStateStatus) => void;
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      background = listener;
+      return { remove: jest.fn() };
+    });
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "AddSongStart" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(1);
+  await act(async () => {
+    AppState.currentState = "background";
+    background("background");
+  });
+  expect(NativeModules.SongRecognition.cancel).toHaveBeenCalledTimes(1);
+  await act(async () => capture.resolve(null));
+  expect(JSON.stringify(screen!.toJSON())).toContain("AutofillSearchCancelled");
+  expect(JSON.stringify(screen!.toJSON())).not.toContain(
+    "AutofillNoAudioMatch"
+  );
+});
+
+test("permission denial after the system dialog pause remains a permission error", async () => {
+  const permission = deferred<boolean>();
+  jest.mocked(checkMicPermission).mockReturnValue(permission.promise);
+  let background!: (state: AppStateStatus) => void;
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      background = listener;
+      return { remove: jest.fn() };
+    });
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "AddSongStart" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  await act(async () => {
+    AppState.currentState = "background";
+    background("background");
+  });
+  await act(async () => permission.resolve(false));
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).not.toHaveBeenCalled();
+  expect(JSON.stringify(screen!.toJSON())).toContain("AutofillMicDenied");
+  expect(JSON.stringify(screen!.toJSON())).not.toContain(
+    "AutofillSearchCancelled"
+  );
+});
+
+test("a brief resume followed by backgrounding during permission completion cannot start capture", async () => {
+  const permission = deferred<boolean>();
+  jest.mocked(checkMicPermission).mockReturnValue(permission.promise);
+  jest.mocked(lookupSongContent).mockResolvedValue([]);
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      listeners.add(listener);
+      return { remove: () => listeners.delete(listener) };
+    });
+  const state = (value: AppStateStatus) => {
+    AppState.currentState = value;
+    for (const listener of [...listeners]) listener(value);
+  };
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "AddSongStart" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  await act(async () => state("background"));
+  await act(async () => permission.resolve(true));
+  await act(async () => {
+    state("active");
+    state("background");
+  });
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).not.toHaveBeenCalled();
+  await act(async () => state("active"));
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(1);
 });

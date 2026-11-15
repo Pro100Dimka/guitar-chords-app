@@ -78,6 +78,7 @@ export default function RecognizeSong() {
   >("AddSongNoLyrics");
   const generation = useRef(0);
   const running = useRef(false);
+  const awaitingMicStart = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const pulse = useRef(new Animated.Value(0)).current;
   const [reduceMotion, setReduceMotion] = useState(false);
@@ -87,6 +88,7 @@ export default function RecognizeSong() {
     versionResolver.current = undefined;
     setVersions([]);
     generation.current++;
+    awaitingMicStart.current = false;
     running.current = true;
     controller.current?.abort();
     if (mounted.current) {
@@ -140,7 +142,12 @@ export default function RecognizeSong() {
   }, [busy, pulse, reduceMotion]);
   useEffect(() => {
     const subscription = AppState.addEventListener("change", (state) => {
-      if (state === "background" && mode === "mic" && running.current) {
+      if (
+        state === "background" &&
+        mode === "mic" &&
+        running.current &&
+        !awaitingMicStart.current
+      ) {
         stop();
       }
     });
@@ -175,8 +182,11 @@ export default function RecognizeSong() {
           });
         return;
       }
+      awaitingMicStart.current = mode === "mic";
       const result = await (mode === "mic"
-        ? recognizeMicrophone(abort.signal)
+        ? recognizeMicrophone(abort.signal, () => {
+            awaitingMicStart.current = false;
+          })
         : recognizeAudioFile(abort.signal));
       if (request !== generation.current) return;
       if (!result) {
@@ -310,6 +320,7 @@ export default function RecognizeSong() {
       setMessage(t(key));
     } finally {
       if (request === generation.current) {
+        awaitingMicStart.current = false;
         running.current = false;
         setBusy(false);
       }

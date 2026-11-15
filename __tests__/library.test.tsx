@@ -151,3 +151,31 @@ test("old search results cannot replace a newer search", async () => {
   await act(async () => finishOld(songs));
   expect(screen.root.findByType(FlatList).props.data).toEqual(newest);
 });
+
+test.each(["%", "_", "A_B", "100%", "a!b", "a\\b"])(
+  "library search treats %s as literal text on actual SQLite",
+  async (value) => {
+    jest.mocked(getAllItems).mockResolvedValue([]);
+    await act(async () => {
+      screen = Renderer.create(<Library />);
+    });
+    await act(async () =>
+      screen.root.findByType(SearchBar).props.setFilters(value)
+    );
+    const query = jest.mocked(getAllItems).mock.calls.at(-1)![0];
+    const titles = ["A_B", "AXB", "100% Love", "100 Days", "a!b", "a\\b"];
+    const script = `const {DatabaseSync}=require('node:sqlite');const db=new DatabaseSync(':memory:');db.exec('CREATE TABLE songs(id INTEGER,title TEXT,search_text_lower TEXT,band_id INTEGER);CREATE TABLE bands(id INTEGER,search_text_lower TEXT)');const titles=${JSON.stringify(titles)};titles.forEach((title,id)=>db.prepare('INSERT INTO songs VALUES (?,?,?,NULL)').run(id,title,title.toLowerCase()));const rows=db.prepare('SELECT s.title FROM songs s LEFT JOIN bands b ON s.band_id=b.id WHERE '+${JSON.stringify(query.filters)}).all(...${JSON.stringify(query.parameters)});process.stdout.write(JSON.stringify(rows.map(row=>row.title)));`;
+    const results = JSON.parse(
+      require("node:child_process").execFileSync(
+        require("node:process").execPath,
+        ["-e", script],
+        { encoding: "utf8", timeout: 4000 }
+      )
+    );
+    expect(results).toEqual(
+      titles.filter((title) =>
+        title.toLowerCase().includes(value.toLowerCase())
+      )
+    );
+  }
+);
