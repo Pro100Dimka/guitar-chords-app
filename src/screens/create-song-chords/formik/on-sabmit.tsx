@@ -41,7 +41,7 @@ const onSabmit = async (
     await validationSchema(
       t,
       original?.id === id ? original : undefined
-    ).validate({ ...values, fk_band });
+    ).validate({ ...values, fk_band }, { strict: true });
     const metadata = {
       cover,
       contentSource,

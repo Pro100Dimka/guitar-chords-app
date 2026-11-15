@@ -10,6 +10,8 @@ const root = __dirname;
 const alerts=[];
 let deletionResult;
 const recordingFiles = new Map();
+const exportFiles = new Map();
+const exportedBackups = [];
 const audio = { stop:async()=>{},stopPlayback(){},list:async(id)=>[...recordingFiles.values()].filter(take=>take.path.includes(`song-${id}-`)),remove:async(path)=>recordingFiles.delete(path) };
 const sqlite = new DatabaseSync(":memory:");
 let failure;
@@ -24,7 +26,7 @@ const adapter = {
         const statement = sqlite.prepare(sql);
         if (statement.columns().length) {
           const rows = statement.all(...args);
-          if (rows.some(row => Object.values(row).some(value => typeof value === "string" && Buffer.byteLength(value) > 2 * 1024 * 1024))) throw new Error("CursorWindow row too large");
+          if (rows.some(row => Object.values(row).reduce((size,value) => size + (typeof value === "string" ? Buffer.byteLength(value) : value == null ? 0 : 8),0) > 2 * 1024 * 1024)) throw new Error("CursorWindow row too large");
           return {rows, rowsAffected:0};
         }
         const result = statement.run(...args);
@@ -51,6 +53,12 @@ function load(relative) {
     module, exports: module.exports, console,
     setTimeout, clearTimeout,
     require: (name) => {
+      if (name === "react-native-file-access") return {Dirs:{CacheDir:process.env.TEMP || process.env.RUNNER_TEMP || "/tmp"},FileSystem:{
+        async writeFile(file,text){exportFiles.set(file,text);exportedBackups.push(text);},
+        async stat(file){return {size:Buffer.byteLength(exportFiles.get(file))};},
+        async unlink(file){exportFiles.delete(file);}
+      }};
+      if (name === "@react-native-documents/picker") return {saveDocuments:async()=>[{error:null}]};
       if (["../index", "./database", "@/components/database"].includes(name)) return {db};
       if (["react-native", "react-native-file-access", "@react-native-documents/picker", "@bam.tech/react-native-image-resizer"].includes(name)) return name === "react-native" ? {Alert:{alert(...args){alerts.push(args); if(deletionResult) {
         if(args[0] === "DeleteSongError") { deletionResult(false); deletionResult=undefined; }
@@ -238,6 +246,22 @@ async function main() {
   assert.deepEqual(reviewFailures,[]);
   console.log("SQLite review regressions passed: real NULL video fields edit successfully; restored/deleted covers and preferences stay deleted after reload.");
   const submit=load("src/screens/create-song-chords/formik/on-sabmit.tsx").default;
+  const padded="\n".repeat(2100000)+"Words";
+  const rowsBefore=sqlite.prepare("SELECT count(*) AS n FROM songs").get().n;
+  const previousError=console.error;
+  let paddedSaved;
+  try {
+    console.error=()=>{};
+    paddedSaved=await submit({}, {id:0,title:"Padded",content:padded,youtube_music:"",youtobe_lesson:"",cover:"",fk_band:{id:"",name:"",search_text_lower:""}}, {replace(){}});
+  } finally {console.error=previousError;}
+  assert.equal(paddedSaved,false,"Raw whitespace must not bypass the save size check");
+  assert.equal(sqlite.prepare("SELECT count(*) AS n FROM songs").get().n,rowsBefore);
+  const aligned="\n  C      G\n  Hello  world  \n\n";
+  assert.equal(await submit({}, {id:0,title:"Aligned whitespace",content:aligned,youtube_music:"",youtobe_lesson:"",cover:"",fk_band:{id:"",name:"",search_text_lower:""}}, {replace(){}}),true);
+  const alignedSaved=sqlite.prepare("SELECT content FROM songs WHERE title = ?").get("Aligned whitespace");
+  assert.equal(alignedSaved.content,aligned,"Validation must preserve stored chord indentation and blank lines");
+  assert.equal(library.parseLibraryBackup(JSON.stringify({format:"freetune-library",version:2,songs:[{title:"Aligned whitespace",content:alignedSaved.content,band_name:"",youtube_music:"",youtobe_lesson:""}]}))[0].content,aligned);
+  console.log("Raw save size and whitespace-preserving backup round trip passed against SQLite.");
   for (const editing of [false,true]) {
     sqlite.exec("DELETE FROM settings; DELETE FROM songs; DELETE FROM bands;");
     sqlite.prepare("INSERT INTO settings (key,value) VALUES (?,?)").run("experience",JSON.stringify({songs:{}}));
@@ -293,6 +317,16 @@ async function main() {
   assert.equal((await read({tableName:"bands"})).length,0,"Missing-row save must roll back artist insertion");
   assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE ?").get(`song:${staleId}:%`).n,0);
   console.log("Missing-row save regression passed: real SQLite zero-row update rejects and preserves the editor without orphan metadata.");
+  sqlite.exec("DELETE FROM settings; DELETE FROM songs; DELETE FROM bands;");
+  preferences.usePreferences.setState({songs:{}});
+  const largeTitle="界".repeat(399000);
+  const legacyExport=library.parseLibraryBackup(JSON.stringify({format:"freetune-library",version:1,songs:[{title:largeTitle,content:"Am\nWords",band_name:"",youtube_music:"",youtobe_lesson:""}]}));
+  await library.restoreLibrary(legacyExport);
+  await library.exportLibrary();
+  assert.equal(exportedBackups.length,1,"Legacy export must produce one valid backup");
+  assert.equal(library.parseLibraryBackup(exportedBackups[0])[0].title.length,399000);
+  assert.equal(exportFiles.size,0,"Export must clean its temporary file");
+  console.log("Legacy CJK export passed under the aggregate 2 MiB row budget; backup round trip preserves the title.");
   sqlite.exec("PRAGMA user_version = 99");
   await assert.rejects(migrate(db), /newer application version/);
   assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 99);

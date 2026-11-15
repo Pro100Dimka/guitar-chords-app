@@ -148,6 +148,7 @@
   "SupportHint": "FreeTune stays free. Support is voluntary: a one-time payment with no subscription or paid features. The store shows the amount and currency before confirmation.",
   "SupportUnavailable": "Store support is currently unavailable. All app features remain free.",
   "SupportLoading": "Connecting to the store…",
+  "SupportRetryPermission": "The previous permission request may still be awaiting a decision. Use the support button to ask the store again. This is not a purchase confirmation.",
   "SupportPending": "Waiting for store confirmation. Please do not pay again.",
   "SupportError": "The payment was not completed. Check your connection and try again.",
   "SupportFinishError": "Could not finish the purchase. Tap Retry to check it without making another payment.",

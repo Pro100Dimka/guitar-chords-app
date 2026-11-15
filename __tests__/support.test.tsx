@@ -360,7 +360,7 @@ test("deferred payment returned as a rejection blocks another charge", async () 
   expect(finishTransaction).not.toHaveBeenCalled();
 });
 
-test("iOS retry does not treat an empty unfinished list as Ask to Buy approval", async () => {
+test("iOS explicit retry permits a new Ask to Buy request without claiming approval", async () => {
   jest.replaceProperty(Platform, "OS", "ios");
   mockRequestPurchase.mockRejectedValueOnce({
     code: ErrorCode.DeferredPayment
@@ -373,16 +373,70 @@ test("iOS retry does not treat an empty unfinished list as Ask to Buy approval",
       .find((node) => node.props.label === "Retry")!
       .props.onPress()
   );
-  expect(payButton().props.disabled).toBe(true);
-  await act(async () => payButton().props.onPress());
-  expect(mockRequestPurchase).toHaveBeenCalledTimes(1);
-  await act(async () =>
-    mockCallbacks.onPurchaseError!({
-      code: ErrorCode.UserCancelled,
-      message: "Declined"
-    })
-  );
   expect(payButton().props.disabled).toBe(false);
+  expect(Alert.alert).not.toHaveBeenCalledWith("SupportThanks");
+  expect(finishTransaction).not.toHaveBeenCalled();
+  expect(mockRequestPurchase).toHaveBeenCalledTimes(1);
+  await act(async () => payButton().props.onPress());
+  expect(mockRequestPurchase).toHaveBeenCalledTimes(2);
+});
+
+test("automatic iOS refreshes do not treat an absent Ask to Buy transaction as approval", async () => {
+  jest.replaceProperty(Platform, "OS", "ios");
+  const emit = observeAppState();
+  mockRequestPurchase.mockRejectedValueOnce({
+    code: ErrorCode.DeferredPayment
+  });
+  await open();
+  await act(async () => payButton().props.onPress());
+  await act(async () => useSupport.setState({ visible: false }));
+  await act(async () => {
+    emit("background");
+    emit("active");
+    useSupport.setState({ visible: true });
+  });
+  expect(payButton().props.disabled).toBe(true);
+  expect(mockRequestPurchase).toHaveBeenCalledTimes(1);
+  expect(finishTransaction).not.toHaveBeenCalled();
+});
+
+test("iOS retry keeps payment blocked if the transaction query fails", async () => {
+  jest.replaceProperty(Platform, "OS", "ios");
+  mockRequestPurchase.mockRejectedValueOnce({
+    code: ErrorCode.DeferredPayment
+  });
+  await open();
+  await act(async () => payButton().props.onPress());
+  jest
+    .mocked(getPendingTransactionsIOS)
+    .mockRejectedValueOnce(new Error("offline"));
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Retry")!
+      .props.onPress()
+  );
+  expect(payButton().props.disabled).toBe(true);
+  expect(mockRequestPurchase).toHaveBeenCalledTimes(1);
+});
+
+test("Ask to Buy retry cannot bypass a real purchased transaction awaiting finalization", async () => {
+  jest.replaceProperty(Platform, "OS", "ios");
+  mockRequestPurchase.mockRejectedValueOnce({
+    code: ErrorCode.DeferredPayment
+  });
+  await open();
+  await act(async () => payButton().props.onPress());
+  jest.mocked(getPendingTransactionsIOS).mockResolvedValue([iosPurchase]);
+  jest.mocked(finishTransaction).mockRejectedValueOnce(new Error("offline"));
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Retry")!
+      .props.onPress()
+  );
+  expect(payButton().props.disabled).toBe(true);
+  expect(mockRequestPurchase).toHaveBeenCalledTimes(1);
 });
 
 test("retry clears a pending purchase that is no longer returned by the store", async () => {

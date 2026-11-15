@@ -29,14 +29,14 @@ export const validationSchema = (
           (!!previous && value === previous[key]) ||
           Yup.string().url().isValidSync(value)
       );
+  const requiredField = (key: "title" | "content") =>
+    field(key, previous?.[key])
+      .required(t("FieldRequired"))
+      .test("nonblank", t("FieldRequired"), (value) => !!value.trim());
   return Yup.object()
     .shape({
-      title: field("title", previous?.title)
-        .trim()
-        .required(t("FieldRequired")),
-      content: field("content", previous?.content)
-        .trim()
-        .required(t("FieldRequired")),
+      title: requiredField("title"),
+      content: requiredField("content"),
       fk_band: Yup.object({ name: field("band_name", previous?.fk_band.name) }),
       youtube_music: url("youtube_music"),
       youtobe_lesson: url("youtobe_lesson")

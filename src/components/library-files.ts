@@ -353,7 +353,8 @@ export function parseLibraryBackup(text: string): BackupSong[] {
 export async function exportLibrary() {
   const songs = await getAllItems<BackupSong & { id: number }>({
     tableName: "songs",
-    fields: "songs.*, COALESCE(bands.name, '') AS band_name",
+    fields:
+      "songs.id, songs.title, songs.content, songs.youtube_music, songs.youtobe_lesson, COALESCE(bands.name, '') AS band_name",
     joins: ["LEFT JOIN bands ON songs.band_id = bands.id"]
   });
   const state = usePreferences.getState();

@@ -46,7 +46,7 @@ export default function Support() {
   const requesting = useRef(false);
   const deferred = useRef(false);
   const pendingPurchases = useRef(new Set<string>());
-  const refreshOperation = useRef<Promise<void> | null>(null);
+  const refreshOperation = useRef<Promise<boolean> | null>(null);
   const updateState = useCallback((message?: string) => {
     setBusy(
       refreshing.current > 0 ||
@@ -115,7 +115,7 @@ export default function Support() {
       try {
         if (!connected && !(await reconnect())) {
           setStatus("SupportUnavailable");
-          return;
+          return false;
         }
         await fetchProducts({ skus: [SUPPORT_PRODUCT], type: "in-app" });
         const storePurchases = await (Platform.OS === "ios"
@@ -147,8 +147,10 @@ export default function Support() {
         setStatus((current) =>
           current === "SupportLoading" ? "SupportUnavailable" : current
         );
+        return true;
       } catch {
         setStatus("SupportUnavailable");
+        return false;
       } finally {
         refreshing.current--;
         updateState();
@@ -173,6 +175,21 @@ export default function Support() {
     });
     return () => listener.remove();
   }, [refresh]);
+  const retry = async () => {
+    const checked = await refresh();
+    if (
+      checked &&
+      Platform.OS === "ios" &&
+      deferred.current &&
+      !pendingPurchases.current.size &&
+      !unfinished.current.size &&
+      !processing.current.size &&
+      !requesting.current
+    ) {
+      deferred.current = false;
+      updateState("SupportRetryPermission");
+    }
+  };
   const purchase = async () => {
     if (
       busy ||
@@ -242,7 +259,7 @@ export default function Support() {
           !connected ||
           pending ||
           ["SupportError", "SupportFinishError"].includes(status)) && (
-          <Action glass label={t("Retry")} onPress={() => void refresh()} />
+          <Action glass label={t("Retry")} onPress={() => void retry()} />
         )}
     </Sheet>
   );
