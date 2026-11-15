@@ -171,7 +171,7 @@ const sameArtist = (expected: string, actual: string) =>
   normalize(primaryArtist(actual)).replace(/ /g, "");
 
 const sourceCooldowns = new Map<string, number>();
-async function fetchSource(url: string, signal?: AbortSignal) {
+async function fetchSource(url: string, signal?: AbortSignal, timeout = 12000) {
   if (signal?.aborted) throw new Error("Cancelled");
   const origin = new URL(url).origin;
   if (Date.now() < (sourceCooldowns.get(origin) ?? 0))
@@ -179,7 +179,7 @@ async function fetchSource(url: string, signal?: AbortSignal) {
   const controller = new AbortController();
   const abort = () => controller.abort();
   signal?.addEventListener("abort", abort, { once: true });
-  const timer = setTimeout(abort, 12000);
+  const timer = setTimeout(abort, timeout);
   try {
     const response = await fetch(url, { signal: controller.signal });
     if (response.status === 404) return null;
@@ -204,6 +204,68 @@ async function fetchSource(url: string, signal?: AbortSignal) {
     clearTimeout(timer);
     signal?.removeEventListener("abort", abort);
   }
+}
+
+export async function lookupShazamTempo(
+  title: string,
+  artist: string,
+  url: string,
+  signal?: AbortSignal
+) {
+  if (
+    !/^https:\/\/www\.shazam\.com\/(?:track|song)\/\d+(?:\/[^?#]*)?$/.test(url)
+  )
+    return;
+  const html = await fetchSource(url, signal, 4000);
+  if (!html) return;
+  const document = parseDocument(html);
+  const verified = DomUtils.getElementsByTagName(
+    "script",
+    document.children
+  ).some((script) => {
+    if (script.attribs.type !== "application/ld+json") return false;
+    try {
+      const data = JSON.parse(DomUtils.textContent(script));
+      const entries = Array.isArray(data) ? data : (data?.["@graph"] ?? [data]);
+      return (
+        Array.isArray(entries) &&
+        entries.some((entry) => {
+          const performers = Array.isArray(entry?.byArtist)
+            ? entry.byArtist
+            : [entry?.byArtist];
+          return (
+            entry?.["@type"] === "MusicRecording" &&
+            typeof entry.name === "string" &&
+            matchingIdentity(title, entry.name) &&
+            performers.some(
+              (performer: string | { name?: string } | undefined) =>
+                sameArtist(
+                  artist,
+                  typeof performer === "string"
+                    ? performer
+                    : (performer?.name ?? "")
+                )
+            )
+          );
+        })
+      );
+    } catch {
+      return false;
+    }
+  });
+  if (!verified) return;
+  const label = DomUtils.findOne(
+    (element) =>
+      element.name === "span" && DomUtils.textContent(element).trim() === "BPM",
+    document.children
+  );
+  if (!label?.parent) return;
+  const value = DomUtils.textContent(label.parent).match(
+    /^BPM\s*(\d+(?:[.,]\d+)?)\s*$/i
+  )?.[1];
+  const tempo = Number(value?.replace(",", "."));
+  if (Number.isFinite(tempo) && tempo >= 40 && tempo <= 200)
+    return Math.round(tempo);
 }
 
 let nextPisennykRequest = 0;
