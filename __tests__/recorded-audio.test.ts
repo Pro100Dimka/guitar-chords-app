@@ -22,7 +22,9 @@ test("bundled audio and artwork remain within the mobile resource budgets", () =
       size("assets/guitar-bank.json") +
       size("assets/guitar-samples.json")
   ).toBeLessThan(28_000_000);
-  expect(size("assets/images")).toBeLessThan(8_000_000);
+  expect(size("assets/images") + size("android/app/src/main/res")).toBeLessThan(
+    8_000_000
+  );
 });
 const notesFor = (chord: string) =>
   recordedChordFrets[chord].flatMap((fret, string) =>

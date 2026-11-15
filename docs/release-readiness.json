@@ -1367,14 +1367,14 @@
     ]
   },
   "android_rc17": {
-    "status": "awaiting_generated_resource_cleanup_before_retry",
+    "status": "preparing_final_native_artwork_build",
     "version_code": 17,
     "target_max_apk_bytes": 40000000,
     "changes": [
       "React Native bundle compression enabled using supported Gradle option.",
       "JNI libraries use compressed APK packaging and installer extraction.",
       "Approved WAV masters encoded directly as gapless MP3 VBR 4.25. All 24 chords, 144 strokes, six synthesis strings and all rhythm presets retained.",
-      "23 artwork files converted to WebP with unchanged dimensions and lossless alpha; no layout changes.",
+      "31 artwork files, including native Android splash density variants, converted to WebP with unchanged dimensions and lossless alpha; no layout changes.",
       "Includes all source fixes after the previously delivered rc16.",
       "Release bundle inputs include the assets directory so audio/image-only changes invalidate stale JavaScript/asset outputs."
     ],
@@ -1390,11 +1390,11 @@
       "levels_and_pitch_metadata_unchanged": true
     },
     "image_verification": {
-      "images": 23,
-      "before_bytes": 18228501,
-      "bytes": 3097630,
+      "images": 31,
+      "before_bytes": 30841564,
+      "bytes": 4045370,
       "dimensions_and_alpha_unchanged": true,
-      "minimum_psnr_db": 32.747684478759766,
+      "minimum_psnr_db": 32.693145751953125,
       "visual_check": "Compared guitar body, guide and button artwork with originals; no obvious difference at displayed scale. Not a device screenshot check."
     },
     "limits": [
@@ -1404,8 +1404,12 @@
       "Final APK sizes, integrity, signing, bundle identity and alignment await assembly verification.",
       "Full physical-phone playback/startup and full native iOS archive remain unverified."
     ],
-    "build_attempt": "Release assembly stopped on duplicate drawable resources: previous generated PNGs remained beside new WebP assets. No new APK is delivered or claimed to meet the size target yet.",
-    "remaining_generated_resource_path": "E:/CodexTemp/freetune-ui-polish/app-build/generated/res/react/release",
-    "cleanup_status": "Automatic approval review rejected removal of obsolete generated resources without a stated reason. Cleanup is not claimed; no alternate deletion mechanism is used."
+    "build_attempt": "Initial generated-resource duplicates avoided by using a separate generated resource directory; the blocked directory was retained. First successful candidate exposed 12.6 MB of separate native Android splash PNGs; eight of these are now converted to 0.95 MB of WebP without resizing or alpha changes. Final assembly/size checks remain pending.",
+    "cleanup_status": "Automatic approval review rejected removal of obsolete generated resources without a stated reason. Cleanup is not claimed; no alternate deletion mechanism is used.",
+    "first_compressed_candidate_bytes": {
+      "arm64-v8a": 48994865,
+      "armeabi-v7a": 47288889
+    },
+    "remaining_generated_resource_path": "E:/CodexTemp/freetune-ui-polish/app-build/generated/res/react/release"
   }
 }

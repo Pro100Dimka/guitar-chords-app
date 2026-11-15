@@ -15,9 +15,11 @@ def main():
     args = parser.parse_args()
     root = Path(__file__).resolve().parents[1]
     replacements, report = {}, []
-    for folder in ["images", "notebooks"]:
-        for path in sorted((root / "assets" / folder).rglob("*")):
+    for folder in [root / "assets/images", root / "assets/notebooks", root / "android/app/src/main/res"]:
+        for path in sorted(folder.rglob("*")):
             if path.suffix.lower() not in [".png", ".jpg", ".jpeg"]:
+                continue
+            if "android" in path.relative_to(root).parts and path.stat().st_size <= 100000:
                 continue
             original = path.read_bytes()
             image = Image.open(io.BytesIO(original)).convert("RGBA")
