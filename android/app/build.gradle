@@ -9,8 +9,26 @@ react {
 }
 
 tasks.withType(com.facebook.react.tasks.BundleHermesCTask).configureEach {
+    sources.exclude("__tests__/**", "scripts/**", "test-*.ts", "test-*.js")
     inputs.dir(file("../../assets"))
+    inputs.files(file("../../package.json"), file("../../package-lock.json"),
+        file("../../metro.config.cjs"), file("../../babel.config.cjs"))
 }
+
+if (providers.gradleProperty("freetuneBuildDirectory").isPresent()) {
+    layout.buildDirectory.set(file(providers.gradleProperty("freetuneBuildDirectory").get()))
+    afterEvaluate {
+        tasks.withType(com.facebook.react.tasks.BundleHermesCTask).configureEach {
+            def output = new File(rootProject.projectDir.absolutePath, ".release-output")
+            jsBundleDir.set(new File(output, "generated/assets/react/release"))
+            resourcesDir.set(new File(output, "generated/res/react/release-webp"))
+            jsIntermediateSourceMapsDir.set(new File(output, "intermediates/sourcemaps/react/release"))
+            jsSourceMapsDir.set(new File(output, "generated/sourcemaps/react/release"))
+        }
+    }
+}
+
+def fingerprintOutput = layout.buildDirectory.dir("generated/fingerprint/jniLibs")
 
 def enableProguardInReleaseBuilds = true
 
@@ -22,6 +40,7 @@ android {
     compileSdk rootProject.ext.compileSdkVersion
 
     namespace "com.freetune"
+    sourceSets.main.jniLibs.setSrcDirs([fingerprintOutput])
     defaultConfig {
         applicationId "com.freetune"
         minSdkVersion rootProject.ext.minSdkVersion
@@ -59,7 +78,9 @@ android {
         abi {
             enable project.hasProperty("splitApks")
             reset()
-            include "armeabi-v7a", "arm64-v8a"
+            include(*(providers.gradleProperty("reactNativeArchitectures")
+                .orElse("armeabi-v7a,arm64-v8a").get().split(",")
+                .findAll { it in ["armeabi-v7a", "arm64-v8a"] }))
             universalApk false
         }
     }
@@ -84,8 +105,26 @@ project.ext.vectoricons = [iconFontNames: ["MaterialCommunityIcons.ttf", "Ionico
 apply from: "../../node_modules/react-native-vector-icons/fonts.gradle"
 
 tasks.register("buildSongFingerprintNative", Exec) {
+    def architectures = providers.gradleProperty("reactNativeArchitectures")
+        .orElse("armeabi-v7a,arm64-v8a,x86_64").get().split(",").toList()
     workingDir file("../song-fingerprint")
-    commandLine "cargo", "ndk", "-t", "arm64-v8a", "-t", "armeabi-v7a", "-t", "x86_64",
-        "-o", file("src/main/jniLibs").absolutePath, "build", "--release"
+    inputs.dir(file("../song-fingerprint/src"))
+    inputs.files(file("../song-fingerprint/Cargo.toml"), file("../song-fingerprint/Cargo.lock"))
+    inputs.property("architectures", architectures)
+    inputs.property("ndkVersion", android.ndkVersion)
+    inputs.property("rustToolchain", providers.environmentVariable("RUSTUP_TOOLCHAIN").orElse("default"))
+    outputs.files(architectures.collect { new File(fingerprintOutput.get().asFile, "${it}/libfreetune_song_fingerprint.so") })
+    commandLine(["cargo", "ndk"] + architectures.collectMany { ["-t", it] } +
+        ["-o", fingerprintOutput.get().asFile.absolutePath, "build", "--release", "--locked"])
 }
 tasks.named("preBuild").configure { dependsOn("buildSongFingerprintNative") }
+
+if (rootProject.file("../.git").exists()) {
+    def sourceRevision = providers.exec {
+        workingDir rootProject.projectDir
+        commandLine "git", "rev-parse", "HEAD"
+    }.standardOutput.asText.map { it.trim() }
+    tasks.matching { it.name == "extractReleaseVersionControlInfo" }.configureEach {
+        inputs.property("sourceRevision", sourceRevision)
+    }
+}
