@@ -1,7 +1,7 @@
 {
   "app_id": "com.freetune",
   "version": "1.0",
-  "build": 15,
+  "build": 16,
   "category": "Music & Audio / Music",
   "price": "Free",
   "contact": {
@@ -43,7 +43,11 @@
   "prepared_on": "2026-11-15",
   "preparation_scope": "Listing and review materials only. No new APK or Android App Bundle created. Nothing submitted to a store.",
   "target_audience_draft": {
-    "age_groups": ["13-15", "16-17", "18+"],
+    "age_groups": [
+      "13-15",
+      "16-17",
+      "18+"
+    ],
     "status": "recommended for owner review, not submitted",
     "basis": "General guitar tuning and song practice for teenagers and adults. External lyrics and videos require a separate content-rating review.",
     "content_rating": "IARC questionnaire not completed; no rating assigned",

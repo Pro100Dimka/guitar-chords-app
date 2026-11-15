@@ -1,5 +1,5 @@
 {
-  "build": 15,
+  "build": 16,
   "version": "1.0",
   "status": "candidate_not_cleared_for_public_submission",
   "design_changes": false,
@@ -1220,5 +1220,13 @@
       "No APK/AAB/IPA built. Branch protection and existing artifact status are unchanged."
     ],
     "design_changes": false
+  },
+  "android_rc16": {
+    "status": "preparing_signed_test_apks",
+    "versionCode": 16,
+    "versionName": "1.0",
+    "source_changes": "Includes lyric identity, minimum-pitch bass stroke and shared horizontal chord/lyric scrolling fixes; 284 tests passed locally.",
+    "signing": "Same test certificate as prior phone APKs; not a store-ready production signing identity.",
+    "artifacts": "Pending assembly and verification. No AAB planned."
   }
 }
