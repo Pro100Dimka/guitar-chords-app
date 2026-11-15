@@ -124,3 +124,96 @@ test("rhythm timing survives preference normalization and legacy songs use eight
     rhythms.find((rhythm) => rhythm.id === "nine")!.pattern.replace(/-/g, "")
   ).toHaveLength(9);
 });
+
+test.each([
+  { chord: "D/A", frets: [10, 0, 0, 7, 7, 10], bass: 45 },
+  { chord: "C/G", frets: [null, null, 10, 0, 8, 0], bass: 55 },
+  { chord: "A", frets: [9, 0, 7, 9, 10, 0], bass: 45 }
+])(
+  "bass stroke uses lowest pitch for available $chord voicing",
+  ({ chord, frets, bass }) => {
+    expect(
+      require("../src/screens/song/chords").chordShapes(chord)
+    ).toContainEqual(frets);
+    const sources: {
+      buffer: { midi: number } | null;
+      playbackRate: { value: number };
+      start: () => void;
+      stop: () => void;
+      connect: () => void;
+      disconnect: () => void;
+    }[] = [];
+    const parameter = () => ({
+      value: 0,
+      setValueAtTime() {},
+      linearRampToValueAtTime() {},
+      exponentialRampToValueAtTime() {},
+      cancelAndHoldAtTime() {}
+    });
+    const connect = () => ({ connect() {}, disconnect() {} });
+    const audio = {
+      currentTime: 0,
+      destination: {},
+      createGain: () => ({ ...connect(), gain: parameter() }),
+      createConvolver: () => ({ ...connect(), buffer: null }),
+      createDynamicsCompressor: () => ({
+        ...connect(),
+        ...Object.fromEntries(
+          ["threshold", "knee", "ratio", "attack", "release"].map((key) => [
+            key,
+            parameter()
+          ])
+        )
+      }),
+      createBufferSource: () => {
+        const source = {
+          ...connect(),
+          buffer: null,
+          playbackRate: { value: 1 },
+          start() {},
+          stop() {}
+        };
+        sources.push(source);
+        return source;
+      }
+    };
+    const buffers = tuning.map((midi, string) => ({
+      midi,
+      string,
+      soft: { midi, duration: 2 },
+      medium: { midi, duration: 2 }
+    }));
+    const engine = new Function(`return (${acousticEngine})`)()(audio, {
+      buffers
+    });
+    const notes = frets.flatMap((fret, string) =>
+      fret === null
+        ? []
+        : [
+            {
+              string,
+              frequency: 440 * 2 ** ((tuning[string] + fret - 69) / 12)
+            }
+          ]
+    );
+    const order = notes.map((note) => note.string);
+    engine.stroke(notes, "B", 0, 0, false, "B-D-B-D-");
+    expect(sources).toHaveLength(1);
+    expect(
+      sources[0].buffer!.midi + 12 * Math.log2(sources[0].playbackRate.value)
+    ).toBeCloseTo(bass, 6);
+    engine.stroke(notes, "D", 1, 0, false, "D-------");
+    expect(sources.slice(1).map((source) => source.buffer!.midi)).toEqual(
+      order.map((string) => tuning[string])
+    );
+    const upStart = sources.length;
+    engine.stroke(notes, "U", 2, 0, false, "U-------");
+    expect(sources.slice(upStart).map((source) => source.buffer!.midi)).toEqual(
+      [...order]
+        .reverse()
+        .slice(0, 3)
+        .map((string) => tuning[string])
+    );
+    expect(notes.map((note) => note.string)).toEqual(order);
+  }
+);

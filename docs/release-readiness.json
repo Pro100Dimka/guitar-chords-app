@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 276,
-      "status": "Passed locally and in source CI: 19 suites, 276 tests. Real-editor SQL tests preserve dense chord order and positions when changing punctuation; production tick tests cover divisions 2, 3 and 4."
+      "tests": 284,
+      "status": "Passed locally: 19 suites, 284 tests. New tests cover editor-origin lyrics matching chord names, cleared lyrics, lowest-pitch bass strokes and shared horizontal lyric/chord layout at font sizes 16 and 32."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1196,5 +1196,29 @@
       "javascript": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43723507276",
       "native_and_swift": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/43723507287"
     }
+  },
+  "lyric_identity_bass_layout_review": {
+    "base_commit": "01e6f3498a69b4e20c74f5292869f1e372948d8c",
+    "editor_identity": "Known editor-origin lyric rows are restored by provenance without guessing their type from their characters or emptiness. The real Editor/Formik SQL regression preserves [C]A[Am]m while editing only the following line. Clearing a known lyric keeps musical order.",
+    "bass": "Bass strokes select the minimum note.frequency without sorting or mutating the original string list. Real acousticEngine tests exercise three available D/A, C/G and A voicings, inspect rendered buffer MIDI plus playback rate, and confirm down/up string order is retained.",
+    "layout": "Consecutive chord rows and their lyric share one horizontal ScrollView with single-line Text children and unchanged typography/colors. Long pairs pan together instead of wrapping independently. Plain lyrics still wrap normally. Existing provenance marks lyric Am as text in song view.",
+    "baseline": [
+      "Actual Editor SQL save turned the unchanged lyric Am into a third chord while the next line gained !.",
+      "Actual acousticEngine bass strokes rendered MIDI 50/60/49 instead of 45/55/45 for the supplied available voicings.",
+      "The real song tree had no common horizontal chord/lyric viewport.",
+      "Clearing a known lyric reordered C,Am,Dm into C,Dm,Am."
+    ],
+    "verification": [
+      "284 Jest tests in 19 suites passed locally.",
+      "TypeScript, full zero-warning ESLint and actual SQLite integration passed.",
+      "Component layout regressions cover font sizes 16/32 and equal chord/word columns within one non-wrapping horizontal block. No stored song text is rewritten to fit the display."
+    ],
+    "limits": [
+      "Horizontal layout is checked at the React Native component boundary; no new native phone screenshot or pixel measurement was made.",
+      "Bass rendering is verified through the production engine and a deterministic audio context, not phone playback.",
+      "Native Android/iOS source is unchanged in this review. The preceding native CI remains applicable; full iOS integration and tuner recall qualification remain outstanding.",
+      "No APK/AAB/IPA built. Branch protection and existing artifact status are unchanged."
+    ],
+    "design_changes": false
   }
 }

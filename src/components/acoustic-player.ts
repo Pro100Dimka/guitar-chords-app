@@ -194,7 +194,7 @@ export const acousticEngine = `function createAcousticPlayer(audio, prepared) {
       sounding.add(voice);source.onended=()=>{sounding.delete(voice);source.disconnect();gain.disconnect();};source.start(at);if(muted)source.stop(at+duration);
       return at+duration;
     }
-    if(hit==='B')notes=notes.slice(0,1);
+    if(hit==='B')notes=[notes.reduce((bass,note)=>note.frequency<bass.frequency?note:bass)];
     let ordered=up?[...notes].reverse().slice(0,index===3?4:3):notes;
     if(index===1)ordered=ordered.slice(1);
     const duration=(index>=0?[.065,.055,.034,.042,.060,.032][index]:(up?.037:.065))*(.94+random()*.12);

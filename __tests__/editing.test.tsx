@@ -1357,3 +1357,95 @@ test.each([
     }
   }
 );
+
+test.each([16, 32])(
+  "long chord and lyric rows share horizontal scrolling at font size %s",
+  async (fontSize) => {
+    jest.useFakeTimers();
+    const { usePreferences } = require("../src/components/preferences");
+    usePreferences
+      .getState()
+      .updateSong(1, { fontSize, transpose: 0, capo: 0 });
+    jest.mocked(crud.getAllItems).mockResolvedValue([
+      {
+        id: 1,
+        title: "Long line",
+        content:
+          "[Am]Сегодня я иду домой и напеваю эту длинную строчку, чтобы [G]услышать аккорд именно над этим словом в конце песни"
+      }
+    ]);
+    await act(async () => {
+      screen = Renderer.create(<Song />);
+    });
+    const pairs = screen!.root
+      .findAllByType(ScrollView)
+      .filter((node) => node.props.horizontal);
+    expect(pairs).toHaveLength(1);
+    const rows = pairs[0]
+      .findAllByType(Text)
+      .filter((node) => node.props.numberOfLines === 1);
+    expect(rows).toHaveLength(2);
+    expect(
+      rows.every(
+        (row) =>
+          require("react-native").StyleSheet.flatten(row.props.style)
+            .fontSize === fontSize
+      )
+    ).toBe(true);
+    const text = rows.map((row) =>
+      row.props.children[0]
+        .map((part: string | React.ReactElement<{ children: string }>) =>
+          typeof part === "string" ? part : part.props.children
+        )
+        .join("")
+    );
+    expect(text[0].indexOf("G")).toBe(text[1].indexOf("услышать"));
+    expect(text[1]).toContain("аккорд именно над этим словом в конце песни");
+  }
+);
+
+test("known editor-origin lyric Am remains text in song view", async () => {
+  jest.useFakeTimers();
+  require("../src/components/preferences")
+    .usePreferences.getState()
+    .updateSong(1, { transpose: 0, capo: 0 });
+  jest
+    .mocked(crud.getAllItems)
+    .mockResolvedValue([
+      { id: 1, title: "Text", content: "[C]A[Am]m\nNext line" }
+    ]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  expect(
+    screen!.root
+      .findAllByType(Text)
+      .filter((node) => node.props.accessibilityLabel === "Am, Fingering")
+  ).toHaveLength(1);
+  expect(
+    screen!.root
+      .findAllByType(Text)
+      .some(
+        (node) =>
+          node.props.numberOfLines === 1 &&
+          node.props.children[0].join("") === "Am" &&
+          !node.props.onPress
+      )
+  ).toBe(true);
+});
+
+test("known editor chord rows retain musical order when their lyric is cleared", () => {
+  const {
+    createSongEditorState,
+    songContentFromEditor,
+    songChordSequence
+  } = require("../src/screens/song/chords");
+  const source = "[C]а[Am]б[Dm]в";
+  const state = createSongEditorState(source);
+  const result = songContentFromEditor(
+    source,
+    state.text.replace(/абв$/, ""),
+    state
+  );
+  expect(songChordSequence(result)).toEqual(["C", "Am", "Dm"]);
+});

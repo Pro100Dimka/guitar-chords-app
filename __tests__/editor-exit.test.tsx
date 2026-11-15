@@ -574,7 +574,11 @@ test.each([false, true])(
   }
 );
 
-test.each(["[Am]Н[Em]очь  [F][G]придёт", "[C]а[Am]б[Dm]в [G]д  [F][Em]слово"])(
+test.each([
+  "[Am]Н[Em]очь  [F][G]придёт",
+  "[C]а[Am]б[Dm]в [G]д  [F][Em]слово",
+  "[C]A[Am]m\nNext line"
+])(
   "editing only punctuation preserves all dense chord coordinates: %s",
   async (content) => {
     await act(async () => screen.unmount());

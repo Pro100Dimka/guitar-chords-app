@@ -45,7 +45,7 @@ import {
 import RequireMicAccess from "../tuner";
 import MicrophoneStream from "../tuner/MicrophoneStream";
 import {
-  chordsAboveLyrics,
+  createSongEditorState,
   chordNotationPattern,
   chordLineParts,
   isChordLine,
@@ -232,14 +232,19 @@ const SongDetail: React.FC = () => {
         </Text>
       );
     };
-    const renderLine = (line: string, index: number) => {
-      const onlyChords = isChordLine(line);
+    const renderLine = (
+      line: string,
+      index: number,
+      onlyChords: boolean,
+      paired = false
+    ) => {
       const parts = onlyChords
         ? chordLineParts(line)
         : line.split(/(\[[^\[\]]+\])/);
       return (
         <Text
           key={index}
+          numberOfLines={paired ? 1 : undefined}
           style={[
             styles.content,
             {
@@ -259,14 +264,52 @@ const SongDetail: React.FC = () => {
         </Text>
       );
     };
-    return chordsAboveLyrics(
+    const display = createSongEditorState(
       transposeSong(
         song?.content ?? "",
         preferences.transpose - preferences.capo
       )
-    )
-      .split(/\r?\n/)
-      .map(renderLine);
+    );
+    const lyricStarts = new Set(display.groups.map((group) => group.end));
+    let offset = 0;
+    const rows = display.text.split(/\r?\n/).map((line, index) => {
+      const onlyChords = !lyricStarts.has(offset) && isChordLine(line);
+      offset += line.length + 1;
+      return { line, index, onlyChords };
+    });
+    const blocks: React.ReactNode[] = [];
+    for (let index = 0; index < rows.length; ) {
+      const row = rows[index];
+      if (!row.onlyChords) {
+        blocks.push(renderLine(row.line, row.index, false));
+        index++;
+        continue;
+      }
+      let end = index + 1;
+      while (end < rows.length && rows[end].onlyChords) end++;
+      if (rows[end]?.line.trim()) end++;
+      blocks.push(
+        <ScrollView
+          key={index}
+          horizontal
+          nestedScrollEnabled
+          directionalLockEnabled
+          showsHorizontalScrollIndicator={false}
+          style={styles.pairedLines}
+          onScrollBeginDrag={() => setPlaying(false)}
+        >
+          <View>
+            {rows
+              .slice(index, end)
+              .map((item) =>
+                renderLine(item.line, item.index, item.onlyChords, true)
+              )}
+          </View>
+        </ScrollView>
+      );
+      index = end;
+    }
+    return blocks;
   }, [
     song?.content,
     preferences.transpose,
@@ -491,6 +534,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     backgroundColor: palette.colors.transparent
   },
+  pairedLines: { flexGrow: 0, flexShrink: 0 },
   content: {
     color: palette.glass.ink,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace"

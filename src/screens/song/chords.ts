@@ -560,7 +560,6 @@ export function songContentFromEditor(
     const newline = edited.indexOf("\n", end);
     const lyricEnd = newline < 0 ? edited.length : newline;
     const lyrics = edited.slice(end, lyricEnd);
-    if (!lyrics.trim() || isChordLine(lyrics)) continue;
     const inline = inlineChordLine(lyrics);
     const anchors = tokens.flatMap((row) =>
       row!.map((match) => ({
