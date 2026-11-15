@@ -8,6 +8,10 @@ react {
     enableBundleCompression = true
 }
 
+tasks.withType(com.facebook.react.tasks.BundleHermesCTask).configureEach {
+    inputs.dir(file("../../assets"))
+}
+
 def enableProguardInReleaseBuilds = true
 
 def jscFlavor = 'io.github.react-native-community:jsc-android:2026004.+'

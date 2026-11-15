@@ -1367,7 +1367,7 @@
     ]
   },
   "android_rc17": {
-    "status": "preparing_compressed_test_apks",
+    "status": "awaiting_generated_resource_cleanup_before_retry",
     "version_code": 17,
     "target_max_apk_bytes": 40000000,
     "changes": [
@@ -1375,7 +1375,8 @@
       "JNI libraries use compressed APK packaging and installer extraction.",
       "Approved WAV masters encoded directly as gapless MP3 VBR 4.25. All 24 chords, 144 strokes, six synthesis strings and all rhythm presets retained.",
       "23 artwork files converted to WebP with unchanged dimensions and lossless alpha; no layout changes.",
-      "Includes all source fixes after the previously delivered rc16."
+      "Includes all source fixes after the previously delivered rc16.",
+      "Release bundle inputs include the assets directory so audio/image-only changes invalidate stale JavaScript/asset outputs."
     ],
     "audio_verification": {
       "strokes": 144,
@@ -1402,6 +1403,9 @@
       "APK download size is distinct from installed size: Android extracts compressed native libraries.",
       "Final APK sizes, integrity, signing, bundle identity and alignment await assembly verification.",
       "Full physical-phone playback/startup and full native iOS archive remain unverified."
-    ]
+    ],
+    "build_attempt": "Release assembly stopped on duplicate drawable resources: previous generated PNGs remained beside new WebP assets. No new APK is delivered or claimed to meet the size target yet.",
+    "remaining_generated_resource_path": "E:/CodexTemp/freetune-ui-polish/app-build/generated/res/react/release",
+    "cleanup_status": "Automatic approval review rejected removal of obsolete generated resources without a stated reason. Cleanup is not claimed; no alternate deletion mechanism is used."
   }
 }
