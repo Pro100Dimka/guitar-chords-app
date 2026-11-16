@@ -279,6 +279,10 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     setAccessibleReading(null);
     readingUpdatedAt.current = 0;
     let lastBufferAt = Date.now();
+    let captureState: "running" | "recovering" | "failed" | "stopped" =
+      "running";
+    let attempts = 0;
+    let nextAttemptAt = 0;
     const id = MicrophoneStream.addListener((input: AudioBufferEvent) => {
       const calibrated = isChromatic
         ? calibratedNote(input.pitch, referenceRef.current)
@@ -299,6 +303,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
           spectrumRef.current
         );
       lastBufferAt = Date.now();
+      if (captureState === "running" && lastBufferAt - nextAttemptAt > 10000)
+        attempts = 0;
       rms.value = buffer.rms;
       if (
         isChromatic &&
@@ -378,14 +384,41 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     });
     MicrophoneStream.startRecording();
     const recoveryTimer = setInterval(() => {
-      if (Date.now() - lastBufferAt < 3000) return;
-      lastBufferAt = Date.now();
+      const now = Date.now();
+      if (
+        captureState !== "running" ||
+        now - lastBufferAt < 3000 ||
+        now < nextAttemptAt
+      )
+        return;
+      if (attempts >= 3) {
+        captureState = "failed";
+        console.warn("Microphone recovery exhausted");
+        return;
+      }
+      captureState = "recovering";
+      attempts++;
       note.value = null;
       rms.value = 0;
-      MicrophoneStream.stopRecording();
-      MicrophoneStream.startRecording();
+      void MicrophoneStream.restartRecording().then(
+        (started) => {
+          if (captureState === "stopped") return;
+          captureState = "running";
+          lastBufferAt = Date.now();
+          nextAttemptAt = lastBufferAt + 1500 * 2 ** (attempts - 1);
+          if (!started)
+            console.warn("Microphone recovery did not start capture");
+        },
+        (error) => {
+          if (captureState === "stopped") return;
+          captureState = "running";
+          nextAttemptAt = Date.now() + 1500 * 2 ** (attempts - 1);
+          console.warn("Microphone recovery failed", error);
+        }
+      );
     }, 1500);
     return () => {
+      captureState = "stopped";
       clearInterval(recoveryTimer);
       if (cueTimer.current !== undefined) clearTimeout(cueTimer.current);
       performanceAudio.stopPlayback();

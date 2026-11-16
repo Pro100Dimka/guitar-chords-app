@@ -6,12 +6,12 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 399,
-      "status": "399 tests in 19 suites passed locally, including raw storage limits, early editing, bounded chord blocks and explicit Ask to Buy retry regressions."
+      "tests": 420,
+      "status": "420 tests in 19 suites passed locally; focused recognition/content checks passed after the final cancellation guards."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
-    "sqlite": "Actual SQLite integration passed, including aggregate 2 MiB row enforcement, legacy CJK restore/export and whitespace-preserving save/backup round trips.",
+    "sqlite": "Actual SQLite integration passed, including unsafe-query rejection, bound hostile predicate values, concurrent editor tempo/transpose/favorite persistence and existing migration rollback/adoption/newer-version rejection.",
     "android_pitch": {
       "synthetic_cases": 270,
       "worst_error_cents": 0.353521,
@@ -1899,5 +1899,33 @@
       "backup": "Export explicit necessary columns without redundant search text; SQLite adapter now enforces aggregate row bytes.",
       "virtualization": "Chunk independent chord rows into bounded blocks while retaining anchored chord-and-lyric groups."
     }
+  },
+  "source_audit_691eb75": {
+    "verified_existing": {
+      "migration": "Version-ordered migration runner already exists. Actual WebSQL/SQLite integration verifies rollback, version-0 adoption with retained data, idempotence and rejection of a newer database through the transaction error callback. No schema change or artificial migration added."
+    },
+    "verification": {
+      "kotlin": "Production methods passed deterministic device/codec-stub checks including acknowledged restarts, denied permission and existing capture/recording/pitch cases",
+      "jest": "420/420, 19 suites; new regressions reproduce the six defects before fixes",
+      "sqlite": "passed, actual integration",
+      "typescript": "passed",
+      "eslint": "passed with zero warnings"
+    },
+    "fixed": {
+      "signal": "Single-sample spectra are zero, non-finite samples are sanitized, and large waveforms no longer spread an array into Math.max.",
+      "sql": "CRUD validates schema identifiers and a restricted expression grammar before SQLite execution. Mutation predicates support parameters; library selection, deletion and language values are bound. Arbitrary SQL fragments are rejected.",
+      "content": "Collect chord-source results for up to 1500 milliseconds after the first chart, or until all providers finish. Abort interrupts collection and cancels outstanding providers.",
+      "preferences": "Commit the normalized SQL snapshot plus only subsequent store changes, then persist later revisions through the existing serialized preference queue. New tempo changes survive stale metadata.",
+      "capture": "Acknowledged native stop/start is one serialized operation. Recovery has explicit state, no overlapping request, three attempts, exponential retry delays and bounded diagnostics.",
+      "recognition": "AbortSignal cancels active native recognition, removes its listener, protects ownership and waits for coalesced native cancellation before another start."
+    },
+    "design_changes": false,
+    "date": "2026-11-16",
+    "status": "Six confirmed findings fixed; existing migration contract verified; PR native application checks pending",
+    "limits": [
+      "Full native app checks run on PR. No new APK/AAB/IPA.",
+      "Device audio routes, real microphone behavior and store operations remain separate qualification.",
+      "The additional audit directions without concrete reproduction are not claimed as a complete platform audit."
+    ]
   }
 }

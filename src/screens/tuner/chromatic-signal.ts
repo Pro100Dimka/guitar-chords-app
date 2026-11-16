@@ -27,16 +27,24 @@ export function signalLevels(
   spectrum: boolean
 ) {
   if (!samples.length || !Number.isFinite(rate) || rate <= 0) return [];
+  let peak = 0.02;
+  const clean = samples.map((sample) => {
+    const value = Number.isFinite(sample)
+      ? Math.max(-1, Math.min(1, sample))
+      : 0;
+    peak = Math.max(peak, Math.abs(value));
+    return value;
+  });
   if (!spectrum) {
-    const peak = Math.max(0.02, ...samples.map(Math.abs));
     return Array.from({ length: 128 }, (_, i) =>
       Math.max(
         -1,
-        Math.min(1, samples[Math.floor((i * samples.length) / 128)] / peak)
+        Math.min(1, clean[Math.floor((i * clean.length) / 128)] / peak)
       )
     );
   }
-  const windowed = samples.map(
+  if (clean.length === 1) return Array(32).fill(0) as number[];
+  const windowed = clean.map(
     (sample, i) =>
       sample * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (samples.length - 1)))
   );

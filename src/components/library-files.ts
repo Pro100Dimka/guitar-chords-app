@@ -665,7 +665,12 @@ export function requestSongDeletion(
             resolve
           )
         );
-      else await deleteItem({ tableName: "songs", filters: `id = ${songId}` });
+      else
+        await deleteItem({
+          tableName: "songs",
+          filters: "id = ?",
+          parameters: [songId]
+        });
       usePreferences.getState().removeSong(songId);
       onDeleted();
       if (takes.length)

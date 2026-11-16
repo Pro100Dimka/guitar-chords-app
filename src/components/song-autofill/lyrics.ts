@@ -744,7 +744,15 @@ export async function lookupSongContent(
   if (!title.trim() || !artist.trim()) throw new Error("MissingIdentity");
   if (signal?.aborted) throw new Error("Cancelled");
   const controller = new AbortController();
-  const abort = () => controller.abort();
+  let rejectAbort: (error: Error) => void = () => {};
+  const cancelled = new Promise<never>((_, reject) => {
+    rejectAbort = reject;
+  });
+  const abort = () => {
+    controller.abort();
+    rejectAbort(new Error("Cancelled"));
+  };
+  let collectionTimer: ReturnType<typeof setTimeout> | undefined;
   signal?.addEventListener("abort", abort, { once: true });
   try {
     const sources = /^\p{Script=Latin}+$/u.test(
@@ -764,6 +772,7 @@ export async function lookupSongContent(
       lookupPisennyk(title, artist, controller.signal),
       lookupLyrics(title, artist, controller.signal)
     ];
+    const collected: LyricsOption[] = [];
     let foundChords: (options: LyricsOption[]) => void = () => {};
     const firstChords = new Promise<LyricsOption[]>((resolve) => {
       foundChords = resolve;
@@ -771,6 +780,7 @@ export async function lookupSongContent(
     requests.forEach((request) => {
       void request.then(
         (options) => {
+          collected.push(...options);
           const chords = options.filter((option) => option.hasChords);
           if (chords.length) foundChords(chords);
         },
@@ -779,7 +789,14 @@ export async function lookupSongContent(
     });
     const completed = Promise.allSettled(requests);
     const options = await Promise.race([
-      firstChords,
+      firstChords.then(() =>
+        controller.signal.aborted
+          ? collected
+          : new Promise<LyricsOption[]>((resolve) => {
+              collectionTimer = setTimeout(() => resolve(collected), 1500);
+            })
+      ),
+      cancelled,
       completed.then((results) =>
         results.flatMap((result) =>
           result.status === "fulfilled" ? result.value : []
@@ -803,7 +820,8 @@ export async function lookupSongContent(
     }
     return [];
   } finally {
-    abort();
+    controller.abort();
+    if (collectionTimer !== undefined) clearTimeout(collectionTimer);
     signal?.removeEventListener("abort", abort);
   }
 }

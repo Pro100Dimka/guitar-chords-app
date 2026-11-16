@@ -169,6 +169,13 @@ class MicrophoneStream: RCTEventEmitter {
         }
     }
 
+    @objc(restartRecording:rejecter:)
+    func restartRecording(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
+        stopRecording()
+        startRecording()
+        resolve(isRecording)
+    }
+
     @objc
     func stopRecording() {
         isRecording = false

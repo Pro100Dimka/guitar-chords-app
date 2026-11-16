@@ -362,6 +362,17 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         }
     }
     @ReactMethod
+    @Synchronized
+    fun restartRecording(promise: Promise) {
+        try {
+            stopRecording()
+            startRecording()
+            promise.resolve(isRecording)
+        } catch (error: RuntimeException) {
+            promise.reject("CaptureRestartFailed", error)
+        }
+    }
+    @ReactMethod
     fun releaseRecorder() {
         stopRecording()
     }

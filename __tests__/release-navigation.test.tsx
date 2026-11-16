@@ -153,7 +153,8 @@ test("the song menu confirms deletion and returns to the existing library route"
   await pressAlert("Delete");
   expect(deleteItem).toHaveBeenCalledWith({
     tableName: "songs",
-    filters: "id = 7"
+    filters: "id = ?",
+    parameters: [7]
   });
   expect(mockNavigation.popTo).toHaveBeenCalledWith("Tabs", {
     screen: "library"

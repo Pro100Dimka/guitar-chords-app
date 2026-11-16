@@ -87,7 +87,8 @@ final class CaptureProbe {
     func frequencyToNoteData(_ pitch: Float) -> [String: Any] { [:] }
     func sendEvent(_ name: String, body: [String: Any]) {}
 '''
-    fixture += method(source, "startRecording") + "\n" + method(source, "stopRecording") + "\n}\n"
+    fixture += "typealias RCTPromiseResolveBlock = (Any?) -> Void\ntypealias RCTPromiseRejectBlock = (String?, String?, Error?) -> Void\n"
+    fixture += method(source, "startRecording") + "\n" + method(source, "stopRecording") + "\n" + method(source, "restartRecording") + "\n}\n"
     fixture += r'''
 func assertStopped(_ probe: CaptureProbe) {
     precondition(!probe.isRecording && probe.audioEngine == nil && probe.inputNode == nil)
@@ -129,7 +130,15 @@ for activation in [true, false] {
     precondition(probe.isRecording)
     probe.stopRecording(); assertStopped(probe)
 }
-print("Production Swift capture methods passed 7 unavailable/invalid route cases, retry, repeated start/stop, activation failure and engine failure using route fixtures.")
+Route.reset()
+let recovery = CaptureProbe()
+recovery.startRecording()
+recovery.restartRecording({ precondition(($0 as? Bool) == true) }, rejecter: { _, _, _ in preconditionFailure() })
+precondition(Route.removals == 1 && Route.taps == 2 && Route.starts == 2)
+Route.available = false
+recovery.restartRecording({ precondition(($0 as? Bool) == false) }, rejecter: { _, _, _ in preconditionFailure() })
+assertStopped(recovery)
+print("Production Swift capture methods passed unavailable/invalid routes, acknowledged recovery, repeated start/stop, activation failure and engine failure using route fixtures.")
 print("No physical microphone, full iOS app or real AVAudioSession integration was tested.")
 '''
     with tempfile.TemporaryDirectory(prefix="guitar-capture-", dir=os.environ.get("TMPDIR")) as directory:

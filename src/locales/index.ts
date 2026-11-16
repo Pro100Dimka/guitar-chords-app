@@ -45,7 +45,8 @@ export const changeLanguage = async (lng: string) => {
     await updateItem({
       tableName: "settings",
       data: { value: lng },
-      filters: "key = 'language'"
+      filters: "key = ?",
+      parameters: ["language"]
     });
   } else {
     await createItem({

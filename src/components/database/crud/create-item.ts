@@ -2,6 +2,7 @@
 import { ICreateItem } from "@/@interfaces";
 import { db } from "../index";
 import { SQLResultSet } from "react-native-sqlite-2";
+import { queryScope } from "./query";
 
 const createItem = ({
   tableName,
@@ -11,6 +12,8 @@ const createItem = ({
     if (!tableName) return reject(new Error("tableName is required"));
     if (!data || Object.keys(data).length === 0)
       return reject(new Error("data is required"));
+    const scope = queryScope(tableName);
+    Object.keys(data).forEach(scope.column);
     const columns = Object.keys(data).join(", ");
     const placeholders = Object.keys(data)
       .map(() => "?")
