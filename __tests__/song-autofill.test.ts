@@ -89,6 +89,20 @@ describe("content provider failover", () => {
     jest.restoreAllMocks();
   });
 
+  it("reuses completed chord results when the same song is searched again", async () => {
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(chart)
+        : response(String(url))
+    );
+    const first = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    const options = await first;
+    const count = request.mock.calls.length;
+    expect(await lookup(title, artist)).toEqual(options);
+    expect(request).toHaveBeenCalledTimes(count);
+  });
+
   it("preserves source capo and tuning alongside canonical sounding chords", async () => {
     request.mockImplementation(async (url) =>
       String(url).includes("cifraclub.com")
@@ -414,6 +428,53 @@ describe("content provider failover", () => {
         (await result)[0].content
       )
     ).toBe("Am C\nOriginal example words");
+  });
+
+  it("tries another verified arrangement when the first version has no chords", async () => {
+    const search = [123, 456]
+      .map(
+        (id) =>
+          `<div class="gt-list__row"><a href="/o/oasis/">Oasis</a><a href="/o/oasis/${id}.html">${title} chords</a></div>`
+      )
+      .join("");
+    request.mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.startsWith("https://www.guitaretab.com/fetch/?"))
+        return new Response(search);
+      if (value.endsWith("123.html"))
+        return new Response(
+          `<h1>${title}</h1><h2>${artist}</h2><pre>Only words</pre>`
+        );
+      if (value.endsWith("456.html")) return new Response(chart);
+      return response(value);
+    });
+    const result = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    expect(await result).toEqual([
+      expect.objectContaining({
+        hasChords: true,
+        url: "https://www.guitaretab.com/o/oasis/456.html"
+      })
+    ]);
+  });
+
+  it("finds a noncanonical song slug in the artist catalog and verifies the page", async () => {
+    request.mockImplementation(async (url) => {
+      const value = String(url);
+      if (value === "https://www.cifraclub.com/oasis/")
+        return new Response(`<a href="/oasis/dont-look-back/">${title}</a>`);
+      if (value === "https://www.cifraclub.com/oasis/dont-look-back/")
+        return new Response(chart);
+      return response(value);
+    });
+    const result = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    expect(await result).toEqual([
+      expect.objectContaining({
+        hasChords: true,
+        url: "https://www.cifraclub.com/oasis/dont-look-back/"
+      })
+    ]);
   });
 
   it("does not keep requesting a provider during its access-denied cooldown", async () => {

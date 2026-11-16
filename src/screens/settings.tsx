@@ -86,19 +86,21 @@ const Settings: React.FC = () => {
     .toLowerCase()
     .normalize("NFKD")
     .replace(/\p{M}/gu, "");
-  const filteredLanguages = languages.filter((item) =>
-    [
-      item.code,
-      item.code === "ua" ? "uk" : item.code,
-      item.native,
-      ...Object.values(item.names)
-    ]
-      .join(" ")
-      .toLowerCase()
-      .normalize("NFKD")
-      .replace(/\p{M}/gu, "")
-      .includes(search)
-  );
+  const filteredLanguages = !search
+    ? languages
+    : languages.filter((item) =>
+        [
+          item.code,
+          item.code === "ua" ? "uk" : item.code,
+          item.native,
+          ...Object.values(item.names)
+        ]
+          .join(" ")
+          .toLowerCase()
+          .normalize("NFKD")
+          .replace(/\p{M}/gu, "")
+          .includes(search)
+      );
   const availableLanguages = filteredLanguages.filter((item) =>
     langs.includes(item.code)
   );

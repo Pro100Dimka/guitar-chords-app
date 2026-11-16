@@ -2,10 +2,14 @@
 mod algorithm;
 mod signature_format;
 
+#[cfg(target_os = "android")]
 use jni::objects::{JClass, JShortArray};
+#[cfg(target_os = "android")]
 use jni::sys::jstring;
+#[cfg(target_os = "android")]
 use jni::JNIEnv;
 
+#[cfg(target_os = "android")]
 #[no_mangle]
 pub extern "system" fn Java_com_freetune_SongFingerprint_fingerprint(
     mut env: JNIEnv<'_>,
@@ -29,5 +33,40 @@ pub extern "system" fn Java_com_freetune_SongFingerprint_fingerprint(
     match env.new_string(uri) {
         Ok(value) => value.into_raw(),
         Err(_) => std::ptr::null_mut(),
+    }
+}
+
+/// The caller owns the returned UTF-8 string and releases it with fingerprint_free.
+#[no_mangle]
+pub unsafe extern "C" fn freetune_fingerprint(samples: *const i16, count: usize) -> *mut std::ffi::c_char {
+    if samples.is_null() || !(32_000..=192_000).contains(&count) {
+        return std::ptr::null_mut();
+    }
+    std::panic::catch_unwind(|| {
+        let pcm = std::slice::from_raw_parts(samples, count);
+        std::ffi::CString::new(algorithm::fingerprint_samples(pcm).to_data_uri())
+            .map_or(std::ptr::null_mut(), |uri| uri.into_raw())
+    }).unwrap_or(std::ptr::null_mut())
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn freetune_fingerprint_free(uri: *mut std::ffi::c_char) {
+    if !uri.is_null() { drop(std::ffi::CString::from_raw(uri)); }
+}
+
+#[cfg(test)]
+mod bridge_tests {
+    use super::*;
+    #[test]
+    fn c_bridge_matches_the_shared_fingerprint() {
+        let samples: Vec<i16> = (0..48_000).map(|i| ((i as f64 * 0.17).sin() * 12000.0) as i16).collect();
+        unsafe {
+            assert!(freetune_fingerprint(std::ptr::null(), 48_000).is_null());
+            assert!(freetune_fingerprint(samples.as_ptr(), 1).is_null());
+            let uri = freetune_fingerprint(samples.as_ptr(), samples.len());
+            assert!(!uri.is_null());
+            assert_eq!(std::ffi::CStr::from_ptr(uri).to_str().unwrap(), algorithm::fingerprint_samples(&samples).to_data_uri());
+            freetune_fingerprint_free(uri);
+        }
     }
 }

@@ -45,6 +45,7 @@ import {
 } from "../../components/library-files";
 import initialValues from "../create-song-chords/formik/initial-values";
 import { applyRecognitionDraft } from "../../components/song-autofill/draft";
+import { songChords } from "../song/chords";
 
 export default function RecognizeSong() {
   const {
@@ -55,6 +56,9 @@ export default function RecognizeSong() {
   const { width, height } = useWindowDimensions();
   const size = Math.min(220, width - 100, height < 500 ? 140 : 220);
   const [versions, setVersions] = useState<LyricsOption[]>([]);
+  const [availableVersions, setAvailableVersions] = useState<LyricsOption[]>(
+    []
+  );
   const versionResolver = useRef<((option?: LyricsOption) => void) | undefined>(
     undefined
   );
@@ -213,7 +217,6 @@ export default function RecognizeSong() {
           }
         };
       }
-      setDraft(next);
       setLyricsNotice(
         next.content ? "AddSongLyricsNotice" : "AddSongLyricsUnavailable"
       );
@@ -234,10 +237,19 @@ export default function RecognizeSong() {
       ]);
       if (request !== generation.current) return;
       const candidates = preferredSongContent(
-        lyrics.options,
+        lyrics.options.filter(
+          (option) => songChords(option.content).length > 0
+        ),
         result.album,
         result.duration
       );
+      setAvailableVersions(candidates);
+      if (!candidates.length) {
+        setFound(null);
+        setDraft(null);
+        setMessage(t("AddSongNoLyrics"));
+        return;
+      }
       const selected =
         candidates.length > 1
           ? await new Promise<LyricsOption | undefined>((resolve) => {
@@ -246,6 +258,12 @@ export default function RecognizeSong() {
             })
           : candidates[0];
       if (request !== generation.current) return;
+      if (!selected) {
+        setFound(null);
+        setDraft(null);
+        setMessage(t("AutofillSearchCancelled"));
+        return;
+      }
       next = {
         ...next,
         cover,
@@ -425,7 +443,7 @@ export default function RecognizeSong() {
           onPress={() => {
             if (!draft) return;
             void stop();
-            navigation.replace("createSong", { draft, notice: lyricsNotice });
+            navigation.navigate("createSong", { draft, notice: lyricsNotice });
           }}
           style={({ pressed }) => [styles.result, pressed && styles.pressed]}
         >
@@ -475,6 +493,13 @@ export default function RecognizeSong() {
           onPress={() => void stop()}
         />
       )}
+      {!!found && !busy && availableVersions.length > 1 && (
+        <Action
+          label={t("ChooseLyricsVersion")}
+          icon="playlist-music-outline"
+          onPress={() => setVersions(availableVersions)}
+        />
+      )}
       {!!versions.length && (
         <Sheet
           title={t("ChooseLyricsVersion")}
@@ -488,7 +513,21 @@ export default function RecognizeSong() {
               key={`${option.source}:${option.id}:${option.album}`}
               label={`${option.album || option.title} · ${option.source}${option.duration ? ` · ${Math.round(option.duration)} s` : ""}`}
               onPress={() => {
-                versionResolver.current?.(option);
+                if (versionResolver.current) versionResolver.current(option);
+                else
+                  setDraft(
+                    (previous) =>
+                      previous && {
+                        ...previous,
+                        content: option.content,
+                        capo: option.capo,
+                        rhythm: option.rhythm,
+                        sourceTuning: option.tuning,
+                        contentSource: option.url
+                          ? { name: option.source, url: option.url }
+                          : undefined
+                      }
+                  );
                 versionResolver.current = undefined;
                 setVersions([]);
               }}

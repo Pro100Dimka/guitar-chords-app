@@ -21,7 +21,10 @@ interface NativeRecognizer {
   cancel(): Promise<void>;
 }
 const native = (): NativeRecognizer => {
-  if (Platform.OS !== "android" || !NativeModules.SongRecognition)
+  if (
+    !["android", "ios"].includes(Platform.OS) ||
+    !NativeModules.SongRecognition
+  )
     throw new Error("RecognitionUnsupported");
   return NativeModules.SongRecognition as NativeRecognizer;
 };
@@ -132,7 +135,10 @@ export async function recognizeAudioFile(
   return recognize((recognizer) => recognizer.recognizeFile(file.uri), signal);
 }
 export async function cancelRecognition() {
-  if (Platform.OS === "android" && NativeModules.SongRecognition) {
+  if (
+    ["android", "ios"].includes(Platform.OS) &&
+    NativeModules.SongRecognition
+  ) {
     if (!cancelling) {
       cancelling = true;
       cancellation = native()

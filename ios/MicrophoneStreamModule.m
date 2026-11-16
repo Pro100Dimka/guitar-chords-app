@@ -17,6 +17,11 @@ RCT_EXTERN_METHOD(getBufPerSec:(RCTPromiseResolveBlock)resolve
 
 @end
 
+@interface RCT_EXTERN_MODULE(SongRecognition, NSObject)
+RCT_EXTERN_METHOD(recognizeMicrophone:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(cancel:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+@end
+
 @interface RCT_EXTERN_MODULE(PerformanceAudio, RCTEventEmitter)
 RCT_EXTERN_METHOD(startTake:(NSString *)songId resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(stopTake:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)

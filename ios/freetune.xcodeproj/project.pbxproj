@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+        AAC300000000000000000001 /* SongRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC300000000000000000002; };
         AAB100000000000000000001 /* PerformanceAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB100000000000000000002; };
         AAB100000000000000000003 /* tuner_success.wav in Resources */ = {isa = PBXBuildFile; fileRef = AAB100000000000000000004; };
 		1175EDDC4BD4E922B2B48DC1 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A /* PrivacyInfo.xcprivacy */; };
@@ -22,6 +23,7 @@ AAB200000000000000000006 /* Manrope license in Resources */ = {isa = PBXBuildFil
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+        AAC300000000000000000002 /* SongRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongRecognition.swift; sourceTree = "<group>"; };
         AAB100000000000000000002 /* PerformanceAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceAudio.swift; sourceTree = "<group>"; };
         AAB100000000000000000004 /* tuner_success.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = tuner_success.wav; path = freetune/tuner_success.wav; sourceTree = "<group>"; };
 		0DD4C93C15DB4BA98D7D5FF6 /* EvilIcons.ttf */ = {isa = PBXFileReference; explicitFileType = undefined; fileEncoding = 9; includeInIndex = 0; lastKnownFileType = unknown; name = EvilIcons.ttf; path = "../node_modules/react-native-vector-icons/Fonts/EvilIcons.ttf"; sourceTree = "<group>"; };
@@ -80,6 +82,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				5BD81FA92F61EF4D00227B71 /* freetune-Bridging-Header.h */,
 				5BD81FA32F61EB5E00227B71 /* MicrophoneStreamModule.swift */,
                 AAB100000000000000000002 /* PerformanceAudio.swift */,
+                AAC300000000000000000002 /* SongRecognition.swift */,
                 AAB100000000000000000004 /* tuner_success.wav */,
 				AAB200000000000000000001 /* Manrope-Regular.ttf */,
                 AAB200000000000000000003 /* Manrope-SemiBold.ttf */,
@@ -174,6 +177,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			isa = PBXNativeTarget;
 			buildConfigurationList = 13B07F931A680F5B00A75B9A /* Build configuration list for PBXNativeTarget "freetune" */;
 			buildPhases = (
+                AAC300000000000000000003 /* Build fingerprint */,
 				E75364A86E89F7ABD1987DBE /* [CP] Check Pods Manifest.lock */,
 				13B07F871A680F5B00A75B9A /* Sources */,
 				13B07F8C1A680F5B00A75B9A /* Frameworks */,
@@ -320,6 +324,17 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
 			showEnvVarsInLog = 0;
 		};
+        AAC300000000000000000003 /* Build fingerprint */ = {
+            isa = PBXShellScriptBuildPhase;
+            buildActionMask = 2147483647;
+            alwaysOutOfDate = 1;
+            name = "Build fingerprint";
+            inputPaths = ();
+            outputPaths = ("$(BUILT_PRODUCTS_DIR)/fingerprint/libfreetune_song_fingerprint.a");
+            runOnlyForDeploymentPostprocessing = 0;
+            shellPath = /bin/bash;
+            shellScript = "bash \"${PROJECT_DIR}/build-fingerprint.sh\"";
+        };
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
@@ -331,6 +346,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				5BD81FAB2F61EFBB00227B71 /* MicrophoneStreamModule.m in Sources */,
 				5BD81FA42F61EB5E00227B71 /* MicrophoneStreamModule.swift in Sources */,
                 AAB100000000000000000001 /* PerformanceAudio.swift in Sources */,
+                AAC300000000000000000001 /* SongRecognition.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -354,10 +370,12 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				OTHER_LDFLAGS = (
+				LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)/fingerprint");
+                OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
 					"-lc++",
+                    "-lfreetune_song_fingerprint",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.freetune";
 				PRODUCT_NAME = freetune;
@@ -389,10 +407,12 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
-				OTHER_LDFLAGS = (
+				LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)/fingerprint");
+                OTHER_LDFLAGS = (
 					"$(inherited)",
 					"-ObjC",
 					"-lc++",
+                    "-lfreetune_song_fingerprint",
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = "com.freetune";
 				PRODUCT_NAME = freetune;

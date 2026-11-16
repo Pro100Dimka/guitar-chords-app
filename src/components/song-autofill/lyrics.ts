@@ -479,11 +479,16 @@ const chordSources = {
   Cifras: { origin: "https://www.cifras.com.br", path: "/cifra" },
   GuitareTab: { origin: "https://www.guitaretab.com", path: "/fetch/" }
 };
+const contentCache = new Map<
+  string,
+  { until: number; options: LyricsOption[] }
+>();
 async function lookupChordPage(
   title: string,
   artist: string,
   source: keyof typeof chordSources,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  candidateUrl?: string
 ): Promise<LyricsOption[]> {
   const slug = (value: string) =>
     value
@@ -501,8 +506,10 @@ async function lookupChordPage(
     source === "Cifra Club" && artistSlug === "eagles"
       ? "the-eagles"
       : artistSlug;
-  let url = `${provider.origin}${provider.path}/${canonicalArtist}/${titleSlug}/`;
-  if (source === "GuitareTab") {
+  let url =
+    candidateUrl ??
+    `${provider.origin}${provider.path}/${canonicalArtist}/${titleSlug}/`;
+  if (source === "GuitareTab" && !candidateUrl) {
     const search = await fetchSource(
       `${provider.origin}${provider.path}?${new URLSearchParams({
         type: "tab",
@@ -516,7 +523,7 @@ async function lookupChordPage(
         (element.attribs.class ?? "").split(/\s+/).includes("gt-list__row"),
       parseDocument(search).children
     );
-    let path = "";
+    const paths = new Set<string>();
     for (const row of rows) {
       const links = DomUtils.getElementsByTagName("a", row.children);
       if (!links.some((link) => sameArtist(artist, DomUtils.textContent(link))))
@@ -533,14 +540,48 @@ async function lookupChordPage(
         );
       });
       if (candidate) {
-        path = candidate.attribs.href;
-        break;
+        paths.add(candidate.attribs.href);
+        if (paths.size === 3) break;
       }
     }
-    if (!path) return [];
-    url = `${provider.origin}${path}`;
+    const results = await Promise.allSettled(
+      [...paths].map((path) =>
+        lookupChordPage(
+          title,
+          artist,
+          source,
+          signal,
+          `${provider.origin}${path}`
+        )
+      )
+    );
+    return results.flatMap((result) =>
+      result.status === "fulfilled" ? result.value : []
+    );
   }
-  const html = await fetchSource(url, signal);
+  let html = await fetchSource(url, signal);
+  if (!html && source === "Cifra Club" && !candidateUrl) {
+    const catalog = await fetchSource(
+      `${provider.origin}/${canonicalArtist}/`,
+      signal
+    );
+    if (catalog) {
+      const link = DomUtils.getElementsByTagName(
+        "a",
+        parseDocument(catalog).children
+      ).find(
+        (element) =>
+          matchingIdentity(title, DomUtils.textContent(element)) &&
+          new RegExp(`^/${canonicalArtist}/[a-z0-9-]+/$`).test(
+            element.attribs.href ?? ""
+          )
+      );
+      if (link) {
+        url = `${provider.origin}${link.attribs.href}`;
+        html = await fetchSource(url, signal);
+      }
+    }
+  }
   if (!html) return [];
   const document = parseDocument(html);
   let foundTitle = "",
@@ -743,6 +784,10 @@ export async function lookupSongContent(
 ): Promise<LyricsOption[]> {
   if (!title.trim() || !artist.trim()) throw new Error("MissingIdentity");
   if (signal?.aborted) throw new Error("Cancelled");
+  const cacheKey = `${normalize(primaryArtist(artist))}:${normalize(trackTitle(title))}`;
+  const cached = contentCache.get(cacheKey);
+  if (cached && cached.until > Date.now())
+    return cached.options.map((option) => ({ ...option }));
   const controller = new AbortController();
   let rejectAbort: (error: Error) => void = () => {};
   const cancelled = new Promise<never>((_, reject) => {
@@ -805,7 +850,16 @@ export async function lookupSongContent(
     ]);
     if (signal?.aborted) throw new Error("Cancelled");
     const withChords = options.filter((option) => option.hasChords);
-    if (options.length) return withChords.length ? withChords : options;
+    if (withChords.length) {
+      if (contentCache.size >= 20)
+        contentCache.delete(contentCache.keys().next().value!);
+      contentCache.set(cacheKey, {
+        until: Date.now() + 10 * 60 * 1000,
+        options: withChords.map((option) => ({ ...option }))
+      });
+      return withChords;
+    }
+    if (options.length) return options;
     const results = await completed;
     try {
       const fallback = await lookupOvh(title, artist, controller.signal);

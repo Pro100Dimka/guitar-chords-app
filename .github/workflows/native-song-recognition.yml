@@ -94,6 +94,9 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Production iOS recognition and cancellation
+        run: python3 test-ios-recognition.py
       - name: Production Swift pitch methods
         run: python3 test-ios-pitch.py
       - name: Production Swift capture route guards (fixtures)

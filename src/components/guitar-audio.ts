@@ -4,12 +4,12 @@ import { performanceAudio } from "./performance-audio";
 const decode = (sample: { frequency: number; pcm: string }) => {
   const bytes = toByteArray(sample.pcm);
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const data = new Float32Array(bytes.length / 2);
+  for (let i = 0; i < data.length; i++)
+    data[i] = view.getInt16(i * 2, true) / 32768;
   return {
     frequency: sample.frequency,
-    data: Float32Array.from(
-      { length: bytes.length / 2 },
-      (_, i) => view.getInt16(i * 2, true) / 32768
-    )
+    data
   };
 };
 const decoded = new Map<
@@ -47,20 +47,22 @@ export function prepareGuitar(notes: number[], reference = 440) {
       mix.length - offset,
       Math.floor((sample.data.length - 1) / step)
     );
+    const attack = rate * 0.012;
+    const release = rate * 0.16;
+    const gain = 0.7 / Math.sqrt(notes.length);
     for (let i = 0; i < length; i++) {
       const position = i * step,
         index = Math.floor(position),
         fraction = position - index;
       const value =
         sample.data[index] * (1 - fraction) + sample.data[index + 1] * fraction;
-      mix[i + offset] +=
-        (value *
-          (0.5 - 0.5 * Math.cos(Math.PI * Math.min(1, i / (rate * 0.012)))) *
-          (0.5 -
-            0.5 *
-              Math.cos(Math.PI * Math.min(1, (length - i) / (rate * 0.16)))) *
-          0.7) /
-        Math.sqrt(notes.length);
+      const fadeIn =
+        i < attack ? 0.5 - 0.5 * Math.cos((Math.PI * i) / attack) : 1;
+      const fadeOut =
+        length - i < release
+          ? 0.5 - 0.5 * Math.cos((Math.PI * (length - i)) / release)
+          : 1;
+      mix[i + offset] += value * fadeIn * fadeOut * gain;
     }
   });
   const bytes = new Uint8Array(44 + mix.length * 2);
@@ -79,9 +81,8 @@ export function prepareGuitar(notes: number[], reference = 440) {
   view.setUint16(34, 16, true);
   text(36, "data");
   view.setUint32(40, mix.length * 2, true);
-  mix.forEach((value, i) =>
-    view.setInt16(44 + i * 2, Math.max(-1, Math.min(1, value)) * 32767, true)
-  );
+  for (let i = 0; i < mix.length; i++)
+    view.setInt16(44 + i * 2, Math.max(-1, Math.min(1, mix[i])) * 32767, true);
   const wave = fromByteArray(bytes);
   if (previews.size >= 32) previews.delete(previews.keys().next().value!);
   previews.set(key, wave);
