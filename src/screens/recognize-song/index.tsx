@@ -35,7 +35,7 @@ import {
   preferredSongContent,
   LyricsOption,
   lookupSongContent,
-  lookupShazamTempo
+  lookupSongTempo
 } from "../../components/song-autofill/lyrics";
 import {
   fileCanceled,
@@ -231,7 +231,7 @@ export default function RecognizeSong() {
         readRemoteSongCover(result.cover ?? "", abort.signal).catch(() => ""),
         result.tempo !== undefined
           ? Promise.resolve(result.tempo)
-          : lookupShazamTempo(
+          : lookupSongTempo(
               result.title,
               result.artist,
               result.url ?? "",

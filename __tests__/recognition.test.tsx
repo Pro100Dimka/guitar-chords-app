@@ -18,14 +18,17 @@ import {
   recognizeAudioFile,
   cancelRecognition
 } from "../src/components/song-autofill/recognition";
-import { lookupSongContent } from "../src/components/song-autofill/lyrics";
+import {
+  lookupSongContent,
+  lookupSongTempo
+} from "../src/components/song-autofill/lyrics";
 import RecognizeSong from "../src/screens/recognize-song";
 
 jest.mock("../src/components/permissions", () => jest.fn());
 jest.mock("../src/components/song-autofill/lyrics", () => ({
   ...jest.requireActual("../src/components/song-autofill/lyrics"),
   lookupSongContent: jest.fn(),
-  lookupShazamTempo: jest.fn().mockResolvedValue(undefined)
+  lookupSongTempo: jest.fn().mockResolvedValue(undefined)
 }));
 jest.mock("../src/components/library-files", () => ({
   readRemoteSongCover: jest.fn().mockResolvedValue(""),
@@ -305,6 +308,7 @@ test("an already cancelled operation never opens permission or file dialogs", as
   expect(pick).not.toHaveBeenCalled();
 });
 test("recognition selects lyrics from the known album instead of the first version", async () => {
+  jest.mocked(lookupSongTempo).mockResolvedValueOnce(188);
   NativeModules.SongRecognition.recognizeMicrophone.mockResolvedValue({
     title: "Track",
     artist: "Artist",
@@ -357,7 +361,10 @@ test("recognition selects lyrics from the known album instead of the first versi
   expect(mockNavigation.replace).toHaveBeenLastCalledWith(
     "createSong",
     expect.objectContaining({
-      draft: expect.objectContaining({ content: "Em G\nStudio words" })
+      draft: expect.objectContaining({
+        content: "Em G\nStudio words",
+        tempo: 188
+      })
     })
   );
 });

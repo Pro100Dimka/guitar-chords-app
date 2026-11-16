@@ -218,7 +218,12 @@ async function parseSource(html: string, signal?: AbortSignal) {
   parser.end();
   return handler.root;
 }
-async function fetchSource(url: string, signal?: AbortSignal, timeout = 12000) {
+async function fetchSource(
+  url: string,
+  signal?: AbortSignal,
+  timeout = 12000,
+  form?: URLSearchParams
+) {
   if (signal?.aborted) throw new Error("Cancelled");
   const origin = new URL(url).origin;
   if (Date.now() < (sourceCooldowns.get(origin) ?? 0))
@@ -228,7 +233,16 @@ async function fetchSource(url: string, signal?: AbortSignal, timeout = 12000) {
   signal?.addEventListener("abort", abort, { once: true });
   const timer = setTimeout(abort, timeout);
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, {
+      signal: controller.signal,
+      ...(form
+        ? {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: form.toString()
+          }
+        : {})
+    });
     if (response.status === 404) return null;
     if ([403, 429].includes(response.status)) {
       const retry = Number(response.headers?.get("Retry-After"));
@@ -253,7 +267,7 @@ async function fetchSource(url: string, signal?: AbortSignal, timeout = 12000) {
   }
 }
 
-export async function lookupShazamTempo(
+async function lookupShazamTempo(
   title: string,
   artist: string,
   url: string,
@@ -313,6 +327,57 @@ export async function lookupShazamTempo(
   const tempo = Number(value?.replace(",", "."));
   if (Number.isFinite(tempo) && tempo >= 40 && tempo <= 200)
     return Math.round(tempo);
+}
+
+export async function lookupSongTempo(
+  title: string,
+  artist: string,
+  url: string,
+  signal?: AbortSignal
+) {
+  if (!title.trim() || !artist.trim()) return;
+  try {
+    const tempo = await lookupShazamTempo(title, artist, url, signal);
+    if (tempo !== undefined) return tempo;
+  } catch {
+    if (signal?.aborted) throw new Error("Cancelled");
+  }
+  const html = await fetchSource(
+    "https://songbpm.com/searches",
+    signal,
+    4000,
+    new URLSearchParams({
+      query: `${primaryArtist(artist)} ${trackTitle(title)}`
+    })
+  );
+  if (!html) return;
+  const document = await parseSource(html, signal);
+  const tempos = new Set<number>();
+  for (const card of DomUtils.getElementsByTagName("a", document.children)) {
+    if (!/^\/@[^/]+\/[^/]+$/.test(card.attribs.href ?? "")) continue;
+    const labels = DomUtils.getElementsByTagName("p", [card]);
+    if (
+      labels.length !== 2 ||
+      !sameArtist(artist, DomUtils.textContent(labels[0])) ||
+      !matchingIdentity(title, DomUtils.textContent(labels[1]))
+    )
+      continue;
+    const label = DomUtils.findOne(
+      (element) =>
+        element.name === "span" &&
+        DomUtils.textContent(element).trim() === "BPM",
+      card.children
+    );
+    const tempo = Number(
+      label?.parent &&
+        DomUtils.textContent(label.parent)
+          .match(/^\s*BPM\s*(\d+(?:[.,]\d+)?)\s*$/i)?.[1]
+          ?.replace(",", ".")
+    );
+    if (Number.isFinite(tempo) && tempo >= 40 && tempo <= 200)
+      tempos.add(Math.round(tempo));
+  }
+  if (tempos.size === 1) return [...tempos][0];
 }
 
 let nextPisennykRequest = 0;
