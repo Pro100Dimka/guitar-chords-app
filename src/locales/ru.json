@@ -296,7 +296,7 @@
   "AddSongTapResult": "Нажмите на найденную песню, чтобы продолжить",
   "AddSongEditResult": "Редактировать найденную песню",
   "AddSongLyricsNotice": "Текст найден, аккордов нет.",
-  "AddSongNoLyrics": "Текст и аккорды не найдены.",
+  "AddSongNoLyrics": "Не удалось найти эту песню с аккордами.",
   "AddSongLyricsUnavailable": "Поиск текста временно недоступен.",
   "AddSongChordsNotice": "Текст и аккорды готовы.",
   "SongContentSource": "Источник текста и аккордов",
@@ -596,7 +596,7 @@
   "GuideEnlarge": "Увеличить иллюстрацию экрана",
   "GuideScreenshot": "На экране · увеличить",
   "GuideScreenshotHint": "Иллюстрация интерфейса. Язык и данные на вашем экране могут отличаться.",
-  "GuideAndroidOnly": "Распознавание с микрофона и аудиофайла сейчас доступно на Android.",
+  "GuideAndroidOnly": "Распознавание с микрофона доступно на iPhone и Android. Распознавание аудиофайлов пока доступно на Android.",
   "GuideBackHint": "Чтобы вернуться к инструкции, нажмите «Инструкция» в нижнем меню.",
   "GuideRelated": "Ещё может пригодиться",
   "GuideSections": {

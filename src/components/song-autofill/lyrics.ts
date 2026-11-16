@@ -1,5 +1,5 @@
 import { songChords, transposeSong } from "../../screens/song/chords";
-import { Parser, parseDocument, DomUtils } from "htmlparser2";
+import { Parser, DomHandler, DomUtils } from "htmlparser2";
 import { sourceArrangement } from "../../screens/song/rhythms";
 
 export interface LyricsOption {
@@ -189,6 +189,22 @@ function chartRhythm(
 }
 
 const sourceCooldowns = new Map<string, number>();
+async function parseSource(html: string, signal?: AbortSignal) {
+  const handler = new DomHandler();
+  const parser = new Parser(handler);
+  let deadline = Date.now() + 2;
+  for (let offset = 0; offset < html.length; offset += 8192) {
+    if (signal?.aborted) throw new Error("Cancelled");
+    parser.write(html.slice(offset, offset + 8192));
+    if (Date.now() >= deadline) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      deadline = Date.now() + 2;
+    }
+  }
+  if (signal?.aborted) throw new Error("Cancelled");
+  parser.end();
+  return handler.root;
+}
 async function fetchSource(url: string, signal?: AbortSignal, timeout = 12000) {
   if (signal?.aborted) throw new Error("Cancelled");
   const origin = new URL(url).origin;
@@ -236,7 +252,7 @@ export async function lookupShazamTempo(
     return;
   const html = await fetchSource(url, signal, 4000);
   if (!html) return;
-  const document = parseDocument(html);
+  const document = await parseSource(html, signal);
   const verified = DomUtils.getElementsByTagName(
     "script",
     document.children
@@ -326,7 +342,7 @@ async function lookupPisennyk(
     signal
   );
   if (!search) return [];
-  const document = parseDocument(search);
+  const document = await parseSource(search, signal);
   const candidate = DomUtils.getElementsByTagName("a", document.children).find(
     (element) =>
       sameArtist(
@@ -341,7 +357,7 @@ async function lookupPisennyk(
   const url = candidate.attribs.href;
   const html = await fetchPisennyk(url, signal);
   if (!html) return [];
-  const page = parseDocument(html);
+  const page = await parseSource(html, signal);
   let identity: { title: string; artist: string; id: number } | undefined;
   for (const script of DomUtils.getElementsByTagName("script", page.children)) {
     if (script.attribs.type !== "application/ld+json") continue;
@@ -521,7 +537,7 @@ async function lookupChordPage(
     const rows = DomUtils.findAll(
       (element) =>
         (element.attribs.class ?? "").split(/\s+/).includes("gt-list__row"),
-      parseDocument(search).children
+      (await parseSource(search, signal)).children
     );
     const paths = new Set<string>();
     for (const row of rows) {
@@ -568,7 +584,7 @@ async function lookupChordPage(
     if (catalog) {
       const link = DomUtils.getElementsByTagName(
         "a",
-        parseDocument(catalog).children
+        (await parseSource(catalog, signal)).children
       ).find(
         (element) =>
           matchingIdentity(title, DomUtils.textContent(element)) &&
@@ -583,7 +599,7 @@ async function lookupChordPage(
     }
   }
   if (!html) return [];
-  const document = parseDocument(html);
+  const document = await parseSource(html, signal);
   let foundTitle = "",
     foundArtist = "";
   for (const script of DomUtils.getElementsByTagName(

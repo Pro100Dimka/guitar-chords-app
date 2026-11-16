@@ -1,8 +1,28 @@
 import { toByteArray } from "base64-js";
-import { prepareGuitar } from "../src/components/guitar-audio";
+import { prepareGuitar, warmGuitar } from "../src/components/guitar-audio";
 import { playGuitar } from "../src/components/guitar-audio";
 import { performanceAudio } from "../src/components/performance-audio";
 import { chordShapes, guitarMidi } from "../src/screens/song/chords";
+
+test("background reference preparation yields, can be cancelled and keeps identical PCM", async () => {
+  jest.useFakeTimers();
+  const controller = new AbortController();
+  jest.mocked(performanceAudio.prepareGuitar).mockClear();
+  const cancelled = warmGuitar([43], 437, controller.signal);
+  expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+  controller.abort();
+  await jest.runAllTimersAsync();
+  await cancelled;
+  expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+  const pending = warmGuitar([43], 437, new AbortController().signal);
+  await jest.runAllTimersAsync();
+  await pending;
+  const wave = jest
+    .mocked(performanceAudio.prepareGuitar)
+    .mock.calls.at(-1)![1];
+  expect(prepareGuitar([43], 437)).toBe(wave);
+  jest.useRealTimers();
+});
 
 test("a JS-cached string is prepared again before native playback after cache eviction", () => {
   prepareGuitar([40]);

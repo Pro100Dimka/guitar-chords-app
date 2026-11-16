@@ -566,6 +566,60 @@ test("metadata stays unavailable until real chords have been checked", async () 
     })
   );
 });
+
+test("cancelling an unchecked chart restores the microphone button and ignores late results", async () => {
+  const lyrics = deferred<Awaited<ReturnType<typeof lookupSongContent>>>();
+  jest.mocked(lookupSongContent).mockReturnValue(lyrics.promise);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "AddSongStart" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  const { Action } = require("../src/screens/song/tools");
+  await act(async () =>
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Cancel")!
+      .props.onPress()
+  );
+  expect(
+    screen!.root.findAll(
+      (node) => node.props.accessibilityLabel === "AddSongEditResult"
+    )
+  ).toHaveLength(0);
+  expect(
+    screen!.root.findAll(
+      (node) => node.props.accessibilityLabel === "AddSongStart"
+    ).length
+  ).toBeGreaterThan(0);
+  await act(async () =>
+    lyrics.resolve([
+      {
+        id: 1,
+        title: "Track",
+        artist: "Artist",
+        album: "",
+        duration: null,
+        content: "Am C\nLate words",
+        source: "Cifra Club",
+        hasChords: true
+      }
+    ])
+  );
+  expect(mockNavigation.navigate).not.toHaveBeenCalled();
+  expect(
+    screen!.root.findAll(
+      (node) => node.props.accessibilityLabel === "AddSongEditResult"
+    )
+  ).toHaveLength(0);
+});
 test("granting microphone permission after Activity pause resumes recognition once active", async () => {
   const permission = deferred<boolean>();
   jest.mocked(checkMicPermission).mockReturnValue(permission.promise);

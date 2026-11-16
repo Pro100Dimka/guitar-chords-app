@@ -1,4 +1,4 @@
-//! Android JNI bridge over shazamio-core 2.1.0's MIT PCM fingerprint algorithm.
+//! Mobile bridges over shazamio-core 2.1.0's MIT PCM fingerprint algorithm.
 mod algorithm;
 mod signature_format;
 

@@ -264,6 +264,7 @@ const Library: React.FC = () => {
             <Pressable
               key={item.label}
               accessibilityRole="button"
+              accessibilityLabel={t(item.label)}
               style={({ pressed }) => [
                 styles.addOption,
                 pressed && { opacity: 0.7 }

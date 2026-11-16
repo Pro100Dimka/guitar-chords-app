@@ -458,6 +458,30 @@ describe("content provider failover", () => {
     ]);
   });
 
+  it("yields and allows cancellation while parsing a large provider page", async () => {
+    let clock = 100000;
+    jest.spyOn(Date, "now").mockImplementation(() => (clock += 3));
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(
+            `<div>${"<span>Example</span>".repeat(20000)}</div>${chart}`
+          )
+        : response(String(url))
+    );
+    const controller = new AbortController();
+    let settled = false;
+    const result = lookup(title, artist, controller.signal).catch((error) => {
+      settled = true;
+      return error;
+    });
+    for (let i = 0; i < 30; i++) await Promise.resolve();
+    expect(settled).toBe(false);
+    controller.abort();
+    await expect(result).resolves.toEqual(new Error("Cancelled"));
+    await jest.runAllTimersAsync();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
   it("finds a noncanonical song slug in the artist catalog and verifies the page", async () => {
     request.mockImplementation(async (url) => {
       const value = String(url);

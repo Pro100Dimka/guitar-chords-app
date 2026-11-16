@@ -1,6 +1,6 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { FlatList, TextInput } from "react-native";
+import { FlatList, Platform, TextInput } from "react-native";
 import Library from "../src/screens/library";
 import SearchBar from "../src/screens/library/search";
 import { Action } from "../src/screens/song/tools";
@@ -32,6 +32,25 @@ const songs = Array.from({ length: 10 }, (_, id) => ({
   id,
   title: `Song ${id}`
 }));
+
+test("iPhone offers microphone recognition in the add menu", async () => {
+  jest.replaceProperty(Platform, "OS", "ios");
+  jest.mocked(getAllItems).mockResolvedValue(songs);
+  await act(async () => {
+    screen = Renderer.create(<Library />);
+  });
+  await act(async () => screen.root.findByType(SearchBar).props.onAdd());
+  expect(
+    screen.root.findAll(
+      (node) => node.props.accessibilityLabel === "AutofillRecognizeMic"
+    ).length
+  ).toBeGreaterThan(0);
+  expect(
+    screen.root.findAll(
+      (node) => node.props.accessibilityLabel === "AutofillRecognizeFile"
+    )
+  ).toHaveLength(0);
+});
 
 test("deletion completion refreshes the current search instead of its captured filter", async () => {
   jest.mocked(getAllItems).mockResolvedValue(songs);

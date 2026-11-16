@@ -37,7 +37,7 @@ import { usePreferences } from "@/components/preferences";
 import { performanceAudio } from "../../components/performance-audio";
 import TuningSheet from "./tuning-sheet";
 import { guitarTunings, noteNames, standardTuning } from "./tunings";
-import { playGuitar, prepareGuitar } from "../../components/guitar-audio";
+import { playGuitar, warmGuitar } from "../../components/guitar-audio";
 import ChromaticWheel, { chromaticLayout } from "./chormatic-wheel";
 import { Action, Sheet } from "../song/tools";
 import { useTranslation } from "react-i18next";
@@ -208,31 +208,26 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   }, [config.selectedInstrument, config.instruments, tuning, customTuning]);
   useEffect(() => {
     if (!active || !painted) return;
-    if (isChromatic) {
-      const timer = setTimeout(
-        () =>
-          prepareGuitar(
-            [
-              ((chromaticOctave ?? 4) + 1) * 12 +
-                noteNames.indexOf(referenceNote)
-            ],
-            tunerReference
-          ),
-        80
-      );
-      return () => clearTimeout(timer);
-    }
-    let index = 0;
-    const warm = () => {
-      const string = strings?.[index++];
-      if (!string) return;
-      prepareGuitar([
-        (string.octave + 1) * 12 + noteNames.indexOf(string.name)
-      ]);
-      timer = setTimeout(warm, 16);
+    const controller = new AbortController();
+    const notes = isChromatic
+      ? [((chromaticOctave ?? 4) + 1) * 12 + noteNames.indexOf(referenceNote)]
+      : (strings ?? []).map(
+          (string) => (string.octave + 1) * 12 + noteNames.indexOf(string.name)
+        );
+    const timer = setTimeout(async () => {
+      for (const midi of notes) {
+        if (controller.signal.aborted) break;
+        await warmGuitar(
+          [midi],
+          isChromatic ? tunerReference : 440,
+          controller.signal
+        );
+      }
+    }, 80);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
     };
-    let timer = setTimeout(warm, 80);
-    return () => clearTimeout(timer);
   }, [
     strings,
     active,

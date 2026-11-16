@@ -103,7 +103,7 @@ final class SongRecognition: NSObject, RCTBridgeModule {
       do {
         try self.check(capture)
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetoothHFP])
+        try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
         try session.setActive(true)
         sessionActivated = true
         let input = AVAudioEngine()

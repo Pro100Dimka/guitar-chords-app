@@ -328,11 +328,13 @@ test.each([false, true])(
   async (active) => {
     jest.useFakeTimers();
     const prepare = jest.spyOn(guitarAudio, "prepareGuitar");
+    const warm = jest.spyOn(guitarAudio, "warmGuitar");
     await act(async () => {
       screen = Renderer.create(<Tuner active={active} />);
     });
     await act(async () => jest.advanceTimersByTime(500));
     expect(prepare).not.toHaveBeenCalled();
+    expect(warm).not.toHaveBeenCalled();
   }
 );
 

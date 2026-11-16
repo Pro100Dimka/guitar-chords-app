@@ -75,6 +75,7 @@ export default function RecognizeSong() {
   const [message, setMessage] = useState("");
   const [found, setFound] = useState<RecognizedSong | null>(null);
   const [draft, setDraft] = useState<FormValues | null>(null);
+  const draftReady = useRef(false);
   const [lyricsNotice, setLyricsNotice] = useState<
     | "AddSongLyricsNotice"
     | "AddSongNoLyrics"
@@ -97,6 +98,7 @@ export default function RecognizeSong() {
     running.current = true;
     controller.current?.abort();
     if (mounted.current) {
+      if (!draftReady.current) setFound(null);
       setBusy(true);
       setStopping(true);
       setMessage(t("AutofillStopping"));
@@ -167,6 +169,7 @@ export default function RecognizeSong() {
     setBusy(true);
     setFound(null);
     setDraft(null);
+    draftReady.current = false;
     setLyricsNotice("AddSongNoLyrics");
     setMessage(
       t(
@@ -237,9 +240,9 @@ export default function RecognizeSong() {
       ]);
       if (request !== generation.current) return;
       const candidates = preferredSongContent(
-        lyrics.options.filter(
-          (option) => songChords(option.content).length > 0
-        ),
+        lyrics.options
+          .filter((option) => songChords(option.content).length > 0)
+          .map((option) => ({ ...option, hasChords: true })),
         result.album,
         result.duration
       );
@@ -286,6 +289,7 @@ export default function RecognizeSong() {
             ? "AddSongLyricsUnavailable"
             : "AddSongNoLyrics";
       setLyricsNotice(notice);
+      draftReady.current = true;
       setDraft(next);
       setMessage(t("AddSongTapResult"));
       if (mode === "file")
@@ -295,6 +299,7 @@ export default function RecognizeSong() {
         });
     } catch (error) {
       if (request !== generation.current) return;
+      if (!draftReady.current) setFound(null);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       const categories: Record<string, string> = {
@@ -496,7 +501,6 @@ export default function RecognizeSong() {
       {!!found && !busy && availableVersions.length > 1 && (
         <Action
           label={t("ChooseLyricsVersion")}
-          icon="playlist-music-outline"
           onPress={() => setVersions(availableVersions)}
         />
       )}
@@ -508,10 +512,10 @@ export default function RecognizeSong() {
             setVersions([]);
           }}
         >
-          {versions.map((option) => (
+          {versions.map((option, index) => (
             <Action
-              key={`${option.source}:${option.id}:${option.album}`}
-              label={`${option.album || option.title} · ${option.source}${option.duration ? ` · ${Math.round(option.duration)} s` : ""}`}
+              key={`${option.source}:${option.url ?? option.id}:${option.album}`}
+              label={`${option.album || option.title} · ${option.source}${option.duration ? ` · ${Math.round(option.duration)} s` : ""} · ${index + 1}`}
               onPress={() => {
                 if (versionResolver.current) versionResolver.current(option);
                 else

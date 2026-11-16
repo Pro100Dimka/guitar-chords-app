@@ -27,7 +27,7 @@ final class CaptureSession {
   struct Options: OptionSet {
     let rawValue: Int
     static let defaultToSpeaker = Options(rawValue: 1)
-    static let allowBluetoothHFP = Options(rawValue: 2)
+    static let allowBluetooth = Options(rawValue: 2)
     static let notifyOthersOnDeactivation = Options(rawValue: 4)
   }
   static let interruptionNotification = Notification.Name("interruption")

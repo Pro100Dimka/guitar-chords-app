@@ -18,7 +18,10 @@ const decoded = new Map<
 >();
 
 const previews = new Map<string, string>();
-export function prepareGuitar(notes: number[], reference = 440) {
+function* renderGuitar(
+  notes: number[],
+  reference: number
+): Generator<void, string> {
   const key = `${reference}:${notes.join(",")}`;
   const cached = previews.get(key);
   if (cached) {
@@ -28,7 +31,7 @@ export function prepareGuitar(notes: number[], reference = 440) {
   const samples: typeof import("../../assets/guitar-samples.json") = require("../../assets/guitar-samples.json");
   const rate = 22050;
   const mix = new Float32Array(rate * (notes.length > 1 ? 5 : 3));
-  notes.forEach((midi, string) => {
+  for (const [string, midi] of notes.entries()) {
     const frequency = reference * 2 ** ((midi - 69) / 12);
     const source = samples.reduce((best, item) =>
       Math.abs(Math.log2(item.frequency / frequency)) <
@@ -51,6 +54,7 @@ export function prepareGuitar(notes: number[], reference = 440) {
     const release = rate * 0.16;
     const gain = 0.7 / Math.sqrt(notes.length);
     for (let i = 0; i < length; i++) {
+      if (i % 4096 === 0) yield;
       const position = i * step,
         index = Math.floor(position),
         fraction = position - index;
@@ -64,7 +68,7 @@ export function prepareGuitar(notes: number[], reference = 440) {
           : 1;
       mix[i + offset] += value * fadeIn * fadeOut * gain;
     }
-  });
+  }
   const bytes = new Uint8Array(44 + mix.length * 2);
   const view = new DataView(bytes.buffer);
   const text = (offset: number, value: string) =>
@@ -81,13 +85,33 @@ export function prepareGuitar(notes: number[], reference = 440) {
   view.setUint16(34, 16, true);
   text(36, "data");
   view.setUint32(40, mix.length * 2, true);
-  for (let i = 0; i < mix.length; i++)
+  for (let i = 0; i < mix.length; i++) {
+    if (i % 8192 === 0) yield;
     view.setInt16(44 + i * 2, Math.max(-1, Math.min(1, mix[i])) * 32767, true);
+  }
   const wave = fromByteArray(bytes);
   if (previews.size >= 32) previews.delete(previews.keys().next().value!);
   previews.set(key, wave);
   performanceAudio.prepareGuitar(key, wave);
   return wave;
+}
+export function prepareGuitar(notes: number[], reference = 440) {
+  const render = renderGuitar(notes, reference);
+  let step = render.next();
+  while (!step.done) step = render.next();
+  return step.value;
+}
+export async function warmGuitar(
+  notes: number[],
+  reference: number,
+  signal: AbortSignal
+) {
+  const render = renderGuitar(notes, reference);
+  while (!signal.aborted) {
+    if (render.next().done) return;
+    await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  }
+  render.return("");
 }
 export function playGuitar(notes: number[], reference = 440) {
   if (notes.length)
