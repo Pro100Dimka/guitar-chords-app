@@ -322,7 +322,7 @@
         "Open Play and tap a chord. Tap a string for a single note or sweep across several strings for a strum. Both directions and multiple fingers work.",
         "Tap + to add a chord to the sequence. Hold a chord to remove it.",
         "Open Pattern, set BPM and tap a beat or an & cell to assign a chord change. A dot continues the previous chord. Press Play to loop the pattern while playing the strings yourself.",
-        "The metronome button turns the pulse on or off. The fingering button lets you choose a shape for the current chord. Tapping another chord during playback changes it immediately without resetting the pulse.",
+        "The metronome button works on its own. When enabled, Play starts it with the pattern; Pause stops both and remembers your choice. The fingering button chooses a chord shape. Tapping another chord changes it immediately without resetting the pulse.",
         "Use the note button to choose a fret for each string in Free play. Close the panel and tap the strings to try a melody."
       ],
       "tip": "The microphone and internet are not needed. Leaving the screen or locking the phone stops playback.",

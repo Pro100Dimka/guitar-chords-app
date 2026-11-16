@@ -105,7 +105,10 @@ export default function PlayGuitar() {
     step: -1,
     pulseOrigin: 0,
     metronome: false,
-    running: false
+    running: false,
+    wasPlaying: false,
+    tempo: 0,
+    linkedMetronome: false
   });
   currentPitches.current = pitches;
   const frame = guitarLayout(layout.width, layout.height);
@@ -123,6 +126,7 @@ export default function PlayGuitar() {
       prepared.current.clear();
       setPlaying(false);
       setMetronome(false);
+      clock.current.linkedMetronome = false;
       plucks.value = [];
       performanceAudio.stopPlayback();
     }
@@ -131,22 +135,30 @@ export default function PlayGuitar() {
     };
   }, [active, plucks]);
   useEffect(() => {
-    clock.current.metronome = active && metronome;
+    const transport = clock.current;
+    const enabled = active && metronome;
+    const starting = playing && !transport.wasPlaying;
+    const update =
+      enabled !== transport.metronome ||
+      tempo !== transport.tempo ||
+      (enabled && starting);
+    transport.wasPlaying = playing;
+    transport.tempo = tempo;
+    transport.metronome = enabled;
+    if (!update) return;
     let phase = 0;
-    if (clock.current.metronome) {
-      if (clock.current.running) {
+    if (enabled) {
+      if (transport.running && !starting) {
         phase =
-          ((Date.now() - clock.current.origin) % (60000 / tempo)) /
-          (60000 / tempo);
+          ((Date.now() - transport.origin) % (60000 / tempo)) / (60000 / tempo);
       } else {
-        clock.current.origin = Date.now();
-        clock.current.step = -1;
+        transport.origin = Date.now();
+        transport.step = -1;
       }
-      clock.current.pulseOrigin = clock.current.origin;
+      transport.pulseOrigin = transport.origin;
     }
-    performanceAudio.metronome(tempo, active && metronome, phase);
-    return () => performanceAudio.metronome(tempo, false);
-  }, [active, metronome, tempo]);
+    performanceAudio.metronome(tempo, enabled, phase);
+  }, [active, metronome, tempo, playing]);
   useEffect(() => {
     if (!active) return;
     const controller = new AbortController();
@@ -440,7 +452,15 @@ export default function PlayGuitar() {
             icon={playing ? "pause" : "play"}
             label={t(playing ? "Pause" : "AutoChords")}
             disabled={!progression.length || free}
-            onPress={() => setPlaying(!playing)}
+            onPress={() => {
+              if (playing) {
+                clock.current.linkedMetronome = metronome;
+                setMetronome(false);
+              } else {
+                setMetronome(clock.current.linkedMetronome);
+              }
+              setPlaying(!playing);
+            }}
           />
           <Action
             glass
@@ -469,7 +489,10 @@ export default function PlayGuitar() {
             icon: "metronome",
             label: t("Metronome"),
             selected: metronome,
-            onPress: () => setMetronome(!metronome)
+            onPress: () => {
+              clock.current.linkedMetronome = !metronome;
+              setMetronome(!metronome);
+            }
           },
           {
             icon: "guitar-pick-outline",
