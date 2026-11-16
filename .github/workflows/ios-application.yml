@@ -6,6 +6,10 @@ on:
     branches: [main]
   workflow_dispatch:
     inputs:
+      device_ipa:
+        description: Build an unsigned Release IPA for personal device signing
+        type: boolean
+        default: false
       refresh_lock:
         description: Resolve native dependencies and upload updated lockfiles
         type: boolean
@@ -39,6 +43,7 @@ jobs:
             git diff --exit-code -- ios/Podfile.lock Gemfile.lock
           fi
       - name: Build complete iOS simulator application
+        if: ${{ !inputs.device_ipa }}
         run: |
           set -o pipefail
           xcodebuild -workspace ios/freetune.xcworkspace -scheme freetune \
@@ -51,6 +56,42 @@ jobs:
               exit 1
             }
           tail -n 12 "$RUNNER_TEMP/ios-application-build.log"
+      - name: Build unsigned iPhone Release package
+        if: ${{ inputs.device_ipa }}
+        run: |
+          set -o pipefail
+          xcodebuild -workspace ios/freetune.xcworkspace -scheme freetune \
+            -configuration Release -sdk iphoneos \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath "$RUNNER_TEMP/freetune-ios-device" \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO \
+            build > "$RUNNER_TEMP/ios-application-build.log" 2>&1 || {
+              tail -n 120 "$RUNNER_TEMP/ios-application-build.log"
+              exit 1
+            }
+          app="$RUNNER_TEMP/freetune-ios-device/Build/Products/Release-iphoneos/freetune.app"
+          test -d "$app"
+          test -s "$app/main.jsbundle"
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleSupportedPlatforms:0' "$app/Info.plist")" = iPhoneOS
+          test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = com.freetune
+          xcrun lipo -verify_arch arm64 "$app/freetune"
+          xcrun vtool -show-build "$app/freetune" | tee "$RUNNER_TEMP/ios-device-platform.txt"
+          grep -Eq 'platform IOS$' "$RUNNER_TEMP/ios-device-platform.txt"
+          mkdir -p "$RUNNER_TEMP/iphone-package/Payload"
+          ditto "$app" "$RUNNER_TEMP/iphone-package/Payload/freetune.app"
+          cd "$RUNNER_TEMP/iphone-package"
+          ditto -c -k --keepParent Payload "$RUNNER_TEMP/FreeTune-unsigned-device.ipa"
+          unzip -t "$RUNNER_TEMP/FreeTune-unsigned-device.ipa" | tail -n 1
+          shasum -a 256 "$RUNNER_TEMP/FreeTune-unsigned-device.ipa"
+          tail -n 12 "$RUNNER_TEMP/ios-application-build.log"
+      - uses: actions/upload-artifact@v4
+        if: ${{ success() && inputs.device_ipa }}
+        with:
+          name: freetune-unsigned-iphone
+          path: |
+            ${{ runner.temp }}/FreeTune-unsigned-device.ipa
+            ${{ runner.temp }}/ios-device-platform.txt
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         if: always()
         with:
