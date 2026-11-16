@@ -34,6 +34,15 @@ yarn android
 
 ### iOS
 
+Install Rust through rustup and add the mobile targets before opening Xcode:
+
+```sh
+rustup target add aarch64-apple-ios aarch64-apple-ios-sim x86_64-apple-ios
+```
+
+The Xcode fingerprint build phase uses the shared Rust implementation and places
+its static library in DerivedData. Build the `ios/freetune.xcworkspace` workspace.
+
 For iOS, remember to install CocoaPods dependencies (this only needs to be run on first clone or after updating native deps).
 
 The first time you create a new project, run the Ruby bundler to install CocoaPods itself:
@@ -262,3 +271,18 @@ Imported capo arrangements store sounding chord names in song content and retain
 Android cloud-audio recognition opens files with a per-request cancellation signal. Decode work is isolated from the recognition worker so cancelling does not wait for a stalled provider. Late results are discarded and file descriptors close when provider I/O returns; no more than two blocked decoder threads are retained, with a bounded queue of two pending tasks to accept requests while finished workers return to their pool. Cancelling a queued request removes it immediately. Excess requests report Busy. A queued decode must start within one second; decoding and provider access must finish within 30 seconds. Missed deadlines cancel the request and report Busy or a file-source timeout. Provider cancellation/close is also bounded and runs outside the bridge lock. Physical cloud-provider checks remain required before release.
 
 On macOS, `python3 test-ios-capture.py` compiles the production microphone start/stop methods against deterministic route and engine fixtures. It checks unavailable inputs, invalid hardware/tap formats, cleanup and retry. This is a capture lifecycle unit check, not a full iOS app or physical microphone test.
+
+Microphone recognition is available on Android and iOS; audio-file recognition
+is currently Android-only. An audio match becomes editable only after an
+identity-checked chart contains actual chords. Returning from the editor keeps
+the recognized result and its arrangement choices, so another version can be
+selected without recording again. Successful chart lookups and identical audio
+fingerprints are cached for ten minutes, with bounded memory. Service rate
+limits are respected; catalog coverage and external availability are not
+guaranteed. Large chart pages and reference-audio warmup yield between chunks
+so cancellation and navigation can proceed.
+
+On macOS, `python3 test-ios-recognition.py` checks production capture conversion,
+metadata, cancellation, cached recognition and HTTP cooldowns against audio and
+network fixtures. Full native builds and physical microphone tests remain
+separate checks.

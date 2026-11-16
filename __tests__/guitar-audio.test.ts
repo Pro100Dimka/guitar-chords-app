@@ -9,11 +9,11 @@ test("background reference preparation yields, can be cancelled and keeps identi
   const controller = new AbortController();
   jest.mocked(performanceAudio.prepareGuitar).mockClear();
   const cancelled = warmGuitar([43], 437, controller.signal);
-  expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+  expect(jest.mocked(performanceAudio.prepareGuitar).mock.calls.length).toBe(0);
   controller.abort();
   await jest.runAllTimersAsync();
   await cancelled;
-  expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+  expect(jest.mocked(performanceAudio.prepareGuitar).mock.calls.length).toBe(0);
   const pending = warmGuitar([43], 437, new AbortController().signal);
   await jest.runAllTimersAsync();
   await pending;
@@ -36,6 +36,15 @@ test("a JS-cached string is prepared again before native playback after cache ev
     expect.any(String),
     "440:40"
   );
+});
+
+test("returning to the tuner does not resend cached waves until actual playback", async () => {
+  prepareGuitar([40]);
+  jest.mocked(performanceAudio.prepareGuitar).mockClear();
+  await warmGuitar([40], 440, new AbortController().signal);
+  expect(jest.mocked(performanceAudio.prepareGuitar).mock.calls.length).toBe(0);
+  playGuitar([40]);
+  expect(performanceAudio.prepareGuitar).toHaveBeenCalledTimes(1);
 });
 
 test("loading tuner controls does not load the audio bank before it is needed", () => {

@@ -66,7 +66,8 @@ for rate in [44100, 48000] {
     }
     precondition(detector.estimatePitch(noise, sampleRate: Double(rate)) == 0)
     let quiet: [Float] = (0..<(rate / 15)).map { i in
-        Float(0.02 + 0.008 * sin(2 * Double.pi * 82.4069 * Double(i) / Double(rate)))
+        let phase: Double = 2.0 * Double.pi * 82.4069 * Double(i) / Double(rate)
+        return Float(0.02 + 0.008 * sin(phase))
     }
     let quietPitch = Double(detector.estimatePitch(quiet, sampleRate: Double(rate)))
     precondition(quietPitch > 0 && abs(1200 * log2(quietPitch / 82.4069)) < 3)

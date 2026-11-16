@@ -106,6 +106,7 @@ export async function warmGuitar(
   reference: number,
   signal: AbortSignal
 ) {
+  if (signal.aborted || previews.has(`${reference}:${notes.join(",")}`)) return;
   const render = renderGuitar(notes, reference);
   while (!signal.aborted) {
     if (render.next().done) return;

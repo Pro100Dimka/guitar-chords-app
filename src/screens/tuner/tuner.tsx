@@ -11,7 +11,12 @@ import React, {
   useState
 } from "react";
 import MicrophoneStream, { AudioBufferEvent } from "./MicrophoneStream";
-import { Canvas, CanvasRef } from "@shopify/react-native-skia";
+import {
+  AlphaType,
+  Canvas,
+  CanvasRef,
+  ColorType
+} from "@shopify/react-native-skia";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import Strings from "./strings";
 import { guitarLayout } from "./guitar-layout";
@@ -141,14 +146,24 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         const image = await canvas.current.makeImageSnapshotAsync();
         let visible = false;
         try {
-          const pixels = image.readPixels();
-          if (pixels)
-            for (let i = 3; i < pixels.length; i += 4) {
-              if (pixels[i] > 0) {
-                visible = true;
-                break;
-              }
-            }
+          const hole = (
+            isChromatic
+              ? chromaticLayout(layout.width, layout.height)
+              : guitarLayout(layout.width, layout.height)
+          ).hole;
+          const x = Math.floor(
+            ((hole.x + hole.width / 2) * image.width()) / layout.width
+          );
+          const y = Math.floor(
+            ((hole.y + hole.height / 2) * image.height()) / layout.height
+          );
+          const pixels = image.readPixels(x, y, {
+            width: 1,
+            height: 1,
+            colorType: ColorType.RGBA_8888,
+            alphaType: AlphaType.Unpremul
+          });
+          visible = !!pixels && pixels[3] > 0;
         } finally {
           image.dispose();
         }
@@ -174,6 +189,9 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     backgroundReady,
     layoutReady,
     graphicsReady,
+    isChromatic,
+    layout.width,
+    layout.height,
     renderAttempt
   ]);
   useEffect(() => {
