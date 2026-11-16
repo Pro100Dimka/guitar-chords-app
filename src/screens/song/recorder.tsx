@@ -49,9 +49,15 @@ export default function SongRecorder({
   const operation = useRef(false);
   const opening = useRef<AbortController | null>(null);
   const pendingStart = useRef<AbortController | null>(null);
+  const listRequest = useRef(0);
+  useEffect(() => {
+    listRequest.current++;
+    setTakes([]);
+  }, [songId]);
   const load = useCallback(async () => {
+    const request = ++listRequest.current;
     const files = await performanceAudio.list(songId);
-    if (mounted.current) setTakes(files);
+    if (mounted.current && request === listRequest.current) setTakes(files);
   }, [songId]);
   useEffect(() => {
     if (!open || !active) return;
