@@ -345,7 +345,7 @@ export async function lookupSongTempo(
   const html = await fetchSource(
     "https://songbpm.com/searches",
     signal,
-    4000,
+    8000,
     new URLSearchParams({
       query: `${primaryArtist(artist)} ${trackTitle(title)}`
     })
