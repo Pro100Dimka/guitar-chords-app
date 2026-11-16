@@ -241,7 +241,10 @@ export default function RecognizeSong() {
       if (request !== generation.current) return;
       const candidates = preferredSongContent(
         lyrics.options
-          .filter((option) => songChords(option.content).length > 0)
+          .filter(
+            (option) =>
+              option.hasChords && songChords(option.content).length > 0
+          )
           .map((option) => ({ ...option, hasChords: true })),
         result.album,
         result.duration

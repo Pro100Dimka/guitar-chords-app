@@ -406,13 +406,11 @@ async function lookupPisennyk(
   if (!body) return [];
   let content = "";
   let inChord = false;
-  let hasChords = false;
   const parser = new Parser({
     onopentag(name, attributes) {
       if (name === "br") content += "\n";
       if (name === "code" && attributes["data-chord"]) {
         inChord = true;
-        hasChords = true;
         content += "[";
       }
     },
@@ -497,7 +495,7 @@ async function lookupPisennyk(
       duration: null,
       source: "Пісенник",
       url,
-      hasChords
+      hasChords: songChords(content).length > 0
     }
   ];
 }

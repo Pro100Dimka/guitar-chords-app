@@ -52,6 +52,38 @@ function deferred<T>() {
 }
 let screen: Renderer.ReactTestRenderer | undefined;
 
+test("a standalone letter in plain lyrics is not accepted as a chord chart", async () => {
+  jest.mocked(lookupSongContent).mockResolvedValue([
+    {
+      id: 1,
+      title: "Track",
+      artist: "Artist",
+      album: "",
+      duration: null,
+      source: "LRCLIB",
+      content: "A\nOnly example words"
+    }
+  ]);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await act(async () =>
+    screen!.root
+      .find(
+        (node) =>
+          node.props.accessibilityLabel === "AddSongStart" &&
+          typeof node.props.onPress === "function"
+      )
+      .props.onPress()
+  );
+  expect(
+    screen!.root.findAll(
+      (node) => node.props.accessibilityLabel === "AddSongEditResult"
+    ).length
+  ).toBe(0);
+  expect(JSON.stringify(screen!.toJSON())).toContain("AddSongNoLyrics");
+});
+
 test("iOS recognition uses the native microphone and cancellation contract", async () => {
   jest.replaceProperty(Platform, "OS", "ios");
   await expect(recognizeMicrophone()).resolves.toMatchObject({
@@ -287,7 +319,8 @@ test("recognition selects lyrics from the known album instead of the first versi
       album: "Live",
       duration: 300,
       content: "Am C\nLive words",
-      source: "LRCLIB"
+      source: "Cifra Club",
+      hasChords: true
     },
     {
       id: 2,
@@ -296,7 +329,8 @@ test("recognition selects lyrics from the known album instead of the first versi
       album: "Studio",
       duration: 200,
       content: "Em G\nStudio words",
-      source: "LRCLIB"
+      source: "Cifra Club",
+      hasChords: true
     }
   ]);
   await act(async () => {
@@ -337,7 +371,8 @@ test("ambiguous lyric versions wait for an explicit choice", async () => {
       album: "Live",
       duration: 300,
       content: "Am C\nLive words",
-      source: "LRCLIB"
+      source: "Cifra Club",
+      hasChords: true
     },
     {
       id: 2,
@@ -346,7 +381,8 @@ test("ambiguous lyric versions wait for an explicit choice", async () => {
       album: "Studio",
       duration: 200,
       content: "Em G\nStudio words",
-      source: "LRCLIB"
+      source: "Cifra Club",
+      hasChords: true
     }
   ]);
   await act(async () => {

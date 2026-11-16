@@ -259,6 +259,22 @@ describe("content provider failover", () => {
     });
   });
 
+  it("Pisennyk identifies plain chord rows as a chart without code tags", async () => {
+    const candidate = "https://pisennyk.com.ua/test-artist/plain-chart";
+    request.mockImplementation(async (url) =>
+      String(url).startsWith("https://pisennyk.com.ua/search")
+        ? new Response(`<a href="${candidate}">${title} ${artist}</a>`)
+        : String(url) === candidate
+          ? new Response(
+              `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: title, byArtist: { name: artist } })}</script><div class="interpretation-content"><p>Am C</p><p>Example words</p></div>`
+            )
+          : response(String(url))
+    );
+    const result = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    expect((await result)[0].hasChords).toBe(true);
+  });
+
   it.each([true, false])(
     "Pisennyk normalizes remasters and validates the page performer (matching: %s)",
     async (matching) => {
