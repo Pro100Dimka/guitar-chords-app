@@ -33,13 +33,23 @@ const normalize = (value: string) =>
 const trackTitle = (value: string) =>
   value
     .replace(
-      /\s*[\[(](?:[^)\]]*remaster[^)\]]*|(?:feat\.?|ft\.?|featuring)[^)\]]*|official (?:audio|video))[\])]\s*/gi,
+      /\s*[\[(](?:[^)\]]*remaster[^)\]]*|(?:feat\.?|ft\.?|featuring|with)[^)\]]*|official (?:audio|video)|(?:live|acoustic|unplugged|radio edit|album version|single version)(?:\s+[^)\]]*)?)[\])]\s*/gi,
       " "
     )
     .replace(/\s+-\s+(?:\d{4}\s+)?remaster(?:ed)?(?:\s+\d{4})?\s*$/i, "")
     .trim();
 const primaryArtist = (value: string) =>
   value.replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/i, "").trim();
+const artistCredits = (value: string) => [
+  ...new Set(
+    [
+      primaryArtist(value),
+      ...value.split(/\s+(?:&|feat\.?|ft\.?|featuring|with)\s+/i)
+    ]
+      .map((name) => name.trim())
+      .filter(Boolean)
+  )
+];
 export const matchingIdentity = (expected: string, actual: string) =>
   !!normalize(trackTitle(expected)) &&
   normalize(trackTitle(expected)) === normalize(trackTitle(actual));
@@ -168,9 +178,12 @@ export async function lookupLyrics(
   }
 }
 
+const artistKey = (value: string) =>
+  normalize(value.replace(/\s*&\s*/g, " and ")).replace(/ /g, "");
 const sameArtist = (expected: string, actual: string) =>
-  normalize(primaryArtist(expected)).replace(/ /g, "") ===
-  normalize(primaryArtist(actual)).replace(/ /g, "");
+  artistCredits(expected).some(
+    (name) => artistKey(name) === artistKey(primaryArtist(actual))
+  );
 
 function chartRhythm(
   text: string,
@@ -518,10 +531,14 @@ async function lookupChordPage(
     titleSlug = slug(trackTitle(title));
   if (!artistSlug || !titleSlug) return [];
   const provider = chordSources[source];
-  const canonicalArtist =
-    source === "Cifra Club" && artistSlug === "eagles"
-      ? "the-eagles"
+  const candidateArtist =
+    source === "Cifra Club" && candidateUrl
+      ? new URL(candidateUrl).pathname.split("/")[1]
       : artistSlug;
+  const canonicalArtist =
+    source === "Cifra Club" && candidateArtist === "eagles"
+      ? "the-eagles"
+      : candidateArtist;
   let url =
     candidateUrl ??
     `${provider.origin}${provider.path}/${canonicalArtist}/${titleSlug}/`;
@@ -529,7 +546,7 @@ async function lookupChordPage(
     const search = await fetchSource(
       `${provider.origin}${provider.path}?${new URLSearchParams({
         type: "tab",
-        query: `${primaryArtist(artist)} ${trackTitle(title)}`
+        query: `${artistCredits(artist).find((name) => !/\s+&\s+/.test(name)) ?? primaryArtist(artist)} ${trackTitle(title)}`
       })}`,
       signal
     );
@@ -576,7 +593,7 @@ async function lookupChordPage(
     );
   }
   let html = await fetchSource(url, signal);
-  if (!html && source === "Cifra Club" && !candidateUrl) {
+  if (!html && source === "Cifra Club") {
     const catalog = await fetchSource(
       `${provider.origin}/${canonicalArtist}/`,
       signal
@@ -585,17 +602,36 @@ async function lookupChordPage(
       const link = DomUtils.getElementsByTagName(
         "a",
         (await parseSource(catalog, signal)).children
-      ).find(
-        (element) =>
-          matchingIdentity(title, DomUtils.textContent(element)) &&
+      ).find((element) => {
+        const label =
+          DomUtils.findOne(
+            (node) =>
+              (node.attribs.class ?? "").split(/\s+/).includes("primaryLabel"),
+            element.children
+          ) ?? element;
+        return (
+          matchingIdentity(title, DomUtils.textContent(label)) &&
           new RegExp(`^/${canonicalArtist}/[a-z0-9-]+/$`).test(
             element.attribs.href ?? ""
           )
-      );
+        );
+      });
       if (link) {
         url = `${provider.origin}${link.attribs.href}`;
         html = await fetchSource(url, signal);
       }
+    }
+  }
+  if (!html && source === "Cifra Club" && !candidateUrl) {
+    for (const credited of artistCredits(artist).slice(1, 3)) {
+      const options = await lookupChordPage(
+        title,
+        artist,
+        source,
+        signal,
+        `${provider.origin}/${slug(credited)}/${titleSlug}/`
+      );
+      if (options.some((option) => option.hasChords)) return options;
     }
   }
   if (!html) return [];

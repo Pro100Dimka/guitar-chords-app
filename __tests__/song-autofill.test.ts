@@ -14,6 +14,9 @@ describe("lyrics-only fallback", () => {
   it("compares artist and title independently", () => {
     expect(matchingIdentity("Океан Ельзи", "ОКЕАН-ЕЛЬЗИ")).toBe(true);
     expect(matchingIdentity("Океан Ельзи", "Скрябін")).toBe(false);
+    expect(matchingIdentity("Live Forever", "Forever")).toBe(false);
+    expect(matchingIdentity("Song (Part II)", "Song")).toBe(false);
+    expect(matchingIdentity("Song (Remix)", "Song")).toBe(false);
   });
 
   it("rejects different performers and preserves exact lyrics line breaks", async () => {
@@ -500,6 +503,44 @@ describe("content provider failover", () => {
       })
     ]);
   });
+
+  it.each([
+    [
+      "Shallow",
+      "Lady Gaga & Bradley Cooper",
+      "lady-gaga",
+      "Shallow (feat. Bradley Cooper)"
+    ],
+    [
+      "Lovely",
+      "Billie Eilish & Khalid",
+      "billie-eilish",
+      "Lovely (feat. Khalid)"
+    ],
+    ["Decode (Acoustic Version)", "Paramore", "paramore", "Decode"]
+  ])(
+    "finds credited performers and recording editions: %s",
+    async (name, performer, path, heading) => {
+      const pageArtist = performer.split(" & ")[0];
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value === `https://www.cifraclub.com/${path}/`)
+          return new Response(
+            `<a href="/${path}/published-song/"><p>05</p><p class="primaryLabel"><span>${heading}</span></p><span>228 options</span></a>`
+          );
+        if (value === `https://www.cifraclub.com/${path}/published-song/`)
+          return new Response(
+            `<h1>${heading}</h1><h2>${pageArtist}</h2><pre>Am C\nExample words</pre>`
+          );
+        return response(value);
+      });
+      const result = lookup(name, performer);
+      await jest.runAllTimersAsync();
+      expect(
+        (await result).filter((option) => option.hasChords).length
+      ).toBeGreaterThan(0);
+    }
+  );
 
   it("does not keep requesting a provider during its access-denied cooldown", async () => {
     request.mockImplementation(async (url) =>
