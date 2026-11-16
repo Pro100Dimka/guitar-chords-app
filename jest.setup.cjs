@@ -25,6 +25,7 @@ jest.mock("@bam.tech/react-native-image-resizer", () => ({
 jest.mock("react-native-file-access", () => ({
   Dirs: { CacheDir: "E:/CodexTemp/guitar-release" },
   FileSystem: {
+    fetchManaged: jest.fn(),
     readFile: jest.fn(),
     writeFile: jest.fn(),
     stat: jest.fn(),

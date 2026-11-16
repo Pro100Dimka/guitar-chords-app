@@ -58,8 +58,8 @@ function fileRead(signal?: AbortSignal) {
         interrupted
       ]);
     },
-    start() {
-      timer = setTimeout(() => stop(new Error("FileReadError")), 30000);
+    start(timeout = 30000) {
+      timer = setTimeout(() => stop(new Error("FileReadError")), timeout);
     },
     finish() {
       if (timer !== undefined) clearTimeout(timer);
@@ -139,24 +139,28 @@ export async function readSongCover(
   }
 }
 
+let remoteCoverId = 0;
 export async function readRemoteSongCover(url: string, signal: AbortSignal) {
   if (!url.startsWith("https://") || signal.aborted) return "";
-  const path = `${Dirs.CacheDir}/recognized-cover-${Date.now()}.jpg`;
-  const request = FileSystem.fetchManaged(url, { path }, (bytes) => {
-    if (bytes > 5 * 1024 * 1024) void request.cancel();
-  });
-  const abort = () => {
-    void request.cancel();
-  };
-  signal.addEventListener("abort", abort, { once: true });
-  const timer = setTimeout(abort, 8000);
+  const read = fileRead(signal);
+  const path = `${Dirs.CacheDir}/recognized-cover-${Date.now()}-${++remoteCoverId}.jpg`;
+  let request: ReturnType<typeof FileSystem.fetchManaged> | undefined;
   try {
-    const response = await request.result;
+    read.start(8000);
+    request = FileSystem.fetchManaged(url, { path }, (bytes) => {
+      if (bytes > 5 * 1024 * 1024)
+        void request?.cancel().catch(() => undefined);
+    });
+    const response = await read.wait(request.result, () =>
+      FileSystem.unlink(path)
+    );
     if (!response.ok || signal.aborted) return "";
     return await readSongCover(`file://${path}`, false, signal);
+  } catch (error) {
+    void request?.cancel().catch(() => undefined);
+    throw error;
   } finally {
-    clearTimeout(timer);
-    signal.removeEventListener("abort", abort);
+    read.finish();
     await FileSystem.unlink(path).catch(() => undefined);
   }
 }

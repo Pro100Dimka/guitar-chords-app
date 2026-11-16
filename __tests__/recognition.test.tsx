@@ -186,6 +186,18 @@ test.each(["mic", "file"])(
 );
 const previousNative = NativeModules.SongRecognition;
 
+test("a failed native cancellation does not poison subsequent recognition", async () => {
+  const failure = new Error("Audio device unavailable");
+  NativeModules.SongRecognition.cancel.mockRejectedValueOnce(failure);
+  await expect(cancelRecognition()).rejects.toBe(failure);
+  await expect(recognizeMicrophone()).resolves.toMatchObject({
+    title: "Track"
+  });
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(1);
+});
+
 test("a rejected concurrent caller cannot cancel the active owner", async () => {
   const running = deferred<null>();
   NativeModules.SongRecognition.recognizeMicrophone.mockReturnValue(

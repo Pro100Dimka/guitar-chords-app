@@ -27,6 +27,7 @@ import {
   exportLibrary,
   readLibraryFile,
   readSongCover,
+  readRemoteSongCover,
   parseLibraryBackup,
   restoreLibrary
 } from "../src/components/library-files";
@@ -45,6 +46,88 @@ jest.mock("../src/components/database/crud", () => ({
 }));
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
+
+test("simultaneous remote covers use independent temporary files", async () => {
+  const clock = jest.spyOn(Date, "now").mockReturnValue(123);
+  jest.mocked(FileSystem.fetchManaged).mockImplementation(() => ({
+    cancel: jest.fn().mockResolvedValue(undefined),
+    result: Promise.resolve({
+      ok: false,
+      status: 404,
+      statusText: "Not found",
+      headers: {},
+      getHeader: () => undefined,
+      redirected: false,
+      url: ""
+    })
+  }));
+  jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+  try {
+    await Promise.all(
+      ["a", "b"].map((name) =>
+        readRemoteSongCover(
+          `https://example.com/${name}.jpg`,
+          new AbortController().signal
+        )
+      )
+    );
+    const paths = jest
+      .mocked(FileSystem.fetchManaged)
+      .mock.calls.map((call) => call[1]!.path);
+    expect(new Set(paths).size).toBe(2);
+  } finally {
+    clock.mockRestore();
+  }
+});
+
+test.each(["cancel", "timeout"])(
+  "remote cover releases a stalled download on %s and removes its late file",
+  async (exit) => {
+    let finish!: (
+      value: Awaited<ReturnType<typeof FileSystem.fetchManaged>["result"]>
+    ) => void;
+    const cancel = jest.fn().mockResolvedValue(undefined);
+    jest.mocked(FileSystem.fetchManaged).mockReturnValue({
+      cancel,
+      result: new Promise((resolve) => {
+        finish = resolve;
+      })
+    });
+    jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+    const controller = new AbortController();
+    let settled = false;
+    const result = readRemoteSongCover(
+      "https://example.com/cover.jpg",
+      controller.signal
+    )
+      .catch((error) => error)
+      .finally(() => {
+        settled = true;
+      });
+    if (exit === "cancel") controller.abort();
+    else await jest.advanceTimersByTimeAsync(8000);
+    for (let i = 0; i < 15; i++) await Promise.resolve();
+    expect(settled).toBe(true);
+    expect(cancel).toHaveBeenCalledTimes(1);
+    await result;
+    const path = jest.mocked(FileSystem.fetchManaged).mock.calls[0][1]!.path!;
+    expect(FileSystem.unlink).toHaveBeenCalledWith(path);
+    jest.mocked(FileSystem.unlink).mockClear();
+    finish({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      headers: {},
+      getHeader: () => undefined,
+      redirected: false,
+      url: "https://example.com/cover.jpg"
+    });
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(FileSystem.unlink).toHaveBeenCalledWith(path);
+    expect(ImageResizer.createResizedImage).not.toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  }
+);
 
 test.each(["{broken", "null", "[]"])(
   "corrupted global preferences still load healthy song chunks: %s",

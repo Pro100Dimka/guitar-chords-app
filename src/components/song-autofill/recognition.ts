@@ -145,6 +145,7 @@ export async function cancelRecognition() {
         .cancel()
         .finally(() => {
           cancelling = false;
+          cancellation = Promise.resolve();
         });
     }
     await cancellation;
