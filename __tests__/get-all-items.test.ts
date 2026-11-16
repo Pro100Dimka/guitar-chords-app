@@ -1,5 +1,35 @@
 import getAllItems from "../src/components/database/crud/get-all-items";
 import { db } from "../src/components/database";
+import { updateItem, deleteItem } from "../src/components/database/crud";
+
+test.each([
+  { tableName: "songs; DROP TABLE songs" },
+  { tableName: "songs", fields: "(SELECT value FROM settings)" },
+  { tableName: "songs", filters: "id = 1 OR 1 = 1" },
+  { tableName: "songs", orderBy: "title; DELETE FROM songs" },
+  { tableName: "songs", joins: ["JOIN settings ON 1 = 1"] },
+  { tableName: "songs", limit: -1 },
+  { tableName: "songs", fields: "unknown_column" }
+])("rejects unsafe read fragments before opening SQLite: %o", async (query) => {
+  jest.mocked(db.transaction).mockClear();
+  await expect(getAllItems(query)).rejects.toThrow();
+  expect(db.transaction).not.toHaveBeenCalled();
+});
+
+test("mutations reject injected identifiers and unbound predicates", async () => {
+  jest.mocked(db.transaction).mockClear();
+  await expect(
+    updateItem({
+      tableName: "songs",
+      data: { "title = NULL; --": "bad" },
+      filters: "id = ?"
+    })
+  ).rejects.toThrow();
+  await expect(
+    deleteItem({ tableName: "songs", filters: "id = 1 OR 1 = 1" })
+  ).rejects.toThrow();
+  expect(db.transaction).not.toHaveBeenCalled();
+});
 
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }

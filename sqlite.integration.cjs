@@ -89,9 +89,16 @@ async function main() {
   await migrate(db);
   const { insertId } = await create({ tableName: "bands", data: { name: "Guns N' Roses", search_text_lower: "guns n' roses" } });
   const rows = await read({ tableName: "bands", filters: "name LIKE ?", parameters: ["%N' Roses%"] });
+  await assert.rejects(read({tableName:"songs; DROP TABLE bands"}),/Invalid database query/);
+  await assert.rejects(update({tableName:"bands",data:{"name = NULL; --":"bad"},filters:"id = ?",parameters:[insertId]}),/Invalid database query/);
+  await assert.rejects(remove({tableName:"bands",filters:"id = 1 OR 1 = 1"}),/Invalid database query/);
+  await remove({tableName:"bands",filters:"id = ?",parameters:["1 OR 1 = 1"]});
+  assert.equal((await read({tableName:"bands"})).length,1);
+  console.log("SQL boundary rejects unsafe syntax and binds hostile predicate values without affecting records.");
+
   assert.equal(rows[0].id, insertId);
   assert.equal(rows[0].name, "Guns N' Roses");
-  await update({ tableName: "bands", data: { name: "Updated" }, filters: `id = ${insertId}` });
+  await update({ tableName: "bands", data: { name: "Updated" }, filters:"id = ?",parameters:[insertId] });
   assert.equal((await read({ tableName: "bands" }))[0].name, "Updated");
   sqlite.exec("PRAGMA user_version = 0");
   await migrate(db);
@@ -104,7 +111,7 @@ async function main() {
     failure = undefined;
     assert.equal((await read({ tableName: "bands" })).length, 1);
   }
-  await remove({ tableName: "bands", filters: `id = ${insertId}` });
+  await remove({ tableName: "bands", filters:"id = ?",parameters:[insertId] });
   assert.equal((await read({ tableName: "bands" })).length, 0);
   const preferences = load("src/components/preferences.ts");
 
@@ -120,7 +127,7 @@ async function main() {
   assert.equal(recordingFiles.size,1,"Failed SQL deletion must preserve recordings");
   assert.equal((await read({tableName:"songs",filters:"id = ?",parameters:[takeSong.insertId]})).length,1);
   assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key LIKE 'recording-delete:%'").get().n,0,"Failed SQL deletion rolls back the cleanup journal");
-  await remove({tableName:"songs",filters:`id = ${takeSong.insertId}`});
+  await remove({tableName:"songs",filters:"id = ?",parameters:[takeSong.insertId]});
   sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run(`recording-delete:${takeSong.insertId}`,JSON.stringify([takePath]));
   await library.finishPendingRecordingDeletions();
   assert.equal(recordingFiles.size,0,"Committed deletion resumes file cleanup after restart");
@@ -182,7 +189,7 @@ async function main() {
   assert.equal((await library.restoreLibrary([identified[0]])).added,0);
   assert.equal((await library.restoreLibrary([identified[1]])).added,0);
   assert.equal((await read({tableName:"songs",filters:"title = ?",parameters:["Two arrangements"]})).length,2,"Numbered parts retain distinct record identities on reimport");
-  for(const row of copies) { await remove({tableName:"songs",filters:`id = ${row.id}`}); preferences.usePreferences.getState().removeSong(row.id); }
+  for(const row of copies) { await remove({tableName:"songs",filters:"id = ?",parameters:[row.id]}); preferences.usePreferences.getState().removeSong(row.id); }
   await preferences.flushPreferences();
   await new Promise(resolve => db.transaction(()=>{},undefined,resolve));
   const legacy = JSON.stringify({instrument:"chromatic",songs:Object.fromEntries(Array.from({length:144},(_,i)=>[i+1,{cover:"data:image/jpeg;base64,"+"a".repeat(15000),favorite:true,capo:2}]))});
@@ -215,7 +222,7 @@ async function main() {
     const imported=library.parseLibraryBackup(JSON.stringify({format:"freetune-library",version:1,songs:[{title:"Restored",content:"Am\nWords",band_name:"",youtube_music:"",youtobe_lesson:"",preferences:{cover:"data:image/jpeg;base64,/9j/2Q=="}}]}));
     await library.restoreLibrary(imported);
     const id=(await read({tableName:"songs"}))[0].id;
-    await remove({tableName:"songs",filters:`id = ${id}`});
+    await remove({tableName:"songs",filters:"id = ?",parameters:[id]});
     preferences.usePreferences.getState().removeSong(id);
     preferences.flushPreferences();
     await new Promise((resolve,reject)=>db.transaction(()=>{},reject,resolve));
@@ -297,18 +304,20 @@ async function main() {
   db.transaction=function(body,error,success){
     return originalTransaction.call(db,body,error,()=>{
       db.transaction=originalTransaction;
-      preferences.usePreferences.getState().updateSong(concurrentId,{favorite:true});
+      preferences.usePreferences.getState().updateSong(concurrentId,{favorite:true,tempo:140,transpose:3});
       success?.();
     });
   };
-  await submit({}, {id:concurrentId,title:"Concurrent edited",content:"Am\nWords",youtube_music:"",youtobe_lesson:"",cover:"",fk_band:{id:"",name:"",search_text_lower:""}}, {replace(){}});
+  await submit({}, {id:concurrentId,tempo:100,title:"Concurrent edited",content:"Am\nWords",youtube_music:"",youtobe_lesson:"",cover:"",fk_band:{id:"",name:"",search_text_lower:""}}, {replace(){}});
   await preferences.flushPreferences();
   assert.equal(preferences.usePreferences.getState().songs[concurrentId].favorite,true,"Editor commit must preserve the later favorite change");
   preferences.usePreferences.setState({songs:{}});await preferences.loadPreferences();
   assert.equal(preferences.usePreferences.getState().songs[concurrentId].favorite,true,"Later favorite change must persist in SQLite");
-  console.log("Concurrent editor favorite regression passed in state and actual SQLite.");
+  assert.equal(preferences.usePreferences.getState().songs[concurrentId].tempo,140);
+  assert.equal(preferences.usePreferences.getState().songs[concurrentId].transpose,3);
+  console.log("Concurrent editor favorite, tempo and transpose regression passed in state and actual SQLite.");
   const staleId=(await create({tableName:"songs",data:{title:"Deleted",content:"Am\nWords"}})).insertId;
-  await remove({tableName:"songs",filters:`id = ${staleId}`});
+  await remove({tableName:"songs",filters:"id = ?",parameters:[staleId]});
   alerts.length=0;let staleClosed=false;
   const staleSaved=await submit({}, {id:staleId,title:"Draft after deletion",content:"Am\nNew words",youtube_music:"",youtobe_lesson:"",cover:"",fk_band:{id:"",name:"Missing-row artist",search_text_lower:"missing-row artist"}}, {replace(){}},()=>{staleClosed=true;});
   assert.equal(staleSaved,false,"Updating a missing song must not report success");

@@ -14,6 +14,23 @@ import {
   signalLevels
 } from "../src/screens/tuner/chromatic-signal";
 import { usePreferences } from "../src/components/preferences";
+
+test.each([true, false])(
+  "signal visualization handles short, large and invalid samples: %s",
+  (spectrum) => {
+    for (const samples of [
+      [0.5],
+      [NaN, Infinity, -Infinity, 0.2],
+      Array(200000).fill(0.1)
+    ]) {
+      const levels = signalLevels(samples, 44100, spectrum);
+      expect(levels).toHaveLength(spectrum ? 32 : 128);
+      expect(
+        levels.every((value) => Number.isFinite(value) && Math.abs(value) <= 1)
+      ).toBe(true);
+    }
+  }
+);
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
 }));
@@ -24,6 +41,7 @@ jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
   addListener: jest.fn(),
   removeListener: jest.fn(),
   startRecording: jest.fn(),
+  restartRecording: jest.fn().mockResolvedValue(true),
   stopRecording: jest.fn()
 }));
 jest.mock("../src/components/permissions", () => jest.fn());
@@ -325,12 +343,45 @@ test("a stalled microphone restarts after three seconds and stops recovery when 
   });
   expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(1);
   await act(async () => jest.advanceTimersByTime(3000));
-  expect(MicrophoneStream.stopRecording).toHaveBeenCalledTimes(1);
-  expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(2);
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(1);
+  expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(1);
   await act(async () => screen.unmount());
   const starts = jest.mocked(MicrophoneStream.startRecording).mock.calls.length;
   await act(async () => jest.advanceTimersByTime(6000));
   expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(starts);
+});
+
+test("microphone recovery is bounded when no buffers ever arrive", async () => {
+  jest.useFakeTimers();
+  jest.spyOn(console, "warn").mockImplementation(() => {});
+  await act(async () => {
+    screen = Renderer.create(<Tuner active />);
+  });
+  for (let i = 0; i < 30; i++)
+    await act(async () => jest.advanceTimersByTime(1500));
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(3);
+});
+
+test("pending native recovery cannot overlap or restart after unmount", async () => {
+  jest.useFakeTimers();
+  let finish!: (started: boolean) => void;
+  jest.mocked(MicrophoneStream.restartRecording).mockReturnValueOnce(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  await act(async () => {
+    screen = Renderer.create(<Tuner active />);
+  });
+  await act(async () => jest.advanceTimersByTime(12000));
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(1);
+  await act(async () => screen.unmount());
+  await act(async () => {
+    finish(true);
+  });
+  await act(async () => jest.advanceTimersByTime(12000));
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(1);
+  expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(1);
 });
 
 test("manual mode releases guitar targets when switching to chromatic and restores them on return", async () => {

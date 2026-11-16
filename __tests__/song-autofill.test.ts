@@ -297,6 +297,61 @@ describe("content provider failover", () => {
     }
   );
 
+  it("collects a slightly later chord chart instead of discarding it", async () => {
+    request.mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.includes("cifraclub.com")) return new Response(chart);
+      if (
+        value ===
+        "https://www.e-chords.com/en/chords/oasis/dont-look-back-in-anger/"
+      ) {
+        await new Promise<void>((resolve) => setTimeout(resolve, 400));
+        return new Response(chart.replace("Am       C", "Em       G"));
+      }
+      return response(value);
+    });
+    const result = lookup(title, artist);
+    await jest.advanceTimersByTimeAsync(500);
+    expect((await result).map((option) => option.source)).toEqual(
+      expect.arrayContaining(["Cifra Club", "E-Chords"])
+    );
+  });
+
+  it.each([true, false])(
+    "the chart collection window is bounded and cancellable: %s",
+    async (cancel) => {
+      const controller = new AbortController();
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.includes("cifraclub.com")) return new Response(chart);
+        if (value.includes("e-chords.com")) return new Promise(() => {});
+        return response(value);
+      });
+      let done = false;
+      const result = lookup(title, artist, controller.signal).then(
+        (value) => {
+          done = true;
+          return value;
+        },
+        (error) => {
+          done = true;
+          return error;
+        }
+      );
+      await jest.advanceTimersByTimeAsync(100);
+      expect(done).toBe(false);
+      if (cancel) controller.abort();
+      await jest.advanceTimersByTimeAsync(cancel ? 0 : 1500);
+      expect(done).toBe(true);
+      const value = await result;
+      if (cancel) expect(value).toEqual(new Error("Cancelled"));
+      else
+        expect(value).toEqual([
+          expect.objectContaining({ source: "Cifra Club" })
+        ]);
+    }
+  );
+
   it("uses the canonical Eagles artist path for Hotel California", async () => {
     const canonical = "https://www.cifraclub.com/the-eagles/hotel-california/";
     request.mockImplementation(async (url) =>

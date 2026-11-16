@@ -17,9 +17,11 @@ const operations = {
     updateItem({
       tableName: "songs",
       data: { title: "Song" },
-      filters: "id = 1"
+      filters: "id = ?",
+      parameters: [1]
     }),
-  delete: () => deleteItem({ tableName: "songs", filters: "id = 1" }),
+  delete: () =>
+    deleteItem({ tableName: "songs", filters: "id = ?", parameters: [1] }),
   read: () => getAllItems({ tableName: "songs" })
 };
 afterEach(() => jest.resetAllMocks());

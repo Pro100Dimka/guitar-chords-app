@@ -52,6 +52,10 @@ class MicrophoneStreamWrapper {
     MicrophoneStream.stopRecording();
   }
 
+  restartRecording(): Promise<boolean> {
+    return MicrophoneStream.restartRecording();
+  }
+
   releaseRecorder() {
     MicrophoneStream.releaseRecorder();
   }

@@ -95,6 +95,48 @@ function mockSongSave(id: number) {
 }
 let screen: Renderer.ReactTestRenderer | undefined;
 
+test("a preference edit after the song SQL write wins over stale recognition metadata", async () => {
+  const {
+    usePreferences,
+    flushPreferences
+  } = require("../src/components/preferences");
+  jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  usePreferences.setState({
+    songs: { 17: { ...defaultSongPreferences, tempo: 80 } }
+  });
+  let commit: (() => void) | undefined;
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    const tx: SQLTransaction = {
+      executeSql: (sql, args, done) =>
+        done?.(tx, {
+          insertId: 17,
+          rowsAffected: 1,
+          rows: { length: 0, item: jest.fn() }
+        })
+    };
+    body(tx);
+    commit = success;
+  });
+  const pending = onSubmit(
+    {} as FormikProps<typeof initialSong>,
+    {
+      ...initialSong,
+      id: 17,
+      title: "Title",
+      content: "Am\nWords",
+      tempo: 100
+    },
+    { replace: jest.fn() }
+  );
+  for (let i = 0; i < 15; i++) await Promise.resolve();
+  usePreferences.getState().updateSong(17, { tempo: 140 });
+  commit?.();
+  expect(await pending).toBe(true);
+  expect(usePreferences.getState().songs[17].tempo).toBe(140);
+  commit?.();
+  await flushPreferences();
+});
+
 test.each(["title", "content"] as const)(
   "raw %s whitespace counts toward the storage limit",
   async (key) => {

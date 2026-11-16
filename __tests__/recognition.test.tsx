@@ -15,7 +15,8 @@ import { pick } from "@react-native-documents/picker";
 import checkMicPermission from "../src/components/permissions";
 import {
   recognizeMicrophone,
-  recognizeAudioFile
+  recognizeAudioFile,
+  cancelRecognition
 } from "../src/components/song-autofill/recognition";
 import { lookupSongContent } from "../src/components/song-autofill/lyrics";
 import RecognizeSong from "../src/screens/recognize-song";
@@ -49,7 +50,80 @@ function deferred<T>() {
   return { promise, resolve };
 }
 let screen: Renderer.ReactTestRenderer | undefined;
+
+test.each(["mic", "file"])(
+  "abort cancels active native recognition and detaches its listener: %s",
+  async (mode) => {
+    const running = deferred<null>();
+    const controller = new AbortController();
+    const remove = jest.spyOn(controller.signal, "removeEventListener");
+    const recognizer = NativeModules.SongRecognition;
+    recognizer.recognizeMicrophone.mockReturnValue(running.promise);
+    recognizer.recognizeFile.mockReturnValue(running.promise);
+    jest
+      .mocked(pick)
+      .mockResolvedValue([
+        {
+          uri: "content://song",
+          name: "song.wav",
+          type: "audio/wav",
+          size: 100,
+          error: null,
+          nativeType: "audio/wav",
+          isVirtual: false,
+          hasRequestedType: true,
+          convertibleToMimeTypes: null
+        }
+      ]);
+    const pending = (mode === "mic" ? recognizeMicrophone : recognizeAudioFile)(
+      controller.signal
+    ).catch((error) => error);
+    for (let i = 0; i < 15; i++) await Promise.resolve();
+    controller.abort();
+    running.resolve(null);
+    expect(await pending).toEqual(new Error("Cancelled"));
+    expect(recognizer.cancel).toHaveBeenCalledTimes(1);
+    expect(remove).toHaveBeenCalledWith("abort", expect.any(Function));
+  }
+);
 const previousNative = NativeModules.SongRecognition;
+
+test("a rejected concurrent caller cannot cancel the active owner", async () => {
+  const running = deferred<null>();
+  NativeModules.SongRecognition.recognizeMicrophone.mockReturnValue(
+    running.promise
+  );
+  const owner = new AbortController();
+  const first = recognizeMicrophone(owner.signal);
+  for (let i = 0; i < 15; i++) await Promise.resolve();
+  const other = new AbortController();
+  await expect(recognizeMicrophone(other.signal)).rejects.toThrow(
+    "RecognitionBusy"
+  );
+  other.abort();
+  expect(NativeModules.SongRecognition.cancel).not.toHaveBeenCalled();
+  running.resolve(null);
+  await expect(first).resolves.toBeNull();
+  owner.abort();
+  expect(NativeModules.SongRecognition.cancel).not.toHaveBeenCalled();
+});
+
+test("a new recognition waits until native cancellation has completed", async () => {
+  const stopping = deferred<void>();
+  NativeModules.SongRecognition.cancel.mockReturnValue(stopping.promise);
+  const stop = cancelRecognition();
+  const next = recognizeMicrophone();
+  for (let i = 0; i < 15; i++) await Promise.resolve();
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).not.toHaveBeenCalled();
+  stopping.resolve();
+  await stop;
+  await next;
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(1);
+});
 const previousAppState = AppState.currentState;
 beforeEach(() => {
   jest

@@ -268,6 +268,23 @@ fun main(args: Array<String>) {
     }
     module.invalidate()
     check(AudioRecord.released.get() == 200)
+    repeat(3) {
+        var restarted: Any? = null
+        module.restartRecording(object: com.facebook.react.bridge.Promise {
+            override fun resolve(value: Any) { restarted = value }
+        })
+        check(restarted == true)
+        check(context.events.poll(2, TimeUnit.SECONDS) != null)
+        check(AudioRecord.readers.get() <= 1)
+    }
+    module.stopRecording()
+    AudioRecord.permissionGranted = false
+    module.restartRecording(object: com.facebook.react.bridge.Promise {
+        override fun resolve(value: Any) { check(value == false) }
+    })
+    check(AudioRecord.readers.get() == 0)
+    AudioRecord.permissionGranted = true
+    println("Acknowledged capture restarts release the old reader and report denied permission.")
     for (frequency in listOf(82.41, 110.0, 146.83, 196.0, 246.94, 329.63, 440.0)) {
         context.events.clear()
         AudioRecord.frequency = frequency

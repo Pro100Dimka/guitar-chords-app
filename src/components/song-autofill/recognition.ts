@@ -26,6 +26,46 @@ const native = (): NativeRecognizer => {
   return NativeModules.SongRecognition as NativeRecognizer;
 };
 let cancellation: Promise<void> = Promise.resolve();
+let cancelling = false;
+let active: symbol | undefined;
+async function recognize(
+  start: (recognizer: NativeRecognizer) => Promise<RecognizedSong | null>,
+  signal?: AbortSignal
+) {
+  await cancellation;
+  while (cancelling) await cancellation;
+  if (signal?.aborted) throw new Error("Cancelled");
+  if (active) throw new Error("RecognitionBusy");
+  const recognizer = native();
+  const owner = Symbol();
+  active = owner;
+  let abort!: () => void;
+  const aborted = new Promise<never>((_, reject) => {
+    abort = () => {
+      if (active !== owner) return;
+      void cancelRecognition().then(
+        () => reject(new Error("Cancelled")),
+        () => reject(new Error("Cancelled"))
+      );
+    };
+  });
+  signal?.addEventListener("abort", abort, { once: true });
+  try {
+    if (signal?.aborted) {
+      abort();
+      return await aborted;
+    }
+    const result = await Promise.race([start(recognizer), aborted]);
+    if (signal?.aborted) {
+      await cancellation;
+      throw new Error("Cancelled");
+    }
+    return result;
+  } finally {
+    signal?.removeEventListener("abort", abort);
+    if (active === owner) active = undefined;
+  }
+}
 export async function recognizeMicrophone(
   signal?: AbortSignal,
   onCaptureReady?: () => void
@@ -37,9 +77,11 @@ export async function recognizeMicrophone(
   await cancellation;
   if (signal?.aborted) throw new Error("Cancelled");
   await waitForAppActive(signal);
-  const recognizer = native();
-  onCaptureReady?.();
-  return recognizer.recognizeMicrophone();
+  return recognize((recognizer) => {
+    onCaptureReady?.();
+    if (signal?.aborted) throw new Error("Cancelled");
+    return recognizer.recognizeMicrophone();
+  }, signal);
 }
 export async function waitForAppActive(signal?: AbortSignal) {
   while (AppState.currentState !== "active") {
@@ -81,11 +123,18 @@ export async function recognizeAudioFile(
   // Read the original content:// through Android's ContentResolver; never delete it.
   await cancellation;
   if (signal?.aborted) throw new Error("Cancelled");
-  return native().recognizeFile(file.uri);
+  return recognize((recognizer) => recognizer.recognizeFile(file.uri), signal);
 }
 export async function cancelRecognition() {
   if (Platform.OS === "android" && NativeModules.SongRecognition) {
-    cancellation = native().cancel();
+    if (!cancelling) {
+      cancelling = true;
+      cancellation = native()
+        .cancel()
+        .finally(() => {
+          cancelling = false;
+        });
+    }
     await cancellation;
   }
 }

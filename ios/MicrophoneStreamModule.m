@@ -7,6 +7,7 @@
 RCT_EXTERN_METHOD(setKeepAwake:(BOOL)enabled)
 RCT_EXTERN_METHOD(startRecording)
 RCT_EXTERN_METHOD(stopRecording)
+RCT_EXTERN_METHOD(restartRecording:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(setTargetNotes:(NSArray *)notes)
 RCT_EXTERN_METHOD(getSampleRate:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)

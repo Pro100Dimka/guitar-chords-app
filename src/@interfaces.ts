@@ -111,11 +111,13 @@ export interface ICreateItem {
   data: Record<string, any>;
 }
 export interface IUpdateItem {
+  parameters?: (string | number | null)[];
   tableName: string;
   data: Record<string, any>;
   filters: string;
 }
 export interface IDeleteItem {
+  parameters?: (string | number | null)[];
   tableName: string;
   filters: string;
 }

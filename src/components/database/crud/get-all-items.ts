@@ -1,6 +1,7 @@
 // src/components/database/crud/get-all-items.ts
 import { IGetItems } from "@/@interfaces";
 import { db } from "../index";
+import { queryScope } from "./query";
 
 const getAllItems = <T = Record<string, unknown>>({
   tableName,
@@ -14,6 +15,17 @@ const getAllItems = <T = Record<string, unknown>>({
 }: IGetItems): Promise<T[]> => {
   return new Promise((resolve, reject) => {
     if (!tableName) return reject(new Error("tableName is required"));
+    const scope = queryScope(tableName, joins);
+    scope.fields(fields);
+    scope.where(filters, parameters);
+    if (orderBy) scope.order(orderBy);
+    if (
+      [page, limit].some(
+        (value) =>
+          value !== undefined && (!Number.isSafeInteger(value) || value < 0)
+      )
+    )
+      throw new Error("Invalid pagination");
     let sql = `SELECT ${fields} FROM ${tableName}`;
     if (joins.length > 0) sql += " " + joins.join(" "); //  join если есть
     if (filters) sql += ` WHERE ${filters}`; //  фильтры

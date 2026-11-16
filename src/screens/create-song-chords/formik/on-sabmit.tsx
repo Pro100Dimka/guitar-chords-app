@@ -33,6 +33,7 @@ const onSabmit = async (
 ) => {
   let resume: ReturnType<typeof suspendPreferenceSaving> | undefined;
   let persisted: Record<string, SongPreferences> | undefined;
+  let snapshot: SongPreferences | undefined;
   let savedId = id;
   try {
     values.youtube_music = values.youtube_music ?? "";
@@ -58,6 +59,7 @@ const onSabmit = async (
             const saveMetadata = (songId: number) => {
               savedId = songId;
               const state = usePreferences.getState();
+              snapshot = state.songs[songId];
               const preferences = normalizeSongPreferences({
                 ...defaultSongPreferences,
                 ...state.songs[songId],
@@ -120,8 +122,12 @@ const onSabmit = async (
         ...state.songs,
         [savedId]: normalizeSongPreferences({
           ...persisted?.[savedId],
-          ...state.songs[savedId],
-          ...metadata
+          ...Object.fromEntries(
+            Object.entries(state.songs[savedId] ?? {}).filter(
+              ([key, value]) =>
+                value !== snapshot?.[key as keyof SongPreferences]
+            )
+          )
         })
       }
     }));
