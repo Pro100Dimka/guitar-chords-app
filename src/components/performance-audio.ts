@@ -41,6 +41,8 @@ export const performanceAudio = {
   guitarString: (key: string, index: number) =>
     native.playGuitarString(key, index),
   stopGuitarString: (index: number) => native.stopGuitarString(index),
+  metronome: (tempo: number, enabled: boolean, phase = 0) =>
+    native.setMetronome(tempo, enabled, phase),
   guitar: (wave: string, key?: string) =>
     key && native.prepareGuitar && native.playPreparedGuitar
       ? native.playPreparedGuitar(key)

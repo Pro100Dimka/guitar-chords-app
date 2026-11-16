@@ -13,6 +13,8 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     private var guitarStrings: [Int: AVAudioPlayer] = [:]
     private var stringGeneration: [Int: Int] = [:]
     private var stringSessionActive = false
+    private var metronomeEngine: AVAudioEngine?
+    private var metronomeNode: AVAudioPlayerNode?
     private var lastTake: URL?
     private var startedAt: Date?
     private var processing = Set<String>()
@@ -183,6 +185,8 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         cue?.stop(); cue = nil
         guitarStrings.values.forEach { $0.stop() }; guitarStrings.removeAll()
         stringSessionActive = false
+        metronomeNode?.stop(); metronomeEngine?.stop()
+        metronomeNode = nil; metronomeEngine = nil
         if wasPlaying && recorder == nil { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
         if wasPlaying { emit("stopped") }
     }
@@ -197,6 +201,37 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         cue = try? AVAudioPlayer(contentsOf: url)
         cue?.volume = 0.3
         cue?.play()
+    }
+    @objc func setMetronome(_ tempo: Double, enabled: Bool, phase: Double) {
+        metronomeNode?.stop(); metronomeEngine?.stop()
+        metronomeNode = nil; metronomeEngine = nil
+        guard enabled, recorder == nil, tempo.isFinite, (40...200).contains(tempo) else { return }
+        let rate = 22050.0
+        let frames = AVAudioFrameCount((rate * 60 / tempo).rounded())
+        let shift = phase.isFinite ? Int((Double(frames) * min(1, max(0, phase))).rounded()) % Int(frames) : 0
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1),
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
+              let samples = buffer.floatChannelData?[0] else { return }
+        buffer.frameLength = frames
+        for index in 0..<Int(frames) {
+            let time = Double((index + shift) % Int(frames)) / rate
+            samples[index] = time < 0.025 ? Float(0.09 * sin(2 * .pi * 1200 * time) * (1 - exp(-2000 * time)) * exp(-200 * time)) : 0
+        }
+        let engine = AVAudioEngine()
+        let node = AVAudioPlayerNode()
+        engine.attach(node)
+        engine.connect(node, to: engine.mainMixerNode, format: format)
+        do {
+            let session = AVAudioSession.sharedInstance()
+            try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+            try session.setActive(true)
+            engine.prepare()
+            try engine.start()
+            node.scheduleBuffer(buffer, at: nil, options: .loops, completionHandler: nil)
+            node.play()
+            metronomeEngine = engine; metronomeNode = node
+            stringSessionActive = true
+        } catch { engine.stop() }
     }
     @objc func prepareGuitar(_ key: String, wave: String) {
         guard key.count <= 256, wave.count <= 400000 else { return }

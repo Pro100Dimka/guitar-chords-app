@@ -27,6 +27,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     private var player: MediaPlayer? = null
     private var cue: MediaPlayer? = null
     private var guitar: AudioTrack? = null
+    private var metronome: AudioTrack? = null
     private val guitarStrings = mutableMapOf<Int, AudioTrack>()
     private val guitarPcm = linkedMapOf<String, ByteArray>()
     private val preparedGuitars = linkedMapOf<String, AudioTrack>()
@@ -204,6 +205,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         player?.release(); player = null
         cue?.release(); cue = null
         guitar?.release(); guitar = null
+        metronome?.release(); metronome = null
         guitarStrings.values.forEach { it.release() }; guitarStrings.clear()
         if (recorder == null) audioManager.abandonAudioFocus(focusListener)
         if (wasPlaying) emit("stopped")
@@ -235,17 +237,40 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         val rate = header.getInt(24)
         val channels = header.getShort(22).toInt()
         require(rate in listOf(22050, 44100, 48000) && channels in listOf(1, 2) && header.getShort(34).toInt() == 16)
+        return pcmTrack(bytes, rate, channels, 44)
+    }
+    private fun pcmTrack(bytes: ByteArray, rate: Int, channels: Int, offset: Int = 0): AudioTrack {
         val track = AudioTrack.Builder()
             .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_GAME).setContentType(AudioAttributes.CONTENT_TYPE_MUSIC).build())
             .setAudioFormat(AudioFormat.Builder().setSampleRate(rate).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(if (channels == 2) AudioFormat.CHANNEL_OUT_STEREO else AudioFormat.CHANNEL_OUT_MONO).build())
             .setTransferMode(AudioTrack.MODE_STATIC)
-            .setBufferSizeInBytes(bytes.size - 44)
+            .setBufferSizeInBytes(bytes.size - offset)
             .apply { if (android.os.Build.VERSION.SDK_INT >= 26) setPerformanceMode(AudioTrack.PERFORMANCE_MODE_LOW_LATENCY) }
             .build()
         try {
-            check(track.write(bytes, 44, bytes.size - 44) == bytes.size - 44)
+            check(track.write(bytes, offset, bytes.size - offset) == bytes.size - offset)
             return track
         } catch (error: Exception) { track.release(); throw error }
+    }
+    @ReactMethod @Synchronized fun setMetronome(tempo: Double, enabled: Boolean, phase: Double) {
+        fadeGuitar(metronome); metronome = null
+        if (!enabled || recorder != null || !tempo.isFinite() || tempo !in 40.0..200.0) return
+        val rate = 22050
+        val frames = Math.round(rate * 60.0 / tempo).toInt()
+        val shift = if (phase.isFinite()) Math.round(frames * phase.coerceIn(0.0, 1.0)).toInt() % frames else 0
+        val pcm = ByteBuffer.allocate(frames * 2).order(ByteOrder.LITTLE_ENDIAN)
+        for (index in 0 until (rate * 0.025).toInt()) {
+            val time = index.toDouble() / rate
+            val value = 0.09 * kotlin.math.sin(2 * Math.PI * 1200 * time) *
+                (1 - kotlin.math.exp(-2000 * time)) * kotlin.math.exp(-200 * time)
+            pcm.putShort(((index - shift + frames) % frames) * 2, (value * 32767).toInt().toShort())
+        }
+        try {
+            val track = pcmTrack(pcm.array(), rate, 1)
+            metronome = track
+            check(track.setLoopPoints(0, frames, -1) == AudioTrack.SUCCESS)
+            track.play()
+        } catch (_: Exception) { metronome?.release(); metronome = null }
     }
     @ReactMethod @Synchronized fun prepareGuitar(key: String, wave: String) {
         if (key.length > 256 || wave.length > 8_000_000) return

@@ -34,4 +34,5 @@ RCT_EXTERN_METHOD(playGuitar:(NSString *)wave)
 RCT_EXTERN_METHOD(prepareGuitar:(NSString *)key wave:(NSString *)wave)
 RCT_EXTERN_METHOD(playGuitarString:(NSString *)key index:(NSInteger)index)
 RCT_EXTERN_METHOD(stopGuitarString:(NSInteger)index)
+RCT_EXTERN_METHOD(setMetronome:(double)tempo enabled:(BOOL)enabled phase:(double)phase)
 @end
