@@ -74,7 +74,7 @@ jobs:
           test -s "$app/main.jsbundle"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleSupportedPlatforms:0' "$app/Info.plist")" = iPhoneOS
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Info.plist")" = com.freetune
-          xcrun lipo -verify_arch arm64 "$app/freetune"
+          xcrun lipo "$app/freetune" -verify_arch arm64
           xcrun vtool -show-build "$app/freetune" | tee "$RUNNER_TEMP/ios-device-platform.txt"
           grep -Eq 'platform IOS$' "$RUNNER_TEMP/ios-device-platform.txt"
           mkdir -p "$RUNNER_TEMP/iphone-package/Payload"
