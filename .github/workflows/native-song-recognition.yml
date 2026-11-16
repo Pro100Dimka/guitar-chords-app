@@ -90,7 +90,7 @@ jobs:
         run: chmod +x gradlew && ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon
 
   ios:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
