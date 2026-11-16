@@ -60,21 +60,19 @@ test.each(["mic", "file"])(
     const recognizer = NativeModules.SongRecognition;
     recognizer.recognizeMicrophone.mockReturnValue(running.promise);
     recognizer.recognizeFile.mockReturnValue(running.promise);
-    jest
-      .mocked(pick)
-      .mockResolvedValue([
-        {
-          uri: "content://song",
-          name: "song.wav",
-          type: "audio/wav",
-          size: 100,
-          error: null,
-          nativeType: "audio/wav",
-          isVirtual: false,
-          hasRequestedType: true,
-          convertibleToMimeTypes: null
-        }
-      ]);
+    jest.mocked(pick).mockResolvedValue([
+      {
+        uri: "content://song",
+        name: "song.wav",
+        type: "audio/wav",
+        size: 100,
+        error: null,
+        nativeType: "audio/wav",
+        isVirtual: false,
+        hasRequestedType: true,
+        convertibleToMimeTypes: null
+      }
+    ]);
     const pending = (mode === "mic" ? recognizeMicrophone : recognizeAudioFile)(
       controller.signal
     ).catch((error) => error);
@@ -123,6 +121,18 @@ test("a new recognition waits until native cancellation has completed", async ()
   expect(
     NativeModules.SongRecognition.recognizeMicrophone
   ).toHaveBeenCalledTimes(1);
+});
+
+test("aborting from the capture-ready callback never starts capture or leaks a rejection", async () => {
+  const controller = new AbortController();
+  await expect(
+    recognizeMicrophone(controller.signal, () => controller.abort())
+  ).rejects.toThrow("Cancelled");
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).not.toHaveBeenCalled();
+  expect(NativeModules.SongRecognition.cancel).toHaveBeenCalledTimes(1);
 });
 const previousAppState = AppState.currentState;
 beforeEach(() => {

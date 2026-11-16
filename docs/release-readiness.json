@@ -6,8 +6,8 @@
   "checks": {
     "javascript": {
       "suites": 19,
-      "tests": 419,
-      "status": "419 tests in 19 suites passed locally; focused recognition/content checks passed after the final cancellation guards."
+      "tests": 420,
+      "status": "420 tests in 19 suites passed locally; focused recognition/content checks passed after the final cancellation guards."
     },
     "typescript": "Passed tsc --noEmit locally and in current source main CI.",
     "eslint": "Passed full ESLint with zero warnings locally and in current source main CI.",
@@ -1906,7 +1906,7 @@
     },
     "verification": {
       "kotlin": "Production methods passed deterministic device/codec-stub checks including acknowledged restarts, denied permission and existing capture/recording/pitch cases",
-      "jest": "419/419, 19 suites; new regressions reproduce the six defects before fixes",
+      "jest": "420/420, 19 suites; new regressions reproduce the six defects before fixes",
       "sqlite": "passed, actual integration",
       "typescript": "passed",
       "eslint": "passed with zero warnings"

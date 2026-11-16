@@ -1,6 +1,6 @@
 SOURCE AUDIT UPDATE, 16.11.2026 (seven reported risks)
 Six reproduced defects fixed; existing versioned migration behavior verified.
-419 Jest tests / 19 suites, TypeScript, ESLint and actual SQLite passed.
+420 Jest tests / 19 suites, TypeScript, ESLint and actual SQLite passed.
 Native Kotlin fixtures passed, including acknowledged microphone recovery.
 Abort ownership, SQL boundaries, bounded chart collection, concurrent preferences,
 capture recovery and signal visualization have focused regressions.

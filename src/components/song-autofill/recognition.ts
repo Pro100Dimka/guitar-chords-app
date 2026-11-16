@@ -55,7 +55,13 @@ async function recognize(
       abort();
       return await aborted;
     }
-    const result = await Promise.race([start(recognizer), aborted]);
+    const result = await Promise.race([
+      Promise.resolve().then(() => {
+        if (signal?.aborted) throw new Error("Cancelled");
+        return start(recognizer);
+      }),
+      aborted
+    ]);
     if (signal?.aborted) {
       await cancellation;
       throw new Error("Cancelled");
