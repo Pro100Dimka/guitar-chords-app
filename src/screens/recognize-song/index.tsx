@@ -48,9 +48,11 @@ import { applyRecognitionDraft } from "../../components/song-autofill/draft";
 import { songChords } from "../song/chords";
 
 export default function RecognizeSong() {
-  const {
-    params: { mode }
-  } = useRoute<RouteProp<RootStackParamList, "recognizeSong">>();
+  const { params } = useRoute<RouteProp<RootStackParamList, "recognizeSong">>();
+  const mode =
+    params?.mode && ["mic", "file", "text"].includes(params.mode)
+      ? params.mode
+      : "mic";
   const navigation = useNavigation<NavigationProp>();
   const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
@@ -118,7 +120,9 @@ export default function RecognizeSong() {
     return complete;
   }, [t]);
   useEffect(() => {
-    void AccessibilityInfo.isReduceMotionEnabled().then(setReduceMotion);
+    void AccessibilityInfo.isReduceMotionEnabled()
+      .catch(() => true)
+      .then(setReduceMotion);
     const subscription = AccessibilityInfo.addEventListener(
       "reduceMotionChanged",
       setReduceMotion

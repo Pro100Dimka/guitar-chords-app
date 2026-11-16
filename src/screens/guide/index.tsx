@@ -365,12 +365,15 @@ export function GuideArticle() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [zoom, setZoom] = useState(false);
-  const article = articles.find((item) => item.id === params.id);
+  const article = articles.find((item) => item.id === params?.id);
   if (!article)
     return (
       <View style={styles.container}>
         <Text style={styles.title}>{t("GuideNoResults")}</Text>
-        <Action label={t("Back")} onPress={() => navigation.goBack()} />
+        <Action
+          label={t("Back")}
+          onPress={() => navigation.popTo("Tabs", { screen: "guide" })}
+        />
       </View>
     );
   const key = `GuideArticles.${article.id}`;

@@ -316,6 +316,64 @@ test("long chord labels keep subsequent chords aligned with their lyric words", 
   expect(chordsAboveLyrics(output)).toBe(output);
 });
 
+test("pending native fingering cannot resume after a background and foreground cycle", async () => {
+  jest.replaceProperty(performanceAudio, "preparedFingeringSupported", true);
+  const previous = AppState.currentState;
+  AppState.currentState = "active";
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  jest
+    .mocked(AppState.addEventListener)
+    .mockImplementation((_event, listener) => {
+      listeners.add(listener);
+      return { remove: () => listeners.delete(listener) };
+    });
+  let finish!: (ready: boolean) => void;
+  const prepared = new Promise<boolean>((resolve) => {
+    finish = resolve;
+  });
+  jest
+    .mocked(performanceAudio.prepareFingering)
+    .mockImplementation((_key, wave) =>
+      wave ? prepared : Promise.resolve(false)
+    );
+  try {
+    await act(async () => {
+      screen = Renderer.create(
+        <ChordSheet chord="Am" onChange={() => {}} onClose={() => {}} />
+      );
+    });
+    const card = screen!.root.findAll(
+      (node) =>
+        typeof node.props.onPressIn === "function" &&
+        String(node.props.accessibilityLabel).startsWith("Fingering ")
+    )[0];
+    await act(async () => card.props.onPressIn());
+    const key = jest
+      .mocked(performanceAudio.prepareFingering)
+      .mock.calls.at(-1)![0];
+    await act(async () =>
+      screen!.root
+        .findByType(WebView)
+        .props.onMessage({
+          nativeEvent: {
+            data: JSON.stringify({ type: "fingering", key, wave: "AAAA" })
+          }
+        })
+    );
+    for (const state of ["background", "active"] as const)
+      await act(async () => {
+        AppState.currentState = state;
+        [...listeners].forEach((listener) => listener(state));
+      });
+    await act(async () => finish(true));
+    expect(performanceAudio.playPreparedGuitar).not.toHaveBeenCalled();
+    await act(async () => card.props.onPressIn());
+    expect(performanceAudio.playPreparedGuitar).toHaveBeenCalledTimes(1);
+  } finally {
+    AppState.currentState = previous;
+  }
+});
+
 test("late preparation of an earlier fingering cannot replace the latest tap", async () => {
   jest.replaceProperty(performanceAudio, "preparedFingeringSupported", true);
   jest
@@ -345,7 +403,9 @@ test("late preparation of an earlier fingering cannot replace the latest tap", a
     second = key(1);
   expect(first).not.toBe(second);
   await act(async () =>
-    jest.mocked(AppState.addEventListener).mock.calls.at(-1)![1]("active")
+    jest
+      .mocked(AppState.addEventListener)
+      .mock.calls.forEach(([, listener]) => listener("active"))
   );
   await act(async () => {
     cards[0].props.onPressIn();
@@ -1190,7 +1250,9 @@ test("an unmounted fingering cannot start a delayed native preview", async () =>
     );
   });
   await act(async () =>
-    jest.mocked(AppState.addEventListener).mock.calls.at(-1)![1]("active")
+    jest
+      .mocked(AppState.addEventListener)
+      .mock.calls.forEach(([, listener]) => listener("active"))
   );
   const card = screen!.root.findAll(
     (node) =>
@@ -1317,7 +1379,9 @@ test("an evicted native fingering is rebuilt from its rendered waveform and play
     );
   });
   await act(async () =>
-    jest.mocked(AppState.addEventListener).mock.calls.at(-1)![1]("active")
+    jest
+      .mocked(AppState.addEventListener)
+      .mock.calls.forEach(([, listener]) => listener("active"))
   );
   const card = screen!.root.findAll(
     (node) =>

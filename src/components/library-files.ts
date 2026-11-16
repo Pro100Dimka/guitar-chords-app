@@ -20,6 +20,7 @@ import { db } from "./database";
 import { getAllItems } from "./database/crud";
 import {
   normalizeSongPreferences,
+  preserveSongPreferenceChanges,
   SongPreferences,
   suspendPreferenceSaving,
   usePreferences,
@@ -58,8 +59,8 @@ function fileRead(signal?: AbortSignal) {
         interrupted
       ]);
     },
-    start(timeout = 30000) {
-      timer = setTimeout(() => stop(new Error("FileReadError")), timeout);
+    start() {
+      timer = setTimeout(() => stop(new Error("FileReadError")), 30000);
     },
     finish() {
       if (timer !== undefined) clearTimeout(timer);
@@ -142,24 +143,28 @@ export async function readSongCover(
 let remoteCoverId = 0;
 export async function readRemoteSongCover(url: string, signal: AbortSignal) {
   if (!url.startsWith("https://") || signal.aborted) return "";
-  const read = fileRead(signal);
+  const controller = new AbortController();
+  const read = fileRead(controller.signal);
+  const abort = () => controller.abort();
+  signal.addEventListener("abort", abort, { once: true });
+  const timer = setTimeout(abort, 8000);
   const path = `${Dirs.CacheDir}/recognized-cover-${Date.now()}-${++remoteCoverId}.jpg`;
   let request: ReturnType<typeof FileSystem.fetchManaged> | undefined;
   try {
-    read.start(8000);
     request = FileSystem.fetchManaged(url, { path }, (bytes) => {
-      if (bytes > 5 * 1024 * 1024)
-        void request?.cancel().catch(() => undefined);
+      if (bytes > 5 * 1024 * 1024) abort();
     });
     const response = await read.wait(request.result, () =>
       FileSystem.unlink(path)
     );
     if (!response.ok || signal.aborted) return "";
-    return await readSongCover(`file://${path}`, false, signal);
+    return await readSongCover(`file://${path}`, false, controller.signal);
   } catch (error) {
     void request?.cancel().catch(() => undefined);
     throw error;
   } finally {
+    clearTimeout(timer);
+    signal.removeEventListener("abort", abort);
     read.finish();
     await FileSystem.unlink(path).catch(() => undefined);
   }
@@ -466,6 +471,7 @@ export async function exportLibrary() {
 export async function restoreLibrary(songs: BackupSong[]) {
   const resumeSaving = suspendPreferenceSaving();
   const addedPreferences: Record<string, SongPreferences> = {};
+  let snapshot: Record<string, SongPreferences> = {};
   let added = 0;
   let committed = false;
   const matched = new Set<number>();
@@ -477,6 +483,7 @@ export async function restoreLibrary(songs: BackupSong[]) {
             const song = songs[index];
             if (!song) {
               const state = usePreferences.getState();
+              snapshot = state.songs;
               writePreferences(tx, {
                 ...state,
                 songs: { ...state.songs, ...addedPreferences }
@@ -555,7 +562,19 @@ export async function restoreLibrary(songs: BackupSong[]) {
     );
     committed = true;
     usePreferences.setState((state) => ({
-      songs: { ...state.songs, ...addedPreferences }
+      songs: {
+        ...state.songs,
+        ...Object.fromEntries(
+          Object.entries(addedPreferences).map(([id, preferences]) => [
+            id,
+            preserveSongPreferenceChanges(
+              preferences,
+              snapshot[id],
+              state.songs[id]
+            )
+          ])
+        )
+      }
     }));
     return { added, skipped: songs.length - added };
   } finally {

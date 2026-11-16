@@ -48,9 +48,11 @@ jest.mock("react-i18next", () => ({
 }));
 jest.mock("@react-navigation/native", () => ({
   useNavigation: () => mockNavigation,
-  useRoute: () => ({ params: { id: mockGuideId } })
+  useRoute: () => ({
+    params: mockGuideId === undefined ? undefined : { id: mockGuideId }
+  })
 }));
-let mockGuideId = "reading";
+let mockGuideId: string | undefined = "reading";
 let mockGuideLocale = "";
 const mockNavigation = { popTo: jest.fn(), setParams: jest.fn() };
 beforeEach(() => {
@@ -107,6 +109,24 @@ test.each(
   const { steps } = require(`../src/locales/${locale}.json`).GuideArticles[id];
   expect(JSON.stringify(screen.toJSON())).toContain(steps[3]);
   await act(async () => screen.unmount());
+});
+
+test("a guide link without article parameters remains usable and returns to the guide", async () => {
+  mockGuideId = undefined;
+  let screen!: Renderer.ReactTestRenderer;
+  try {
+    await act(async () => {
+      screen = Renderer.create(<GuideArticle />);
+    });
+    expect(JSON.stringify(screen.toJSON())).toContain("GuideNoResults");
+    await act(async () => screen.root.findByType(Action).props.onPress());
+    expect(mockNavigation.popTo).toHaveBeenCalledWith("Tabs", {
+      screen: "guide"
+    });
+  } finally {
+    if (screen) await act(async () => screen.unmount());
+    mockGuideId = "reading";
+  }
 });
 
 test("guide search indexes the last backup step", async () => {

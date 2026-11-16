@@ -316,6 +316,27 @@ async function main() {
   assert.equal(preferences.usePreferences.getState().songs[concurrentId].tempo,140);
   assert.equal(preferences.usePreferences.getState().songs[concurrentId].transpose,3);
   console.log("Concurrent editor favorite, tempo and transpose regression passed in state and actual SQLite.");
+  const restoreSettings = library.parseLibraryBackup(JSON.stringify({format:"freetune-library",version:2,songs:[{title:"Concurrent edited",content:"Am\nWords",band_name:"",youtube_music:"",youtobe_lesson:"",preferences:{tempo:90,favorite:false,capo:2}}]}));
+  db.transaction=function(body,error,success){
+    return originalTransaction.call(db,body,error,()=>{
+      db.transaction=originalTransaction;
+      preferences.usePreferences.getState().updateSong(concurrentId,{favorite:false,tempo:155,transpose:4});
+      success?.();
+    });
+  };
+  const restoredSettings=await library.restoreLibrary(restoreSettings);
+  assert.equal(restoredSettings.added,0);
+  assert.equal(restoredSettings.skipped,1);
+  await preferences.flushPreferences();
+  for (const reload of [false,true]) {
+    if(reload){preferences.usePreferences.setState({songs:{}});await preferences.loadPreferences();}
+    const current=preferences.usePreferences.getState().songs[concurrentId];
+    assert.equal(current.tempo,155,"Restore must retain tempo changed after its write");
+    assert.equal(current.favorite,false);
+    assert.equal(current.transpose,4);
+    assert.equal(current.capo,2,"Unchanged fields still restore from backup");
+  }
+  console.log("Concurrent backup restore preserves newer settings in state and actual SQLite after reload.");
   const staleId=(await create({tableName:"songs",data:{title:"Deleted",content:"Am\nWords"}})).insertId;
   await remove({tableName:"songs",filters:"id = ?",parameters:[staleId]});
   alerts.length=0;let staleClosed=false;

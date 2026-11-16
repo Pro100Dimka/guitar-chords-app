@@ -37,13 +37,15 @@ jest.mock("../src/components/library-files", () => ({
   readLibraryFile: jest.fn()
 }));
 jest.mock("@react-navigation/native", () => ({
-  useRoute: () => ({ params: { mode: mockMode } }),
+  useRoute: () => ({
+    params: mockMode === undefined ? undefined : { mode: mockMode }
+  }),
   useNavigation: () => mockNavigation,
   useFocusEffect: (callback: () => void) =>
     require("react").useEffect(callback, [callback])
 }));
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
-let mockMode: "mic" | "file" = "mic";
+let mockMode: string | undefined = "mic";
 const mockNavigate = jest.fn();
 const mockNavigation = { replace: mockNavigate, navigate: mockNavigate };
 function deferred<T>() {
@@ -54,6 +56,32 @@ function deferred<T>() {
   return { promise, resolve };
 }
 let screen: Renderer.ReactTestRenderer | undefined;
+
+test("recognition remains usable when the native motion-preference query fails", async () => {
+  jest
+    .mocked(AccessibilityInfo.isReduceMotionEnabled)
+    .mockRejectedValueOnce(new Error("Accessibility service unavailable"));
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
+  expect(JSON.stringify(screen!.toJSON())).toContain("AddSongListenTitle");
+});
+
+test.each([undefined, "invalid"])(
+  "a recognition link with mode %s opens idle microphone controls",
+  async (mode) => {
+    mockMode = mode;
+    await act(async () => {
+      screen = Renderer.create(<RecognizeSong />);
+    });
+    expect(JSON.stringify(screen!.toJSON())).toContain("AddSongListenTitle");
+    expect(pick).not.toHaveBeenCalled();
+    expect(
+      NativeModules.SongRecognition.recognizeMicrophone
+    ).not.toHaveBeenCalled();
+  }
+);
 
 test("a standalone letter in plain lyrics is not accepted as a chord chart", async () => {
   jest.mocked(lookupSongContent).mockResolvedValue([
