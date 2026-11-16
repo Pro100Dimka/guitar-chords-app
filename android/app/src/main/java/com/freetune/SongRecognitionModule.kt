@@ -42,6 +42,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var connection: HttpURLConnection? = null
     @Volatile private var rateLimitedUntil = 0L
+    private val recognized = LinkedHashMap<String, Pair<Long, JSONObject>>()
 
     override fun getName() = "SongRecognition"
 
@@ -329,6 +330,10 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
 
     private fun submit(signature: String, durationMs: Int): JSONObject? {
         val timestamp = System.currentTimeMillis()
+        recognized[signature]?.let { (until, track) ->
+            if (timestamp < until) return track
+            recognized.remove(signature)
+        }
         if (timestamp < rateLimitedUntil) throw IllegalStateException("RateLimited")
         val url = URL("https://amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag/" +
             UUID.randomUUID() + "/" + UUID.randomUUID() +
@@ -367,7 +372,10 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             val track = JSONObject(response).optJSONObject("track") ?: return null
             val title = track.optString("title").trim()
             val artist = track.optString("subtitle").trim()
-            return if (title.isNotEmpty() && artist.isNotEmpty()) track else null
+            if (title.isEmpty() || artist.isEmpty()) return null
+            if (recognized.size >= 20) recognized.remove(recognized.keys.first())
+            recognized[signature] = (timestamp + 600000L) to track
+            return track
         } finally {
             conn.disconnect()
         }

@@ -35,7 +35,7 @@ import {
   preferredSongContent,
   LyricsOption,
   lookupSongContent,
-  lookupShazamTempo
+  lookupSongTempo
 } from "../../components/song-autofill/lyrics";
 import {
   fileCanceled,
@@ -45,6 +45,7 @@ import {
 } from "../../components/library-files";
 import initialValues from "../create-song-chords/formik/initial-values";
 import { applyRecognitionDraft } from "../../components/song-autofill/draft";
+import { songChords } from "../song/chords";
 
 export default function RecognizeSong() {
   const {
@@ -55,6 +56,9 @@ export default function RecognizeSong() {
   const { width, height } = useWindowDimensions();
   const size = Math.min(220, width - 100, height < 500 ? 140 : 220);
   const [versions, setVersions] = useState<LyricsOption[]>([]);
+  const [availableVersions, setAvailableVersions] = useState<LyricsOption[]>(
+    []
+  );
   const versionResolver = useRef<((option?: LyricsOption) => void) | undefined>(
     undefined
   );
@@ -71,6 +75,7 @@ export default function RecognizeSong() {
   const [message, setMessage] = useState("");
   const [found, setFound] = useState<RecognizedSong | null>(null);
   const [draft, setDraft] = useState<FormValues | null>(null);
+  const draftReady = useRef(false);
   const [lyricsNotice, setLyricsNotice] = useState<
     | "AddSongLyricsNotice"
     | "AddSongNoLyrics"
@@ -93,6 +98,7 @@ export default function RecognizeSong() {
     running.current = true;
     controller.current?.abort();
     if (mounted.current) {
+      if (!draftReady.current) setFound(null);
       setBusy(true);
       setStopping(true);
       setMessage(t("AutofillStopping"));
@@ -163,6 +169,7 @@ export default function RecognizeSong() {
     setBusy(true);
     setFound(null);
     setDraft(null);
+    draftReady.current = false;
     setLyricsNotice("AddSongNoLyrics");
     setMessage(
       t(
@@ -213,7 +220,6 @@ export default function RecognizeSong() {
           }
         };
       }
-      setDraft(next);
       setLyricsNotice(
         next.content ? "AddSongLyricsNotice" : "AddSongLyricsUnavailable"
       );
@@ -225,7 +231,7 @@ export default function RecognizeSong() {
         readRemoteSongCover(result.cover ?? "", abort.signal).catch(() => ""),
         result.tempo !== undefined
           ? Promise.resolve(result.tempo)
-          : lookupShazamTempo(
+          : lookupSongTempo(
               result.title,
               result.artist,
               result.url ?? "",
@@ -234,10 +240,22 @@ export default function RecognizeSong() {
       ]);
       if (request !== generation.current) return;
       const candidates = preferredSongContent(
-        lyrics.options,
+        lyrics.options
+          .filter(
+            (option) =>
+              option.hasChords && songChords(option.content).length > 0
+          )
+          .map((option) => ({ ...option, hasChords: true })),
         result.album,
         result.duration
       );
+      setAvailableVersions(candidates);
+      if (!candidates.length) {
+        setFound(null);
+        setDraft(null);
+        setMessage(t("AddSongNoLyrics"));
+        return;
+      }
       const selected =
         candidates.length > 1
           ? await new Promise<LyricsOption | undefined>((resolve) => {
@@ -246,6 +264,12 @@ export default function RecognizeSong() {
             })
           : candidates[0];
       if (request !== generation.current) return;
+      if (!selected) {
+        setFound(null);
+        setDraft(null);
+        setMessage(t("AutofillSearchCancelled"));
+        return;
+      }
       next = {
         ...next,
         cover,
@@ -268,6 +292,7 @@ export default function RecognizeSong() {
             ? "AddSongLyricsUnavailable"
             : "AddSongNoLyrics";
       setLyricsNotice(notice);
+      draftReady.current = true;
       setDraft(next);
       setMessage(t("AddSongTapResult"));
       if (mode === "file")
@@ -277,6 +302,7 @@ export default function RecognizeSong() {
         });
     } catch (error) {
       if (request !== generation.current) return;
+      if (!draftReady.current) setFound(null);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
       const categories: Record<string, string> = {
@@ -425,7 +451,7 @@ export default function RecognizeSong() {
           onPress={() => {
             if (!draft) return;
             void stop();
-            navigation.replace("createSong", { draft, notice: lyricsNotice });
+            navigation.navigate("createSong", { draft, notice: lyricsNotice });
           }}
           style={({ pressed }) => [styles.result, pressed && styles.pressed]}
         >
@@ -475,6 +501,12 @@ export default function RecognizeSong() {
           onPress={() => void stop()}
         />
       )}
+      {!!found && !busy && availableVersions.length > 1 && (
+        <Action
+          label={t("ChooseLyricsVersion")}
+          onPress={() => setVersions(availableVersions)}
+        />
+      )}
       {!!versions.length && (
         <Sheet
           title={t("ChooseLyricsVersion")}
@@ -483,12 +515,26 @@ export default function RecognizeSong() {
             setVersions([]);
           }}
         >
-          {versions.map((option) => (
+          {versions.map((option, index) => (
             <Action
-              key={`${option.source}:${option.id}:${option.album}`}
-              label={`${option.album || option.title} · ${option.source}${option.duration ? ` · ${Math.round(option.duration)} s` : ""}`}
+              key={`${option.source}:${option.url ?? option.id}:${option.album}`}
+              label={`${option.album || option.title} · ${option.source}${option.duration ? ` · ${Math.round(option.duration)} s` : ""} · ${index + 1}`}
               onPress={() => {
-                versionResolver.current?.(option);
+                if (versionResolver.current) versionResolver.current(option);
+                else
+                  setDraft(
+                    (previous) =>
+                      previous && {
+                        ...previous,
+                        content: option.content,
+                        capo: option.capo,
+                        rhythm: option.rhythm,
+                        sourceTuning: option.tuning,
+                        contentSource: option.url
+                          ? { name: option.source, url: option.url }
+                          : undefined
+                      }
+                  );
                 versionResolver.current = undefined;
                 setVersions([]);
               }}

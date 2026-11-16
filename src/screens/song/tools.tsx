@@ -654,6 +654,7 @@ export function SongTools({
           content={content}
           value={value}
           onChange={onChange}
+          onChooseRhythm={() => setTab("rhythm")}
         />
       )}
     </Sheet>
@@ -723,11 +724,13 @@ function EasierChords({
 function TransitionPractice({
   content,
   value,
-  onChange
+  onChange,
+  onChooseRhythm
 }: {
   content: string;
   value: SongPreferences;
   onChange: (patch: Partial<SongPreferences>) => void;
+  onChooseRhythm: () => void;
 }) {
   const { t } = useTranslation();
   const entries = songSections(content).flatMap((section) =>
@@ -745,24 +748,30 @@ function TransitionPractice({
   const orderedEntries = [...entries.slice(start), ...entries.slice(0, start)];
   return (
     <>
-      <RhythmPlayer
-        pattern={value.strum || "D-D-D-D-"}
-        meter={value.strum ? value.strumMeter : 4}
-        division={value.strum ? value.strumDivision : 2}
-        tempo={value.tempo}
-        practice={ordered}
-        arrangements={
-          Object.keys(value.rhythmSections ?? {}).length
-            ? orderedEntries.map(
-                (entry) =>
-                  value.rhythmSections[entry.section] ?? normalizeRhythm(value)
-              )
-            : undefined
-        }
-        chords={ordered}
-        capo={value.capo}
-        shapes={value.shapes}
-      />
+      {value.strum ||
+      entries.some((entry) => value.rhythmSections[entry.section]?.strum) ? (
+        <RhythmPlayer
+          pattern={value.strum}
+          meter={value.strumMeter}
+          division={value.strumDivision}
+          tempo={value.tempo}
+          practice={ordered}
+          arrangements={
+            Object.keys(value.rhythmSections ?? {}).length
+              ? orderedEntries.map(
+                  (entry) =>
+                    value.rhythmSections[entry.section] ??
+                    normalizeRhythm(value)
+                )
+              : undefined
+          }
+          chords={ordered}
+          capo={value.capo}
+          shapes={value.shapes}
+        />
+      ) : (
+        <Action label={t("ChooseSongRhythm")} onPress={onChooseRhythm} />
+      )}
       <View style={styles.row}>
         <Text style={styles.label}>{t("Tempo")}</Text>
         <Action

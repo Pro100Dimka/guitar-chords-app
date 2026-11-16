@@ -508,6 +508,38 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
+test("practice asks for a song pattern instead of inventing downstrokes", async () => {
+  await act(async () => {
+    screen = Renderer.create(
+      <SongTools
+        content={"Am\nWords"}
+        value={defaultSongPreferences}
+        onChange={() => {}}
+        onClose={() => {}}
+      />
+    );
+  });
+  await act(async () =>
+    screen!.root
+      .findAll(
+        (node) =>
+          node.props.accessibilityRole === "tab" &&
+          typeof node.props.onPress === "function" &&
+          node
+            .findAllByType(Text)
+            .some((text) => text.props.children === "Practice")
+      )[0]
+      .props.onPress()
+  );
+  expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
+  const choose = screen!.root
+    .findAllByType(Action)
+    .find((node) => node.props.label === "ChooseSongRhythm");
+  expect(choose).toBeDefined();
+  await act(async () => choose!.props.onPress());
+  expect(screen!.root.findAllByType(RhythmGrid)).toHaveLength(rhythms.length);
+});
+
 test("opening song tools mounts the controls before preparing the audio bank", async () => {
   jest.useFakeTimers();
   const bank = jest.spyOn(acousticPlayer, "acousticBank");

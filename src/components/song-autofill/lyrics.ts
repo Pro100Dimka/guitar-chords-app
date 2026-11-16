@@ -1,5 +1,5 @@
 import { songChords, transposeSong } from "../../screens/song/chords";
-import { Parser, parseDocument, DomUtils } from "htmlparser2";
+import { Parser, DomHandler, DomUtils } from "htmlparser2";
 import { sourceArrangement } from "../../screens/song/rhythms";
 
 export interface LyricsOption {
@@ -33,13 +33,23 @@ const normalize = (value: string) =>
 const trackTitle = (value: string) =>
   value
     .replace(
-      /\s*[\[(](?:[^)\]]*remaster[^)\]]*|(?:feat\.?|ft\.?|featuring)[^)\]]*|official (?:audio|video))[\])]\s*/gi,
+      /\s*[\[(](?:[^)\]]*remaster[^)\]]*|(?:feat\.?|ft\.?|featuring|with)[^)\]]*|official (?:audio|video)|(?:live|acoustic|unplugged|radio edit|album version|single version)(?:\s+[^)\]]*)?)[\])]\s*/gi,
       " "
     )
     .replace(/\s+-\s+(?:\d{4}\s+)?remaster(?:ed)?(?:\s+\d{4})?\s*$/i, "")
     .trim();
 const primaryArtist = (value: string) =>
   value.replace(/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/i, "").trim();
+const artistCredits = (value: string) => [
+  ...new Set(
+    [
+      primaryArtist(value),
+      ...value.split(/\s+(?:&|feat\.?|ft\.?|featuring|with)\s+/i)
+    ]
+      .map((name) => name.trim())
+      .filter(Boolean)
+  )
+];
 export const matchingIdentity = (expected: string, actual: string) =>
   !!normalize(trackTitle(expected)) &&
   normalize(trackTitle(expected)) === normalize(trackTitle(actual));
@@ -168,9 +178,12 @@ export async function lookupLyrics(
   }
 }
 
+const artistKey = (value: string) =>
+  normalize(value.replace(/\s*&\s*/g, " and ")).replace(/ /g, "");
 const sameArtist = (expected: string, actual: string) =>
-  normalize(primaryArtist(expected)).replace(/ /g, "") ===
-  normalize(primaryArtist(actual)).replace(/ /g, "");
+  artistCredits(expected).some(
+    (name) => artistKey(name) === artistKey(primaryArtist(actual))
+  );
 
 function chartRhythm(
   text: string,
@@ -189,7 +202,28 @@ function chartRhythm(
 }
 
 const sourceCooldowns = new Map<string, number>();
-async function fetchSource(url: string, signal?: AbortSignal, timeout = 12000) {
+async function parseSource(html: string, signal?: AbortSignal) {
+  const handler = new DomHandler();
+  const parser = new Parser(handler);
+  let deadline = Date.now() + 2;
+  for (let offset = 0; offset < html.length; offset += 8192) {
+    if (signal?.aborted) throw new Error("Cancelled");
+    parser.write(html.slice(offset, offset + 8192));
+    if (Date.now() >= deadline) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      deadline = Date.now() + 2;
+    }
+  }
+  if (signal?.aborted) throw new Error("Cancelled");
+  parser.end();
+  return handler.root;
+}
+async function fetchSource(
+  url: string,
+  signal?: AbortSignal,
+  timeout = 12000,
+  form?: URLSearchParams
+) {
   if (signal?.aborted) throw new Error("Cancelled");
   const origin = new URL(url).origin;
   if (Date.now() < (sourceCooldowns.get(origin) ?? 0))
@@ -199,7 +233,16 @@ async function fetchSource(url: string, signal?: AbortSignal, timeout = 12000) {
   signal?.addEventListener("abort", abort, { once: true });
   const timer = setTimeout(abort, timeout);
   try {
-    const response = await fetch(url, { signal: controller.signal });
+    const response = await fetch(url, {
+      signal: controller.signal,
+      ...(form
+        ? {
+            method: "POST",
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            body: form.toString()
+          }
+        : {})
+    });
     if (response.status === 404) return null;
     if ([403, 429].includes(response.status)) {
       const retry = Number(response.headers?.get("Retry-After"));
@@ -224,7 +267,7 @@ async function fetchSource(url: string, signal?: AbortSignal, timeout = 12000) {
   }
 }
 
-export async function lookupShazamTempo(
+async function lookupShazamTempo(
   title: string,
   artist: string,
   url: string,
@@ -236,7 +279,7 @@ export async function lookupShazamTempo(
     return;
   const html = await fetchSource(url, signal, 4000);
   if (!html) return;
-  const document = parseDocument(html);
+  const document = await parseSource(html, signal);
   const verified = DomUtils.getElementsByTagName(
     "script",
     document.children
@@ -286,6 +329,57 @@ export async function lookupShazamTempo(
     return Math.round(tempo);
 }
 
+export async function lookupSongTempo(
+  title: string,
+  artist: string,
+  url: string,
+  signal?: AbortSignal
+) {
+  if (!title.trim() || !artist.trim()) return;
+  try {
+    const tempo = await lookupShazamTempo(title, artist, url, signal);
+    if (tempo !== undefined) return tempo;
+  } catch {
+    if (signal?.aborted) throw new Error("Cancelled");
+  }
+  const html = await fetchSource(
+    "https://songbpm.com/searches",
+    signal,
+    8000,
+    new URLSearchParams({
+      query: `${primaryArtist(artist)} ${trackTitle(title)}`
+    })
+  );
+  if (!html) return;
+  const document = await parseSource(html, signal);
+  const tempos = new Set<number>();
+  for (const card of DomUtils.getElementsByTagName("a", document.children)) {
+    if (!/^\/@[^/]+\/[^/]+$/.test(card.attribs.href ?? "")) continue;
+    const labels = DomUtils.getElementsByTagName("p", [card]);
+    if (
+      labels.length !== 2 ||
+      !sameArtist(artist, DomUtils.textContent(labels[0])) ||
+      !matchingIdentity(title, DomUtils.textContent(labels[1]))
+    )
+      continue;
+    const label = DomUtils.findOne(
+      (element) =>
+        element.name === "span" &&
+        DomUtils.textContent(element).trim() === "BPM",
+      card.children
+    );
+    const tempo = Number(
+      label?.parent &&
+        DomUtils.textContent(label.parent)
+          .match(/^\s*BPM\s*(\d+(?:[.,]\d+)?)\s*$/i)?.[1]
+          ?.replace(",", ".")
+    );
+    if (Number.isFinite(tempo) && tempo >= 40 && tempo <= 200)
+      tempos.add(Math.round(tempo));
+  }
+  if (tempos.size === 1) return [...tempos][0];
+}
+
 let nextPisennykRequest = 0;
 async function fetchPisennyk(url: string, signal?: AbortSignal) {
   if (signal?.aborted) throw new Error("Cancelled");
@@ -326,7 +420,7 @@ async function lookupPisennyk(
     signal
   );
   if (!search) return [];
-  const document = parseDocument(search);
+  const document = await parseSource(search, signal);
   const candidate = DomUtils.getElementsByTagName("a", document.children).find(
     (element) =>
       sameArtist(
@@ -341,7 +435,7 @@ async function lookupPisennyk(
   const url = candidate.attribs.href;
   const html = await fetchPisennyk(url, signal);
   if (!html) return [];
-  const page = parseDocument(html);
+  const page = await parseSource(html, signal);
   let identity: { title: string; artist: string; id: number } | undefined;
   for (const script of DomUtils.getElementsByTagName("script", page.children)) {
     if (script.attribs.type !== "application/ld+json") continue;
@@ -377,13 +471,11 @@ async function lookupPisennyk(
   if (!body) return [];
   let content = "";
   let inChord = false;
-  let hasChords = false;
   const parser = new Parser({
     onopentag(name, attributes) {
       if (name === "br") content += "\n";
       if (name === "code" && attributes["data-chord"]) {
         inChord = true;
-        hasChords = true;
         content += "[";
       }
     },
@@ -468,7 +560,7 @@ async function lookupPisennyk(
       duration: null,
       source: "Пісенник",
       url,
-      hasChords
+      hasChords: songChords(content).length > 0
     }
   ];
 }
@@ -479,11 +571,16 @@ const chordSources = {
   Cifras: { origin: "https://www.cifras.com.br", path: "/cifra" },
   GuitareTab: { origin: "https://www.guitaretab.com", path: "/fetch/" }
 };
+const contentCache = new Map<
+  string,
+  { until: number; options: LyricsOption[] }
+>();
 async function lookupChordPage(
   title: string,
   artist: string,
   source: keyof typeof chordSources,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  candidateUrl?: string
 ): Promise<LyricsOption[]> {
   const slug = (value: string) =>
     value
@@ -497,16 +594,22 @@ async function lookupChordPage(
     titleSlug = slug(trackTitle(title));
   if (!artistSlug || !titleSlug) return [];
   const provider = chordSources[source];
-  const canonicalArtist =
-    source === "Cifra Club" && artistSlug === "eagles"
-      ? "the-eagles"
+  const candidateArtist =
+    source === "Cifra Club" && candidateUrl
+      ? new URL(candidateUrl).pathname.split("/")[1]
       : artistSlug;
-  let url = `${provider.origin}${provider.path}/${canonicalArtist}/${titleSlug}/`;
-  if (source === "GuitareTab") {
+  const canonicalArtist =
+    source === "Cifra Club" && candidateArtist === "eagles"
+      ? "the-eagles"
+      : candidateArtist;
+  let url =
+    candidateUrl ??
+    `${provider.origin}${provider.path}/${canonicalArtist}/${titleSlug}/`;
+  if (source === "GuitareTab" && !candidateUrl) {
     const search = await fetchSource(
       `${provider.origin}${provider.path}?${new URLSearchParams({
         type: "tab",
-        query: `${primaryArtist(artist)} ${trackTitle(title)}`
+        query: `${artistCredits(artist).find((name) => !/\s+&\s+/.test(name)) ?? primaryArtist(artist)} ${trackTitle(title)}`
       })}`,
       signal
     );
@@ -514,9 +617,9 @@ async function lookupChordPage(
     const rows = DomUtils.findAll(
       (element) =>
         (element.attribs.class ?? "").split(/\s+/).includes("gt-list__row"),
-      parseDocument(search).children
+      (await parseSource(search, signal)).children
     );
-    let path = "";
+    const paths = new Set<string>();
     for (const row of rows) {
       const links = DomUtils.getElementsByTagName("a", row.children);
       if (!links.some((link) => sameArtist(artist, DomUtils.textContent(link))))
@@ -533,16 +636,69 @@ async function lookupChordPage(
         );
       });
       if (candidate) {
-        path = candidate.attribs.href;
-        break;
+        paths.add(candidate.attribs.href);
+        if (paths.size === 3) break;
       }
     }
-    if (!path) return [];
-    url = `${provider.origin}${path}`;
+    const results = await Promise.allSettled(
+      [...paths].map((path) =>
+        lookupChordPage(
+          title,
+          artist,
+          source,
+          signal,
+          `${provider.origin}${path}`
+        )
+      )
+    );
+    return results.flatMap((result) =>
+      result.status === "fulfilled" ? result.value : []
+    );
   }
-  const html = await fetchSource(url, signal);
+  let html = await fetchSource(url, signal);
+  if (!html && source === "Cifra Club") {
+    const catalog = await fetchSource(
+      `${provider.origin}/${canonicalArtist}/`,
+      signal
+    );
+    if (catalog) {
+      const link = DomUtils.getElementsByTagName(
+        "a",
+        (await parseSource(catalog, signal)).children
+      ).find((element) => {
+        const label =
+          DomUtils.findOne(
+            (node) =>
+              (node.attribs.class ?? "").split(/\s+/).includes("primaryLabel"),
+            element.children
+          ) ?? element;
+        return (
+          matchingIdentity(title, DomUtils.textContent(label)) &&
+          new RegExp(`^/${canonicalArtist}/[a-z0-9-]+/$`).test(
+            element.attribs.href ?? ""
+          )
+        );
+      });
+      if (link) {
+        url = `${provider.origin}${link.attribs.href}`;
+        html = await fetchSource(url, signal);
+      }
+    }
+  }
+  if (!html && source === "Cifra Club" && !candidateUrl) {
+    for (const credited of artistCredits(artist).slice(1, 3)) {
+      const options = await lookupChordPage(
+        title,
+        artist,
+        source,
+        signal,
+        `${provider.origin}/${slug(credited)}/${titleSlug}/`
+      );
+      if (options.some((option) => option.hasChords)) return options;
+    }
+  }
   if (!html) return [];
-  const document = parseDocument(html);
+  const document = await parseSource(html, signal);
   let foundTitle = "",
     foundArtist = "";
   for (const script of DomUtils.getElementsByTagName(
@@ -743,6 +899,10 @@ export async function lookupSongContent(
 ): Promise<LyricsOption[]> {
   if (!title.trim() || !artist.trim()) throw new Error("MissingIdentity");
   if (signal?.aborted) throw new Error("Cancelled");
+  const cacheKey = `${normalize(primaryArtist(artist))}:${normalize(trackTitle(title))}`;
+  const cached = contentCache.get(cacheKey);
+  if (cached && cached.until > Date.now())
+    return cached.options.map((option) => ({ ...option }));
   const controller = new AbortController();
   let rejectAbort: (error: Error) => void = () => {};
   const cancelled = new Promise<never>((_, reject) => {
@@ -805,7 +965,16 @@ export async function lookupSongContent(
     ]);
     if (signal?.aborted) throw new Error("Cancelled");
     const withChords = options.filter((option) => option.hasChords);
-    if (options.length) return withChords.length ? withChords : options;
+    if (withChords.length) {
+      if (contentCache.size >= 20)
+        contentCache.delete(contentCache.keys().next().value!);
+      contentCache.set(cacheKey, {
+        until: Date.now() + 10 * 60 * 1000,
+        options: withChords.map((option) => ({ ...option }))
+      });
+      return withChords;
+    }
+    if (options.length) return options;
     const results = await completed;
     try {
       const fallback = await lookupOvh(title, artist, controller.signal);

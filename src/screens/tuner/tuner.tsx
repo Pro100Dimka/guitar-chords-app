@@ -11,7 +11,12 @@ import React, {
   useState
 } from "react";
 import MicrophoneStream, { AudioBufferEvent } from "./MicrophoneStream";
-import { Canvas, CanvasRef } from "@shopify/react-native-skia";
+import {
+  AlphaType,
+  Canvas,
+  CanvasRef,
+  ColorType
+} from "@shopify/react-native-skia";
 import { useSharedValue, withTiming } from "react-native-reanimated";
 import Strings from "./strings";
 import { guitarLayout } from "./guitar-layout";
@@ -37,7 +42,7 @@ import { usePreferences } from "@/components/preferences";
 import { performanceAudio } from "../../components/performance-audio";
 import TuningSheet from "./tuning-sheet";
 import { guitarTunings, noteNames, standardTuning } from "./tunings";
-import { playGuitar, prepareGuitar } from "../../components/guitar-audio";
+import { playGuitar, warmGuitar } from "../../components/guitar-audio";
 import ChromaticWheel, { chromaticLayout } from "./chormatic-wheel";
 import { Action, Sheet } from "../song/tools";
 import { useTranslation } from "react-i18next";
@@ -141,14 +146,24 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         const image = await canvas.current.makeImageSnapshotAsync();
         let visible = false;
         try {
-          const pixels = image.readPixels();
-          if (pixels)
-            for (let i = 3; i < pixels.length; i += 4) {
-              if (pixels[i] > 0) {
-                visible = true;
-                break;
-              }
-            }
+          const hole = (
+            isChromatic
+              ? chromaticLayout(layout.width, layout.height)
+              : guitarLayout(layout.width, layout.height)
+          ).hole;
+          const x = Math.floor(
+            ((hole.x + hole.width / 2) * image.width()) / layout.width
+          );
+          const y = Math.floor(
+            ((hole.y + hole.height / 2) * image.height()) / layout.height
+          );
+          const pixels = image.readPixels(x, y, {
+            width: 1,
+            height: 1,
+            colorType: ColorType.RGBA_8888,
+            alphaType: AlphaType.Unpremul
+          });
+          visible = !!pixels && pixels[3] > 0;
         } finally {
           image.dispose();
         }
@@ -174,6 +189,9 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     backgroundReady,
     layoutReady,
     graphicsReady,
+    isChromatic,
+    layout.width,
+    layout.height,
     renderAttempt
   ]);
   useEffect(() => {
@@ -208,31 +226,26 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   }, [config.selectedInstrument, config.instruments, tuning, customTuning]);
   useEffect(() => {
     if (!active || !painted) return;
-    if (isChromatic) {
-      const timer = setTimeout(
-        () =>
-          prepareGuitar(
-            [
-              ((chromaticOctave ?? 4) + 1) * 12 +
-                noteNames.indexOf(referenceNote)
-            ],
-            tunerReference
-          ),
-        80
-      );
-      return () => clearTimeout(timer);
-    }
-    let index = 0;
-    const warm = () => {
-      const string = strings?.[index++];
-      if (!string) return;
-      prepareGuitar([
-        (string.octave + 1) * 12 + noteNames.indexOf(string.name)
-      ]);
-      timer = setTimeout(warm, 16);
+    const controller = new AbortController();
+    const notes = isChromatic
+      ? [((chromaticOctave ?? 4) + 1) * 12 + noteNames.indexOf(referenceNote)]
+      : (strings ?? []).map(
+          (string) => (string.octave + 1) * 12 + noteNames.indexOf(string.name)
+        );
+    const timer = setTimeout(async () => {
+      for (const midi of notes) {
+        if (controller.signal.aborted) break;
+        await warmGuitar(
+          [midi],
+          isChromatic ? tunerReference : 440,
+          controller.signal
+        );
+      }
+    }, 80);
+    return () => {
+      clearTimeout(timer);
+      controller.abort();
     };
-    let timer = setTimeout(warm, 80);
-    return () => clearTimeout(timer);
   }, [
     strings,
     active,

@@ -37,6 +37,7 @@ const Library: React.FC = () => {
   const [songs, setSongs] = useState<ISong[]>([]);
   const [loading, setLoading] = useState(true); // для первой загрузки
   const [loadingMore, setLoadingMore] = useState(false); // для подгрузки
+  const loadedQuery = useRef("");
   const [loadError, setLoadError] = useState(false);
   const pagination = useRef({
     page: 0,
@@ -73,7 +74,9 @@ const Library: React.FC = () => {
       if (pageNumber === 0) {
         pagination.current.page = 0;
         pagination.current.hasMore = true;
-        setSongs([]);
+        const query = `${filters}:${collection}:${selection}`;
+        if (loadedQuery.current !== query) setSongs([]);
+        loadedQuery.current = query;
         setLoading(true);
       } else setLoadingMore(true);
       try {
@@ -228,7 +231,7 @@ const Library: React.FC = () => {
               icon: "pencil-outline",
               onPress: () => navigation.navigate("createSong")
             },
-            ...(Platform.OS === "android"
+            ...(["android", "ios"].includes(Platform.OS)
               ? [
                   {
                     label: "AutofillRecognizeMic",
@@ -236,7 +239,11 @@ const Library: React.FC = () => {
                     icon: "microphone",
                     onPress: () =>
                       navigation.navigate("recognizeSong", { mode: "mic" })
-                  },
+                  }
+                ]
+              : []),
+            ...(Platform.OS === "android"
+              ? [
                   {
                     label: "AutofillRecognizeFile",
                     hint: "AddSongFileHint",
@@ -257,6 +264,7 @@ const Library: React.FC = () => {
             <Pressable
               key={item.label}
               accessibilityRole="button"
+              accessibilityLabel={t(item.label)}
               style={({ pressed }) => [
                 styles.addOption,
                 pressed && { opacity: 0.7 }
@@ -284,7 +292,7 @@ const Library: React.FC = () => {
           ))}
         </Sheet>
       )}
-      {loading && (
+      {loading && !songs.length && (
         <ActivityIndicator
           size="large"
           color={palette.colors.white}

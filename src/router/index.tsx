@@ -63,6 +63,7 @@ const guideOptions: NativeStackNavigationOptions = {
 
 const RootStack = createNativeStackNavigator({
   initialRouteName: "Tabs",
+  screenOptions: { animation: "none" },
   screens: {
     GuideArticle: { screen: GuideArticle, options: guideOptions },
     Tabs: {

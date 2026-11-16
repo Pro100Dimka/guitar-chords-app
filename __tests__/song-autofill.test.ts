@@ -14,6 +14,9 @@ describe("lyrics-only fallback", () => {
   it("compares artist and title independently", () => {
     expect(matchingIdentity("Океан Ельзи", "ОКЕАН-ЕЛЬЗИ")).toBe(true);
     expect(matchingIdentity("Океан Ельзи", "Скрябін")).toBe(false);
+    expect(matchingIdentity("Live Forever", "Forever")).toBe(false);
+    expect(matchingIdentity("Song (Part II)", "Song")).toBe(false);
+    expect(matchingIdentity("Song (Remix)", "Song")).toBe(false);
   });
 
   it("rejects different performers and preserves exact lyrics line breaks", async () => {
@@ -87,6 +90,20 @@ describe("content provider failover", () => {
     globalThis.fetch = originalFetch;
     jest.useRealTimers();
     jest.restoreAllMocks();
+  });
+
+  it("reuses completed chord results when the same song is searched again", async () => {
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(chart)
+        : response(String(url))
+    );
+    const first = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    const options = await first;
+    const count = request.mock.calls.length;
+    expect(await lookup(title, artist)).toEqual(options);
+    expect(request).toHaveBeenCalledTimes(count);
   });
 
   it("preserves source capo and tuning alongside canonical sounding chords", async () => {
@@ -240,6 +257,22 @@ describe("content provider failover", () => {
       capo: 3,
       content: expect.stringContaining("Example words")
     });
+  });
+
+  it("Pisennyk identifies plain chord rows as a chart without code tags", async () => {
+    const candidate = "https://pisennyk.com.ua/test-artist/plain-chart";
+    request.mockImplementation(async (url) =>
+      String(url).startsWith("https://pisennyk.com.ua/search")
+        ? new Response(`<a href="${candidate}">${title} ${artist}</a>`)
+        : String(url) === candidate
+          ? new Response(
+              `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: title, byArtist: { name: artist } })}</script><div class="interpretation-content"><p>Am C</p><p>Example words</p></div>`
+            )
+          : response(String(url))
+    );
+    const result = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    expect((await result)[0].hasChords).toBe(true);
   });
 
   it.each([true, false])(
@@ -415,6 +448,115 @@ describe("content provider failover", () => {
       )
     ).toBe("Am C\nOriginal example words");
   });
+
+  it("tries another verified arrangement when the first version has no chords", async () => {
+    const search = [123, 456]
+      .map(
+        (id) =>
+          `<div class="gt-list__row"><a href="/o/oasis/">Oasis</a><a href="/o/oasis/${id}.html">${title} chords</a></div>`
+      )
+      .join("");
+    request.mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.startsWith("https://www.guitaretab.com/fetch/?"))
+        return new Response(search);
+      if (value.endsWith("123.html"))
+        return new Response(
+          `<h1>${title}</h1><h2>${artist}</h2><pre>Only words</pre>`
+        );
+      if (value.endsWith("456.html")) return new Response(chart);
+      return response(value);
+    });
+    const result = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    expect(await result).toEqual([
+      expect.objectContaining({
+        hasChords: true,
+        url: "https://www.guitaretab.com/o/oasis/456.html"
+      })
+    ]);
+  });
+
+  it("yields and allows cancellation while parsing a large provider page", async () => {
+    let clock = 100000;
+    jest.spyOn(Date, "now").mockImplementation(() => (clock += 3));
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(
+            `<div>${"<span>Example</span>".repeat(20000)}</div>${chart}`
+          )
+        : response(String(url))
+    );
+    const controller = new AbortController();
+    let settled = false;
+    const result = lookup(title, artist, controller.signal).catch((error) => {
+      settled = true;
+      return error;
+    });
+    for (let i = 0; i < 30; i++) await Promise.resolve();
+    expect(settled).toBe(false);
+    controller.abort();
+    await expect(result).resolves.toEqual(new Error("Cancelled"));
+    await jest.runAllTimersAsync();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it("finds a noncanonical song slug in the artist catalog and verifies the page", async () => {
+    request.mockImplementation(async (url) => {
+      const value = String(url);
+      if (value === "https://www.cifraclub.com/oasis/")
+        return new Response(`<a href="/oasis/dont-look-back/">${title}</a>`);
+      if (value === "https://www.cifraclub.com/oasis/dont-look-back/")
+        return new Response(chart);
+      return response(value);
+    });
+    const result = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    expect(await result).toEqual([
+      expect.objectContaining({
+        hasChords: true,
+        url: "https://www.cifraclub.com/oasis/dont-look-back/"
+      })
+    ]);
+  });
+
+  it.each([
+    [
+      "Shallow",
+      "Lady Gaga & Bradley Cooper",
+      "lady-gaga",
+      "Shallow (feat. Bradley Cooper)"
+    ],
+    [
+      "Lovely",
+      "Billie Eilish & Khalid",
+      "billie-eilish",
+      "Lovely (feat. Khalid)"
+    ],
+    ["Decode (Acoustic Version)", "Paramore", "paramore", "Decode"]
+  ])(
+    "finds credited performers and recording editions: %s",
+    async (name, performer, path, heading) => {
+      const pageArtist = performer.split(" & ")[0];
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value === `https://www.cifraclub.com/${path}/`)
+          return new Response(
+            `<a href="/${path}/published-song/"><p>05</p><p class="primaryLabel"><span>${heading}</span></p><span>228 options</span></a>`
+          );
+        if (value === `https://www.cifraclub.com/${path}/published-song/`)
+          return new Response(
+            `<h1>${heading}</h1><h2>${pageArtist}</h2><pre>Am C\nExample words</pre>`
+          );
+        return response(value);
+      });
+      const result = lookup(name, performer);
+      await jest.runAllTimersAsync();
+      expect(
+        (await result).filter((option) => option.hasChords).length
+      ).toBeGreaterThan(0);
+    }
+  );
 
   it("does not keep requesting a provider during its access-denied cooldown", async () => {
     request.mockImplementation(async (url) =>

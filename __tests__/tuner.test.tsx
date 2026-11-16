@@ -1,6 +1,12 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { AppState, TextInput, Dimensions, View } from "react-native";
+import {
+  AppState,
+  ImageBackground,
+  TextInput,
+  Dimensions,
+  View
+} from "react-native";
 import NoteIndicator from "../src/screens/tuner/note-indicator";
 import { Action } from "../src/screens/song/tools";
 import Tuner from "../src/screens/tuner/tuner";
@@ -60,7 +66,9 @@ jest.mock("react-i18next", () => ({
 }));
 jest.mock("@shopify/react-native-skia", () => ({
   Canvas: "Canvas",
-  Group: "Group"
+  Group: "Group",
+  ColorType: { RGBA_8888: 4 },
+  AlphaType: { Unpremul: 3 }
 }));
 jest.mock("react-native-reanimated", () => ({
   useSharedValue: (value: unknown) =>
@@ -101,6 +109,54 @@ jest.mock("../src/screens/tuner/config", () => ({
 }));
 
 let screen: Renderer.ReactTestRenderer;
+
+test("first-frame validation reads one opaque pixel instead of copying the full canvas", async () => {
+  jest.useFakeTimers();
+  const previous = usePreferences.getState().instrument;
+  usePreferences.setState({ instrument: "guitar" });
+  const readPixels = jest.fn(() => new Uint8Array([2, 3, 3, 255]));
+  const dispose = jest.fn();
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Tuner active />, {
+        createNodeMock: (element) =>
+          element.type === "Canvas"
+            ? {
+                makeImageSnapshotAsync: async () => ({
+                  width: () => 1000,
+                  height: () => 2000,
+                  readPixels,
+                  dispose
+                })
+              }
+            : null
+      });
+    });
+    await act(async () => {
+      screen.root
+        .findAll((node) => typeof node.props.onLayout === "function")[0]
+        .props.onLayout({
+          nativeEvent: { layout: { width: 400, height: 800 } }
+        });
+      screen.root.findByType(ImageBackground).props.onLoad();
+      screen.root.findByType(NoteIndicator).props.onReady();
+      screen.root
+        .findByType(require("../src/screens/tuner/strings").default)
+        .props.onReady();
+      screen.root.findByType(Buttons).props.onReady();
+    });
+    await act(async () => jest.advanceTimersByTimeAsync(50));
+    expect(readPixels.mock.calls.length).toBe(1);
+    expect(jest.mocked(readPixels).mock.calls[0]).toEqual([
+      expect.any(Number),
+      expect.any(Number),
+      { width: 1, height: 1, colorType: 4, alphaType: 3 }
+    ]);
+    expect(dispose).toHaveBeenCalledTimes(1);
+  } finally {
+    await act(async () => usePreferences.setState({ instrument: previous }));
+  }
+});
 
 test("guitar strings expose accessible selection and throttled pitch readings", async () => {
   jest.useFakeTimers();
@@ -328,11 +384,13 @@ test.each([false, true])(
   async (active) => {
     jest.useFakeTimers();
     const prepare = jest.spyOn(guitarAudio, "prepareGuitar");
+    const warm = jest.spyOn(guitarAudio, "warmGuitar");
     await act(async () => {
       screen = Renderer.create(<Tuner active={active} />);
     });
     await act(async () => jest.advanceTimersByTime(500));
     expect(prepare).not.toHaveBeenCalled();
+    expect(warm).not.toHaveBeenCalled();
   }
 );
 

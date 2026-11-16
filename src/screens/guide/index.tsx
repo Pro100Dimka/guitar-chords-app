@@ -136,6 +136,8 @@ export default function Guide() {
   const [section, setSection] = useState("all");
   const words = normalize(query).trim().split(/\s+/).filter(Boolean);
   const filtered = articles.filter((article) => {
+    if (section !== "all" && article.section !== section) return false;
+    if (!words.length) return true;
     const steps = t(`GuideArticles.${article.id}.steps`, {
       returnObjects: true
     });
@@ -145,10 +147,7 @@ export default function Guide() {
         .concat(Array.isArray(steps) ? steps : [])
         .join(" ")
     );
-    return (
-      (section === "all" || article.section === section) &&
-      words.every((word) => text.includes(word))
-    );
+    return words.every((word) => text.includes(word));
   });
   const open = (id: string) => {
     Keyboard.dismiss();

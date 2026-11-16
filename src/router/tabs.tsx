@@ -25,6 +25,7 @@ const TabLayout = () => {
           const icon = screens?.[route.name as keyof typeof screens]?.icon;
           return {
             headerShown: false,
+            freezeOnBlur: route.name !== "tuner",
             tabBarLabelStyle: {
               fontSize: 12,
               fontFamily: palette.typography.strong,
@@ -55,7 +56,7 @@ const TabLayout = () => {
             component={screens[name].component}
             options={{
               title: t(screens[name].title ?? name),
-              lazy: name !== "tuner"
+              lazy: false
             }}
           />
         ))}
