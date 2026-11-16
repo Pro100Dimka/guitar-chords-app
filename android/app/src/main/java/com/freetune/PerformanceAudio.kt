@@ -27,6 +27,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     private var player: MediaPlayer? = null
     private var cue: MediaPlayer? = null
     private var guitar: AudioTrack? = null
+    private val guitarStrings = mutableMapOf<Int, AudioTrack>()
     private val guitarPcm = linkedMapOf<String, ByteArray>()
     private val preparedGuitars = linkedMapOf<String, AudioTrack>()
     private var take: File? = null
@@ -203,6 +204,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         player?.release(); player = null
         cue?.release(); cue = null
         guitar?.release(); guitar = null
+        guitarStrings.values.forEach { it.release() }; guitarStrings.clear()
         if (recorder == null) audioManager.abandonAudioFocus(focusListener)
         if (wasPlaying) emit("stopped")
     }
@@ -252,6 +254,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                 require(it.size > 44)
                 guitarPcm[key] = it
             }
+            guitarPcm.remove(key); guitarPcm[key] = bytes
             if (!preparedGuitars.containsKey(key)) preparedGuitars[key] = guitarTrack(bytes)
             while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
             while (guitarPcm.size > 32 || guitarPcm.values.sumOf { it.size.toLong() } > 32L * 1024 * 1024) {
@@ -270,29 +273,53 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         if (wave.isNotEmpty() || guitarPcm.containsKey(key)) prepareGuitar(key, wave)
         promise.resolve(preparedGuitars.containsKey(key))
     }
+    @ReactMethod @Synchronized fun playGuitarString(key: String, index: Int) {
+        if (recorder != null || index !in 0..5) return
+        val bytes = guitarPcm[key] ?: return
+        val voice = try { preparedGuitars.remove(key) ?: guitarTrack(bytes) } catch (_: Exception) { return }
+        fadeGuitar(guitarStrings.remove(index), 0.22f)
+        try {
+            voice.setVolume(0.22f)
+            guitarStrings[index] = voice
+            voice.play()
+        } catch (_: Exception) { guitarStrings.remove(index); voice.release(); return }
+        worker.execute {
+            synchronized(this@PerformanceAudio) {
+                if (guitarPcm.containsKey(key) && !preparedGuitars.containsKey(key)) runCatching {
+                    preparedGuitars[key] = guitarTrack(bytes)
+                    while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
+                }
+            }
+        }
+    }
+    @ReactMethod @Synchronized fun stopGuitarString(index: Int) {
+        fadeGuitar(guitarStrings.remove(index), 0.22f)
+    }
+    private fun fadeGuitar(previous: AudioTrack?, volume: Float = 1f) {
+        if (previous == null) return
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        if (android.os.Build.VERSION.SDK_INT >= 26) {
+            try {
+                val fade = previous.createVolumeShaper(android.media.VolumeShaper.Configuration.Builder()
+                    .setDuration(16)
+                    .setCurve(floatArrayOf(0f, 1f), floatArrayOf(1f, 0f))
+                    .build())
+                fade.apply(android.media.VolumeShaper.Operation.PLAY)
+                handler.postDelayed({ previous.release(); runCatching { fade.close() } }, 24)
+            } catch (_: Exception) { previous.release() }
+        } else {
+            for (step in 1..8) handler.postDelayed({
+                runCatching { previous.setVolume(volume * (8 - step) / 8f); if (step == 8) previous.release() }
+            }, step * 2L)
+        }
+    }
     @ReactMethod @Synchronized fun playPreparedGuitar(key: String) {
         if (recorder != null) return
         val bytes = guitarPcm[key] ?: return
         val prepared = try { preparedGuitars.remove(key) ?: guitarTrack(bytes) } catch (_: Exception) { return }
         val previous = guitar
         guitar = null
-        if (previous != null) {
-            val handler = android.os.Handler(android.os.Looper.getMainLooper())
-            if (android.os.Build.VERSION.SDK_INT >= 26) {
-                try {
-                    val fade = previous.createVolumeShaper(android.media.VolumeShaper.Configuration.Builder()
-                        .setDuration(16)
-                        .setCurve(floatArrayOf(0f, 1f), floatArrayOf(1f, 0f))
-                        .build())
-                    fade.apply(android.media.VolumeShaper.Operation.PLAY)
-                    handler.postDelayed({ previous.release(); runCatching { fade.close() } }, 24)
-                } catch (_: Exception) { previous.release() }
-            } else {
-                for (step in 1..8) handler.postDelayed({
-                    runCatching { previous.setVolume((8 - step) / 8f); if (step == 8) previous.release() }
-                }, step * 2L)
-            }
-        }
+        fadeGuitar(previous)
         stopPlayback()
         try {
             guitar = prepared

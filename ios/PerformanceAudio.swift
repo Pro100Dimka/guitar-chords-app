@@ -8,6 +8,11 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     private var recorder: AVAudioRecorder?
     private var player: AVAudioPlayer?
     private var cue: AVAudioPlayer?
+    private var preparedStrings: [String: AVAudioPlayer] = [:]
+    private var preparedStringOrder: [String] = []
+    private var guitarStrings: [Int: AVAudioPlayer] = [:]
+    private var stringGeneration: [Int: Int] = [:]
+    private var stringSessionActive = false
     private var lastTake: URL?
     private var startedAt: Date?
     private var processing = Set<String>()
@@ -176,6 +181,8 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         let wasPlaying = player != nil
         player?.stop(); player = nil
         cue?.stop(); cue = nil
+        guitarStrings.values.forEach { $0.stop() }; guitarStrings.removeAll()
+        stringSessionActive = false
         if wasPlaying && recorder == nil { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
         if wasPlaying { emit("stopped") }
     }
@@ -190,6 +197,46 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         cue = try? AVAudioPlayer(contentsOf: url)
         cue?.volume = 0.3
         cue?.play()
+    }
+    @objc func prepareGuitar(_ key: String, wave: String) {
+        guard key.count <= 256, wave.count <= 400000 else { return }
+        if preparedStrings[key] == nil {
+            guard let data = Data(base64Encoded: wave), let audio = try? AVAudioPlayer(data: data) else { return }
+            audio.prepareToPlay()
+            preparedStrings[key] = audio
+        }
+        preparedStringOrder.removeAll { $0 == key }; preparedStringOrder.append(key)
+        while preparedStringOrder.count > 32 { preparedStrings.removeValue(forKey: preparedStringOrder.removeFirst()) }
+    }
+    @objc func stopGuitarString(_ index: Int) {
+        stringGeneration[index] = (stringGeneration[index] ?? 0) + 1
+        let voice = guitarStrings.removeValue(forKey: index)
+        voice?.setVolume(0, fadeDuration: 0.016)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
+            if self?.guitarStrings[index] !== voice { voice?.stop() }
+        }
+    }
+    @objc func playGuitarString(_ key: String, index: Int) {
+        guard recorder == nil, (0..<6).contains(index), let audio = preparedStrings[key] else { return }
+        let previous = guitarStrings[index]
+        previous?.setVolume(0, fadeDuration: 0.008)
+        guitarStrings[index] = audio
+        let generation = (stringGeneration[index] ?? 0) + 1
+        stringGeneration[index] = generation
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
+            if previous !== self?.guitarStrings[index] { previous?.stop() }
+            guard self?.stringGeneration[index] == generation, self?.guitarStrings[index] === audio else { return }
+            if previous === audio { audio.stop() }
+            if self?.stringSessionActive == false {
+                let session = AVAudioSession.sharedInstance()
+                do {
+                    try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                    try session.setActive(true)
+                    self?.stringSessionActive = true
+                } catch { return }
+            }
+            audio.currentTime = 0; audio.volume = 0.22; audio.play()
+        }
     }
     @objc func playGuitar(_ wave: String) {
         guard recorder == nil, wave.count <= 400000, let data = Data(base64Encoded: wave) else { return }

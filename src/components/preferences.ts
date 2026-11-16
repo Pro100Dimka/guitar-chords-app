@@ -365,7 +365,7 @@ export async function loadPreferences() {
     stringIndex: Math.round(number(data.stringIndex, 0, 0, 5)),
     tab:
       typeof data.tab === "string" &&
-      ["tuner", "library", "settings", "guide"].includes(data.tab)
+      ["tuner", "play", "library", "settings", "guide"].includes(data.tab)
         ? data.tab
         : "tuner"
   };

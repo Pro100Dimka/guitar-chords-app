@@ -31,4 +31,7 @@ RCT_EXTERN_METHOD(stopPlayback)
 RCT_EXTERN_METHOD(deleteTake:(NSString *)path resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(playSuccess)
 RCT_EXTERN_METHOD(playGuitar:(NSString *)wave)
+RCT_EXTERN_METHOD(prepareGuitar:(NSString *)key wave:(NSString *)wave)
+RCT_EXTERN_METHOD(playGuitarString:(NSString *)key index:(NSInteger)index)
+RCT_EXTERN_METHOD(stopGuitarString:(NSInteger)index)
 @end

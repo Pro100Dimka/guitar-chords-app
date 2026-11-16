@@ -1,4 +1,9 @@
 {
+  "PlayGuitar": "Play",
+  "AddChord": "Add chord",
+  "FreePlay": "Free play",
+  "AutoChords": "Chord sequence",
+  "BeatsPerChord": "Beats per chord",
   "DeleteSongError": "Could not delete the song. Please try again.",
   "SwitchTuner": "Switch tuner",
   "Tuning": "Tuning",
@@ -302,6 +307,18 @@
   "AddSongChordsNotice": "Lyrics and chords ready.",
   "SongContentSource": "Lyrics and chords source",
   "GuideArticles": {
+    "virtualGuitar": {
+      "title": "Play the virtual guitar",
+      "summary": "Tap or sweep the strings to play without a physical guitar.",
+      "steps": [
+        "Open Play and tap a chord. Tap a string for a single note or sweep across several strings for a strum. Both directions and multiple fingers work.",
+        "Tap + to add a chord to the sequence. Hold a chord to remove it.",
+        "Set BPM and beats per chord, then press Play to switch chords automatically. You still play the strings yourself.",
+        "Use the note button to choose a fret for each string in Free play. Close the panel and tap the strings to try a melody."
+      ],
+      "tip": "The microphone and internet are not needed. Leaving the screen or locking the phone stops playback.",
+      "keywords": "virtual guitar play strings melody strum picking chords bpm"
+    },
     "start": {
       "title": "Start playing",
       "summary": "Add a song, tune the guitar and open its chords.",
