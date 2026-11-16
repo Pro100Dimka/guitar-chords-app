@@ -1739,6 +1739,49 @@ test.each(["[C]Am", "A[C]m", "[C]Am[Dm]", "[C]Am [G]Dm"])(
   }
 );
 
+test("leaving and returning during playback startup cannot revive a stopped take", async () => {
+  const take = { path: "/performances/song-1-123.m4a", date: 123, bytes: 1000 };
+  jest.mocked(performanceAudio.list).mockResolvedValue([take]);
+  let finish!: (duration: number) => void;
+  jest.mocked(performanceAudio.play).mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  const onStart = jest.fn();
+  await act(async () => {
+    screen = Renderer.create(
+      <SongRecorder songId={1} active open onStart={onStart} />
+    );
+  });
+  await act(async () => {
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.accessibilityLabel === "ListenTake")!
+      .props.onPress();
+  });
+  await act(async () =>
+    screen!.update(<SongRecorder songId={1} active={false} onStart={onStart} />)
+  );
+  await act(async () =>
+    screen!.update(<SongRecorder songId={1} active onStart={onStart} />)
+  );
+  jest.mocked(performanceAudio.stopPlayback).mockClear();
+  await act(async () => finish(20000));
+  expect(performanceAudio.stopPlayback).toHaveBeenCalled();
+  await act(async () =>
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "RecordPerformance")!
+      .props.onPress()
+  );
+  expect(
+    screen!.root
+      .findAllByType(Action)
+      .some((node) => node.props.accessibilityLabel === "StopPlayback")
+  ).toBe(false);
+});
+
 test.each([false, true])(
   "late recording list cannot reopen after deactivation, reactivated=%s",
   async (reactivate) => {

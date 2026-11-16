@@ -106,6 +106,7 @@ export default function SongRecorder({
     });
     const background = AppState.addEventListener("change", (state) => {
       if (state !== "active") {
+        opening.current?.abort();
         performanceAudio.stopPlayback();
         if (recordingRef.current)
           void performanceAudio.stop().catch(() => undefined);
@@ -283,7 +284,18 @@ export default function SongRecorder({
                       if (playing === take.path)
                         performanceAudio.stopPlayback();
                       else {
+                        const request = new AbortController();
+                        opening.current = request;
                         await performanceAudio.play(take.path);
+                        if (
+                          request.signal.aborted ||
+                          !mounted.current ||
+                          !activeRef.current ||
+                          AppState.currentState !== "active"
+                        ) {
+                          performanceAudio.stopPlayback();
+                          return;
+                        }
                         setPlaying(take.path);
                       }
                     })
