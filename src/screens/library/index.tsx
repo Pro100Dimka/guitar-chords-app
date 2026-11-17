@@ -58,7 +58,7 @@ const Library: React.FC = () => {
       )
       .sort((a, b) => b[1].opened - a[1].opened)
       .map(([id]) => Number(id))
-      .filter(Number.isSafeInteger)
+      .filter((id) => Number.isSafeInteger(id) && id > 0)
       .join(",");
   }, [saved, collection]);
   const loadSongs = useCallback(
@@ -85,21 +85,13 @@ const Library: React.FC = () => {
           joins: ["LEFT JOIN bands b ON s.band_id = b.id"],
           page: pageNumber,
           limit: PAGE_LIMIT,
-          filters: [
-            filters &&
-              "LOWER(COALESCE(b.search_text_lower, '') || ' ' || s.search_text_lower) LIKE ? ESCAPE '!' COLLATE NOCASE",
-            collection !== "AllSongs" &&
-              `s.id IN (${
-                selection
-                  ? selection
-                      .split(",")
-                      .map(() => "?")
-                      .join(",")
-                  : "NULL"
-              })`
-          ]
-            .filter(Boolean)
-            .join(" AND "),
+          ids:
+            collection === "AllSongs"
+              ? undefined
+              : selection.split(",").filter(Boolean).map(Number),
+          filters: filters
+            ? "LOWER(COALESCE(b.search_text_lower, '') || ' ' || s.search_text_lower) LIKE ? ESCAPE '!' COLLATE NOCASE"
+            : "",
           orderBy:
             collection === "RecentSongs" && selection
               ? `CASE s.id ${selection
@@ -107,14 +99,9 @@ const Library: React.FC = () => {
                   .map((id, index) => `WHEN ${id} THEN ${index}`)
                   .join(" ")} END`
               : "s.title COLLATE NOCASE, s.id",
-          parameters: [
-            ...(filters
-              ? [`%${filters.toLowerCase().replace(/[!%_]/g, "!$&")}%`]
-              : []),
-            ...(collection !== "AllSongs" && selection
-              ? selection.split(",").map(Number)
-              : [])
-          ],
+          parameters: filters
+            ? [`%${filters.toLowerCase().replace(/[!%_]/g, "!$&")}%`]
+            : [],
           fields: "b.search_text_lower band, s.title, b.name as band_name, s.id"
         });
 

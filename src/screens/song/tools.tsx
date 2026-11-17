@@ -219,7 +219,7 @@ export function Sheet({
   );
 }
 
-function Diagram({
+export function Diagram({
   frets,
   width = 104,
   selected = false
@@ -351,7 +351,14 @@ export function ChordSheet({
   const previewOwner = useRef(true);
   useEffect(() => {
     previewOwner.current = true;
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state !== "active") {
+        pendingPreview.current = null;
+        performanceAudio.stopPlayback();
+      }
+    });
     return () => {
+      subscription.remove();
       previewOwner.current = false;
       pendingPreview.current = null;
       performanceAudio.stopPlayback();

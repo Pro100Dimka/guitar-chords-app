@@ -43,6 +43,7 @@ const articles: {
   icon: string;
   picture?: keyof typeof pictures;
 }[] = [
+  { id: "virtualGuitar", section: "playing", icon: "guitar-acoustic" },
   {
     id: "start",
     section: "library",
@@ -365,12 +366,15 @@ export function GuideArticle() {
   const { width } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const [zoom, setZoom] = useState(false);
-  const article = articles.find((item) => item.id === params.id);
+  const article = articles.find((item) => item.id === params?.id);
   if (!article)
     return (
       <View style={styles.container}>
         <Text style={styles.title}>{t("GuideNoResults")}</Text>
-        <Action label={t("Back")} onPress={() => navigation.goBack()} />
+        <Action
+          label={t("Back")}
+          onPress={() => navigation.popTo("Tabs", { screen: "guide" })}
+        />
       </View>
     );
   const key = `GuideArticles.${article.id}`;
@@ -390,7 +394,9 @@ export function GuideArticle() {
       data: "settings",
       help: "settings"
     }[article.section];
-    navigation.popTo("Tabs", { screen: target });
+    navigation.popTo("Tabs", {
+      screen: article.id === "virtualGuitar" ? "play" : target
+    });
   };
   return (
     <ScrollView

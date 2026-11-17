@@ -25,7 +25,7 @@ const TabLayout = () => {
           const icon = screens?.[route.name as keyof typeof screens]?.icon;
           return {
             headerShown: false,
-            freezeOnBlur: route.name !== "tuner",
+            freezeOnBlur: !["tuner", "play"].includes(route.name),
             tabBarLabelStyle: {
               fontSize: 12,
               fontFamily: palette.typography.strong,

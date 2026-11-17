@@ -6,6 +6,10 @@ import SearchBar from "../src/screens/library/search";
 import { Action } from "../src/screens/song/tools";
 import { getAllItems } from "../src/components/database/crud";
 import { requestSongDeletion } from "../src/components/library-files";
+import {
+  defaultSongPreferences,
+  usePreferences
+} from "../src/components/preferences";
 
 jest.mock("../src/components/library-files", () => ({
   requestSongDeletion: jest.fn()
@@ -32,6 +36,46 @@ const songs = Array.from({ length: 10 }, (_, id) => ({
   id,
   title: `Song ${id}`
 }));
+
+test.each(["Favorites", "RecentSongs"])(
+  "large %s collections work with a 999-parameter SQLite limit",
+  async (collection) => {
+    const previous = usePreferences.getState().songs;
+    usePreferences.setState({
+      songs: Object.fromEntries(
+        Array.from({ length: 1001 }, (_, index) => [
+          index + 1,
+          { ...defaultSongPreferences, favorite: true, opened: index + 1 }
+        ])
+      )
+    });
+    const selected = [{ id: 1001, title: "Selected song" }];
+    jest.spyOn(console, "info").mockImplementation(() => {});
+    jest.mocked(getAllItems).mockImplementation(async (query) => {
+      if ((query.parameters?.length ?? 0) > 999)
+        throw new Error("too many SQL variables");
+      return selected;
+    });
+    try {
+      await act(async () => {
+        screen = Renderer.create(<Library />);
+      });
+      await act(async () => screen.root.findByType(SearchBar).props.onFilter());
+      await act(async () =>
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === collection)!
+          .props.onPress()
+      );
+      expect(screen.root.findByType(FlatList).props.data).toEqual(selected);
+      expect(
+        jest.mocked(getAllItems).mock.calls.at(-1)![0].parameters?.length ?? 0
+      ).toBeLessThan(999);
+    } finally {
+      usePreferences.setState({ songs: previous });
+    }
+  }
+);
 
 test("iPhone offers microphone recognition in the add menu", async () => {
   jest.replaceProperty(Platform, "OS", "ios");

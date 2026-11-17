@@ -96,6 +96,7 @@ export interface StringWithVibrationProps {
   index: number;
 }
 export interface IGetItems {
+  ids?: number[];
   orderBy?: string;
   parameters?: (string | number | null)[];
   tableName?: string;

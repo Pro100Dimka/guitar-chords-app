@@ -494,7 +494,9 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         !formik.values.content && styles.lyricsPlaceholder
                       ]}
                     >
-                      {createSongEditorState(formik.values.content).text ||
+                      {(editingLyrics
+                        ? lyricsDraft
+                        : createSongEditorState(formik.values.content).text) ||
                         t("PasteSongHint")}
                     </Text>
                   </Pressable>

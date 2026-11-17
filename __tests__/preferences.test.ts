@@ -47,6 +47,68 @@ jest.mock("../src/components/database/crud", () => ({
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
 
+test.each(["resize", "readFile"])(
+  "remote cover deadline includes stalled %s processing and cleans late results",
+  async (stage) => {
+    jest.mocked(FileSystem.fetchManaged).mockReturnValue({
+      cancel: jest.fn().mockResolvedValue(undefined),
+      result: Promise.resolve({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        headers: {},
+        getHeader: () => undefined,
+        redirected: false,
+        url: "https://example.com/cover.jpg"
+      })
+    });
+    const image = {
+      uri: "file:///resized.jpg",
+      path: "/resized.jpg",
+      name: "resized.jpg",
+      size: 100,
+      width: 384,
+      height: 384
+    };
+    let finish!: () => void;
+    jest.mocked(ImageResizer.createResizedImage).mockImplementation(() =>
+      stage === "resize"
+        ? new Promise((resolve) => {
+            finish = () => resolve(image);
+          })
+        : Promise.resolve(image)
+    );
+    jest.mocked(FileSystem.readFile).mockImplementation(() =>
+      stage === "readFile"
+        ? new Promise((resolve) => {
+            finish = () => resolve("/9j/2Q==");
+          })
+        : Promise.resolve("/9j/2Q==")
+    );
+    jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+    let settled = false;
+    const result = readRemoteSongCover(
+      "https://example.com/cover.jpg",
+      new AbortController().signal
+    )
+      .catch((error) => error)
+      .finally(() => {
+        settled = true;
+      });
+    for (let i = 0; i < 15; i++) await Promise.resolve();
+    await jest.advanceTimersByTimeAsync(8000);
+    try {
+      expect(settled).toBe(true);
+      expect(jest.getTimerCount()).toBe(0);
+    } finally {
+      finish();
+      await result;
+    }
+    for (let i = 0; i < 10; i++) await Promise.resolve();
+    expect(FileSystem.unlink).toHaveBeenCalledWith(image.uri);
+  }
+);
+
 test("simultaneous remote covers use independent temporary files", async () => {
   const clock = jest.spyOn(Date, "now").mockReturnValue(123);
   jest.mocked(FileSystem.fetchManaged).mockImplementation(() => ({
@@ -375,6 +437,66 @@ test.each([false, true])(
     }
   }
 );
+
+test("restoring a backup preserves song settings changed while its commit is pending", async () => {
+  usePreferences.getState().updateSong(42, { tempo: 80, favorite: false });
+  await flushPreferences();
+  const songs = parseLibraryBackup(
+    JSON.stringify({
+      format: "freetune-library",
+      version: 2,
+      songs: [
+        {
+          title: "Song",
+          content: "Am\nWords",
+          band_name: "",
+          youtube_music: "",
+          youtobe_lesson: "",
+          preferences: { tempo: 90, favorite: false, capo: 2 }
+        }
+      ]
+    })
+  );
+  const writes: string[] = [];
+  const executeSql: SQLTransaction["executeSql"] = (sql, args, success) => {
+    if (args?.[0] === "song:42:0") writes.push(String(args[1]));
+    const rows = sql.startsWith("SELECT songs.id") ? [{ id: 42 }] : [];
+    success?.(
+      { executeSql },
+      {
+        rows: { length: rows.length, item: (i) => rows[i] },
+        rowsAffected: 1,
+        insertId: 42
+      }
+    );
+  };
+  let finish!: () => void;
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    body({ executeSql });
+    success?.();
+  });
+  jest
+    .mocked(db.transaction)
+    .mockImplementationOnce((body, _error, success) => {
+      body({ executeSql });
+      finish = () => success?.();
+    });
+  const restore = restoreLibrary(songs);
+  usePreferences.getState().updateSong(42, { tempo: 125, favorite: true });
+  finish();
+  await expect(restore).resolves.toEqual({ added: 0, skipped: 1 });
+  expect(usePreferences.getState().songs[42]).toMatchObject({
+    tempo: 125,
+    favorite: true,
+    capo: 2
+  });
+  await flushPreferences();
+  expect(JSON.parse(writes.at(-1)!)).toMatchObject({
+    tempo: 125,
+    favorite: true,
+    capo: 2
+  });
+});
 
 test("many covers never create a single oversized settings row", () => {
   const writes: string[] = [];

@@ -73,6 +73,37 @@ test("dense inline chords stay within the expansion budget in bounded time", () 
   expect(Date.now() - start).toBeLessThan(1500);
 });
 
+test.each(["{tempo: 128}", "{meta: tempo 128}"])(
+  "ChordPro imports tempo metadata from %s",
+  (directive) => {
+    const song = importedSong(
+      `{title: Example}\n${directive}\n[Am]Original words`,
+      "example.cho"
+    );
+    expect(song.tempo).toBe(128);
+    expect(song.content).not.toContain(directive);
+    expect(song.content).toContain("Original words");
+  }
+);
+
+test("tempo-only ChordPro is not imported as song lyrics", () => {
+  expect(() =>
+    importedSong("{title: Example}\n{tempo: 128}", "empty.cho")
+  ).toThrow("FileFormatError");
+});
+
+test.each(["{tempo: 0}", "{tempo: 999}", "{tempo: 80}\n{tempo: 120}"])(
+  "ambiguous or unsupported ChordPro tempos are retained without selecting a misleading tempo: %s",
+  (directives) => {
+    const song = importedSong(
+      `${directives}\n[Am]Original words`,
+      "example.cho"
+    );
+    expect(song.tempo).toBeUndefined();
+    expect(song.content).toContain(directives);
+  }
+);
+
 test("metadata-only ChordPro does not produce an empty draft", () => {
   expect(() =>
     importedSong("{title: No lyrics}\n{artist: Performer}", "song.cho")

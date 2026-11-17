@@ -263,6 +263,21 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
     tempo: Math.round(number(song.tempo, 80, 40, 200))
   };
 }
+export function preserveSongPreferenceChanges(
+  persisted: SongPreferences | undefined,
+  snapshot: SongPreferences | undefined,
+  current: SongPreferences | undefined
+) {
+  return normalizeSongPreferences({
+    ...persisted,
+    ...Object.fromEntries(
+      Object.entries(current ?? {}).filter(
+        ([key, value]) => value !== snapshot?.[key as keyof SongPreferences]
+      )
+    )
+  });
+}
+
 export function normalizeRhythm(value: unknown): SongRhythm {
   const rhythm = record(value) ? value : {};
   return {
@@ -365,7 +380,7 @@ export async function loadPreferences() {
     stringIndex: Math.round(number(data.stringIndex, 0, 0, 5)),
     tab:
       typeof data.tab === "string" &&
-      ["tuner", "library", "settings", "guide"].includes(data.tab)
+      ["tuner", "play", "library", "settings", "guide"].includes(data.tab)
         ? data.tab
         : "tuner"
   };

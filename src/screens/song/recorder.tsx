@@ -192,6 +192,7 @@ export default function SongRecorder({
             await performanceAudio.start(songId);
             recordingRef.current = true;
             if (
+              controller.signal.aborted ||
               !mounted.current ||
               !activeRef.current ||
               AppState.currentState !== "active"

@@ -1,4 +1,17 @@
 {
+  "PlayGuitar": "Play",
+  "Metronome": "Metronome",
+  "BeatAnd": "&",
+  "PlayPattern": "Pattern",
+  "PatternBeats": "Beats in the pattern",
+  "PatternChangeHint": "Tap a cell to choose a chord. A dot keeps the previous chord.",
+  "ChangeChord": "Choose a chord",
+  "ContinueChord": "Keep the previous chord",
+  "ClearPatternChanges": "Clear chord changes",
+  "AddChord": "Add chord",
+  "FreePlay": "Free play",
+  "AutoChords": "Chord sequence",
+  "BeatsPerChord": "Beats per chord",
   "DeleteSongError": "Could not delete the song. Please try again.",
   "SwitchTuner": "Switch tuner",
   "Tuning": "Tuning",
@@ -302,6 +315,19 @@
   "AddSongChordsNotice": "Lyrics and chords ready.",
   "SongContentSource": "Lyrics and chords source",
   "GuideArticles": {
+    "virtualGuitar": {
+      "title": "Play the virtual guitar",
+      "summary": "Tap or sweep the strings to play without a physical guitar.",
+      "steps": [
+        "Open Play and tap a chord. Tap a string for a single note or sweep across several strings for a strum. Both directions and multiple fingers work.",
+        "Tap + to add a chord to the sequence. Hold a chord to remove it.",
+        "Open Pattern, set BPM and tap a beat or an & cell to assign a chord change. A dot continues the previous chord. Press Play to loop the pattern while playing the strings yourself.",
+        "The metronome button works on its own. When enabled, Play starts it with the pattern; Pause stops both and remembers your choice. The fingering button chooses a chord shape. Tapping another chord changes it immediately without resetting the pulse.",
+        "Use the note button to choose a fret for each string in Free play. Close the panel and tap the strings to try a melody."
+      ],
+      "tip": "The microphone and internet are not needed. Leaving the screen or locking the phone stops playback.",
+      "keywords": "virtual guitar play strings melody strum picking chords bpm"
+    },
     "start": {
       "title": "Start playing",
       "summary": "Add a song, tune the guitar and open its chords.",

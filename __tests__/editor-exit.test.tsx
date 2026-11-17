@@ -98,6 +98,40 @@ async function change() {
   )[0].props.formik;
 }
 
+test("typing in the full-screen editor does not reformat its hidden preview", async () => {
+  await change();
+  const parser = jest.spyOn(
+    require("../src/screens/song/chords"),
+    "createSongEditorState"
+  );
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "EditLyrics")!
+      .props.onPress()
+  );
+  parser.mockClear();
+  const input = screen.root.findByProps({
+    accessibilityLabel: "ChordsLyrics",
+    multiline: true
+  });
+  await act(async () =>
+    input.props.onChangeText(input.props.value + " more words")
+  );
+  expect(parser).not.toHaveBeenCalled();
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "CollapseEditor")!
+      .props.onPress()
+  );
+  expect(parser).toHaveBeenCalled();
+  const form = screen.root.findAll(
+    (node) => node.props.formik && node.props.name === "title"
+  )[0].props.formik;
+  expect(form.values.content).toContain("Words more words");
+});
+
 test("restored oversized performer can stay unchanged when editing the title", async () => {
   const [restored] = libraryFiles.parseLibraryBackup(
     JSON.stringify({

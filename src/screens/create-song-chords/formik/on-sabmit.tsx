@@ -8,6 +8,7 @@ import type { FormValues } from "..";
 import {
   defaultSongPreferences,
   normalizeSongPreferences,
+  preserveSongPreferenceChanges,
   SongPreferences,
   suspendPreferenceSaving,
   usePreferences,
@@ -120,15 +121,11 @@ const onSabmit = async (
     usePreferences.setState((state) => ({
       songs: {
         ...state.songs,
-        [savedId]: normalizeSongPreferences({
-          ...persisted?.[savedId],
-          ...Object.fromEntries(
-            Object.entries(state.songs[savedId] ?? {}).filter(
-              ([key, value]) =>
-                value !== snapshot?.[key as keyof SongPreferences]
-            )
-          )
-        })
+        [savedId]: preserveSongPreferenceChanges(
+          persisted?.[savedId],
+          snapshot,
+          state.songs[savedId]
+        )
       }
     }));
   } catch (error) {
