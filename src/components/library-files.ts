@@ -271,7 +271,23 @@ export function importedSong(text: string, name: string) {
   const sourceTuning = text
     .match(/\{tuning:[^\S\r\n\u2028\u2029]*([^{}\r\n]+)\}/i)?.[1]
     ?.trim();
-  const content = text
+  const tempoDirective =
+    /^[ \t]*\{(?:tempo:[ \t]*|meta:[ \t]*tempo[ \t]+)(\d+(?:\.\d+)?)[ \t]*\}[ \t]*$/gim;
+  const tempos = [
+    ...new Set(
+      [...text.matchAll(tempoDirective)].map((match) => Number(match[1]))
+    )
+  ];
+  const tempo =
+    tempos.length === 1 &&
+    Number.isFinite(tempos[0]) &&
+    tempos[0] >= 40 &&
+    tempos[0] <= 200
+      ? Math.round(tempos[0])
+      : undefined;
+  const content = (
+    tempo === undefined ? text : text.replace(tempoDirective, "")
+  )
     .replace(
       /^[^\S\r\n\u2028\u2029]*\{(title|t|artist|a|capo|tuning):[^{}\r\n]+\}[^\S\r\n\u2028\u2029]*$/gim,
       (line, directive: string) =>
@@ -292,6 +308,7 @@ export function importedSong(text: string, name: string) {
   return {
     title,
     capo,
+    tempo,
     sourceTuning,
     rhythm: sourceArrangement(content),
     content: transposeSong(content, capo),
