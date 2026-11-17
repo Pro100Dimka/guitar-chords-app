@@ -1531,6 +1531,68 @@ test.each([false, true])(
   }
 );
 
+test.each(["return", "song"])(
+  "cancelled native recording startup cannot resume after a navigation change: %s",
+  async (change) => {
+    const previous = AppState.currentState;
+    AppState.currentState = "active";
+    jest.mocked(performanceAudio.list).mockResolvedValue([]);
+    jest.mocked(performanceAudio.stop).mockResolvedValue(null);
+    jest
+      .spyOn(require("../src/components/permissions"), "default")
+      .mockResolvedValue(true);
+    let finish!: (path: string) => void;
+    jest.mocked(performanceAudio.start).mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const onStart = jest.fn();
+    try {
+      await act(async () => {
+        screen = Renderer.create(
+          <SongRecorder songId={1} active open onStart={onStart} />
+        );
+      });
+      await act(async () => {
+        screen!.root
+          .find(
+            (node) =>
+              node.props.accessibilityLabel === "StartRecording" &&
+              typeof node.props.onPress === "function"
+          )
+          .props.onPress();
+      });
+      expect(performanceAudio.start).toHaveBeenCalledWith(1);
+      if (change === "return")
+        await act(async () =>
+          screen!.update(
+            <SongRecorder songId={1} active={false} onStart={onStart} />
+          )
+        );
+      await act(async () =>
+        screen!.update(
+          <SongRecorder
+            songId={change === "song" ? 2 : 1}
+            active
+            onStart={onStart}
+          />
+        )
+      );
+      await act(async () => finish("/performances/song-1-123.m4a"));
+      expect(onStart).not.toHaveBeenCalled();
+      expect(performanceAudio.stop).toHaveBeenCalledTimes(1);
+      expect(
+        screen!.root
+          .findAllByType(Action)
+          .some((node) => node.props.accessibilityLabel === "StopRecording")
+      ).toBe(false);
+    } finally {
+      AppState.currentState = previous;
+    }
+  }
+);
+
 test("unsupported song chord explains and disables rhythm auditions", async () => {
   await act(async () => {
     screen = Renderer.create(
