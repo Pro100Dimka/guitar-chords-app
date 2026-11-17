@@ -43,6 +43,7 @@ const articles: {
   icon: string;
   picture?: keyof typeof pictures;
 }[] = [
+  { id: "virtualGuitar", section: "playing", icon: "guitar-acoustic" },
   {
     id: "start",
     section: "library",
@@ -393,7 +394,9 @@ export function GuideArticle() {
       data: "settings",
       help: "settings"
     }[article.section];
-    navigation.popTo("Tabs", { screen: target });
+    navigation.popTo("Tabs", {
+      screen: article.id === "virtualGuitar" ? "play" : target
+    });
   };
   return (
     <ScrollView

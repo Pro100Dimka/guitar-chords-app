@@ -219,7 +219,7 @@ export function Sheet({
   );
 }
 
-function Diagram({
+export function Diagram({
   frets,
   width = 104,
   selected = false

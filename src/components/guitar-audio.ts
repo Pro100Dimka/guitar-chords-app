@@ -20,9 +20,10 @@ const decoded = new Map<
 const previews = new Map<string, string>();
 function* renderGuitar(
   notes: number[],
-  reference: number
+  reference: number,
+  stringIndex?: number
 ): Generator<void, string> {
-  const key = `${reference}:${notes.join(",")}`;
+  const key = `${reference}:${notes.join(",")}${stringIndex === undefined ? "" : `:string${stringIndex}`}`;
   const cached = previews.get(key);
   if (cached) {
     performanceAudio.prepareGuitar(key, cached);
@@ -33,12 +34,14 @@ function* renderGuitar(
   const mix = new Float32Array(rate * (notes.length > 1 ? 5 : 3));
   for (const [string, midi] of notes.entries()) {
     const frequency = reference * 2 ** ((midi - 69) / 12);
-    const source = samples.reduce((best, item) =>
-      Math.abs(Math.log2(item.frequency / frequency)) <
-      Math.abs(Math.log2(best.frequency / frequency))
-        ? item
-        : best
-    );
+    const source =
+      samples[stringIndex ?? -1] ??
+      samples.reduce((best, item) =>
+        Math.abs(Math.log2(item.frequency / frequency)) <
+        Math.abs(Math.log2(best.frequency / frequency))
+          ? item
+          : best
+      );
     let sample = decoded.get(source);
     if (!sample) {
       sample = decode(source);
@@ -95,8 +98,12 @@ function* renderGuitar(
   performanceAudio.prepareGuitar(key, wave);
   return wave;
 }
-export function prepareGuitar(notes: number[], reference = 440) {
-  const render = renderGuitar(notes, reference);
+export function prepareGuitar(
+  notes: number[],
+  reference = 440,
+  stringIndex?: number
+) {
+  const render = renderGuitar(notes, reference, stringIndex);
   let step = render.next();
   while (!step.done) step = render.next();
   return step.value;
@@ -104,10 +111,16 @@ export function prepareGuitar(notes: number[], reference = 440) {
 export async function warmGuitar(
   notes: number[],
   reference: number,
-  signal: AbortSignal
+  signal: AbortSignal,
+  stringIndex?: number
 ) {
-  if (signal.aborted || previews.has(`${reference}:${notes.join(",")}`)) return;
-  const render = renderGuitar(notes, reference);
+  if (
+    signal.aborted ||
+    (stringIndex === undefined &&
+      previews.has(`${reference}:${notes.join(",")}`))
+  )
+    return;
+  const render = renderGuitar(notes, reference, stringIndex);
   while (!signal.aborted) {
     if (render.next().done) return;
     await new Promise<void>((resolve) => setTimeout(resolve, 0));

@@ -4,6 +4,7 @@ import Settings from "./settings";
 import Library from "./library";
 import Tuner from "./tuner";
 import Guide from "./guide";
+import PlayGuitar from "./play";
 
 interface ScreenConfig {
   component: ComponentType;
@@ -17,6 +18,7 @@ export interface Screens {
 
 const screens: Screens = {
   tuner: { component: Tuner, icon: "waveform" },
+  play: { component: PlayGuitar, icon: "guitar-acoustic", title: "PlayGuitar" },
   library: { component: Library, icon: "music-clef-treble" },
   settings: { component: Settings, icon: "music-rest-quarter" },
   guide: {
