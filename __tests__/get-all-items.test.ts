@@ -16,6 +16,35 @@ test.each([
   expect(db.transaction).not.toHaveBeenCalled();
 });
 
+test.each([
+  0,
+  -1,
+  1.5,
+  Number.NaN,
+  Number.POSITIVE_INFINITY,
+  Number.MAX_SAFE_INTEGER + 1
+])(
+  "read selection rejects invalid record id %s before opening SQLite",
+  async (id) => {
+    jest.mocked(db.transaction).mockClear();
+    await expect(
+      getAllItems({ tableName: "songs", ids: [id] })
+    ).rejects.toThrow("Invalid record identifiers");
+    expect(db.transaction).not.toHaveBeenCalled();
+  }
+);
+
+test("record selection cannot inject SQL or target a table without an id column", async () => {
+  jest.mocked(db.transaction).mockClear();
+  await expect(
+    getAllItems(JSON.parse('{"tableName":"songs","ids":["1) OR 1=1 --"]}'))
+  ).rejects.toThrow("Invalid record identifiers");
+  await expect(
+    getAllItems({ tableName: "settings", ids: [1] })
+  ).rejects.toThrow("Invalid database query");
+  expect(db.transaction).not.toHaveBeenCalled();
+});
+
 test("mutations reject injected identifiers and unbound predicates", async () => {
   jest.mocked(db.transaction).mockClear();
   await expect(

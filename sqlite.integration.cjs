@@ -95,6 +95,13 @@ async function main() {
   await remove({tableName:"bands",filters:"id = ?",parameters:["1 OR 1 = 1"]});
   assert.equal((await read({tableName:"bands"})).length,1);
   console.log("SQL boundary rejects unsafe syntax and binds hostile predicate values without affecting records.");
+  const collectionIds=Array.from({length:1001},(_,index)=>index+1);
+  const selectedRows=await read({tableName:"bands b",fields:"b.id",ids:collectionIds,filters:"b.name LIKE ?",parameters:["%N' Roses%"]});
+  assert.equal(selectedRows.length,1);
+  assert.equal(selectedRows[0].id,insertId);
+  assert.equal((await read({tableName:"bands b",ids:[]})).length,0);
+  await assert.rejects(read({tableName:"bands",ids:JSON.parse('["1) OR 1=1 --"]')}),/Invalid record identifiers/);
+  console.log("Large numeric record selections, empty selections and bound text filters passed actual SQLite.");
 
   assert.equal(rows[0].id, insertId);
   assert.equal(rows[0].name, "Guns N' Roses");

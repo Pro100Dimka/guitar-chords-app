@@ -10,6 +10,7 @@ const getAllItems = <T = Record<string, unknown>>({
   orderBy,
   page,
   limit,
+  ids,
   joins = [],
   parameters = []
 }: IGetItems): Promise<T[]> => {
@@ -18,6 +19,15 @@ const getAllItems = <T = Record<string, unknown>>({
     const scope = queryScope(tableName, joins);
     scope.fields(fields);
     scope.where(filters, parameters);
+    const idColumn = `${tableName.split(" ").at(-1)}.id`;
+    if (ids !== undefined) {
+      scope.column(idColumn);
+      if (
+        !Array.isArray(ids) ||
+        !ids.every((id) => Number.isSafeInteger(id) && id > 0)
+      )
+        throw new Error("Invalid record identifiers");
+    }
     if (orderBy) scope.order(orderBy);
     if (
       [page, limit].some(
@@ -29,6 +39,8 @@ const getAllItems = <T = Record<string, unknown>>({
     let sql = `SELECT ${fields} FROM ${tableName}`;
     if (joins.length > 0) sql += " " + joins.join(" "); //  join если есть
     if (filters) sql += ` WHERE ${filters}`; //  фильтры
+    if (ids !== undefined)
+      sql += `${filters ? " AND" : " WHERE"} ${idColumn} IN (${ids.join(",") || "NULL"})`;
     if (orderBy) sql += ` ORDER BY ${orderBy}`;
     if (limit !== undefined) {
       const offset = page && page > 0 ? page * limit : 0;
