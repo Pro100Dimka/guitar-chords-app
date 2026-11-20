@@ -6,13 +6,18 @@ import palette from "../../theme/palette";
 import { NavigationProp } from "@/router";
 import { ISong } from "@/@interfaces";
 import { usePreferences } from "@/components/preferences";
+import { useTranslation } from "react-i18next";
 const LibraryItem: React.FC<{ song: ISong; onLongPress?: () => void }> = ({
   song,
   onLongPress
 }) => {
   const navigation = useNavigation<NavigationProp>();
+  const { t } = useTranslation();
   const favorite = usePreferences((state) => state.songs[song.id]?.favorite);
   const cover = usePreferences((state) => state.songs[song.id]?.cover);
+  const hasTablature = usePreferences(
+    (state) => !!state.songs[song.id]?.tablature?.notes.length
+  );
   return (
     <Pressable
       accessibilityRole="button"
@@ -41,6 +46,11 @@ const LibraryItem: React.FC<{ song: ISong; onLongPress?: () => void }> = ({
           {song.band_name}
         </Text>
       </View>
+      {hasTablature && (
+        <Text style={styles.tabBadge} accessibilityLabel={t("TabTitle")}>
+          TAB
+        </Text>
+      )}
       <Text style={styles.star}>{favorite ? "★" : "›"}</Text>
     </Pressable>
   );
@@ -56,6 +66,16 @@ const styles = StyleSheet.create({
   pressed: { opacity: 0.75 },
   words: { flex: 1, gap: 6 },
   artist: { color: palette.glass.muted, fontSize: 14 },
+  tabBadge: {
+    color: palette.glass.accent,
+    fontSize: 11,
+    fontWeight: "700",
+    borderColor: palette.glass.edge,
+    borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 5,
+    paddingVertical: 3
+  },
   star: { color: palette.glass.accent, fontSize: 24 },
   card: {
     flexDirection: "row",

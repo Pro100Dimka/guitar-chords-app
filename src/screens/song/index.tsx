@@ -440,6 +440,22 @@ const SongDetail: React.FC = () => {
       {!!song?.band_name && (
         <Text style={styles.metadata}>{song.band_name}</Text>
       )}
+      {!!preferences.tablature?.notes.length && (
+        <Action
+          glass
+          label={t("TabOpenInPlay")}
+          icon="guitar-acoustic"
+          onPress={() => {
+            setPlaying(false);
+            setVideos(false);
+            savePosition();
+            navigation.popTo("Tabs", {
+              screen: "play",
+              params: { tablatureSongId: songId, tablatureRequest: Date.now() }
+            });
+          }}
+        />
+      )}
     </>
   );
   const videoContent = (

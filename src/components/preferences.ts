@@ -3,8 +3,10 @@ import { create } from "zustand";
 import type { SQLTransaction } from "react-native-sqlite-2";
 import { db } from "./database";
 import { getAllItems } from "./database/crud";
+import { normalizeTablature, Tablature } from "./tablature";
 
 export interface SongPreferences {
+  tablature?: Tablature;
   backupId?: string;
   cover?: string;
   sourceTuning?: string;
@@ -204,6 +206,7 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
         shapes[chord] = index;
     });
   return {
+    tablature: normalizeTablature(song.tablature),
     backupId:
       typeof song.backupId === "string" &&
       /^[a-zA-Z0-9:-]{1,100}$/.test(song.backupId)
