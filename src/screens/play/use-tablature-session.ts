@@ -8,6 +8,12 @@ import { emptyTablature, normalizeTablature } from "../../components/tablature";
 import type { Tablature } from "../../components/tablature";
 import type { TablatureDraft } from "../../components/tablature-draft";
 import { getTablatureSong } from "../../components/tablature-library";
+import { usePreferences } from "../../components/preferences";
+import {
+  defaultTabPractice,
+  normalizeTabPractice,
+  TabPracticeSettings
+} from "../../components/tablature-practice";
 import type { TabSongLink } from "./tablature-library";
 import type { useTablature } from "./use-tablature";
 import { useTablatureDraft } from "./use-tablature-draft";
@@ -30,6 +36,7 @@ export function useTablatureSession(
   const route = useRoute<RouteProp<{ play: PlayTabParams }, "play">>();
   const [expanded, setExpanded] = useState(false);
   const [song, setSong] = useState<TabSongLink | null>(null);
+  const practiceOwner = useRef<number | null>(null);
   const [dialog, setDialog] = useState<"open" | "save" | null>(null);
   const [savedTab, setSavedTab] = useState(transport.tab);
   const baseline = useMemo(() => JSON.stringify(savedTab), [savedTab]);
@@ -44,28 +51,58 @@ export function useTablatureSession(
     transport.pause();
     stopBacking();
   };
-  const load = (link: TabSongLink | null, tab: Tablature) => {
+  const load = (
+    link: TabSongLink | null,
+    tab: Tablature,
+    practice?: TabPracticeSettings
+  ) => {
     const normalized = normalizeTablature(tab);
-    if (!normalized || !transport.replaceTab(normalized)) return;
+    if (!normalized) return;
+    // The transport may notify before React publishes the new song link.
+    // Never save the newly loaded settings to the previous song in that render.
+    practiceOwner.current = link?.id ?? null;
+    transport.replaceTab(normalized);
     transport.setRange(null);
     transport.setLoop(false);
     transport.setSpeed(1);
+    transport.setPractice(practice ?? defaultTabPractice());
     setSong(link && { id: link.id, title: link.title });
     setSavedTab(normalized);
     setExpanded(true);
     setDialog(null);
   };
   const draft = useMemo<TablatureDraft>(
-    () => ({ version: 1, tab: transport.tab, savedTab, song }),
-    [transport.tab, savedTab, song]
+    () => ({
+      version: 1,
+      tab: transport.tab,
+      savedTab,
+      song,
+      practice: transport.practice
+    }),
+    [transport.tab, savedTab, song, transport.practice]
   );
   const workingCopy = useTablatureDraft(draft, active, (stored) => {
+    practiceOwner.current = stored.song?.id ?? null;
     transport.replaceTab(stored.tab);
+    transport.setPractice(stored.practice ?? defaultTabPractice());
     setSong(stored.song);
     setSavedTab(stored.savedTab);
     if (stored.tab.notes.length || stored.tab.rests?.length || stored.song)
       setExpanded(true);
   });
+  useEffect(() => {
+    if (!workingCopy.ready || !song || song.id !== practiceOwner.current)
+      return;
+    const preferences = usePreferences.getState();
+    const saved = preferences.songs[song.id];
+    // A deleted song must not reappear as an orphan preference entry.
+    if (!saved?.tablature) return;
+    if (
+      JSON.stringify(normalizeTabPractice(saved.tabPractice)) !==
+      JSON.stringify(transport.practice)
+    )
+      preferences.updateSong(song.id, { tabPractice: transport.practice });
+  }, [song, transport.practice, workingCopy.ready]);
   const confirmDiscard = (action: () => void) => {
     if (!dirty) {
       action();
@@ -119,7 +156,7 @@ export function useTablatureSession(
         if (!found?.tablature) throw new Error("TabLoadFailed");
         const apply = () => {
           current.current.stop();
-          current.current.load(found, found.tablature!);
+          current.current.load(found, found.tablature!, found.practice);
           consume();
         };
         if (current.current.serialized !== original) confirm(apply);
@@ -162,6 +199,7 @@ export function useTablatureSession(
     saved: (link: TabSongLink, tab: Tablature) => {
       const normalized = normalizeTablature(tab);
       if (!normalized) return;
+      practiceOwner.current = link.id;
       setSong({ id: link.id, title: link.title });
       setSavedTab(normalized);
       setDialog(null);
@@ -175,8 +213,11 @@ export function useTablatureSession(
       setExpanded(true);
       setDialog("open");
     },
-    choose: (link: TabSongLink, tab: Tablature) =>
-      workingCopy.ready && confirmDiscard(() => load(link, tab)),
+    choose: (
+      link: TabSongLink,
+      tab: Tablature,
+      practice?: TabPracticeSettings
+    ) => workingCopy.ready && confirmDiscard(() => load(link, tab, practice)),
     save: () => {
       if (!workingCopy.ready) return;
       stop();

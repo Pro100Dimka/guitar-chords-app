@@ -18,6 +18,7 @@ import {
   normalizeTablature,
   tablatureText
 } from "../src/components/tablature";
+import { defaultTabPractice } from "../src/components/tablature-practice";
 
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
@@ -75,6 +76,32 @@ beforeEach(async () => {
 afterEach(() => {
   jest.clearAllTimers();
   jest.useRealTimers();
+});
+
+test("practice preferences commit with a saved tab and survive later score-only saves", async () => {
+  const practice = {
+    ...defaultTabPractice(),
+    metronome: true,
+    countInBars: 1 as const
+  };
+  const id = await saveTablature({
+    title: "Practice riff",
+    tablature: tab,
+    practice
+  });
+  const row = executeSql.mock.calls.find(
+    ([sql, args]) =>
+      sql.startsWith("INSERT OR REPLACE") && args?.[0] === `song:${id}:0`
+  )!;
+  expect(JSON.parse(String(row[1]?.[1])).tabPractice).toEqual(practice);
+  await saveTablature({ id, title: "Practice riff", tablature: changed });
+  jest.mocked(getAllItems).mockResolvedValue([{ id, title: "Practice riff" }]);
+  expect(await getTablatureSong(id)).toEqual({
+    id,
+    title: "Practice riff",
+    tablature: changed,
+    practice
+  });
 });
 
 test.each([false, true])(

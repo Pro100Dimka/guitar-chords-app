@@ -4,6 +4,13 @@ import { Alert, AppState, TextInput, View } from "react-native";
 import PlayGuitar from "../src/screens/play";
 import { TablaturePanel } from "../src/screens/play/tablature-panel";
 import { TablatureLibrary } from "../src/screens/play/tablature-library";
+import { TablaturePractice } from "../src/screens/play/tablature-practice";
+import MicrophoneStream from "../src/screens/tuner/MicrophoneStream";
+import { defaultTabPractice } from "../src/components/tablature-practice";
+import {
+  defaultSongPreferences,
+  usePreferences
+} from "../src/components/preferences";
 import { Action, Sheet } from "../src/screens/song/tools";
 import { guitarLayout } from "../src/screens/tuner/guitar-layout";
 import { performanceAudio } from "../src/components/performance-audio";
@@ -72,8 +79,26 @@ jest.mock("../src/components/performance-audio", () => ({
     guitarString: jest.fn(),
     stopGuitarString: jest.fn(),
     metronome: jest.fn(),
+    metronomeBeat: jest.fn(),
+    stopMetronomeBeats: jest.fn(),
     stopPlayback: jest.fn()
   }
+}));
+jest.mock("../src/components/database", () => ({
+  db: {
+    transaction: jest.fn((body, _error, success) => {
+      body({ executeSql: jest.fn() });
+      success?.();
+    })
+  }
+}));
+jest.mock("../src/screens/tuner/MicrophoneStream", () => ({
+  __esModule: true,
+  default: { setKeepAwake: jest.fn() }
+}));
+jest.mock("../src/screens/play/tablature-practice", () => ({
+  TablaturePractice: (props: any) =>
+    require("react").createElement(require("react-native").View, props)
 }));
 jest.mock("../src/components/tablature-library", () => ({
   getTablatureSong: jest.fn(),
@@ -138,6 +163,7 @@ async function pluck(string: number) {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
+  usePreferences.setState({ songs: {}, saveError: false });
   jest.mocked(readTablatureDraft).mockResolvedValue(null);
   jest.mocked(writeTablatureDraft).mockResolvedValue(undefined);
   mockFocused = true;
@@ -224,7 +250,8 @@ test("screen-string touches record chosen frets and timing, save, and reopen the
   expect(saveTablature).toHaveBeenCalledWith({
     id: undefined,
     title: "My riff",
-    tablature: recorded
+    tablature: recorded,
+    practice: defaultTabPractice()
   });
   expect(panel().props.dirty).toBe(false);
   jest
@@ -345,6 +372,184 @@ test("manual strings pause tab playback and retain their chosen chord frets", as
   ]);
 });
 
+test("practice opens from Play, keeps the display awake and pauses when closed", async () => {
+  await render();
+  await act(async () => {
+    transport().setTab(saved);
+    panel().props.onPractice();
+  });
+  const practice = () => screen!.root.findByType(TablaturePractice);
+  expect(practice().props.active).toBe(true);
+  expect(MicrophoneStream.setKeepAwake).toHaveBeenLastCalledWith(
+    true,
+    "tablature-practice"
+  );
+  await act(async () => transport().play());
+  expect(transport().status).toBe("playing");
+  await act(async () => practice().props.onClose());
+  expect(screen!.root.findAllByType(TablaturePractice)).toHaveLength(0);
+  expect(transport().status).toBe("idle");
+  expect(MicrophoneStream.setKeepAwake).toHaveBeenLastCalledWith(
+    false,
+    "tablature-practice"
+  );
+});
+
+test("backgrounding cancels the shared count-in, releases the display and does not restart", async () => {
+  const listeners: Array<(state: "active" | "background") => void> = [];
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      listeners.push(listener);
+      return { remove: jest.fn() };
+    });
+  await render();
+  await act(async () => {
+    transport().setTab(saved);
+    transport().setPractice({ ...defaultTabPractice(), countInBars: 1 });
+    panel().props.onPractice();
+  });
+  await act(async () => transport().play());
+  expect(transport().status).toBe("countingIn");
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalled();
+  await act(async () =>
+    listeners.forEach((listener) => listener("background"))
+  );
+  expect(transport().status).toBe("idle");
+  expect(screen!.root.findByType(TablaturePractice).props.active).toBe(false);
+  expect(MicrophoneStream.setKeepAwake).toHaveBeenLastCalledWith(
+    false,
+    "tablature-practice"
+  );
+  jest.mocked(performanceAudio.metronomeBeat).mockClear();
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(10000);
+    listeners.forEach((listener) => listener("active"));
+  });
+  expect(transport().status).toBe("idle");
+  expect(performanceAudio.metronomeBeat).not.toHaveBeenCalled();
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+});
+
+test("recording count-in permits fingering changes but preserves the old tab when cancelled", async () => {
+  await render();
+  await act(async () => {
+    transport().replaceTab(saved);
+    transport().setPractice({ ...defaultTabPractice(), countInBars: 1 });
+  });
+  await act(async () => panel().props.onRecord());
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)![2]!
+      .find((button) => button.text === "TabRecord")!.onPress!()
+  );
+  expect(transport().status).toBe("countingIn");
+  await act(async () =>
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "FreePlay")!
+      .props.onPress()
+  );
+  await pluck(0);
+  expect(transport().status).toBe("countingIn");
+  expect(transport().tab).toEqual(saved);
+  expect(
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Metronome")!.props.disabled
+  ).toBe(true);
+  await act(async () => transport().stopRecording());
+  expect(transport().status).toBe("idle");
+  expect(transport().tab).toEqual(saved);
+  expect(transport().canUndo).toBe(false);
+});
+
+test("practice settings save per song and changing songs never overwrites the previous settings", async () => {
+  const first = {
+    ...defaultTabPractice(),
+    metronome: true,
+    countInBars: 1 as const,
+    trainer: {
+      enabled: true,
+      startBpm: 60,
+      targetBpm: 90,
+      stepBpm: 5,
+      repeats: 2
+    }
+  };
+  const second = {
+    ...defaultTabPractice(),
+    volume: 0.3,
+    countInBars: 2 as const
+  };
+  usePreferences.setState({
+    songs: {
+      7: { ...defaultSongPreferences, tablature: saved, tabPractice: first },
+      8: { ...defaultSongPreferences, tablature: saved, tabPractice: second }
+    }
+  });
+  jest.mocked(getTablatureSong).mockResolvedValue({
+    id: 7,
+    title: "First riff",
+    tablature: saved,
+    practice: first
+  });
+  mockParams = { tablatureSongId: 7, tablatureRequest: 1 };
+  await render();
+  expect(transport().practice).toEqual(first);
+  expect(transport().loop).toBe(true);
+  const changed = { ...first, volume: 0.5 };
+  await act(async () => transport().setPractice(changed));
+  expect(usePreferences.getState().songs[7].tabPractice).toEqual(changed);
+  expect(panel().props.dirty).toBe(false);
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(500);
+  });
+  expect(writeTablatureDraft).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      practice: changed,
+      song: { id: 7, title: "First riff" }
+    })
+  );
+  await act(async () => panel().props.onOpen());
+  await act(async () =>
+    screen!.root
+      .findByType(TablatureLibrary)
+      .props.onLoad({ id: 8, title: "Second riff" }, saved, second)
+  );
+  expect(transport().practice).toEqual(second);
+  expect(transport().loop).toBe(false);
+  expect(usePreferences.getState().songs[7].tabPractice).toEqual(changed);
+  expect(usePreferences.getState().songs[8].tabPractice).toEqual(second);
+  usePreferences.getState().removeSong(8);
+  await act(async () => transport().setPractice({ ...second, volume: 0.2 }));
+  expect(usePreferences.getState().songs[8]).toBeUndefined();
+});
+
+test("restoring a draft restores practice without creating a score edit", async () => {
+  const practice = {
+    ...defaultTabPractice(),
+    countInBars: 2 as const,
+    metronome: true
+  };
+  jest.mocked(readTablatureDraft).mockResolvedValue({
+    version: 1,
+    tab: saved,
+    savedTab: saved,
+    song: null,
+    practice
+  });
+  await render();
+  expect(transport().practice).toEqual(practice);
+  expect(transport().canUndo).toBe(false);
+  expect(panel().props.dirty).toBe(false);
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(1000);
+  });
+  expect(writeTablatureDraft).not.toHaveBeenCalled();
+});
+
 test("draft hydration locks tab actions and restores unsaved rhythm with its library link", async () => {
   let finish!: (value: Awaited<ReturnType<typeof readTablatureDraft>>) => void;
   jest.mocked(readTablatureDraft).mockReturnValue(
@@ -367,7 +572,8 @@ test("draft hydration locks tab actions and restores unsaved rhythm with its lib
       version: 1,
       tab,
       savedTab: saved,
-      song: { id: 7, title: "Recovered riff" }
+      song: { id: 7, title: "Recovered riff" },
+      practice: defaultTabPractice()
     })
   );
   expect(panel().props.disabled).toBe(false);

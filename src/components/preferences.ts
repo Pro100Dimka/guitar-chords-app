@@ -4,9 +4,14 @@ import type { SQLTransaction } from "react-native-sqlite-2";
 import { db } from "./database";
 import { getAllItems } from "./database/crud";
 import { normalizeTablature, Tablature } from "./tablature";
+import {
+  normalizeTabPractice,
+  TabPracticeSettings
+} from "./tablature-practice";
 
 export interface SongPreferences {
   tablature?: Tablature;
+  tabPractice?: TabPracticeSettings;
   backupId?: string;
   cover?: string;
   sourceTuning?: string;
@@ -207,6 +212,10 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
     });
   return {
     tablature: normalizeTablature(song.tablature),
+    tabPractice:
+      song.tabPractice === undefined
+        ? undefined
+        : normalizeTabPractice(song.tabPractice),
     backupId:
       typeof song.backupId === "string" &&
       /^[a-zA-Z0-9:-]{1,100}$/.test(song.backupId)

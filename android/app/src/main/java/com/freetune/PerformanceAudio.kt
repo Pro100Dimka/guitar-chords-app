@@ -28,6 +28,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     private var cue: MediaPlayer? = null
     private var guitar: AudioTrack? = null
     private var metronome: AudioTrack? = null
+    private val metronomeBeats = mutableMapOf<Int, AudioTrack>()
     private val guitarStrings = mutableMapOf<Int, AudioTrack>()
     private val guitarPcm = linkedMapOf<String, ByteArray>()
     private val preparedGuitars = linkedMapOf<String, AudioTrack>()
@@ -206,6 +207,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         cue?.release(); cue = null
         guitar?.release(); guitar = null
         metronome?.release(); metronome = null
+        metronomeBeats.values.forEach { it.release() }; metronomeBeats.clear()
         guitarStrings.values.forEach { it.release() }; guitarStrings.clear()
         if (recorder == null) audioManager.abandonAudioFocus(focusListener)
         if (wasPlaying) emit("stopped")
@@ -271,6 +273,35 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             check(track.setLoopPoints(0, frames, -1) == AudioTrack.SUCCESS)
             track.play()
         } catch (_: Exception) { metronome?.release(); metronome = null }
+    }
+    // The tab transport owns timing. These cached static voices play one click only.
+    @ReactMethod @Synchronized fun playMetronomeBeat(accent: Double, volume: Double) {
+        if (recorder != null || !accent.isFinite() || !volume.isFinite() || volume <= 0) return
+        val kind = Math.round(accent.coerceIn(0.0, 2.0)).toInt()
+        try {
+            val voice = metronomeBeats.getOrPut(kind) {
+                val rate = 22050
+                val frames = (rate * 0.03).toInt()
+                val frequency = when (kind) { 2 -> 1800.0; 1 -> 1350.0; else -> 900.0 }
+                val level = when (kind) { 2 -> 0.24; 1 -> 0.18; else -> 0.12 }
+                val pcm = ByteBuffer.allocate(frames * 2).order(ByteOrder.LITTLE_ENDIAN)
+                for (index in 0 until frames) {
+                    val time = index.toDouble() / rate
+                    val value = level * kotlin.math.sin(2 * Math.PI * frequency * time) *
+                        (1 - kotlin.math.exp(-3000 * time)) * kotlin.math.exp(-180 * time) *
+                        (1 - index.toDouble() / (frames - 1))
+                    pcm.putShort((value * 32767).toInt().toShort())
+                }
+                pcmTrack(pcm.array(), rate, 1)
+            }
+            voice.pause()
+            check(voice.setPlaybackHeadPosition(0) == AudioTrack.SUCCESS)
+            voice.setVolume(volume.coerceIn(0.0, 1.0).toFloat())
+            voice.play()
+        } catch (_: Exception) { metronomeBeats.remove(kind)?.release() }
+    }
+    @ReactMethod @Synchronized fun stopMetronomeBeats() {
+        metronomeBeats.values.forEach { runCatching { it.pause(); it.setPlaybackHeadPosition(0) } }
     }
     @ReactMethod @Synchronized fun prepareGuitar(key: String, wave: String) {
         if (key.length > 256 || wave.length > 8_000_000) return

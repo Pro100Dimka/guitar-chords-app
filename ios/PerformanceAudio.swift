@@ -15,6 +15,9 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     private var stringSessionActive = false
     private var metronomeEngine: AVAudioEngine?
     private var metronomeNode: AVAudioPlayerNode?
+    private var beatEngine: AVAudioEngine?
+    private var beatNodes: [AVAudioPlayerNode] = []
+    private var beatBuffers: [AVAudioPCMBuffer] = []
     private var lastTake: URL?
     private var startedAt: Date?
     private var processing = Set<String>()
@@ -33,7 +36,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             })
         }
     }
-    deinit { observers.forEach(NotificationCenter.default.removeObserver) }
+    deinit { clearMetronomeBeats(); observers.forEach(NotificationCenter.default.removeObserver) }
     @objc override static func requiresMainQueueSetup() -> Bool { true }
     override var methodQueue: DispatchQueue! { DispatchQueue.main }
     override func supportedEvents() -> [String]! { ["onPerformanceAudio"] }
@@ -187,6 +190,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         stringSessionActive = false
         metronomeNode?.stop(); metronomeEngine?.stop()
         metronomeNode = nil; metronomeEngine = nil
+        clearMetronomeBeats()
         if wasPlaying && recorder == nil { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
         if wasPlaying { emit("stopped") }
     }
@@ -232,6 +236,64 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             metronomeEngine = engine; metronomeNode = node
             stringSessionActive = true
         } catch { engine.stop() }
+    }
+    private func prepareMetronomeBeats() -> Bool {
+        if beatEngine != nil { return true }
+        let rate = 22050.0
+        let frames = AVAudioFrameCount(rate * 0.03)
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1) else { return false }
+        let engine = AVAudioEngine()
+        var nodes: [AVAudioPlayerNode] = []
+        var buffers: [AVAudioPCMBuffer] = []
+        for accent in 0...2 {
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
+                  let samples = buffer.floatChannelData?[0] else { return false }
+            buffer.frameLength = frames
+            let frequency = accent == 2 ? 1800.0 : accent == 1 ? 1350.0 : 900.0
+            let level = accent == 2 ? 0.24 : accent == 1 ? 0.18 : 0.12
+            for index in 0..<Int(frames) {
+                let time = Double(index) / rate
+                samples[index] = Float(level * sin(2 * .pi * frequency * time) *
+                    (1 - exp(-3000 * time)) * exp(-180 * time) *
+                    (1 - Double(index) / Double(frames - 1)))
+            }
+            let node = AVAudioPlayerNode()
+            engine.attach(node)
+            engine.connect(node, to: engine.mainMixerNode, format: format)
+            nodes.append(node); buffers.append(buffer)
+        }
+        engine.prepare()
+        beatEngine = engine; beatNodes = nodes; beatBuffers = buffers
+        return true
+    }
+    // The tab transport owns timing. No looping buffer or independent beat timer.
+    @objc func playMetronomeBeat(_ accent: Double, volume: Double) {
+        guard recorder == nil, accent.isFinite, volume.isFinite, volume > 0,
+              prepareMetronomeBeats(), let engine = beatEngine else { return }
+        let kind = Int(min(2, max(0, accent)).rounded())
+        do {
+            if !engine.isRunning {
+                let session = AVAudioSession.sharedInstance()
+                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                try session.setActive(true)
+                try engine.start()
+                stringSessionActive = true
+            }
+            let node = beatNodes[kind]
+            node.stop()
+            node.volume = Float(min(1, max(0, volume)))
+            node.scheduleBuffer(beatBuffers[kind], at: nil, options: [], completionHandler: nil)
+            node.play()
+        } catch { clearMetronomeBeats() }
+    }
+    @objc func stopMetronomeBeats() {
+        beatNodes.forEach { $0.stop() }
+        beatEngine?.pause()
+    }
+    private func clearMetronomeBeats() {
+        stopMetronomeBeats()
+        beatEngine?.stop(); beatEngine = nil
+        beatNodes.removeAll(); beatBuffers.removeAll()
     }
     @objc func prepareGuitar(_ key: String, wave: String) {
         guard key.count <= 256, wave.count <= 400000 else { return }

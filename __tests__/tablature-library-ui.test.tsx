@@ -143,7 +143,8 @@ test.each([false, true])(
     expect(callbacks.onLoad).toHaveBeenCalledTimes(1);
     expect(callbacks.onLoad).toHaveBeenCalledWith(
       expect.objectContaining({ id: 7, title: "Saved riff" }),
-      tab
+      tab,
+      undefined
     );
     expect(saveTablature).not.toHaveBeenCalled();
   }

@@ -11,6 +11,7 @@ import { useTranslation } from "react-i18next";
 import { songFieldLimits } from "../../@interfaces";
 import Text from "../../components/styled-text";
 import type { Tablature } from "../../components/tablature";
+import type { TabPracticeSettings } from "../../components/tablature-practice";
 import {
   getTablatureSong,
   listTablatureSongs,
@@ -28,6 +29,7 @@ export interface TabSongLink {
 export function TablatureLibrary({
   mode,
   tab,
+  practice,
   song,
   onLoad,
   onSaved,
@@ -36,8 +38,13 @@ export function TablatureLibrary({
 }: {
   mode: "open" | "save";
   tab: Tablature;
+  practice?: TabPracticeSettings;
   song: TabSongLink | null;
-  onLoad: (song: TabSongLink, tab: Tablature) => void;
+  onLoad: (
+    song: TabSongLink,
+    tab: Tablature,
+    practice?: TabPracticeSettings
+  ) => void;
   onSaved: (song: TabSongLink, tab: Tablature) => void;
   onNew: () => void;
   onClose: () => void;
@@ -141,7 +148,7 @@ export function TablatureLibrary({
       if (!found) throw new Error("SongMissing");
       if (mode === "open") {
         if (!found.tablature) throw new Error("TabLoadFailed");
-        onLoad(found, found.tablature);
+        onLoad(found, found.tablature, found.practice);
       } else {
         const attach = () => {
           if (!mounted.current) return;
@@ -183,7 +190,12 @@ export function TablatureLibrary({
     setBusy(true);
     setError("");
     try {
-      const id = await saveTablature({ id: target, title, tablature: tab });
+      const id = await saveTablature({
+        id: target,
+        title,
+        tablature: tab,
+        ...(practice === undefined ? {} : { practice })
+      });
       if (mounted.current) onSaved({ id, title: title.trim() }, tab);
     } catch (failure) {
       if (mounted.current)

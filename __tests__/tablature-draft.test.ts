@@ -9,6 +9,7 @@ import {
   emptyTablature,
   normalizeTablature
 } from "../src/components/tablature";
+import { defaultTabPractice } from "../src/components/tablature-practice";
 
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
@@ -101,6 +102,26 @@ test("restores a canonical document and its saved baseline without changing song
   await writeTablatureDraft(null);
   await expect(readTablatureDraft()).resolves.toBeNull();
   expect(rows.get("song:7:0")).toBe("keep song preferences");
+});
+
+test("practice settings survive draft storage while older drafts remain readable", async () => {
+  const practice = {
+    ...defaultTabPractice(),
+    metronome: true,
+    countInBars: 2 as const,
+    trainer: {
+      enabled: true,
+      startBpm: 55,
+      targetBpm: 90,
+      stepBpm: 5,
+      repeats: 4
+    }
+  };
+  const value = { ...draft(), practice };
+  await writeTablatureDraft(value);
+  expect(await readTablatureDraft()).toEqual(canonical(value));
+  await writeTablatureDraft(draft());
+  expect((await readTablatureDraft())?.practice).toBeUndefined();
 });
 
 test("takes an immutable snapshot before a pending database write", async () => {

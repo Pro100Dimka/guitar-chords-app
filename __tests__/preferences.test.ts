@@ -38,6 +38,7 @@ import {
 } from "../src/components/preferences";
 import { SQLTransaction } from "react-native-sqlite-2";
 import { Tablature } from "../src/components/tablature";
+import { defaultTabPractice } from "../src/components/tablature-practice";
 
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
@@ -47,6 +48,12 @@ jest.mock("../src/components/database/crud", () => ({
 }));
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
+const tabPractice = {
+  ...defaultTabPractice(),
+  metronome: true,
+  countInBars: 2 as const,
+  trainer: { enabled: true, startBpm: 60, targetBpm: 100, stepBpm: 5, repeats: 3 }
+};
 const tablature: Tablature = {
   version: 2,
   tempo: 92,
@@ -309,6 +316,7 @@ test("song preferences and cover survive serialization and reload; failed commit
   });
   usePreferences.getState().updateSong(17, {
     tablature,
+    tabPractice,
     cover,
     favorite: true,
     position: 125,
@@ -332,6 +340,7 @@ test("song preferences and cover survive serialization and reload; failed commit
   await loadPreferences();
   expect(usePreferences.getState().songs[17]).toMatchObject({
     tablature,
+    tabPractice,
     cover,
     favorite: true,
     position: 125,
@@ -347,7 +356,9 @@ test("exported backup retains artist, lyrics, cover and chord shapes", async () 
   };
   usePreferences
     .getState()
-    .updateSong(17, { cover, shapes: { Am: 2 }, contentSource, tablature });
+    .updateSong(17, {
+      cover, shapes: { Am: 2 }, contentSource, tablature, tabPractice
+    });
   jest.mocked(getAllItems).mockResolvedValue([
     {
       id: 17,
@@ -379,7 +390,7 @@ test("exported backup retains artist, lyrics, cover and chord shapes", async () 
     title: "Song",
     band_name: "Artist",
     content: "Am C\nWords",
-    preferences: { cover, shapes: { Am: 2 }, contentSource, tablature }
+    preferences: { cover, shapes: { Am: 2 }, contentSource, tablature, tabPractice }
   });
   expect(FileSystem.unlink).toHaveBeenCalledTimes(1);
   expect(() => parseLibraryBackup('{"format":"broken"}')).toThrow(

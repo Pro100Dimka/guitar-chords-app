@@ -6,6 +6,7 @@ import {
 } from "../src/screens/play/use-tablature";
 import { performanceAudio } from "../src/components/performance-audio";
 import { warmGuitar } from "../src/components/guitar-audio";
+import { defaultTabPractice } from "../src/components/tablature-practice";
 import {
   emptyTablature,
   normalizeTablature,
@@ -21,12 +22,17 @@ jest.mock("../src/components/guitar-audio", () => ({
 jest.mock("../src/components/performance-audio", () => ({
   performanceAudio: {
     guitarString: jest.fn(),
-    stopGuitarString: jest.fn()
+    stopGuitarString: jest.fn(),
+    metronomeBeat: jest.fn(),
+    stopMetronomeBeats: jest.fn()
   }
 }));
 
 const score = (notes: Tablature["notes"]): Tablature =>
   normalizeTablature({ ...emptyTablature(), notes })!;
+const timerClock = () =>
+  (globalThis as typeof globalThis & { performance: { now: () => number } })
+    .performance;
 let transport: TablatureTransport;
 let onNotes: jest.Mock;
 beforeEach(() => {
@@ -696,4 +702,544 @@ test("a range and its loop restore a note attacked before the range starts", asy
   expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
     [0]
   ]);
+});
+
+test("count-in starts only after preparation and starts playback on the following downbeat", async () => {
+  let ready!: () => void;
+  jest
+    .mocked(warmGuitar)
+    .mockImplementationOnce(
+      () => new Promise<void>((resolve) => (ready = resolve))
+    );
+  transport.replaceTab(score([{ string: 0, fret: 3, tick: 0 }]));
+  transport.setPractice({ ...defaultTabPractice(), countInBars: 1 });
+  const preparing = transport.play();
+  await jest.advanceTimersByTimeAsync(1000);
+  expect(transport.getSnapshot().status).toBe("preparing");
+  expect(performanceAudio.metronomeBeat).not.toHaveBeenCalled();
+  ready();
+  await preparing;
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "countingIn",
+    tick: 0,
+    countIn: { bar: 1, beat: 1, bars: 1, target: "play" }
+  });
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledWith(2, 0.7);
+  await jest.advanceTimersByTimeAsync(2999);
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  expect(transport.getSnapshot().countIn?.beat).toBe(4);
+  await jest.advanceTimersByTimeAsync(1);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "playing",
+    tick: 0,
+    countIn: null
+  });
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(4);
+});
+
+test("two-bar count-in follows eighth-note beats and the 6/8 secondary accent", async () => {
+  transport.replaceTab({
+    ...emptyTablature(80, 6, 8),
+    notes: [{ string: 0, fret: 0, tick: 0, duration: 72 }]
+  });
+  transport.setPractice({
+    ...defaultTabPractice(),
+    metronome: true,
+    volume: 0.4,
+    countInBars: 2
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(2250);
+  expect(transport.getSnapshot().countIn).toEqual({
+    bar: 2,
+    beat: 1,
+    bars: 2,
+    target: "play"
+  });
+  await jest.advanceTimersByTimeAsync(2250);
+  expect(transport.getSnapshot().status).toBe("playing");
+  expect(jest.mocked(performanceAudio.metronomeBeat).mock.calls).toEqual(
+    [2, 0, 0, 1, 0, 0, 2, 0, 0, 1, 0, 0, 2].map((accent) => [accent, 0.4])
+  );
+  await jest.advanceTimersByTimeAsync(1125);
+  expect(performanceAudio.metronomeBeat).toHaveBeenLastCalledWith(1, 0.4);
+  expect(transport.getSnapshot().tick).toBe(36);
+});
+
+test.each(["pause", "blur", "replace", "settings"] as const)(
+  "%s cancels count-in with no late notes or clicks",
+  async (cancel) => {
+    transport.replaceTab(score([{ string: 0, fret: 3, tick: 0 }]));
+    transport.setPractice({ ...defaultTabPractice(), countInBars: 2 });
+    await transport.play();
+    await jest.advanceTimersByTimeAsync(750);
+    if (cancel === "pause") transport.pause();
+    if (cancel === "blur") transport.setActive(false);
+    if (cancel === "replace") transport.replaceTab(emptyTablature());
+    if (cancel === "settings")
+      transport.setPractice({ ...defaultTabPractice(), countInBars: 1 });
+    const clicks = jest.mocked(performanceAudio.metronomeBeat).mock.calls
+      .length;
+    await jest.advanceTimersByTimeAsync(10000);
+    expect(transport.getSnapshot()).toMatchObject({
+      status: "idle",
+      countIn: null
+    });
+    expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+    expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(clicks);
+    expect(performanceAudio.stopMetronomeBeats).toHaveBeenCalled();
+    expect(jest.getTimerCount()).toBe(0);
+  }
+);
+
+test("cancelled recording count-in retains the exact original document and history", async () => {
+  const original = score([{ string: 5, fret: 7, tick: 24, duration: 48 }]);
+  transport.replaceTab(original);
+  const edited = { ...original, tempo: 90 };
+  transport.setTab(edited);
+  transport.setPractice({ ...defaultTabPractice(), countInBars: 1 });
+  transport.startRecording();
+  transport.capture([{ string: 0, fret: 3 }]);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "countingIn",
+    countIn: { target: "record" },
+    tab: edited,
+    canUndo: true,
+    canRedo: false
+  });
+  await jest.advanceTimersByTimeAsync(1000);
+  transport.stopRecording();
+  expect(transport.getSnapshot().tab).toEqual(edited);
+  expect(jest.getTimerCount()).toBe(0);
+  transport.undo();
+  expect(transport.getSnapshot().tab).toEqual(original);
+  expect(transport.getSnapshot().canUndo).toBe(false);
+});
+
+test("counted recording includes leading silence at score tempo and remains one undo operation", async () => {
+  const original = score([{ string: 5, fret: 7, tick: 0, duration: 24 }]);
+  transport.replaceTab(original);
+  transport.setSpeed(2);
+  transport.setPractice({
+    ...defaultTabPractice(),
+    countInBars: 1,
+    trainer: {
+      enabled: true,
+      startBpm: 160,
+      targetBpm: 200,
+      stepBpm: 10,
+      repeats: 1
+    }
+  });
+  transport.startRecording();
+  expect(transport.getSnapshot().practiceBpm).toBe(80);
+  await jest.advanceTimersByTimeAsync(2999);
+  expect(transport.getSnapshot().tab).toEqual(original);
+  await jest.advanceTimersByTimeAsync(1);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "recording",
+    practiceBpm: 80,
+    tick: 0
+  });
+  await jest.advanceTimersByTimeAsync(750);
+  transport.capture([{ string: 0, fret: 3 }]);
+  transport.stopRecording();
+  expect(transport.getSnapshot().tab.notes).toEqual([
+    { string: 0, fret: 3, tick: 24, duration: 24 }
+  ]);
+  expect(transport.getSnapshot().practiceBpm).toBe(160);
+  transport.undo();
+  expect(transport.getSnapshot().tab).toEqual(original);
+  expect(transport.getSnapshot().canUndo).toBe(false);
+});
+
+test("recording with only metronome enabled starts a clock before the first touch", async () => {
+  transport.setSpeed(0.25);
+  transport.setPractice({ ...defaultTabPractice(), metronome: true });
+  transport.startRecording();
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledWith(2, 0.7);
+  await jest.advanceTimersByTimeAsync(1500);
+  expect(transport.getSnapshot()).toMatchObject({ tick: 48, practiceBpm: 80 });
+  transport.capture([{ string: 2, fret: 5 }]);
+  expect(transport.getSnapshot().tab.notes[0].tick).toBe(48);
+  expect(jest.mocked(performanceAudio.metronomeBeat).mock.calls).toEqual([
+    [2, 0.7],
+    [0, 0.7],
+    [0, 0.7]
+  ]);
+  transport.stopRecording();
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test("metronome skips stale beats rather than emitting a stalled-frame burst", async () => {
+  let time = 0;
+  jest.spyOn(timerClock(), "now").mockImplementation(() => time);
+  transport.replaceTab({
+    ...emptyTablature(),
+    barCount: 4,
+    rests: [{ tick: 0, duration: 24 }]
+  });
+  transport.setPractice({ ...defaultTabPractice(), metronome: true });
+  await transport.play();
+  time = 2250;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(2);
+  time = 4900;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(2);
+  time = 5250;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(3);
+});
+
+test("trainer accelerates only after the requested complete loops and caps at target", async () => {
+  transport.replaceTab({
+    ...emptyTablature(80, 1),
+    notes: [{ string: 0, fret: 0, tick: 0, duration: 12 }]
+  });
+  transport.setPractice({
+    ...defaultTabPractice(),
+    metronome: true,
+    trainer: {
+      enabled: true,
+      startBpm: 60,
+      targetBpm: 70,
+      stepBpm: 7,
+      repeats: 2
+    }
+  });
+  expect(transport.getSnapshot()).toMatchObject({
+    loop: true,
+    practiceBpm: 60,
+    completedLoops: 0
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(1999);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 1,
+    practiceBpm: 60
+  });
+  await jest.advanceTimersByTimeAsync(1);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 2,
+    practiceBpm: 67
+  });
+  await jest.advanceTimersByTimeAsync(1800);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 4,
+    practiceBpm: 70
+  });
+  await jest.advanceTimersByTimeAsync(2600);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 7,
+    practiceBpm: 70
+  });
+  expect(transport.getSnapshot().tab.tempo).toBe(80);
+  expect(transport.getSnapshot().canUndo).toBe(false);
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(8);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(8);
+});
+
+test("pause and counted resume retain trainer progress and sustained musical position", async () => {
+  transport.replaceTab(score([{ string: 0, fret: 3, tick: 0, duration: 96 }]));
+  transport.setPractice({
+    ...defaultTabPractice(),
+    countInBars: 1,
+    trainer: {
+      enabled: true,
+      startBpm: 60,
+      targetBpm: 120,
+      stepBpm: 20,
+      repeats: 1
+    }
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(8000);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 1,
+    practiceBpm: 80,
+    tick: 0
+  });
+  await jest.advanceTimersByTimeAsync(750);
+  transport.pause();
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 1,
+    practiceBpm: 80,
+    tick: 24
+  });
+  await jest.advanceTimersByTimeAsync(5000);
+  await transport.play();
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "countingIn",
+    tick: 24
+  });
+  await jest.advanceTimersByTimeAsync(3000);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "playing",
+    completedLoops: 1,
+    practiceBpm: 80,
+    tick: 24
+  });
+  await jest.advanceTimersByTimeAsync(2250);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 2,
+    practiceBpm: 100,
+    tick: 0
+  });
+});
+
+test("inter-loop count-in uses the next trainer tempo and keeps note release gates stopped", async () => {
+  transport.replaceTab({
+    ...emptyTablature(80, 1),
+    notes: [{ string: 0, fret: 3, tick: 0, duration: 24 }]
+  });
+  transport.setPractice({
+    ...defaultTabPractice(),
+    countInBars: 1,
+    countInBetweenLoops: true,
+    trainer: {
+      enabled: true,
+      startBpm: 60,
+      targetBpm: 80,
+      stepBpm: 20,
+      repeats: 1
+    }
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(1000);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(1000);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "countingIn",
+    completedLoops: 1,
+    practiceBpm: 80
+  });
+  await jest.advanceTimersByTimeAsync(749);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(1);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  expect(transport.getSnapshot().status).toBe("playing");
+  transport.pause();
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test("trainer seek, range and rewind reset cycles while manual speed and loop-off disable training", async () => {
+  transport.replaceTab(score([{ string: 0, fret: 0, tick: 0, duration: 192 }]));
+  const practice = {
+    ...defaultTabPractice(),
+    trainer: {
+      enabled: true,
+      startBpm: 60,
+      targetBpm: 80,
+      stepBpm: 20,
+      repeats: 1
+    }
+  };
+  transport.setPractice(practice);
+  transport.setRange({ start: 0, end: 96 });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(4000);
+  expect(transport.getSnapshot().practiceBpm).toBe(80);
+  transport.seek(48);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "idle",
+    tick: 48,
+    completedLoops: 0,
+    practiceBpm: 60
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(2000);
+  expect(transport.getSnapshot().completedLoops).toBe(0);
+  await jest.advanceTimersByTimeAsync(4000);
+  expect(transport.getSnapshot().completedLoops).toBe(1);
+  transport.setRange({ start: 96, end: 192 });
+  expect(transport.getSnapshot()).toMatchObject({
+    tick: 96,
+    completedLoops: 0,
+    practiceBpm: 60
+  });
+  transport.seek(0);
+  expect(transport.getSnapshot().tick).toBe(96);
+  transport.seek(150);
+  transport.rewind();
+  expect(transport.getSnapshot().tick).toBe(96);
+  transport.setSpeed(1);
+  expect(transport.getSnapshot()).toMatchObject({
+    practiceBpm: 80,
+    practice: { trainer: { enabled: false } }
+  });
+  transport.setPractice(practice);
+  transport.setLoop(false);
+  expect(transport.getSnapshot()).toMatchObject({
+    loop: false,
+    practiceBpm: 80,
+    practice: { trainer: { enabled: false } }
+  });
+});
+
+test("pausing after an unprocessed loop boundary resumes clicks at the wrapped beat", async () => {
+  let time = 0;
+  jest.spyOn(timerClock(), "now").mockImplementation(() => time);
+  transport.replaceTab(score([{ string: 0, fret: 3, tick: 0 }]));
+  transport.setLoop(true);
+  transport.setPractice({ ...defaultTabPractice(), metronome: true });
+  await transport.play();
+  time = 2250;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(2);
+  time = 3100;
+  transport.pause();
+  expect(transport.getSnapshot()).toMatchObject({ tick: 3, completedLoops: 0 });
+  await transport.play();
+  time = 3750;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(3);
+  expect(transport.getSnapshot().tick).toBe(24);
+  time = 6000;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(transport.getSnapshot().completedLoops).toBe(0);
+});
+
+test("trainer boundary rebases both note releases and metronome beats to the new tempo", async () => {
+  transport.replaceTab(score([{ string: 0, fret: 3, tick: 0, duration: 24 }]));
+  transport.setPractice({
+    ...defaultTabPractice(),
+    metronome: true,
+    trainer: {
+      enabled: true,
+      startBpm: 60,
+      targetBpm: 80,
+      stepBpm: 20,
+      repeats: 1
+    }
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(4000);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 1,
+    practiceBpm: 80
+  });
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  jest.mocked(performanceAudio.metronomeBeat).mockClear();
+  await jest.advanceTimersByTimeAsync(749);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  expect(performanceAudio.metronomeBeat).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(1);
+  expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
+    [0]
+  ]);
+  expect(jest.mocked(performanceAudio.metronomeBeat).mock.calls).toEqual([
+    [0, 0.7]
+  ]);
+});
+
+test("a fast looping boundary emits only the new beat after a stalled frame", async () => {
+  let time = 0;
+  jest.spyOn(timerClock(), "now").mockImplementation(() => time);
+  transport.replaceTab({
+    ...emptyTablature(200, 6, 8),
+    rests: [{ tick: 0, duration: 72 }]
+  });
+  transport.setSpeed(2);
+  transport.setLoop(true);
+  transport.setPractice({ ...defaultTabPractice(), metronome: true });
+  await transport.play();
+  jest.mocked(performanceAudio.metronomeBeat).mockClear();
+  time = 450;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(jest.mocked(performanceAudio.metronomeBeat).mock.calls).toEqual([
+    [2, 0.7]
+  ]);
+});
+
+test("inter-loop count-in waits for the next sample window without resetting trainer progress", async () => {
+  let ready!: () => void;
+  jest
+    .mocked(warmGuitar)
+    .mockResolvedValueOnce(undefined)
+    .mockImplementationOnce(
+      () => new Promise<void>((resolve) => (ready = resolve))
+    );
+  transport.replaceTab({
+    ...emptyTablature(80, 1),
+    notes: [{ string: 0, fret: 3, tick: 0, duration: 24 }]
+  });
+  transport.setPractice({
+    ...defaultTabPractice(),
+    countInBars: 1,
+    countInBetweenLoops: true,
+    trainer: {
+      enabled: true,
+      startBpm: 60,
+      targetBpm: 80,
+      stepBpm: 20,
+      repeats: 1
+    }
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(2000);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "preparing",
+    completedLoops: 1,
+    practiceBpm: 80
+  });
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(1000);
+  expect(performanceAudio.metronomeBeat).toHaveBeenCalledTimes(1);
+  ready();
+  await jest.advanceTimersByTimeAsync(0);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "countingIn",
+    completedLoops: 1,
+    practiceBpm: 80
+  });
+  await jest.advanceTimersByTimeAsync(749);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(1);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+});
+
+test("live metronome, volume and count-in preferences preserve trainer progress and sounding notes", async () => {
+  transport.replaceTab(score([{ string: 0, fret: 3, tick: 0, duration: 96 }]));
+  const practice = {
+    ...defaultTabPractice(),
+    trainer: {
+      enabled: true,
+      startBpm: 60,
+      targetBpm: 100,
+      stepBpm: 20,
+      repeats: 1
+    }
+  };
+  transport.setPractice(practice);
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(4250);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 1,
+    practiceBpm: 80,
+    tick: 8
+  });
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  transport.setPractice({
+    ...practice,
+    metronome: true,
+    volume: 0.3,
+    countInBars: 1
+  });
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "playing",
+    completedLoops: 1,
+    practiceBpm: 80,
+    tick: 8
+  });
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  await jest.advanceTimersByTimeAsync(500);
+  expect(performanceAudio.metronomeBeat).toHaveBeenLastCalledWith(0, 0.3);
+  await jest.advanceTimersByTimeAsync(2250);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 2,
+    practiceBpm: 100
+  });
 });

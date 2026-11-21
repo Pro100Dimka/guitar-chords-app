@@ -370,6 +370,7 @@ async function main() {
   await preferences.loadPreferences();
   const tabs = load("src/components/tablature-library.ts");
   const tabModel = load("src/components/tablature.ts");
+  const practice = {...load("src/components/tablature-practice.ts").defaultTabPractice(),metronome:true,countInBars:2,trainer:{enabled:true,startBpm:55,targetBpm:90,stepBpm:5,repeats:4}};
   const legacyTab = {version:1,tempo:90,beatsPerBar:4,notes:[{string:0,fret:0,tick:0},{string:5,fret:7,tick:24}]};
   const tab = tabModel.normalizeTablature(legacyTab);
   failure="INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)";
@@ -377,10 +378,11 @@ async function main() {
   failure=undefined;
   assert.equal(sqlite.prepare("SELECT count(*) AS n FROM songs").get().n,0,"Failed tablature metadata must roll back the song insertion");
   assert.equal(Object.keys(preferences.usePreferences.getState().songs).length,0);
-  const tabId=await tabs.saveTablature({title:"100%_! Riff",tablature:legacyTab});
+  const tabId=await tabs.saveTablature({title:"100%_! Riff",tablature:legacyTab,practice});
   assert.equal(sqlite.prepare("SELECT content FROM songs WHERE id = ?").get(tabId).content,tabModel.tablatureText(tab));
   preferences.usePreferences.setState({songs:{}});await preferences.loadPreferences();
   assert.equal(JSON.stringify((await tabs.getTablatureSong(tabId)).tablature),JSON.stringify(tab));
+  assert.equal(JSON.stringify((await tabs.getTablatureSong(tabId)).practice),JSON.stringify(practice),"Practice count-in and trainer settings survive SQLite reload");
   assert.equal((await tabs.listTablatureSongs("100%_! Riff"))[0].id,tabId,"Literal wildcard characters must stay searchable");
   assert.equal((await tabs.listTablatureSongs("100%_! Riff",true,30)).length,0);
   const nextTab=tabModel.normalizeTablature({version:2,tempo:90,beatsPerBar:6,beatUnit:8,barCount:3,notes:[{string:2,fret:5,tick:0,duration:18},{string:5,fret:7,tick:36,duration:8}],rests:[{tick:24,duration:12}]});
@@ -420,12 +422,13 @@ async function main() {
   assert.equal(restoredTabs.length,3);
   assert.equal(JSON.stringify((await tabs.getTablatureSong(restoredTabs.find(song=>song.title==="Song with lyrics").id)).tablature),JSON.stringify(tab));
   assert.equal(JSON.stringify((await tabs.getTablatureSong(restoredTabs.find(song=>song.title==="Edited riff").id)).tablature),JSON.stringify(nextTab),"Backup restoration preserves durations, rests, 6/8 meter and trailing bars");
+  assert.equal(JSON.stringify((await tabs.getTablatureSong(restoredTabs.find(song=>song.title==="Edited riff").id)).practice),JSON.stringify(practice),"Score-only edits and backup restoration preserve per-song practice settings");
   assert.equal(JSON.stringify((await tabs.getTablatureSong(restoredTabs.find(song=>song.title==="Tacit intro").id)).tablature),JSON.stringify(restTab));
   await assert.rejects(tabs.saveTablature({id:999999,title:"Deleted",tablature:tab}),/SongMissing/);
   assert.equal((await tabs.listTablatureSongs()).length,3);
   console.log("Tablature SQLite checks passed: atomic create/update rollback, lyrics and metadata preservation, literal search, pagination, reload and backup round trip.");
   const drafts=load("src/components/tablature-draft.ts");
-  const draft={version:1,tab:nextTab,savedTab:tab,song:{id:restoredTabs.find(song=>song.title==="Edited riff").id,title:"Edited riff"}};
+  const draft={version:1,tab:nextTab,savedTab:tab,song:{id:restoredTabs.find(song=>song.title==="Edited riff").id,title:"Edited riff"},practice};
   assert.equal(await drafts.readTablatureDraft(),null);
   await drafts.writeTablatureDraft(draft);
   assert.equal(JSON.stringify(await drafts.readTablatureDraft()),JSON.stringify(draft));

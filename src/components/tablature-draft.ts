@@ -1,12 +1,17 @@
 import { songFieldLimits } from "../@interfaces";
 import { db } from "./database";
 import { normalizeTablature, Tablature } from "./tablature";
+import {
+  normalizeTabPractice,
+  TabPracticeSettings
+} from "./tablature-practice";
 
 export interface TablatureDraft {
   version: 1;
   tab: Tablature;
   savedTab: Tablature;
   song: { id: number; title: string } | null;
+  practice?: TabPracticeSettings;
 }
 
 const PREFIX = "tablature-draft:";
@@ -40,7 +45,10 @@ function normalizeDraft(value: unknown): TablatureDraft {
     version: 1,
     tab,
     savedTab,
-    song: link
+    song: link,
+    ...(value.practice === undefined
+      ? {}
+      : { practice: normalizeTabPractice(value.practice) })
   };
 }
 

@@ -5,6 +5,7 @@ import {
   emptyTablature,
   normalizeTablature,
   tabBarTicks,
+  tabBeatTicks,
   tabNoteDuration,
   tablatureLength,
   TAB_MAX_BARS,
@@ -14,9 +15,20 @@ import {
   TabNote,
   Tablature
 } from "../../components/tablature";
+import {
+  defaultTabPractice,
+  normalizeTabPractice,
+  TabPracticeSettings
+} from "../../components/tablature-practice";
 
 export type TabRange = { start: number; end: number };
-type Status = "idle" | "preparing" | "playing" | "recording";
+type Status = "idle" | "preparing" | "countingIn" | "playing" | "recording";
+type CountIn = {
+  bar: number;
+  beat: number;
+  bars: number;
+  target: "play" | "record";
+};
 interface Snapshot {
   tab: Tablature;
   status: Status;
@@ -27,6 +39,10 @@ interface Snapshot {
   range: TabRange | null;
   canUndo: boolean;
   canRedo: boolean;
+  practice: TabPracticeSettings;
+  practiceBpm: number;
+  completedLoops: number;
+  countIn: CountIn | null;
 }
 const clock = globalThis as typeof globalThis & {
   performance: { now: () => number };
@@ -42,6 +58,14 @@ type NoteGate = {
   note: TabNote;
   end: number;
 };
+type CountInClock = {
+  time: number;
+  bpm: number;
+  position: number;
+  bars: number;
+  target: "play" | "record";
+  lastBeat: number;
+};
 
 export class TablatureTransport {
   private state: Snapshot = {
@@ -53,7 +77,11 @@ export class TablatureTransport {
     loop: false,
     range: null,
     canUndo: false,
-    canRedo: false
+    canRedo: false,
+    practice: defaultTabPractice(),
+    practiceBpm: 80,
+    completedLoops: 0,
+    countIn: null
   };
   private listeners = new Set<() => void>();
   private active = false;
@@ -71,6 +99,10 @@ export class TablatureTransport {
   private undoStack: Tablature[] = [];
   private redoStack: Tablature[] = [];
   private recordOriginal: Tablature | undefined;
+  private countInClock: CountInClock | undefined;
+  private lastBeat = -1;
+  private trainerBpm = 60;
+  private completeLoop = true;
 
   constructor(private onNotes: (notes: TabNote[]) => void) {}
 
@@ -81,6 +113,14 @@ export class TablatureTransport {
   };
   private update(patch: Partial<Snapshot>) {
     this.state = { ...this.state, ...patch };
+    this.state.practiceBpm =
+      this.state.status === "recording" ||
+      (this.state.status === "countingIn" &&
+        this.state.countIn?.target === "record")
+        ? this.state.tab.tempo
+        : this.state.practice.trainer.enabled
+          ? this.trainerBpm
+          : this.state.tab.tempo * this.state.speed;
     this.listeners.forEach((listener) => listener());
   }
   private bounds(): TabRange {
@@ -89,9 +129,7 @@ export class TablatureTransport {
     );
   }
   private rate() {
-    return (
-      (this.state.tab.tempo * this.state.speed * TAB_TICKS_PER_BEAT) / 60000
-    );
+    return (this.state.practiceBpm * TAB_TICKS_PER_BEAT) / 60000;
   }
   private currentPosition() {
     return this.state.status === "playing"
@@ -105,8 +143,10 @@ export class TablatureTransport {
     this.controller?.abort();
     this.controller = undefined;
     this.warming = undefined;
+    this.countInClock = undefined;
+    performanceAudio.stopMetronomeBeats();
     this.clearGates();
-    if (["playing", "preparing"].includes(this.state.status)) {
+    if (["playing", "preparing", "countingIn"].includes(this.state.status)) {
       for (let string = 0; string < 6; string++)
         performanceAudio.stopGuitarString(string);
       this.onNotes([]);
@@ -152,12 +192,17 @@ export class TablatureTransport {
     this.consumedTick = -1;
     this.recordStart = undefined;
     this.recordOriginal = undefined;
+    this.lastBeat = -1;
+    this.trainerBpm = this.state.practice.trainer.startBpm;
+    this.completeLoop = true;
     this.update({
       tab,
       range: null,
       tick: 0,
       status: "idle",
       error: null,
+      completedLoops: 0,
+      countIn: null,
       canUndo: this.undoStack.length > 0,
       canRedo: this.redoStack.length > 0
     });
@@ -214,25 +259,44 @@ export class TablatureTransport {
     }
     const bounds = this.bounds();
     const position = this.currentPosition();
-    if (this.state.loop && position >= bounds.end)
-      this.consumedTick = bounds.start - 1;
     this.position =
       this.state.loop && position >= bounds.end
         ? bounds.start +
           ((position - bounds.start) % (bounds.end - bounds.start))
         : Math.min(bounds.end, position);
+    if (this.state.loop && position >= bounds.end) {
+      this.consumedTick = bounds.start - 1;
+      this.lastBeat =
+        Math.ceil(this.position / tabBeatTicks(this.state.tab)) - 1;
+      // No completed iteration is credited for an interruption before advance.
+      this.completeLoop = this.position === bounds.start;
+    }
     this.cancel();
-    this.update({ status: "idle", tick: Math.floor(this.position) });
+    this.update({
+      status: "idle",
+      tick: Math.floor(this.position),
+      countIn: null
+    });
   };
   rewind = () => {
-    this.pause();
-    this.position = this.bounds().start;
-    this.consumedTick = this.position - 1;
-    this.update({ tick: this.position });
+    this.seek(this.bounds().start);
   };
-  setSpeed = (speed: number) => {
-    if (!Number.isFinite(speed) || speed < 0.25 || speed > 2) return;
-    if (speed === this.state.speed) return;
+  seek = (tick: number) => {
+    if (!Number.isFinite(tick)) return;
+    this.pause();
+    const bounds = this.bounds();
+    this.position = Math.max(
+      bounds.start,
+      Math.min(bounds.end, Math.floor(tick))
+    );
+    this.consumedTick = this.position - 1;
+    this.lastBeat = Math.ceil(this.position / tabBeatTicks(this.state.tab)) - 1;
+    this.trainerBpm = this.state.practice.trainer.startBpm;
+    this.completeLoop = this.position === bounds.start;
+    this.update({ tick: this.position, completedLoops: 0 });
+  };
+  private rebasePlayback(patch: Partial<Snapshot>) {
+    if (["countingIn", "preparing"].includes(this.state.status)) this.pause();
     if (this.state.status === "playing") {
       // Keep already sounding voices alive; only their musical release time
       // changes. Pausing here would lose the remainder of a sustained note.
@@ -240,15 +304,71 @@ export class TablatureTransport {
       this.position = position;
       this.clock = { time: now(), tick: position };
       const gates = [...this.gates.values()];
-      this.update({ speed, tick: Math.floor(position) });
+      this.update({ ...patch, tick: Math.floor(position) });
       gates.forEach((gate) =>
         this.scheduleRelease(gate.note, position, gate.end)
       );
       return;
     }
-    this.update({ speed });
+    this.update(patch);
+  }
+  setSpeed = (speed: number) => {
+    if (!Number.isFinite(speed) || speed < 0.25 || speed > 2) return;
+    if (speed === this.state.speed && !this.state.practice.trainer.enabled)
+      return;
+    const practice = this.state.practice;
+    this.trainerBpm = practice.trainer.startBpm;
+    this.rebasePlayback({
+      speed,
+      completedLoops: 0,
+      practice: {
+        ...practice,
+        trainer: { ...practice.trainer, enabled: false }
+      }
+    });
   };
-  setLoop = (loop: boolean) => this.update({ loop });
+  setLoop = (loop: boolean) => {
+    if (loop === this.state.loop) return;
+    const practice = this.state.practice;
+    this.rebasePlayback({
+      loop,
+      ...(!loop && practice.trainer.enabled
+        ? {
+            completedLoops: 0,
+            practice: {
+              ...practice,
+              trainer: { ...practice.trainer, enabled: false }
+            }
+          }
+        : {})
+    });
+  };
+  setPractice = (settings: TabPracticeSettings) => {
+    const practice = normalizeTabPractice(settings);
+    if (JSON.stringify(practice) === JSON.stringify(this.state.practice))
+      return;
+    const trainerChanged =
+      JSON.stringify(practice.trainer) !==
+      JSON.stringify(this.state.practice.trainer);
+    if (trainerChanged) {
+      this.trainerBpm = practice.trainer.startBpm;
+      this.completeLoop = this.currentPosition() === this.bounds().start;
+    }
+    this.rebasePlayback({
+      practice,
+      ...(trainerChanged ? { completedLoops: 0 } : {}),
+      loop: practice.trainer.enabled || this.state.loop
+    });
+    if (!practice.metronome) performanceAudio.stopMetronomeBeats();
+    if (
+      this.state.status === "recording" &&
+      practice.metronome &&
+      this.recordStart === undefined
+    ) {
+      this.recordStart = now();
+      this.recordProgress();
+    }
+  };
   setRange = (range: TabRange | null) => {
     if (
       range &&
@@ -267,7 +387,10 @@ export class TablatureTransport {
     const bounds = this.bounds();
     this.position = bounds.start;
     this.consumedTick = bounds.start - 1;
-    this.update({ tick: Math.floor(this.position) });
+    this.lastBeat = Math.ceil(bounds.start / tabBeatTicks(this.state.tab)) - 1;
+    this.trainerBpm = this.state.practice.trainer.startBpm;
+    this.completeLoop = true;
+    this.update({ tick: Math.floor(this.position), completedLoops: 0 });
     if (resume) void this.play();
   };
 
@@ -356,7 +479,101 @@ export class TablatureTransport {
     this.pause();
     this.update({ error });
   };
-  private begin = async (position: number) => {
+  private click(beat: number): boolean {
+    const { beatsPerBar, beatUnit } = this.state.tab;
+    const inBar = beat % beatsPerBar;
+    const accent =
+      inBar === 0
+        ? 2
+        : beatsPerBar === 6 && beatUnit === 8 && inBar === 3
+          ? 1
+          : 0;
+    try {
+      performanceAudio.metronomeBeat(accent, this.state.practice.volume);
+      return true;
+    } catch {
+      this.fail();
+      return false;
+    }
+  }
+  private clickUntil(position: number, end: number): boolean {
+    const beatTicks = tabBeatTicks(this.state.tab);
+    const beat = Math.min(
+      Math.floor(position / beatTicks),
+      Math.ceil(end / beatTicks) - 1
+    );
+    if (beat <= this.lastBeat) return true;
+    this.lastBeat = beat;
+    // Only the newest, still-timely beat can sound after a stalled JS frame.
+    if (
+      !this.state.practice.metronome ||
+      position - beat * beatTicks > 100 * this.rate()
+    )
+      return true;
+    return this.click(beat);
+  }
+  private startCountIn(
+    target: CountIn["target"],
+    position: number,
+    time = now()
+  ) {
+    this.countInClock = {
+      time,
+      position,
+      target,
+      bars: this.state.practice.countInBars,
+      bpm: target === "record" ? this.state.tab.tempo : this.state.practiceBpm,
+      lastBeat: -1
+    };
+    this.update({
+      status: "countingIn",
+      countIn: {
+        target,
+        bar: 1,
+        beat: 1,
+        bars: this.state.practice.countInBars
+      },
+      error: null
+    });
+    this.advanceCountIn();
+  }
+  private advanceCountIn = () => {
+    const count = this.countInClock;
+    if (!this.active || this.state.status !== "countingIn" || !count) return;
+    const beatMs =
+      (tabBeatTicks(this.state.tab) * 60000) / (count.bpm * TAB_TICKS_PER_BEAT);
+    const beats = count.bars * this.state.tab.beatsPerBar;
+    const elapsed = Math.max(0, now() - count.time);
+    if (elapsed >= beats * beatMs) {
+      this.countInClock = undefined;
+      const start = count.time + beats * beatMs;
+      if (count.target === "record") this.beginRecording(start);
+      else this.startPlayback(count.position, start);
+      return;
+    }
+    const beat = Math.floor(elapsed / beatMs);
+    if (beat > count.lastBeat) {
+      count.lastBeat = beat;
+      this.update({
+        countIn: {
+          target: count.target,
+          bars: count.bars,
+          bar: Math.floor(beat / this.state.tab.beatsPerBar) + 1,
+          beat: (beat % this.state.tab.beatsPerBar) + 1
+        }
+      });
+      if (elapsed - beat * beatMs <= 100 && !this.click(beat)) return;
+    }
+    this.timer = setTimeout(this.advanceCountIn, 25);
+  };
+  private startPlayback(position: number, time = now()) {
+    this.position = position;
+    this.clock = { time, tick: position };
+    this.update({ status: "playing", countIn: null });
+    if (!this.restoreHeld(this.currentPosition(), position)) return;
+    this.advance();
+  }
+  private begin = async (position: number, countIn = false) => {
     this.cancel();
     const generation = this.generation;
     const controller = new AbortController();
@@ -370,7 +587,8 @@ export class TablatureTransport {
     this.update({
       status: "preparing",
       tick: Math.floor(position),
-      error: null
+      error: null,
+      countIn: null
     });
     try {
       await this.prepare(controller.signal, generation);
@@ -382,17 +600,19 @@ export class TablatureTransport {
         return;
       for (let string = 0; string < 6; string++)
         performanceAudio.stopGuitarString(string);
-      this.clock = { time: now(), tick: position };
-      this.update({ status: "playing" });
-      if (!this.restoreHeld(position)) return;
-      this.advance();
+      if (countIn && this.state.practice.countInBars > 0)
+        this.startCountIn("play", position);
+      else this.startPlayback(position);
     } catch {
       if (generation === this.generation && !controller.signal.aborted)
         this.fail();
     }
   };
   play = async () => {
-    if (!this.active || ["playing", "preparing"].includes(this.state.status))
+    if (
+      !this.active ||
+      ["playing", "preparing", "countingIn"].includes(this.state.status)
+    )
       return;
     if (this.state.status === "recording") this.stopRecording();
     if (!this.state.tab.notes.length && !this.state.tab.rests?.length) {
@@ -403,8 +623,11 @@ export class TablatureTransport {
     if (this.position < bounds.start || this.position >= bounds.end) {
       this.position = bounds.start;
       this.consumedTick = bounds.start - 1;
+      this.lastBeat =
+        Math.ceil(bounds.start / tabBeatTicks(this.state.tab)) - 1;
+      this.completeLoop = true;
     }
-    await this.begin(this.position);
+    await this.begin(this.position, true);
   };
   private soundUntil(position: number, end: number) {
     const { notes } = this.state.tab;
@@ -446,27 +669,59 @@ export class TablatureTransport {
     const bounds = this.bounds();
     let position = this.currentPosition();
     if (!this.soundUntil(position, bounds.end)) return;
+    // At a loop boundary only the new downbeat may sound. A late old beat
+    // would otherwise land beside it in fast eighth-note meters.
+    if (position < bounds.end && !this.clickUntil(position, bounds.end)) return;
     if (position >= bounds.end) {
       if (!this.state.loop) {
         this.position = bounds.end;
         this.cancel();
-        this.update({ status: "idle", tick: bounds.end });
+        this.update({ status: "idle", tick: bounds.end, countIn: null });
         return;
       }
-      position =
-        bounds.start +
-        ((position - bounds.start) % (bounds.end - bounds.start));
-      this.clock = { time: now(), tick: position };
+      const boundaryTime =
+        this.clock.time + (bounds.end - this.clock.tick) / this.rate();
+      const completedLoops =
+        this.state.completedLoops + (this.completeLoop ? 1 : 0);
+      this.completeLoop = true;
+      const trainer = this.state.practice.trainer;
+      if (trainer.enabled)
+        this.trainerBpm = Math.min(
+          trainer.targetBpm,
+          trainer.startBpm +
+            Math.floor(completedLoops / trainer.repeats) * trainer.stepBpm
+        );
+      this.update({ completedLoops });
       this.cursor = this.state.tab.notes.findIndex(
         (note) => note.tick >= bounds.start
       );
       if (this.cursor < 0) this.cursor = this.state.tab.notes.length;
       this.consumedTick = bounds.start - 1;
+      this.lastBeat =
+        Math.ceil(bounds.start / tabBeatTicks(this.state.tab)) - 1;
       this.clearGates();
       for (let string = 0; string < 6; string++)
         performanceAudio.stopGuitarString(string);
+      if (
+        this.state.practice.countInBetweenLoops &&
+        this.state.practice.countInBars > 0
+      ) {
+        this.position = bounds.start;
+        this.update({ tick: bounds.start });
+        // Prepare the next window before counting, just as on initial play.
+        // Slow sample loading must never create a gap after the count-in.
+        void this.begin(bounds.start, true);
+        return;
+      }
+      position =
+        bounds.start +
+        ((Math.max(0, now() - boundaryTime) * this.rate()) %
+          (bounds.end - bounds.start));
+      this.clock = { time: now(), tick: position };
+      this.position = position;
       if (!this.restoreHeld(position, bounds.start)) return;
       if (!this.soundUntil(position, bounds.end)) return;
+      if (!this.clickUntil(position, bounds.end)) return;
     }
     this.position = position;
     const tick = Math.floor(position);
@@ -483,12 +738,29 @@ export class TablatureTransport {
 
   startRecording = () => {
     if (!this.active) return;
-    if (this.state.status === "recording") return;
+    if (
+      this.state.status === "recording" ||
+      (this.state.status === "countingIn" &&
+        this.state.countIn?.target === "record")
+    )
+      return;
     this.cancel();
+    if (this.state.practice.countInBars > 0) {
+      // Do not replace the document or touch history while the user counts in.
+      this.startCountIn("record", this.position);
+      return;
+    }
+    this.beginRecording();
+  };
+  private beginRecording(start?: number) {
     this.recordOriginal = this.state.tab;
-    this.recordStart = undefined;
+    this.recordStart =
+      start ?? (this.state.practice.metronome ? now() : undefined);
     this.position = 0;
     this.consumedTick = -1;
+    this.lastBeat = -1;
+    this.trainerBpm = this.state.practice.trainer.startBpm;
+    this.completeLoop = true;
     this.update({
       tab: emptyTablature(
         this.state.tab.tempo,
@@ -498,9 +770,12 @@ export class TablatureTransport {
       range: null,
       tick: 0,
       status: "recording",
-      error: null
+      error: null,
+      countIn: null,
+      completedLoops: 0
     });
-  };
+    if (this.recordStart !== undefined) this.recordProgress();
+  }
   private recordProgress = () => {
     if (this.state.status !== "recording" || this.recordStart === undefined)
       return;
@@ -512,6 +787,13 @@ export class TablatureTransport {
       this.update({ error: "TabRecordingLimit" });
       return;
     }
+    if (
+      !this.clickUntil(
+        this.position,
+        TAB_MAX_BARS * tabBarTicks(this.state.tab)
+      )
+    )
+      return;
     const barCount = Math.max(
       this.state.tab.barCount ?? 1,
       Math.min(
@@ -525,7 +807,7 @@ export class TablatureTransport {
         : {}),
       tick: Math.floor(this.position)
     });
-    this.timer = setTimeout(this.recordProgress, 50);
+    this.timer = setTimeout(this.recordProgress, 25);
   };
   capture = (notes: Array<{ string: number; fret: number }>) => {
     if (!this.active || this.state.status !== "recording") return;
@@ -542,7 +824,7 @@ export class TablatureTransport {
     if (!valid.length) return;
     if (this.recordStart === undefined) {
       this.recordStart = timestamp;
-      this.timer = setTimeout(this.recordProgress, 50);
+      this.timer = setTimeout(this.recordProgress, 25);
     }
     const tab = this.state.tab;
     const tick = Math.round(
@@ -591,6 +873,13 @@ export class TablatureTransport {
     this.update({ tab: recordedTab, tick });
   };
   stopRecording = () => {
+    if (
+      this.state.status === "countingIn" &&
+      this.state.countIn?.target === "record"
+    ) {
+      this.pause();
+      return;
+    }
     if (this.state.status !== "recording") return;
     const elapsed =
       this.recordStart === undefined
@@ -616,10 +905,14 @@ export class TablatureTransport {
     this.recordStart = undefined;
     this.position = 0;
     this.consumedTick = -1;
+    this.lastBeat = -1;
+    this.trainerBpm = this.state.practice.trainer.startBpm;
+    this.completeLoop = true;
     this.update({
       tab,
       status: "idle",
       tick: 0,
+      countIn: null,
       canUndo: this.undoStack.length > 0,
       canRedo: this.redoStack.length > 0
     });
@@ -658,6 +951,8 @@ export function useTablature(
     capture: transport.capture,
     setSpeed: transport.setSpeed,
     setLoop: transport.setLoop,
-    setRange: transport.setRange
+    setRange: transport.setRange,
+    setPractice: transport.setPractice,
+    seek: transport.seek
   };
 }

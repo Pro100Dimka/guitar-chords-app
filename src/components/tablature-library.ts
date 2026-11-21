@@ -15,6 +15,10 @@ import {
   Tablature,
   tablatureText
 } from "./tablature";
+import {
+  normalizeTabPractice,
+  TabPracticeSettings
+} from "./tablature-practice";
 
 export const TAB_LIBRARY_PAGE_SIZE = 30;
 export interface TablatureSong {
@@ -65,7 +69,10 @@ export async function listTablatureSongs(
 
 export async function getTablatureSong(
   id: number
-): Promise<(TablatureSong & { tablature?: Tablature }) | undefined> {
+): Promise<
+  | (TablatureSong & { tablature?: Tablature; practice?: TabPracticeSettings })
+  | undefined
+> {
   if (!validId(id)) throw new Error("SongMissing");
   const [song] = await getAllItems<TablatureSong>({
     tableName: "songs",
@@ -80,7 +87,14 @@ export async function getTablatureSong(
         ...song,
         tablature: normalizeTablature(
           usePreferences.getState().songs[id]?.tablature
-        )
+        ),
+        ...(usePreferences.getState().songs[id]?.tabPractice === undefined
+          ? {}
+          : {
+              practice: normalizeTabPractice(
+                usePreferences.getState().songs[id].tabPractice
+              )
+            })
       }
     : undefined;
 }
@@ -88,11 +102,13 @@ export async function getTablatureSong(
 export async function saveTablature({
   id,
   title,
-  tablature
+  tablature,
+  practice
 }: {
   id?: number;
   title: string;
   tablature: Tablature;
+  practice?: TabPracticeSettings;
 }): Promise<number> {
   const tab = normalizeTablature(tablature);
   if (!tab || (!tab.notes.length && !tab.rests?.length))
@@ -119,7 +135,10 @@ export async function saveTablature({
             persisted = {
               [songId]: normalizeSongPreferences({
                 ...snapshot,
-                tablature: tab
+                tablature: tab,
+                ...(practice === undefined
+                  ? {}
+                  : { tabPractice: normalizeTabPractice(practice) })
               })
             };
             writePreferences(tx, {

@@ -55,6 +55,10 @@ export function TablatureBar({
   selectedRest = null,
   grid = 6,
   disabled = false,
+  readOnly = false,
+  readingScale = 1,
+  followPlayback = true,
+  onManualScroll,
   onNote,
   onCell,
   onRest
@@ -67,7 +71,11 @@ export function TablatureBar({
   selectedRest?: number | null;
   grid?: number;
   disabled?: boolean;
-  onNote: (note: TabNote) => void;
+  readOnly?: boolean;
+  readingScale?: number;
+  followPlayback?: boolean;
+  onManualScroll?: () => void;
+  onNote?: (note: TabNote) => void;
   onCell?: (cell: Selection) => void;
   onRest?: (rest: TabRest) => void;
 }) {
@@ -78,8 +86,9 @@ export function TablatureBar({
   const barTicks = tabBarTicks(tab);
   const beatTicks = tabBeatTicks(tab);
   const start = bar * barTicks;
-  const cellWidth = compact ? 34 : 44;
-  const editable = !!onCell;
+  const cellWidth = readOnly ? 44 * readingScale : compact ? 34 : 44;
+  const editable = !!onCell && !readOnly;
+  const NoteTarget = readOnly ? View : Pressable;
   const { columns, notes, rests } = useMemo(() => {
     const times = new Set(
       Array.from(
@@ -123,29 +132,45 @@ export function TablatureBar({
       : -1;
   const selectedTick = selected?.tick ?? selectedRest;
   useEffect(() => {
+    if (!followPlayback) return;
     const target =
       selectedTick === null ? active : columns.indexOf(selectedTick);
     if (target >= 0)
       scroll.current?.scrollTo({
         x: Math.max(0, target - 2) * cellWidth,
-        animated: false
+        animated: readOnly
       });
-  }, [active, cellWidth, columns, selectedTick]);
-  const rowStyle = dense
-    ? styles.denseRow
-    : compact
-      ? styles.compactRow
-      : styles.stringRow;
+  }, [active, cellWidth, columns, selectedTick, followPlayback, readOnly]);
+  const rowStyle = readOnly
+    ? { height: 32 * readingScale }
+    : dense
+      ? styles.denseRow
+      : compact
+        ? styles.compactRow
+        : styles.stringRow;
   const showRests = !compact || rests.size > 0;
   const beatPosition = (position: number) =>
     Number((1 + (position - start) / beatTicks).toFixed(2));
   return (
     <View style={styles.staff}>
       <View style={styles.stringLabels}>
-        <View style={[styles.beatRow, dense && styles.denseBeats]} />
+        <View
+          style={[
+            styles.beatRow,
+            dense && styles.denseBeats,
+            readOnly && { height: 20 * readingScale }
+          ]}
+        />
         {stringOrder.map((string) => (
           <View key={string} style={[styles.stringLabel, rowStyle]}>
-            <Text style={styles.stringName}>{stringNames[string]}</Text>
+            <Text
+              style={[
+                styles.stringName,
+                readOnly && { fontSize: 13 * readingScale }
+              ]}
+            >
+              {stringNames[string]}
+            </Text>
           </View>
         ))}
         {showRests && (
@@ -158,15 +183,26 @@ export function TablatureBar({
         horizontal
         ref={scroll}
         showsHorizontalScrollIndicator={!compact}
+        onScrollBeginDrag={onManualScroll}
         contentContainerStyle={styles.staffContent}
       >
         <View>
-          <View style={[styles.beatRow, dense && styles.denseBeats]}>
+          <View
+            style={[
+              styles.beatRow,
+              dense && styles.denseBeats,
+              readOnly && { height: 20 * readingScale }
+            ]}
+          >
             {columns.map((position, index) => (
               <View key={position} style={[styles.cell, { width: cellWidth }]}>
                 <Text
                   numberOfLines={1}
-                  style={[styles.beat, index === active && styles.activeBeat]}
+                  style={[
+                    styles.beat,
+                    readOnly && { fontSize: 11 * readingScale },
+                    index === active && styles.activeBeat
+                  ]}
                 >
                   {beatPosition(position)}
                 </Text>
@@ -192,8 +228,9 @@ export function TablatureBar({
                     style={[styles.cell, { width: cellWidth }]}
                   >
                     {note ? (
-                      <Pressable
-                        accessibilityRole="button"
+                      <NoteTarget
+                        accessible
+                        accessibilityRole={readOnly ? "text" : "button"}
                         accessibilityLabel={`${continued ? `${t("TabContinuation")}, ` : ""}${t(
                           "TabNoteDescription",
                           {
@@ -207,12 +244,20 @@ export function TablatureBar({
                             )
                           }
                         )}, ${t("TabDurationValue", { duration: durationLabel(tabNoteDuration(note)) })}`}
-                        accessibilityState={{ selected: chosen, disabled }}
-                        disabled={disabled}
-                        onPress={() => onNote(note)}
+                        accessibilityState={
+                          readOnly
+                            ? undefined
+                            : {
+                                selected: chosen,
+                                disabled: disabled || !onNote
+                              }
+                        }
+                        disabled={disabled || readOnly || !onNote}
+                        onPress={readOnly ? undefined : () => onNote?.(note)}
                         style={[
                           styles.note,
                           !compact && styles.editableCell,
+                          readOnly && { height: 32 * readingScale - 2 },
                           continued && styles.continuation,
                           (index === active || chosen) && styles.activeNote
                         ]}
@@ -222,6 +267,10 @@ export function TablatureBar({
                             styles.fret,
                             compact && styles.compactFret,
                             dense && styles.denseFret,
+                            readOnly && {
+                              fontSize: 20 * readingScale,
+                              lineHeight: 22 * readingScale
+                            },
                             (index === active || chosen) && styles.activeFret
                           ]}
                         >
@@ -231,6 +280,10 @@ export function TablatureBar({
                           <Text
                             style={[
                               styles.duration,
+                              readOnly && {
+                                fontSize: 9 * readingScale,
+                                lineHeight: 10 * readingScale
+                              },
                               (index === active || chosen) && styles.activeFret
                             ]}
                           >
@@ -241,8 +294,8 @@ export function TablatureBar({
                             )}
                           </Text>
                         )}
-                      </Pressable>
-                    ) : onCell ? (
+                      </NoteTarget>
+                    ) : editable ? (
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel={t("TabEmptyCell", {
@@ -252,7 +305,7 @@ export function TablatureBar({
                         })}
                         accessibilityState={{ selected: chosen, disabled }}
                         disabled={disabled}
-                        onPress={() => onCell(cell)}
+                        onPress={() => onCell?.(cell)}
                         style={[styles.emptyCell, chosen && styles.cursorCell]}
                       >
                         {chosen && <Text style={styles.cursorText}>+</Text>}
@@ -273,8 +326,9 @@ export function TablatureBar({
                     style={[styles.cell, { width: cellWidth }]}
                   >
                     {rest && (
-                      <Pressable
-                        accessibilityRole="button"
+                      <NoteTarget
+                        accessible
+                        accessibilityRole={readOnly ? "text" : "button"}
                         accessibilityLabel={`${rest.tick < start ? `${t("TabContinuation")}, ` : ""}${t(
                           "TabRestDescription",
                           {
@@ -287,15 +341,20 @@ export function TablatureBar({
                             duration: durationLabel(rest.duration)
                           }
                         )}`}
-                        accessibilityState={{
-                          selected: selectedRest === rest.tick,
-                          disabled: disabled || !onRest
-                        }}
-                        disabled={disabled || !onRest}
-                        onPress={() => onRest?.(rest)}
+                        accessibilityState={
+                          readOnly
+                            ? undefined
+                            : {
+                                selected: selectedRest === rest.tick,
+                                disabled: disabled || !onRest
+                              }
+                        }
+                        disabled={disabled || readOnly || !onRest}
+                        onPress={readOnly ? undefined : () => onRest?.(rest)}
                         style={[
                           styles.note,
                           !compact && styles.editableCell,
+                          readOnly && { height: 32 * readingScale - 2 },
                           rest.tick < start && styles.continuation,
                           selectedRest === rest.tick && styles.activeNote
                         ]}
@@ -303,6 +362,7 @@ export function TablatureBar({
                         <Text
                           style={[
                             styles.restText,
+                            readOnly && { fontSize: 12 * readingScale },
                             selectedRest === rest.tick && styles.activeFret
                           ]}
                         >
@@ -316,7 +376,7 @@ export function TablatureBar({
                                 ) - position
                               )}
                         </Text>
-                      </Pressable>
+                      </NoteTarget>
                     )}
                   </View>
                 );
@@ -338,7 +398,8 @@ export function TablaturePanel({
   onToggle,
   onOpen,
   onSave,
-  onRecord
+  onRecord,
+  onPractice
 }: {
   transport: Transport;
   title?: string;
@@ -349,6 +410,7 @@ export function TablaturePanel({
   onOpen: () => void;
   onSave: () => void;
   onRecord: () => void;
+  onPractice?: () => void;
 }) {
   const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
@@ -372,9 +434,12 @@ export function TablaturePanel({
   const bars = tablatureLength(tab) / barTicks;
   const bar = Math.max(0, Math.min(page, bars - 1));
   const recording = status === "recording";
-  const readOnly = disabled || recording;
+  const countingIn = status === "countingIn";
+  const recordPending = countingIn && transport.countIn?.target === "record";
+  const readOnly =
+    disabled || recording || countingIn || status === "preparing";
   const moving = status === "playing" || recording;
-  const sounding = status === "playing" || status === "preparing";
+  const sounding = status === "playing" || status === "preparing" || countingIn;
   const selected = tab.notes.find((note) => sameNote(selection, note));
   const selectedRest = (tab.rests ?? []).find(
     (rest) => rest.tick === restSelection
@@ -522,13 +587,22 @@ export function TablaturePanel({
       />
       <Action
         glass
-        icon={recording ? "stop" : "record-circle-outline"}
-        selected={recording}
-        label={t(recording ? "TabStopRecording" : "TabRecord")}
-        disabled={disabled}
+        icon={recording || recordPending ? "stop" : "record-circle-outline"}
+        selected={recording || recordPending}
+        label={t(
+          recording
+            ? "TabStopRecording"
+            : recordPending
+              ? "TabCancelCountIn"
+              : "TabRecord"
+        )}
+        disabled={
+          disabled || (!recordPending && (countingIn || status === "preparing"))
+        }
         onPress={() => {
           setFull(false);
           if (recording) transport.stopRecording();
+          else if (recordPending) transport.pause();
           else onRecord();
         }}
       />
@@ -556,14 +630,16 @@ export function TablaturePanel({
         glass
         icon={sounding ? "pause" : "play"}
         label={t(
-          status === "preparing"
-            ? "TabCancelPreparing"
-            : sounding
-              ? "Pause"
-              : "TabPlay"
+          countingIn
+            ? "TabCancelCountIn"
+            : status === "preparing"
+              ? "TabCancelPreparing"
+              : sounding
+                ? "Pause"
+                : "TabPlay"
         )}
         selected={sounding}
-        disabled={!hasEvents || readOnly}
+        disabled={disabled || recording || (!hasEvents && !sounding)}
         onPress={() => {
           if (sounding) transport.pause();
           else void transport.play();
@@ -618,15 +694,38 @@ export function TablaturePanel({
             </Text>
           )}
         </Pressable>
+        {onPractice && (
+          <Action
+            glass
+            compact
+            icon="music-box-outline"
+            label={t("TabPractice")}
+            disabled={
+              disabled || recording || recordPending || !hasEvents || full
+            }
+            onPress={() => {
+              if (disabled || recording || recordPending || !hasEvents || full)
+                return;
+              onPractice();
+            }}
+          />
+        )}
         <Action
           glass
           compact
-          icon={recording ? "stop" : "arrow-expand"}
-          label={t(recording ? "TabStopRecording" : "TabFullView")}
-          selected={recording}
-          disabled={disabled}
+          icon={recording || recordPending ? "stop" : "arrow-expand"}
+          label={t(
+            recording
+              ? "TabStopRecording"
+              : recordPending
+                ? "TabCancelCountIn"
+                : "TabFullView"
+          )}
+          selected={recording || recordPending}
+          disabled={disabled || (!recording && !recordPending && readOnly)}
           onPress={() => {
             if (recording) transport.stopRecording();
+            else if (recordPending) transport.pause();
             else showEditor();
           }}
         />
@@ -652,14 +751,21 @@ export function TablaturePanel({
             </Text>
           )}
           {actions}
-          {(!dense || recording || status === "preparing") && (
+          {(!dense || recording || status === "preparing" || countingIn) && (
             <View style={styles.metadata}>
               <Text style={styles.caption}>
-                {recording
-                  ? t("TabRecording")
-                  : status === "preparing"
-                    ? t("TabPreparing")
-                    : `${tab.tempo} ♩ BPM · ${tab.beatsPerBar}/${tab.beatUnit ?? 4}`}
+                {countingIn && transport.countIn
+                  ? t("TabCountInStatus", {
+                      bar: transport.countIn.bar,
+                      bars: transport.countIn.bars,
+                      beat: transport.countIn.beat,
+                      beats: tab.beatsPerBar
+                    })
+                  : recording
+                    ? t("TabRecording")
+                    : status === "preparing"
+                      ? t("TabPreparing")
+                      : `${tab.tempo} ♩ BPM · ${tab.beatsPerBar}/${tab.beatUnit ?? 4}`}
               </Text>
               <Pressable
                 accessibilityRole="button"

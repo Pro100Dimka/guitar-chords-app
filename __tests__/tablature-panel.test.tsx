@@ -10,6 +10,7 @@ import {
   emptyTablature,
   normalizeTablature
 } from "../src/components/tablature";
+import { defaultTabPractice } from "../src/components/tablature-practice";
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -53,6 +54,10 @@ const mockTransport = (tab = example): Transport => ({
   range: null,
   canUndo: false,
   canRedo: false,
+  practice: defaultTabPractice(),
+  practiceBpm: tab.tempo,
+  completedLoops: 0,
+  countIn: null,
   undo: jest.fn(),
   redo: jest.fn(),
   replaceTab: jest.fn(),
@@ -65,7 +70,9 @@ const mockTransport = (tab = example): Transport => ({
   capture: jest.fn(),
   setSpeed: jest.fn(),
   setLoop: jest.fn(),
-  setRange: jest.fn()
+  setRange: jest.fn(),
+  setPractice: jest.fn(),
+  seek: jest.fn()
 });
 const props = (transport = mockTransport()) => ({
   transport,
@@ -129,6 +136,97 @@ test("recording exposes stop and prevents opening or saving an unfinished take",
   await press(screen!, "TabStopRecording");
   expect(transport.stopRecording).toHaveBeenCalledTimes(1);
   expect(value.onRecord).not.toHaveBeenCalled();
+});
+
+test("practice opens from the main panel and cannot overlap the editor modal", async () => {
+  const value = { ...props(), onPractice: jest.fn() };
+  await act(async () => {
+    screen = Renderer.create(<TablaturePanel {...value} />);
+  });
+  await press(screen!, "TabPractice");
+  expect(value.onPractice).toHaveBeenCalledTimes(1);
+  await press(screen!, "TabFullView");
+  expect(button(screen!, "TabPractice").props.disabled).toBe(true);
+  await act(async () => button(screen!, "TabPractice").props.onPress());
+  expect(value.onPractice).toHaveBeenCalledTimes(1);
+});
+
+test.each(["hydrating", "recording", "countingIn"] as const)(
+  "%s prevents entering practice while keeping cancellation available",
+  async (state) => {
+    const transport = mockTransport();
+    if (state === "recording") transport.status = "recording";
+    if (state === "countingIn") {
+      transport.status = "countingIn";
+      transport.countIn = { bar: 1, beat: 2, bars: 1, target: "record" };
+    }
+    const value = {
+      ...props(transport),
+      onPractice: jest.fn(),
+      disabled: state === "hydrating"
+    };
+    await act(async () => {
+      screen = Renderer.create(<TablaturePanel {...value} />);
+    });
+    expect(button(screen!, "TabPractice").props.disabled).toBe(true);
+    await act(async () => button(screen!, "TabPractice").props.onPress());
+    expect(value.onPractice).not.toHaveBeenCalled();
+    if (state === "recording") {
+      await press(screen!, "TabStopRecording");
+      expect(transport.stopRecording).toHaveBeenCalledTimes(1);
+    } else if (state === "countingIn") {
+      await press(screen!, "TabCancelCountIn");
+      expect(transport.pause).toHaveBeenCalledTimes(1);
+      expect(transport.startRecording).not.toHaveBeenCalled();
+    }
+  }
+);
+
+test("play count-in locks editing and keeps Cancel accessible", async () => {
+  const transport = {
+    ...mockTransport(),
+    status: "countingIn" as const,
+    countIn: { bar: 1, beat: 3, bars: 2, target: "play" as const }
+  };
+  await act(async () => {
+    screen = Renderer.create(<TablaturePanel {...props(transport)} />);
+  });
+  expect(button(screen!, "TabOpen").props.disabled).toBe(true);
+  expect(button(screen!, "TabSave").props.disabled).toBe(true);
+  expect(button(screen!, "TabFullView").props.disabled).toBe(true);
+  await press(screen!, "TabCancelCountIn");
+  expect(transport.pause).toHaveBeenCalledTimes(1);
+  expect(transport.play).not.toHaveBeenCalled();
+});
+
+test("readonly bars ignore supplied edit callbacks and expose notes as text", async () => {
+  const onNote = jest.fn();
+  const onCell = jest.fn();
+  const onRest = jest.fn();
+  await act(async () => {
+    screen = Renderer.create(
+      <TablatureBar
+        tab={example}
+        bar={0}
+        tick={0}
+        readOnly
+        onNote={onNote}
+        onCell={onCell}
+        onRest={onRest}
+      />
+    );
+  });
+  const targets = screen!.root.findAll(
+    (node) => typeof node.props.onPress === "function"
+  );
+  expect(targets).toHaveLength(0);
+  const notes = screen!.root.findAll(
+    (node) => node.props.accessibilityRole === "text"
+  );
+  expect(notes.length).toBeGreaterThan(0);
+  expect(onNote).not.toHaveBeenCalled();
+  expect(onCell).not.toHaveBeenCalled();
+  expect(onRest).not.toHaveBeenCalled();
 });
 
 test("tablature rows run from high e to low E and preserve string/fret identity", async () => {

@@ -21,6 +21,7 @@ import Strings from "../tuner/strings";
 import guitar from "../tuner/config/guitar-classic";
 import { guitarLayout } from "../tuner/guitar-layout";
 import { noteNames } from "../tuner/tunings";
+import MicrophoneStream from "../tuner/MicrophoneStream";
 import { chordShapeOptions, guitarMidi } from "../song/chords";
 import {
   recordedChordFrets,
@@ -33,6 +34,7 @@ import palette from "../../theme/palette";
 import type { TabNote } from "../../components/tablature";
 import { TablaturePanel } from "./tablature-panel";
 import { TablatureLibrary } from "./tablature-library";
+import { TablaturePractice } from "./tablature-practice";
 import { useTablature } from "./use-tablature";
 import { useTablatureSession } from "./use-tablature-session";
 
@@ -63,6 +65,7 @@ export default function PlayGuitar() {
   const [fretsSheet, setFretsSheet] = useState(false);
   const [freeFrets, setFreeFrets] = useState([0, 0, 0, 0, 0, 0]);
   const [tabNotes, setTabNotes] = useState<TabNote[]>([]);
+  const [practiceOpen, setPracticeOpen] = useState(false);
   const plucks = useSharedValue<number[]>([]);
   const rms = useSharedValue(0);
   const fill = useSharedValue(0);
@@ -83,7 +86,7 @@ export default function PlayGuitar() {
     : [];
   const shapePages = Math.max(1, Math.ceil(options.length / 4));
   const openFingerings = (name: string) => {
-    if (tablature.status !== "recording") tablature.pause();
+    if (!tabRecording) tablature.pause();
     const selectedShape = selectedChordShape(name, shapes[name]);
     const available = chordShapeOptions(name, selectedShape?.index);
     setShapePage(
@@ -99,7 +102,7 @@ export default function PlayGuitar() {
     setFingeringChord(name);
   };
   const selectChord = (index: number) => {
-    if (tablature.status !== "recording") tablature.pause();
+    if (!tabRecording) tablature.pause();
     setSelected(index);
     setFree(false);
   };
@@ -141,8 +144,15 @@ export default function PlayGuitar() {
   );
   const tablature = useTablature(active, showTabNotes);
   const { capture: captureTabNotes, pause: pauseTabPlayback } = tablature;
+  const tabRecording =
+    tablature.status === "recording" ||
+    (tablature.status === "countingIn" &&
+      tablature.countIn?.target === "record");
   const tabPlayback =
-    tablature.status === "preparing" || tablature.status === "playing";
+    tablature.status === "preparing" ||
+    tablature.status === "playing" ||
+    (tablature.status === "countingIn" && !tabRecording);
+  const tabOwnsAudio = tabPlayback || tabRecording;
   const stopBacking = useCallback(() => {
     setPlaying(false);
     setMetronome(false);
@@ -159,8 +169,13 @@ export default function PlayGuitar() {
   const TabPanelContainer = sideTabs ? ScrollView : View;
 
   useEffect(() => {
-    if (tabPlayback) stopBacking();
-  }, [tabPlayback, stopBacking]);
+    if (tabOwnsAudio) stopBacking();
+  }, [tabOwnsAudio, stopBacking]);
+
+  useEffect(() => {
+    MicrophoneStream.setKeepAwake(practiceOpen && active, "tablature-practice");
+    return () => MicrophoneStream.setKeepAwake(false, "tablature-practice");
+  }, [active, practiceOpen]);
 
   useEffect(() => {
     const listener = AppState.addEventListener("change", (state) =>
@@ -183,7 +198,7 @@ export default function PlayGuitar() {
   }, [active, plucks]);
   useEffect(() => {
     const transport = clock.current;
-    const enabled = active && metronome;
+    const enabled = active && metronome && !tabOwnsAudio;
     const starting = playing && !transport.wasPlaying;
     const update =
       enabled !== transport.metronome ||
@@ -205,7 +220,7 @@ export default function PlayGuitar() {
       transport.pulseOrigin = transport.origin;
     }
     performanceAudio.metronome(tempo, enabled, phase);
-  }, [active, metronome, tempo, playing]);
+  }, [active, metronome, tempo, playing, tabOwnsAudio]);
   useEffect(() => {
     prepared.current.clear();
     if (!active || tabPlayback) return;
@@ -230,7 +245,8 @@ export default function PlayGuitar() {
     return () => controller.abort();
   }, [active, pitchKey, tabPlayback]);
   useEffect(() => {
-    if (!active || !playing || !progression.length || free) return;
+    if (!active || !playing || !progression.length || free || tabOwnsAudio)
+      return;
     const duration = 60000 / tempo / 2;
     const slots = beats * 2;
     const now = Date.now();
@@ -269,7 +285,16 @@ export default function PlayGuitar() {
       transport.running = false;
       clearInterval(timer);
     };
-  }, [active, playing, progression.length, tempo, beats, free, pattern]);
+  }, [
+    active,
+    playing,
+    progression.length,
+    tempo,
+    beats,
+    free,
+    pattern,
+    tabOwnsAudio
+  ]);
 
   const playStrings = useCallback(
     (indices: number[]) => {
@@ -391,7 +416,7 @@ export default function PlayGuitar() {
             glass
             label={name}
             onPress={() => {
-              if (tablature.status !== "recording") tablature.pause();
+              if (!tabRecording) tablature.pause();
               if (patternStep === null) {
                 setProgression((list) => [...list, name]);
                 setSelected(progression.length);
@@ -448,6 +473,11 @@ export default function PlayGuitar() {
           onOpen={tabSession.open}
           onSave={tabSession.save}
           onRecord={tabSession.record}
+          onPractice={() => {
+            if (!tabSession.draftReady || tabRecording) return;
+            stopBacking();
+            setPracticeOpen(true);
+          }}
           disabled={!tabSession.draftReady}
         />
         {(tabSession.expanded ||
@@ -597,9 +627,9 @@ export default function PlayGuitar() {
             <Action
               icon={playing ? "pause" : "play"}
               label={t(playing ? "Pause" : "AutoChords")}
-              disabled={!progression.length || free}
+              disabled={!progression.length || free || tabRecording}
               onPress={() => {
-                if (tablature.status !== "recording") tablature.pause();
+                if (!tabRecording) tablature.pause();
                 if (playing) {
                   clock.current.linkedMetronome = metronome;
                   setMetronome(false);
@@ -614,7 +644,7 @@ export default function PlayGuitar() {
               compact
               label={`${tempo} BPM · ${t("PlayPattern")}`}
               onPress={() => {
-                if (tablature.status !== "recording") tablature.pause();
+                if (!tabRecording) tablature.pause();
                 setPlaying(false);
                 setTempoInput(String(tempo));
                 setSettings(true);
@@ -624,7 +654,7 @@ export default function PlayGuitar() {
               icon="music-note"
               label={t("FreePlay")}
               onPress={() => {
-                if (tablature.status !== "recording") tablature.pause();
+                if (!tabRecording) tablature.pause();
                 setPlaying(false);
                 setFree(true);
                 setFretsSheet(true);
@@ -638,6 +668,7 @@ export default function PlayGuitar() {
               icon: "metronome",
               label: t("Metronome"),
               selected: metronome,
+              disabled: tabOwnsAudio,
               onPress: () => {
                 clock.current.linkedMetronome = !metronome;
                 setMetronome(!metronome);
@@ -931,11 +962,24 @@ export default function PlayGuitar() {
         <TablatureLibrary
           mode={tabSession.dialog}
           tab={tablature.tab}
+          practice={tablature.practice}
           song={tabSession.song}
           onLoad={tabSession.choose}
           onSaved={tabSession.saved}
           onNew={tabSession.create}
           onClose={tabSession.close}
+        />
+      )}
+      {practiceOpen && (
+        <TablaturePractice
+          transport={tablature}
+          title={tabSession.song?.title}
+          active={active}
+          disabled={!tabSession.draftReady}
+          onClose={() => {
+            tablature.pause();
+            setPracticeOpen(false);
+          }}
         />
       )}
     </View>
