@@ -37,6 +37,7 @@ export function useTablatureSession(
   const [expanded, setExpanded] = useState(false);
   const [song, setSong] = useState<TabSongLink | null>(null);
   const practiceOwner = useRef<number | null>(null);
+  const sessionRevision = useRef(0);
   const [dialog, setDialog] = useState<"open" | "save" | null>(null);
   const [savedTab, setSavedTab] = useState(transport.tab);
   const baseline = useMemo(() => JSON.stringify(savedTab), [savedTab]);
@@ -58,6 +59,7 @@ export function useTablatureSession(
   ) => {
     const normalized = normalizeTablature(tab);
     if (!normalized) return;
+    sessionRevision.current++;
     // The transport may notify before React publishes the new song link.
     // Never save the newly loaded settings to the previous song in that render.
     practiceOwner.current = link?.id ?? null;
@@ -82,6 +84,7 @@ export function useTablatureSession(
     [transport.tab, savedTab, song, transport.practice]
   );
   const workingCopy = useTablatureDraft(draft, active, (stored) => {
+    sessionRevision.current++;
     practiceOwner.current = stored.song?.id ?? null;
     transport.replaceTab(stored.tab);
     transport.setPractice(stored.practice ?? defaultTabPractice());
@@ -150,11 +153,22 @@ export function useTablatureSession(
       if (!alive) return;
       current.current.stop();
       const original = current.current.serialized;
+      const revision = sessionRevision.current;
       try {
         const found = await getTablatureSong(requestedId);
         if (!alive) return;
+        // A later New/Open/Save/Record action supersedes this navigation even
+        // when the two scores happen to contain exactly the same notes.
+        if (sessionRevision.current !== revision) {
+          consume();
+          return;
+        }
         if (!found?.tablature) throw new Error("TabLoadFailed");
         const apply = () => {
+          if (sessionRevision.current !== revision) {
+            consume();
+            return;
+          }
           current.current.stop();
           current.current.load(found, found.tablature!, found.practice);
           consume();
@@ -163,7 +177,8 @@ export function useTablatureSession(
         else apply();
       } catch {
         if (alive) {
-          Alert.alert(current.current.t("TabLoadFailed"));
+          if (sessionRevision.current === revision)
+            Alert.alert(current.current.t("TabLoadFailed"));
           consume();
         }
       }
@@ -199,6 +214,7 @@ export function useTablatureSession(
     saved: (link: TabSongLink, tab: Tablature) => {
       const normalized = normalizeTablature(tab);
       if (!normalized) return;
+      sessionRevision.current++;
       practiceOwner.current = link.id;
       setSong({ id: link.id, title: link.title });
       setSavedTab(normalized);
@@ -209,6 +225,7 @@ export function useTablatureSession(
       confirmDiscard(() => load(null, emptyTablature(tempo, beats))),
     open: () => {
       if (!workingCopy.ready) return;
+      sessionRevision.current++;
       stop();
       setExpanded(true);
       setDialog("open");
@@ -220,11 +237,13 @@ export function useTablatureSession(
     ) => workingCopy.ready && confirmDiscard(() => load(link, tab, practice)),
     save: () => {
       if (!workingCopy.ready) return;
+      sessionRevision.current++;
       stop();
       setDialog("save");
     },
     record: () => {
       if (!workingCopy.ready) return;
+      sessionRevision.current++;
       const start = () => {
         stop();
         transport.startRecording();

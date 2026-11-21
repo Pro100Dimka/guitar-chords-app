@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import Renderer, { act } from "react-test-renderer";
-import { View } from "react-native";
+import { StyleSheet, useWindowDimensions, View } from "react-native";
 import {
   TablatureBar,
   TablaturePanel
@@ -17,6 +17,10 @@ jest.mock("react-i18next", () => ({
     t: (key: string, values?: Record<string, number>) =>
       values ? `${key}:${JSON.stringify(values)}` : key
   })
+}));
+jest.mock("react-native/Libraries/Utilities/useWindowDimensions", () => ({
+  __esModule: true,
+  default: jest.fn(() => ({ width: 390, height: 844, scale: 1, fontScale: 1 }))
 }));
 jest.mock("../src/screens/song/tools", () => {
   const React = require("react");
@@ -94,6 +98,11 @@ const press = async (screen: Renderer.ReactTestRenderer, label: string) => {
   await act(async () => target.props.onPress());
 };
 let screen: Renderer.ReactTestRenderer | undefined;
+beforeEach(() => {
+  jest
+    .mocked(useWindowDimensions)
+    .mockReturnValue({ width: 390, height: 844, scale: 1, fontScale: 1 });
+});
 afterEach(async () => {
   if (screen) await act(async () => screen?.unmount());
   screen = undefined;
@@ -389,6 +398,178 @@ const pressNote = async (string: number, fret: number) => {
   await act(async () => target.props.onPress());
 };
 
+test("pausing after playback changes bar keeps insertion on the displayed bar", async () => {
+  const transport = mockTransport({ ...example, barCount: 3 });
+  await act(async () => {
+    screen = Renderer.create(
+      <TablaturePanel
+        {...props({ ...transport, status: "playing", tick: 192 })}
+      />
+    );
+  });
+  await act(async () => {
+    screen!.update(<TablaturePanel {...props({ ...transport, tick: 192 })} />);
+  });
+  await press(screen!, "TabFullView");
+  const bar = screen!.root
+    .findAllByType(TablatureBar)
+    .find((entry) => !entry.props.compact)!;
+  expect(bar.props.bar).toBe(2);
+  expect(bar.props.selected).toMatchObject({ tick: 192 });
+  await press(screen!, "TabAddNote");
+  expect(transport.setTab).toHaveBeenCalledWith(
+    expect.objectContaining({
+      notes: expect.arrayContaining([
+        expect.objectContaining({ string: 5, tick: 192 })
+      ])
+    })
+  );
+});
+
+test("rewinding the editor moves its insertion cursor back with the displayed bar", async () => {
+  const { updates } = await editable(example);
+  await press(screen!, "TabNextBar");
+  await press(screen!, "TabRewind");
+  const bar = screen!.root
+    .findAllByType(TablatureBar)
+    .find((entry) => !entry.props.compact)!;
+  expect(bar.props.bar).toBe(0);
+  expect(bar.props.selected).toMatchObject({ tick: 0 });
+  await press(screen!, "TabAddNote");
+  expect(updates.at(-1)!.notes).toContainEqual({
+    string: 5,
+    fret: 0,
+    tick: 0,
+    duration: 24
+  });
+});
+
+test("pausing just after a bar boundary follows the final transport position", async () => {
+  const transport = mockTransport({ ...example, barCount: 3 });
+  await act(async () => {
+    screen = Renderer.create(
+      <TablaturePanel
+        {...props({ ...transport, status: "playing", tick: 95 })}
+      />
+    );
+  });
+  await act(async () => {
+    screen!.update(<TablaturePanel {...props({ ...transport, tick: 97 })} />);
+  });
+  await press(screen!, "TabFullView");
+  const bar = screen!.root
+    .findAllByType(TablatureBar)
+    .find((entry) => !entry.props.compact)!;
+  expect(bar.props.bar).toBe(1);
+  expect(bar.props.selected).toMatchObject({ tick: 96 });
+});
+
+test("a triplet insertion cursor remains visible between the selected grid positions", async () => {
+  await editable();
+  await press(screen!, 'TabDurationChoice:{"denominator":8}');
+  await press(screen!, "TabTriplet");
+  await press(screen!, "TabAddNote");
+  const cursor = button(
+    screen!,
+    'TabEmptyCell:{"string":1,"bar":1,"beat":1.33}'
+  );
+  expect(cursor).toBeDefined();
+  expect(cursor.props.accessibilityState.selected).toBe(true);
+});
+
+test("playing locks hidden note edits but preserves pause and playback preferences", async () => {
+  const transport = { ...mockTransport(), canUndo: true };
+  const value = props(transport);
+  await act(async () => {
+    screen = Renderer.create(<TablaturePanel {...value} />);
+  });
+  await pressNote(1, 7);
+  await act(async () => {
+    screen!.update(
+      <TablaturePanel
+        {...value}
+        transport={{ ...transport, status: "playing", tick: 96 }}
+      />
+    );
+  });
+  for (const label of [
+    "TabFret: +",
+    "TabDeleteNote",
+    "TabUndo",
+    "TabDuplicateBar",
+    "TabQuarterTempo: +"
+  ])
+    expect(button(screen!, label).props.disabled).toBe(true);
+  expect(button(screen!, "Pause").props.disabled).not.toBe(true);
+  expect(button(screen!, "TabRewind").props.disabled).not.toBe(true);
+  expect(
+    button(screen!, 'TabSpeedPercent:{"percent":50}').props.disabled
+  ).not.toBe(true);
+  expect(button(screen!, "TabLoop").props.disabled).not.toBe(true);
+  expect(JSON.stringify(screen!.toJSON())).toContain("TabPauseToEdit");
+});
+
+test("compact playback metadata shows the effective practice tempo", async () => {
+  const transport = { ...mockTransport(), practiceBpm: 40, speed: 0.5 };
+  await act(async () => {
+    screen = Renderer.create(<TablaturePanel {...props(transport)} />);
+  });
+  expect(
+    screen!.root.findAll((node) => node.props.children === "40 ♩ BPM · 4/4")
+      .length
+  ).toBeGreaterThan(0);
+});
+
+test("fixed speed is not marked selected while the progressive trainer controls tempo", async () => {
+  const transport = mockTransport();
+  transport.practice.trainer.enabled = true;
+  await act(async () => {
+    screen = Renderer.create(<TablaturePanel {...props(transport)} />);
+  });
+  await press(screen!, "TabFullView");
+  expect(
+    button(screen!, 'TabSpeedPercent:{"percent":100}').props.selected
+  ).toBe(false);
+});
+
+test("deleting a retrigger cannot revive an earlier hidden sustain across a rest", async () => {
+  const initial = normalizeTablature({
+    ...emptyTablature(),
+    notes: [
+      { string: 5, fret: 3, tick: 0, duration: 96 },
+      { string: 5, fret: 7, tick: 24, duration: 12 }
+    ],
+    rests: [{ tick: 36, duration: 12 }]
+  })!;
+  const { updates } = await editable(initial);
+  await pressNote(1, 7);
+  await press(screen!, "TabDeleteNote");
+  expect(updates).toHaveLength(1);
+  expect(updates[0].notes).toEqual([
+    { string: 5, fret: 3, tick: 0, duration: 24 }
+  ]);
+  expect(updates[0].rests).toEqual(initial.rests);
+});
+
+test("moving a retrigger to another string preserves the original release before a rest", async () => {
+  const initial = normalizeTablature({
+    ...emptyTablature(),
+    notes: [
+      { string: 5, fret: 3, tick: 0, duration: 96 },
+      { string: 5, fret: 7, tick: 24, duration: 12 }
+    ],
+    rests: [{ tick: 36, duration: 12 }]
+  })!;
+  const { updates } = await editable(initial);
+  await pressNote(1, 7);
+  await press(screen!, "TabString: +");
+  expect(updates).toHaveLength(1);
+  expect(updates[0].notes).toEqual([
+    { string: 5, fret: 3, tick: 0, duration: 24 },
+    { string: 4, fret: 7, tick: 24, duration: 12 }
+  ]);
+});
+
 test("an empty editor composes a note and a silent rest without virtual guitar touches", async () => {
   const { updates } = await editable();
   await press(screen!, 'TabDurationChoice:{"denominator":8}');
@@ -635,3 +816,43 @@ test("full-view playback follows its cursor instead of retaining the selected ed
   expect(staff().props.selectedRest).toBeNull();
   expect(staff().props.bar).toBe(1);
 });
+
+test.each([false, true])(
+  "system text enlargement scales the %s compact staff geometry",
+  async (compact) => {
+    await act(async () => {
+      screen = Renderer.create(
+        <TablatureBar
+          tab={example}
+          bar={0}
+          tick={0}
+          compact={compact}
+          onNote={jest.fn()}
+        />
+      );
+    });
+    const rowHeight = () =>
+      StyleSheet.flatten(
+        screen!.root
+          .findAllByType(View)
+          .find((node) => node.props.testID === "tablature-string-5")!.props
+          .style
+      ).height;
+    const normal = rowHeight();
+    jest
+      .mocked(useWindowDimensions)
+      .mockReturnValue({ width: 390, height: 844, scale: 1, fontScale: 2 });
+    await act(async () => {
+      screen!.update(
+        <TablatureBar
+          tab={example}
+          bar={0}
+          tick={0}
+          compact={compact}
+          onNote={jest.fn()}
+        />
+      );
+    });
+    expect(rowHeight()).toBe(normal * 2);
+  }
+);

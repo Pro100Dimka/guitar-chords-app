@@ -10,7 +10,7 @@ import {
   writePreferences
 } from "./preferences";
 import {
-  legacyTablatureText,
+  isTablaturePreview,
   normalizeTablature,
   Tablature,
   tablatureText
@@ -162,9 +162,7 @@ export async function saveTablature({
               const original = result.rows.item(0).content as string;
               const previous = usePreferences.getState().songs[id]?.tablature;
               const content =
-                previous &&
-                (original === tablatureText(previous) ||
-                  original === legacyTablatureText(previous))
+                previous && isTablaturePreview(original, previous)
                   ? preview
                   : original;
               tx.executeSql(

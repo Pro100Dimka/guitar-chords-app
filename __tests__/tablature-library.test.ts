@@ -153,6 +153,26 @@ test("editing a migrated riff refreshes its legacy generated preview", async () 
   expect(update[1]?.[1]).toBe(tablatureText(changed));
 });
 
+test("saving migrated note releases updates their old generated text after preferences reload", async () => {
+  const migrated = normalizeTablature({
+    ...emptyTablature(),
+    notes: [
+      { string: 0, fret: 0, tick: 0, duration: 96 },
+      { string: 0, fret: 3, tick: 24, duration: 12 }
+    ],
+    rests: [{ tick: 36, duration: 12 }]
+  })!;
+  content = tablatureText(migrated).replace("E0@1=1/4", "E0@1=1");
+  usePreferences.setState({
+    songs: { 7: { ...defaultSongPreferences, tablature: migrated } }
+  });
+  await saveTablature({ id: 7, title: "Riff", tablature: changed });
+  const update = executeSql.mock.calls.find(([sql]) =>
+    sql.startsWith("UPDATE songs")
+  )!;
+  expect(update[1]?.[1]).toBe(tablatureText(changed));
+});
+
 test("a rest-only part can be saved and is listed with other tabs", async () => {
   const rest = normalizeTablature({
     ...emptyTablature(),

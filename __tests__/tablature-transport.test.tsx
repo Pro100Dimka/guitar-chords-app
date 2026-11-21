@@ -287,7 +287,7 @@ test("warmup is bounded for scores containing more samples than native caches", 
   expect(transport.getSnapshot().status).toBe("playing");
 });
 
-test("notes just before the end of a fast bar are emitted before transport stops", async () => {
+test("an end-of-bar callback stops without emitting a note whose duration already ended", async () => {
   transport.setTab({
     ...score([
       { string: 0, fret: 0, tick: 0 },
@@ -299,8 +299,7 @@ test("notes just before the end of a fast bar are emitted before transport stops
   await transport.play();
   await jest.advanceTimersByTimeAsync(600);
   expect(jest.mocked(performanceAudio.guitarString).mock.calls).toEqual([
-    ["440:40:string0", 0],
-    ["440:71:string5", 5]
+    ["440:40:string0", 0]
   ]);
   expect(transport.getSnapshot().status).toBe("idle");
   expect(jest.getTimerCount()).toBe(0);
@@ -432,9 +431,10 @@ test("an old note release cannot cut off a newer attack on the same string", asy
     ])
   );
   await transport.play();
-  jest.mocked(performanceAudio.stopGuitarString).mockClear();
-  await jest.advanceTimersByTimeAsync(750);
+  await jest.advanceTimersByTimeAsync(375);
   expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(375);
   expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
   await jest.advanceTimersByTimeAsync(1125);
   expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
@@ -1242,4 +1242,188 @@ test("live metronome, volume and count-in preferences preserve trainer progress 
     completedLoops: 2,
     practiceBpm: 100
   });
+});
+
+test("a skipped reattack cannot leave the earlier string sounding through a rest", async () => {
+  let time = 0;
+  jest.spyOn(timerClock(), "now").mockImplementation(() => time);
+  transport.replaceTab({
+    ...emptyTablature(),
+    notes: [
+      { string: 0, fret: 0, tick: 0, duration: 96 },
+      { string: 0, fret: 3, tick: 24, duration: 12 }
+    ],
+    rests: [{ tick: 36, duration: 24 }]
+  });
+  await transport.play();
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  time = 1500;
+  await jest.advanceTimersByTimeAsync(750);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  expect(performanceAudio.stopGuitarString).toHaveBeenCalledWith(0);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "playing",
+    tick: 48
+  });
+});
+
+test("a trainer loop with skipped attacks is not credited or accelerated", async () => {
+  let time = 0;
+  jest.spyOn(timerClock(), "now").mockImplementation(() => time);
+  transport.replaceTab(
+    score(
+      [0, 24, 48, 72].map((tick, fret) => ({
+        string: 0,
+        fret,
+        tick,
+        duration: 12
+      }))
+    )
+  );
+  transport.setPractice({
+    ...defaultTabPractice(),
+    trainer: {
+      enabled: true,
+      startBpm: 60,
+      targetBpm: 100,
+      stepBpm: 20,
+      repeats: 1
+    }
+  });
+  await transport.play();
+  time = 4000;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 0,
+    practiceBpm: 60
+  });
+});
+
+test("recorded note quantization cannot move the live recording cursor backwards", async () => {
+  transport.setPractice({ ...defaultTabPractice(), metronome: true });
+  transport.startRecording();
+  await jest.advanceTimersByTimeAsync(20);
+  transport.capture([{ string: 0, fret: 3 }]);
+  expect(transport.getSnapshot().tab.notes[0].tick).toBe(1);
+  const before = transport.getSnapshot().tick;
+  await jest.advanceTimersByTimeAsync(5);
+  expect(transport.getSnapshot().tick).toBeGreaterThanOrEqual(before);
+});
+
+test("a late count-in callback starts the first note instead of skipping the piece", async () => {
+  let time = 0;
+  jest.spyOn(timerClock(), "now").mockImplementation(() => time);
+  transport.replaceTab(score([{ string: 0, fret: 3, tick: 0, duration: 24 }]));
+  transport.setPractice({ ...defaultTabPractice(), countInBars: 1 });
+  await transport.play();
+  time = 6500;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(transport.getSnapshot()).toMatchObject({ status: "playing", tick: 0 });
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+});
+
+test("a stalled frame does not burst multiple overdue attacks on one string", async () => {
+  let time = 0;
+  jest.spyOn(timerClock(), "now").mockImplementation(() => time);
+  transport.replaceTab({
+    ...emptyTablature(200),
+    notes: [
+      ...[0, 6, 12, 18].map((tick, fret) => ({
+        string: 0,
+        fret,
+        tick,
+        duration: 6
+      })),
+      { string: 5, fret: 7, tick: 6, duration: 36 }
+    ]
+  });
+  transport.setSpeed(2);
+  await transport.play();
+  time = 112.5;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(jest.mocked(performanceAudio.guitarString).mock.calls).toEqual([
+    ["440:40:string0", 0],
+    ["440:71:string5", 5],
+    ["440:43:string0", 0]
+  ]);
+});
+
+test("recording after a stalled count-in starts at actual entry and still keeps later silence", async () => {
+  let time = 0;
+  jest.spyOn(timerClock(), "now").mockImplementation(() => time);
+  const original = score([{ string: 5, fret: 7, tick: 0, duration: 24 }]);
+  transport.replaceTab(original);
+  transport.setPractice({ ...defaultTabPractice(), countInBars: 1 });
+  transport.startRecording();
+  expect(transport.getSnapshot().tab).toEqual(original);
+  time = 6500;
+  await jest.advanceTimersByTimeAsync(25);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "recording",
+    tick: 0
+  });
+  time = 7250;
+  transport.capture([{ string: 0, fret: 3 }]);
+  expect(transport.getSnapshot().tab.notes[0].tick).toBe(24);
+  transport.stopRecording();
+  transport.undo();
+  expect(transport.getSnapshot().tab).toEqual(original);
+});
+
+test("a short note discovered after its release never attacks inside the following rest", async () => {
+  transport.replaceTab({
+    ...emptyTablature(200),
+    notes: [{ string: 0, fret: 3, tick: 6, duration: 1 }],
+    rests: [{ tick: 7, duration: 89 }]
+  });
+  transport.setSpeed(2);
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(50);
+  expect(transport.getSnapshot()).toMatchObject({ status: "playing", tick: 8 });
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+});
+
+test("an expired short attack cannot earn trainer credit at the loop boundary", async () => {
+  transport.replaceTab({
+    ...emptyTablature(80, 1),
+    notes: [{ string: 0, fret: 3, tick: 4, duration: 1 }],
+    rests: [{ tick: 5, duration: 19 }]
+  });
+  transport.setPractice({
+    ...defaultTabPractice(),
+    trainer: {
+      enabled: true,
+      startBpm: 280,
+      targetBpm: 300,
+      stepBpm: 20,
+      repeats: 1
+    }
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(225);
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  expect(transport.getSnapshot()).toMatchObject({
+    completedLoops: 0,
+    practiceBpm: 280
+  });
+});
+
+test("an expired chord voice is skipped while its still-sustaining simultaneous voice plays", async () => {
+  transport.replaceTab({
+    ...emptyTablature(200),
+    notes: [
+      { string: 0, fret: 3, tick: 6, duration: 1 },
+      { string: 5, fret: 7, tick: 6, duration: 18 }
+    ]
+  });
+  transport.setSpeed(2);
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(50);
+  expect(jest.mocked(performanceAudio.guitarString).mock.calls).toEqual([
+    ["440:71:string5", 5]
+  ]);
+  expect(onNotes).toHaveBeenLastCalledWith([
+    { string: 5, fret: 7, tick: 6, duration: 18 }
+  ]);
 });

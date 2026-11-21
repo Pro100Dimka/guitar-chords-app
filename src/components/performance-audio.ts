@@ -14,6 +14,7 @@ export interface PerformanceEvent {
     | "stopped"
     | "processing"
     | "processingFailed"
+    | "playbackInterrupted"
     | "interrupted";
   uri?: string;
 }

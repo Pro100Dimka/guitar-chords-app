@@ -81,7 +81,8 @@ jest.mock("../src/components/performance-audio", () => ({
     metronome: jest.fn(),
     metronomeBeat: jest.fn(),
     stopMetronomeBeats: jest.fn(),
-    stopPlayback: jest.fn()
+    stopPlayback: jest.fn(),
+    listen: jest.fn(() => ({ remove: jest.fn() }))
   }
 }));
 jest.mock("../src/components/database", () => ({
@@ -394,6 +395,120 @@ test("practice opens from Play, keeps the display awake and pauses when closed",
     "tablature-practice"
   );
 });
+
+test("creating a new part supersedes a pending incoming song even when both drafts are empty", async () => {
+  let finish!: (value: Awaited<ReturnType<typeof getTablatureSong>>) => void;
+  jest.mocked(getTablatureSong).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  mockParams = { tablatureSongId: 7, tablatureRequest: 1 };
+  await render();
+  expect(getTablatureSong).toHaveBeenCalledTimes(1);
+  await act(async () => panel().props.onOpen());
+  await act(async () =>
+    screen!.root.findByType(TablatureLibrary).props.onNew()
+  );
+  await act(async () =>
+    finish({ id: 7, title: "Late riff", tablature: saved })
+  );
+  expect(transport().tab).toEqual(emptyTablature());
+  expect(panel().props.title).toBeUndefined();
+  expect(mockParams.tablatureSongId).toBeUndefined();
+});
+
+test("an obsolete incoming read failure cannot replace the new session with an error", async () => {
+  let fail!: (error: Error) => void;
+  jest.mocked(getTablatureSong).mockImplementationOnce(
+    () =>
+      new Promise((_, reject) => {
+        fail = reject;
+      })
+  );
+  mockParams = { tablatureSongId: 7, tablatureRequest: 1 };
+  await render();
+  await act(async () => panel().props.onOpen());
+  await act(async () =>
+    screen!.root.findByType(TablatureLibrary).props.onNew()
+  );
+  await act(async () => fail(new Error("SongMissing")));
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(transport().tab).toEqual(emptyTablature());
+  expect(mockParams.tablatureSongId).toBeUndefined();
+});
+
+test.each(["onOpen", "onSave"])(
+  "%s protects the active library dialog and typed text from an older incoming song",
+  async (action) => {
+    let finish!: (value: Awaited<ReturnType<typeof getTablatureSong>>) => void;
+    jest.mocked(getTablatureSong).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+    );
+    jest.mocked(readTablatureDraft).mockResolvedValue({
+      version: 1,
+      tab: saved,
+      savedTab: saved,
+      song: null,
+      practice: defaultTabPractice()
+    });
+    mockParams = { tablatureSongId: 7, tablatureRequest: 1 };
+    await render();
+    await act(async () => panel().props[action]());
+    await act(async () =>
+      screen!.root
+        .findByType(TablatureLibrary)
+        .findByType(TextInput)
+        .props.onChangeText("My current work")
+    );
+    await act(async () =>
+      finish({ id: 7, title: "Late riff", tablature: saved })
+    );
+    expect(screen!.root.findAllByType(TablatureLibrary)).toHaveLength(1);
+    expect(
+      screen!.root.findByType(TablatureLibrary).findByType(TextInput).props
+        .value
+    ).toBe("My current work");
+    expect(panel().props.title).toBeUndefined();
+  }
+);
+
+test.each(["playing", "countingIn", "recording"])(
+  "native audio interruption stops %s without an AppState transition or automatic restart",
+  async (mode) => {
+    await render();
+    await act(async () => {
+      transport().replaceTab(saved);
+      if (mode === "countingIn")
+        transport().setPractice({ ...defaultTabPractice(), countInBars: 1 });
+    });
+    await act(async () => {
+      if (mode === "recording") transport().startRecording();
+      else await transport().play();
+    });
+    if (mode === "recording") await pluck(0);
+    expect(transport().status).toBe(mode);
+    const current = transport().tab;
+    const listener = jest.mocked(performanceAudio.listen).mock.calls.at(-1)![0];
+    await act(async () => listener({ state: "processing" }));
+    expect(transport().status).toBe(mode);
+    await act(async () => listener({ state: "playbackInterrupted" }));
+    expect(transport().status).toBe("idle");
+    expect(transport().tab).toEqual(current);
+    jest.mocked(performanceAudio.guitarString).mockClear();
+    jest.mocked(performanceAudio.metronomeBeat).mockClear();
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(4000);
+    });
+    expect(transport().status).toBe("idle");
+    expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+    expect(performanceAudio.metronomeBeat).not.toHaveBeenCalled();
+  }
+);
 
 test("backgrounding cancels the shared count-in, releases the display and does not restart", async () => {
   const listeners: Array<(state: "active" | "background") => void> = [];

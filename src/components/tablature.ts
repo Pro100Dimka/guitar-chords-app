@@ -125,8 +125,10 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
         next - note.tick,
         (value.version === 1 ? legacyEnd : end) - note.tick
       );
-    // A new attack on the same physical string ends the previous note.
-    const soundingEnd = Math.min(note.tick + note.duration, next);
+    // Store the physical release as well as using it for validation. Otherwise
+    // deleting a later attack can revive an old hidden tail across a rest.
+    note.duration = Math.min(note.duration, next - note.tick);
+    const soundingEnd = note.tick + note.duration;
     if (
       rests.some(
         (rest) =>
@@ -188,6 +190,13 @@ const fraction = (numerator: number, denominator: number): string => {
     : `${numerator / divisor}/${denominator / divisor}`;
 };
 const names = ["E", "A", "D", "G", "B", "e"];
+const beatPosition = (tick: number, start: number, beatTicks: number) => {
+  const relative = Math.max(0, tick - start);
+  const whole = 1 + Math.floor(relative / beatTicks);
+  return relative % beatTicks
+    ? `${whole}+${fraction(relative % beatTicks, beatTicks)}`
+    : String(whole);
+};
 
 /**
  * Portable preview. Frets align by event; the rhythm line supplies exact note
@@ -234,13 +243,7 @@ export function tablatureText(value: Tablature): string {
         .join("");
       output.push(`${names[string]}|${line}|`);
     }
-    const position = (tick: number) => {
-      const relative = Math.max(0, tick - start);
-      const whole = 1 + Math.floor(relative / beatTicks);
-      return relative % beatTicks
-        ? `${whole}+${fraction(relative % beatTicks, beatTicks)}`
-        : String(whole);
-    };
+    const position = (tick: number) => beatPosition(tick, start, beatTicks);
     const rhythm = [
       ...notes.map((note) => ({
         tick: note.tick,
@@ -256,6 +259,59 @@ export function tablatureText(value: Tablature): string {
     output.push("");
   }
   return output.join("\n").trimEnd();
+}
+
+/** Recognize generated previews, including old releases cut by a reattack. */
+export function isTablaturePreview(text: string, value: Tablature): boolean {
+  const tab = normalizeTablature(value);
+  if (!tab) return false;
+  const expected = tablatureText(tab);
+  if (text === expected || text === legacyTablatureText(tab)) return true;
+  const barTicks = tabBarTicks(tab);
+  const beatTicks = tabBeatTicks(tab);
+  const clipped = new Map<string, TabNote>();
+  const nextByString = new Map<number, number>();
+  for (let index = tab.notes.length - 1; index >= 0; index--) {
+    const note = tab.notes[index];
+    if (note.tick + tabNoteDuration(note) === nextByString.get(note.string)) {
+      const bar = Math.floor(note.tick / barTicks);
+      clipped.set(
+        `${bar}:${names[note.string]}${note.fret}@${beatPosition(note.tick, bar * barTicks, beatTicks)}`,
+        note
+      );
+    }
+    nextByString.set(note.string, note.tick);
+  }
+  if (!clipped.size) return false;
+  // Only the non-sounding part of a known note may differ. Every other byte,
+  // including user text, note positions, frets and rests, must still match.
+  let bar = -1;
+  const repaired = text.split("\n").map((line) => {
+    if (/^\d+$/.test(line)) bar = Number(line) - 1;
+    if (!line.startsWith("♪ ")) return line;
+    return `♪ ${line
+      .slice(2)
+      .split("; ")
+      .map((entry) => {
+        const [key, duration, ...extra] = entry.split("=");
+        const note = clipped.get(`${bar}:${key}`);
+        const parts = /^(\d+)(?:\/(\d+))?$/.exec(duration ?? "");
+        if (!note || !parts || extra.length) return entry;
+        const ticks = (Number(parts[1]) * 96) / Number(parts[2] ?? 1);
+        if (
+          !integer(
+            ticks,
+            tabNoteDuration(note),
+            TAB_MAX_BARS * barTicks - note.tick
+          ) ||
+          duration !== fraction(ticks, 96)
+        )
+          return entry;
+        return `${key}=${fraction(tabNoteDuration(note), 96)}`;
+      })
+      .join("; ")}`;
+  });
+  return repaired.join("\n") === expected;
 }
 
 /** Exact v1 preview for recognizing previously generated library content. */

@@ -1,6 +1,6 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { FlatList, Modal, useWindowDimensions } from "react-native";
+import { FlatList, Modal, StyleSheet, useWindowDimensions } from "react-native";
 import { TablaturePractice } from "../src/screens/play/tablature-practice";
 import { TablatureBar } from "../src/screens/play/tablature-panel";
 import { defaultTabPractice } from "../src/components/tablature-practice";
@@ -358,6 +358,53 @@ test("landscape uses two bars per row and clamps following at the last bar", asy
   expect(after.length).toBeGreaterThan(before.length);
   expect(after.offset).toBe(after.length * 2);
   expect(button("TabPracticeLarger").props.disabled).toBe(true);
+});
+
+test("larger system text also enlarges score cells and row spacing instead of overlapping strings", async () => {
+  const transport = mockTransport();
+  await mount(transport);
+  const normalHeight = screen!.root
+    .findByType(FlatList)
+    .props.getItemLayout(null, 0).length;
+  const normalScale =
+    screen!.root.findAllByType(TablatureBar)[0].props.readingScale;
+  jest
+    .mocked(useWindowDimensions)
+    .mockReturnValue({ width: 390, height: 844, scale: 1, fontScale: 2 });
+  await update(transport);
+  const enlargedHeight = screen!.root
+    .findByType(FlatList)
+    .props.getItemLayout(null, 0).length;
+  const bar = screen!.root.findAllByType(TablatureBar)[0];
+  expect(enlargedHeight).toBeGreaterThan(normalHeight * 1.8);
+  expect(bar.props.readingScale).toBe(normalScale * 2);
+  // The score's geometry includes system scaling, so its text must not scale twice.
+  expect(
+    bar.findAll(
+      (node) =>
+        typeof node.type === "string" && node.props.allowFontScaling === false
+    ).length
+  ).toBeGreaterThan(0);
+});
+
+test("count-in beat boxes leave room for enlarged system text", async () => {
+  jest
+    .mocked(useWindowDimensions)
+    .mockReturnValue({ width: 390, height: 844, scale: 1, fontScale: 2 });
+  await mount(
+    mockTransport({
+      status: "countingIn",
+      countIn: { bar: 1, bars: 1, beat: 1, target: "play" }
+    })
+  );
+  const beat = screen!.root.findAll(
+    (node) =>
+      typeof node.type === "string" &&
+      node.props.testID === "practice-count-beat-1"
+  )[0];
+  expect(StyleSheet.flatten(beat.props.style).height).toBeGreaterThanOrEqual(
+    56
+  );
 });
 
 test("dense passages retain every note as readonly text without insertion cells", async () => {

@@ -389,6 +389,16 @@ async function main() {
   sqlite.prepare("UPDATE songs SET content = ? WHERE id = ?").run(tabModel.legacyTablatureText(tab),tabId);
   await tabs.saveTablature({id:tabId,title:"Edited riff",tablature:nextTab});
   assert.equal(sqlite.prepare("SELECT content FROM songs WHERE id = ?").get(tabId).content,tabModel.tablatureText(nextTab));
+  const overlappingTake={...tabModel.emptyTablature(),notes:[{string:0,fret:0,tick:0,duration:96},{string:0,fret:3,tick:24,duration:12}],rests:[{tick:36,duration:12}]};
+  const oldRhythmPreview=tabModel.tablatureText(overlappingTake).replace("E0@1=1/4","E0@1=1");
+  const oldTabPreferences={...preferences.usePreferences.getState().songs[tabId],tablature:overlappingTake};
+  sqlite.prepare("DELETE FROM settings WHERE key LIKE ?").run(`song:${tabId}:%`);
+  sqlite.prepare("INSERT INTO settings (key,value) VALUES (?,?)").run(`song:${tabId}:0`,JSON.stringify(oldTabPreferences));
+  sqlite.prepare("UPDATE songs SET content = ? WHERE id = ?").run(oldRhythmPreview,tabId);
+  preferences.usePreferences.setState({songs:{}});await preferences.loadPreferences();
+  assert.equal(preferences.usePreferences.getState().songs[tabId].tablature.notes[0].duration,24,"Loaded same-string tails end at their next attack");
+  await tabs.saveTablature({id:tabId,title:"Edited riff",tablature:nextTab});
+  assert.equal(sqlite.prepare("SELECT content FROM songs WHERE id = ?").get(tabId).content,tabModel.tablatureText(nextTab),"Old generated rhythm previews still update after clipping legacy hidden tails");
   const artistId=(await create({tableName:"bands",data:{name:"Tab artist",search_text_lower:"tab artist"}})).insertId;
   const lyricId=(await create({tableName:"songs",data:{title:"Song with lyrics",content:"Am\nKeep my lyrics",band_id:artistId,youtube_music:"https://youtube.com/watch?v=AbCdEfGhI12",search_text_lower:"song with lyrics"}})).insertId;
   preferences.usePreferences.getState().updateSong(lyricId,{capo:3,favorite:true,shapes:{Am:2}});

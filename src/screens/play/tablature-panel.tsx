@@ -80,15 +80,19 @@ export function TablatureBar({
   onRest?: (rest: TabRest) => void;
 }) {
   const { t } = useTranslation();
-  const { width, height } = useWindowDimensions();
+  const { width, height, fontScale } = useWindowDimensions();
   const dense = compact && (height < 700 || width > height);
+  const textScale = Math.max(1, fontScale);
   const scroll = useRef<ScrollView>(null);
   const barTicks = tabBarTicks(tab);
   const beatTicks = tabBeatTicks(tab);
   const start = bar * barTicks;
-  const cellWidth = readOnly ? 44 * readingScale : compact ? 34 : 44;
+  const cellWidth = readOnly
+    ? 44 * readingScale
+    : (compact ? 34 : 44) * textScale;
   const editable = !!onCell && !readOnly;
   const NoteTarget = readOnly ? View : Pressable;
+  const selectedTick = selected?.tick ?? selectedRest;
   const { columns, notes, rests } = useMemo(() => {
     const times = new Set(
       Array.from(
@@ -96,6 +100,14 @@ export function TablatureBar({
         (_, position) => start + position * (editable ? grid : beatTicks)
       )
     );
+    // Insertion advances by note duration, which need not match the grid.
+    if (
+      editable &&
+      selectedTick !== null &&
+      selectedTick >= start &&
+      selectedTick < start + barTicks
+    )
+      times.add(selectedTick);
     const entries = new Map<string, { note: TabNote; end: number }>();
     const nextByString = new Map<number, number>();
     for (const note of [...tab.notes].sort((a, b) => b.tick - a.tick)) {
@@ -122,7 +134,7 @@ export function TablatureBar({
       notes: entries,
       rests: pauses
     };
-  }, [tab, start, barTicks, beatTicks, editable, grid]);
+  }, [tab, start, barTicks, beatTicks, editable, grid, selectedTick]);
   const active =
     tick >= start && tick < start + barTicks
       ? columns.findIndex(
@@ -130,7 +142,6 @@ export function TablatureBar({
             tick >= position && tick < (columns[index + 1] ?? start + barTicks)
         )
       : -1;
-  const selectedTick = selected?.tick ?? selectedRest;
   useEffect(() => {
     if (!followPlayback) return;
     const target =
@@ -144,26 +155,33 @@ export function TablatureBar({
   const rowStyle = readOnly
     ? { height: 32 * readingScale }
     : dense
-      ? styles.denseRow
+      ? [styles.denseRow, { height: 12 * textScale }]
       : compact
-        ? styles.compactRow
-        : styles.stringRow;
+        ? [styles.compactRow, { height: 18 * textScale }]
+        : [styles.stringRow, { height: 44 * textScale }];
   const showRests = !compact || rests.size > 0;
   const beatPosition = (position: number) =>
     Number((1 + (position - start) / beatTicks).toFixed(2));
   return (
     <View style={styles.staff}>
-      <View style={styles.stringLabels}>
+      <View
+        style={[
+          styles.stringLabels,
+          { width: readOnly ? Math.max(24, 20 * readingScale) : 24 * textScale }
+        ]}
+      >
         <View
           style={[
             styles.beatRow,
             dense && styles.denseBeats,
+            !readOnly && { height: (dense ? 14 : 18) * textScale },
             readOnly && { height: 20 * readingScale }
           ]}
         />
         {stringOrder.map((string) => (
           <View key={string} style={[styles.stringLabel, rowStyle]}>
             <Text
+              allowFontScaling={!readOnly}
               style={[
                 styles.stringName,
                 readOnly && { fontSize: 13 * readingScale }
@@ -175,7 +193,15 @@ export function TablatureBar({
         ))}
         {showRests && (
           <View style={[styles.stringLabel, rowStyle]}>
-            <Text style={styles.stringName}>{t("TabRestShort")}</Text>
+            <Text
+              allowFontScaling={!readOnly}
+              style={[
+                styles.stringName,
+                readOnly && { fontSize: 13 * readingScale }
+              ]}
+            >
+              {t("TabRestShort")}
+            </Text>
           </View>
         )}
       </View>
@@ -191,12 +217,14 @@ export function TablatureBar({
             style={[
               styles.beatRow,
               dense && styles.denseBeats,
+              !readOnly && { height: (dense ? 14 : 18) * textScale },
               readOnly && { height: 20 * readingScale }
             ]}
           >
             {columns.map((position, index) => (
               <View key={position} style={[styles.cell, { width: cellWidth }]}>
                 <Text
+                  allowFontScaling={!readOnly}
                   numberOfLines={1}
                   style={[
                     styles.beat,
@@ -257,12 +285,14 @@ export function TablatureBar({
                         style={[
                           styles.note,
                           !compact && styles.editableCell,
+                          !compact && !readOnly && { height: 42 * textScale },
                           readOnly && { height: 32 * readingScale - 2 },
                           continued && styles.continuation,
                           (index === active || chosen) && styles.activeNote
                         ]}
                       >
                         <Text
+                          allowFontScaling={!readOnly}
                           style={[
                             styles.fret,
                             compact && styles.compactFret,
@@ -278,6 +308,7 @@ export function TablatureBar({
                         </Text>
                         {!compact && (
                           <Text
+                            allowFontScaling={!readOnly}
                             style={[
                               styles.duration,
                               readOnly && {
@@ -306,7 +337,11 @@ export function TablatureBar({
                         accessibilityState={{ selected: chosen, disabled }}
                         disabled={disabled}
                         onPress={() => onCell?.(cell)}
-                        style={[styles.emptyCell, chosen && styles.cursorCell]}
+                        style={[
+                          styles.emptyCell,
+                          { width: cellWidth, height: 44 * textScale },
+                          chosen && styles.cursorCell
+                        ]}
                       >
                         {chosen && <Text style={styles.cursorText}>+</Text>}
                       </Pressable>
@@ -354,12 +389,14 @@ export function TablatureBar({
                         style={[
                           styles.note,
                           !compact && styles.editableCell,
+                          !compact && !readOnly && { height: 42 * textScale },
                           readOnly && { height: 32 * readingScale - 2 },
                           rest.tick < start && styles.continuation,
                           selectedRest === rest.tick && styles.activeNote
                         ]}
                       >
                         <Text
+                          allowFontScaling={!readOnly}
                           style={[
                             styles.restText,
                             readOnly && { fontSize: 12 * readingScale },
@@ -436,9 +473,11 @@ export function TablaturePanel({
   const recording = status === "recording";
   const countingIn = status === "countingIn";
   const recordPending = countingIn && transport.countIn?.target === "record";
-  const readOnly =
+  const controlsLocked =
     disabled || recording || countingIn || status === "preparing";
+  const readOnly = controlsLocked || status === "playing";
   const moving = status === "playing" || recording;
+  const wasMoving = useRef(false);
   const sounding = status === "playing" || status === "preparing" || countingIn;
   const selected = tab.notes.find((note) => sameNote(selection, note));
   const selectedRest = (tab.rests ?? []).find(
@@ -455,8 +494,24 @@ export function TablaturePanel({
   const parts = durationParts(duration);
   const position = selectedRest?.tick ?? cursor.tick;
   useEffect(() => {
-    if (moving) setPage(Math.floor(tick / barTicks));
+    // Pause captures the live clock, which can cross a bar since the last frame.
+    if (moving || wasMoving.current) setPage(Math.floor(tick / barTicks));
+    wasMoving.current = moving;
   }, [moving, tick, barTicks]);
+  // Playback and rewind may change the page without moving the edit selection.
+  // When editing resumes, every action must target the visible bar.
+  useEffect(() => {
+    if (moving) return;
+    const selectedAt = selection?.tick ?? restSelection;
+    const start = bar * barTicks;
+    if (
+      selectedAt !== null &&
+      (selectedAt < start || selectedAt >= start + barTicks)
+    ) {
+      setSelection({ string: selection?.string ?? 5, tick: start });
+      setRestSelection(null);
+    }
+  }, [bar, barTicks, moving, selection, restSelection]);
   // A loaded shorter document must never leave insertion aimed outside its page.
   useEffect(() => {
     if (selection && selection.tick >= tablatureLength(tab))
@@ -579,7 +634,7 @@ export function TablaturePanel({
         glass
         icon="folder-open-outline"
         label={t("TabOpen")}
-        disabled={readOnly}
+        disabled={controlsLocked}
         onPress={() => {
           setFull(false);
           onOpen();
@@ -610,7 +665,7 @@ export function TablaturePanel({
         glass
         icon="content-save-outline"
         label={t("TabSave")}
-        disabled={!hasEvents || readOnly}
+        disabled={!hasEvents || controlsLocked}
         onPress={() => {
           setFull(false);
           onSave();
@@ -620,7 +675,7 @@ export function TablaturePanel({
         glass
         icon="skip-backward"
         label={t("TabRewind")}
-        disabled={!hasEvents || readOnly}
+        disabled={!hasEvents || controlsLocked}
         onPress={() => {
           transport.rewind();
           setPage(firstBar - 1);
@@ -765,7 +820,7 @@ export function TablaturePanel({
                     ? t("TabRecording")
                     : status === "preparing"
                       ? t("TabPreparing")
-                      : `${tab.tempo} ♩ BPM · ${tab.beatsPerBar}/${tab.beatUnit ?? 4}`}
+                      : `${Math.round(transport.practiceBpm)} ♩ BPM · ${tab.beatsPerBar}/${tab.beatUnit ?? 4}`}
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -824,7 +879,9 @@ export function TablaturePanel({
             onCell={selectCell}
             onRest={selectRest}
           />
-          <Text style={styles.caption}>{t("TabEditHint")}</Text>
+          <Text style={styles.caption}>
+            {t(status === "playing" ? "TabPauseToEdit" : "TabEditHint")}
+          </Text>
           <Text style={styles.caption}>{t("TabContinuationHint")}</Text>
           <View style={styles.editor}>
             <Text style={styles.sectionTitle}>
@@ -1143,8 +1200,11 @@ export function TablaturePanel({
                   accessibilityLabel={t("TabSpeedPercent", {
                     percent: Math.round(speed * 100)
                   })}
-                  selected={transport.speed === speed}
-                  disabled={readOnly}
+                  selected={
+                    !transport.practice.trainer.enabled &&
+                    transport.speed === speed
+                  }
+                  disabled={controlsLocked}
                   onPress={() => transport.setSpeed(speed)}
                 />
               ))}
@@ -1154,14 +1214,14 @@ export function TablaturePanel({
                 glass
                 label={t("TabLoop")}
                 selected={transport.loop}
-                disabled={!hasEvents || readOnly}
+                disabled={!hasEvents || controlsLocked}
                 onPress={() => transport.setLoop(!transport.loop)}
               />
               <Action
                 glass
                 label={t("TabWholePiece")}
                 selected={range === null}
-                disabled={readOnly}
+                disabled={controlsLocked}
                 onPress={() => transport.setRange(null)}
               />
             </View>
@@ -1171,7 +1231,7 @@ export function TablaturePanel({
               value={firstBar}
               min={1}
               max={lastBar}
-              disabled={readOnly}
+              disabled={controlsLocked}
               onChange={(value) => changeRange(value, lastBar)}
             />
             <Stepper
@@ -1179,7 +1239,7 @@ export function TablaturePanel({
               value={lastBar}
               min={firstBar}
               max={bars}
-              disabled={readOnly}
+              disabled={controlsLocked}
               onChange={(value) => changeRange(firstBar, value)}
             />
           </View>

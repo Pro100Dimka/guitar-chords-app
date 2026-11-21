@@ -53,6 +53,7 @@ const keyFor = (note: TabNote) =>
 // Native sample caches hold 32 keys. Leave space for the six live strings.
 const WINDOW_KEYS = 12;
 const HISTORY_LIMIT = 50;
+const MAX_LATENESS_MS = 100;
 type NoteGate = {
   timer: ReturnType<typeof setTimeout>;
   note: TabNote;
@@ -507,7 +508,7 @@ export class TablatureTransport {
     // Only the newest, still-timely beat can sound after a stalled JS frame.
     if (
       !this.state.practice.metronome ||
-      position - beat * beatTicks > 100 * this.rate()
+      position - beat * beatTicks > MAX_LATENESS_MS * this.rate()
     )
       return true;
     return this.click(beat);
@@ -543,10 +544,15 @@ export class TablatureTransport {
     const beatMs =
       (tabBeatTicks(this.state.tab) * 60000) / (count.bpm * TAB_TICKS_PER_BEAT);
     const beats = count.bars * this.state.tab.beatsPerBar;
-    const elapsed = Math.max(0, now() - count.time);
+    const timestamp = now();
+    const elapsed = Math.max(0, timestamp - count.time);
     if (elapsed >= beats * beatMs) {
       this.countInClock = undefined;
-      const start = count.time + beats * beatMs;
+      const expectedStart = count.time + beats * beatMs;
+      // Normal timer jitter retains the beat phase. After a substantial stall,
+      // start the requested passage now instead of silently skipping its entry.
+      const start =
+        timestamp - expectedStart > MAX_LATENESS_MS ? timestamp : expectedStart;
       if (count.target === "record") this.beginRecording(start);
       else this.startPlayback(count.position, start);
       return;
@@ -562,7 +568,8 @@ export class TablatureTransport {
           beat: (beat % this.state.tab.beatsPerBar) + 1
         }
       });
-      if (elapsed - beat * beatMs <= 100 && !this.click(beat)) return;
+      if (elapsed - beat * beatMs <= MAX_LATENESS_MS && !this.click(beat))
+        return;
     }
     this.timer = setTimeout(this.advanceCountIn, 25);
   };
@@ -632,7 +639,13 @@ export class TablatureTransport {
   private soundUntil(position: number, end: number) {
     const { notes } = this.state.tab;
     // Discard missed events after a stalled JS frame instead of sounding a burst.
-    const cutoff = position - 100 * this.rate();
+    const cutoff = position - MAX_LATENESS_MS * this.rate();
+    const latestDue = new Map<number, number>();
+    for (let index = this.cursor; index < notes.length; index++) {
+      const note = notes[index];
+      if (note.tick > position || note.tick >= end) break;
+      latestDue.set(note.string, note.tick);
+    }
     const sounded: TabNote[] = [];
     while (this.cursor < notes.length) {
       const first = notes[this.cursor];
@@ -644,22 +657,35 @@ export class TablatureTransport {
       )
         group.push(notes[this.cursor++]);
       if (first.tick < cutoff) {
+        this.completeLoop = false;
         this.consumedTick = first.tick;
         continue;
       }
-      if (group.some((note) => !this.ready.has(keyFor(note)))) {
+      // Several overdue attacks cannot be performed at once on one physical
+      // string. A note whose release has passed must also stay silent in a rest.
+      const current = group.filter(
+        (note) =>
+          latestDue.get(note.string) === note.tick &&
+          Math.min(note.tick + tabNoteDuration(note), end) > position
+      );
+      if (current.length !== group.length) this.completeLoop = false;
+      if (!current.length) {
+        this.consumedTick = first.tick;
+        continue;
+      }
+      if (current.some((note) => !this.ready.has(keyFor(note)))) {
         if (sounded.length) this.onNotes(sounded);
         void this.begin(first.tick);
         return false;
       }
       try {
-        group.forEach((note) => this.sound(note, position, end));
+        current.forEach((note) => this.sound(note, position, end));
       } catch {
         this.fail();
         return false;
       }
       this.consumedTick = first.tick;
-      sounded.push(...group);
+      sounded.push(...current);
     }
     if (sounded.length) this.onNotes(sounded);
     return true;
@@ -827,9 +853,9 @@ export class TablatureTransport {
       this.timer = setTimeout(this.recordProgress, 25);
     }
     const tab = this.state.tab;
-    const tick = Math.round(
-      ((timestamp - this.recordStart) * tab.tempo * TAB_TICKS_PER_BEAT) / 60000
-    );
+    const elapsed =
+      ((timestamp - this.recordStart) * tab.tempo * TAB_TICKS_PER_BEAT) / 60000;
+    const tick = Math.round(elapsed);
     const capacity = TAB_MAX_BARS * tabBarTicks(tab);
     if (tick >= capacity) {
       this.stopRecording();
@@ -866,11 +892,11 @@ export class TablatureTransport {
       this.update({ error: "TabRecordingLimit" });
       return;
     }
-    this.position = tick;
+    this.position = elapsed;
     const recordedTab = { ...tab, notes: recorded };
     recordedTab.barCount =
       tablatureLength(recordedTab) / tabBarTicks(recordedTab);
-    this.update({ tab: recordedTab, tick });
+    this.update({ tab: recordedTab, tick: Math.floor(elapsed) });
   };
   stopRecording = () => {
     if (

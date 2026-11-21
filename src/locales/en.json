@@ -860,5 +860,6 @@
   "TabTrainerRepeats": "Repeats at each tempo",
   "TabTrainerHint": "After the chosen number of repeats, the tempo rises by one step until the target. Enabling training also enables looping.",
   "TabTrainerManualSpeedHint": "Choosing a fixed speed turns off gradual speed training.",
-  "TabCancelCountIn": "Cancel count-in"
+  "TabCancelCountIn": "Cancel count-in",
+  "TabPauseToEdit": "Pause playback to edit the tablature."
 }

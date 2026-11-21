@@ -1,5 +1,6 @@
 import {
   emptyTablature,
+  isTablaturePreview,
   legacyTablatureText,
   normalizeTablature,
   TAB_MAX_BARS,
@@ -216,7 +217,7 @@ test("rests reject malformed and overlapping silence, including note sustain", (
   ).toEqual([{ tick: 48, duration: 24 }]);
 });
 
-test("a same-string reattack clips the sounding tail when validating rests", () => {
+test("a same-string reattack clips the stored duration as well as the sounding tail", () => {
   const notes = [
     { string: 0, fret: 0, tick: 0, duration: 96 },
     { string: 0, fret: 3, tick: 12, duration: 12 }
@@ -227,7 +228,7 @@ test("a same-string reattack clips the sounding tail when validating rests", () 
       notes,
       rests: [{ tick: 24, duration: 24 }]
     })?.notes
-  ).toEqual(notes);
+  ).toEqual([{ ...notes[0], duration: 12 }, notes[1]]);
   expect(
     normalizeTablature({
       ...emptyTablature(),
@@ -235,6 +236,25 @@ test("a same-string reattack clips the sounding tail when validating rests", () 
       rests: [{ tick: 24, duration: 24 }]
     })
   ).toBeUndefined();
+});
+
+test("cut-off note tails cannot add empty bars or return after deleting a reattack", () => {
+  const input = {
+    ...emptyTablature(),
+    notes: [
+      { string: 0, fret: 0, tick: 0, duration: 288 },
+      { string: 0, fret: 3, tick: 24, duration: 12 }
+    ],
+    rests: [{ tick: 36, duration: 12 }]
+  };
+  const tab = normalizeTablature(input)!;
+  expect(tab.notes[0].duration).toBe(24);
+  expect(tab.barCount).toBe(1);
+  expect(normalizeTablature({ ...tab, notes: [tab.notes[0]] })).toEqual({
+    ...tab,
+    notes: [tab.notes[0]]
+  });
+  expect(input.notes[0].duration).toBe(288);
 });
 
 test("preview keeps aligned strings and prints exact dotted, triplet and rest values", () => {
@@ -278,6 +298,34 @@ test("preview includes empty bars and remains within song content bounds at capa
     text.split("\n").filter((line) => /^[eBGDAE]\|/.test(line))
   ).toHaveLength(TAB_MAX_BARS * 6);
   expect(text.length).toBeLessThan(200000);
+});
+
+test("preview recognition migrates hidden tails without treating user edits as generated text", () => {
+  const tab = normalizeTablature({
+    ...emptyTablature(),
+    notes: [
+      { string: 0, fret: 0, tick: 0, duration: 96 },
+      { string: 0, fret: 3, tick: 24, duration: 12 }
+    ],
+    rests: [{ tick: 36, duration: 12 }]
+  })!;
+  const current = tablatureText(tab);
+  const old = current.replace("E0@1=1/4", "E0@1=1");
+  expect(old).not.toBe(current);
+  expect(isTablaturePreview(old, tab)).toBe(true);
+  expect(isTablaturePreview(current, tab)).toBe(true);
+  expect(isTablaturePreview(legacyTablatureText(tab), tab)).toBe(true);
+  for (const custom of [
+    `${old}\nMy own lyrics`,
+    old.replace("E0@1=1", "E0@1=1=keep my comment"),
+    old.replace("E0@1=1", "E0@1=1/0"),
+    old.replace("E0@1=1", "E0@1=1/1"),
+    old.replace("E0@1=1", "E0@1=1/8"),
+    old.replace("E0@1=1", "E0@1=999999"),
+    old.replace("E3@2=1/8", "E3@2=1/4"),
+    old.replace("R@2+1/2=1/8", "R@2+1/2=1/4")
+  ])
+    expect(isTablaturePreview(custom, tab)).toBe(false);
 });
 
 test("legacy preview still exactly recognizes old generated song content", () => {

@@ -36,7 +36,7 @@ export function TablaturePractice({
   disabled?: boolean;
 }) {
   const { t } = useTranslation();
-  const { width, height } = useWindowDimensions();
+  const { width, height, fontScale } = useWindowDimensions();
   const landscape = width > height;
   const columns = landscape && width >= 740 ? 2 : 1;
   const list = useRef<FlatList<number[]>>(null);
@@ -45,7 +45,8 @@ export function TablaturePractice({
   const [size, setSize] = useState(2);
   const [laidOut, setLaidOut] = useState(false);
   const { tab, tick, status, practice, countIn, range } = transport;
-  const scale = sizes[size] * (landscape ? 0.8 : 1);
+  const scale = sizes[size] * (landscape ? 0.8 : 1) * fontScale;
+  const barHeadingHeight = 32 * Math.max(1, fontScale);
   const barTicks = tabBarTicks(tab);
   const bars = Math.max(1, Math.ceil(tablatureLength(tab) / barTicks));
   const currentBar = Math.max(
@@ -53,7 +54,7 @@ export function TablaturePractice({
     Math.min(bars - 1, Math.floor(tick / barTicks))
   );
   // Card padding + heading + staff margins; every readonly staff has seven rows.
-  const rowHeight = 70 + 244 * scale;
+  const rowHeight = 38 + barHeadingHeight + 244 * scale;
   const rows = useMemo(
     () =>
       Array.from({ length: Math.ceil(bars / columns) }, (_, row) =>
@@ -213,6 +214,10 @@ export function TablaturePractice({
                         testID={`practice-count-beat-${index + 1}`}
                         style={[
                           styles.countBeat,
+                          {
+                            minWidth: Math.max(30, 24 * fontScale),
+                            height: 34 * Math.max(1, fontScale)
+                          },
                           tab.beatsPerBar === 6 &&
                             tab.beatUnit === 8 &&
                             index === 3 &&
@@ -323,7 +328,10 @@ export function TablaturePractice({
                             }}
                             disabled={locked || outsideRange}
                             onPress={seekBar}
-                            style={styles.barHeading}
+                            style={[
+                              styles.barHeading,
+                              { height: barHeadingHeight }
+                            ]}
                           >
                             <Text
                               style={[
@@ -830,7 +838,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: palette.glass.edge
   },
-  beats: { flexDirection: "row", gap: 6 },
+  beats: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
   countBeat: {
     minWidth: 30,
     height: 34,

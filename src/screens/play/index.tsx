@@ -173,6 +173,16 @@ export default function PlayGuitar() {
   }, [tabOwnsAudio, stopBacking]);
 
   useEffect(() => {
+    const listener = performanceAudio.listen((event) => {
+      if (event.state !== "playbackInterrupted") return;
+      prepared.current.clear();
+      pauseTabPlayback();
+      stopBacking();
+    });
+    return () => listener.remove();
+  }, [pauseTabPlayback, stopBacking]);
+
+  useEffect(() => {
     MicrophoneStream.setKeepAwake(practiceOpen && active, "tablature-practice");
     return () => MicrophoneStream.setKeepAwake(false, "tablature-practice");
   }, [active, practiceOpen]);
