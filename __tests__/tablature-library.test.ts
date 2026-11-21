@@ -12,7 +12,12 @@ import {
   saveTablature,
   TAB_LIBRARY_PAGE_SIZE
 } from "../src/components/tablature-library";
-import { Tablature, tablatureText } from "../src/components/tablature";
+import {
+  emptyTablature,
+  legacyTablatureText,
+  normalizeTablature,
+  tablatureText
+} from "../src/components/tablature";
 
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
@@ -21,7 +26,7 @@ jest.mock("../src/components/database/crud", () => ({
   getAllItems: jest.fn()
 }));
 
-const tab: Tablature = {
+const tab = normalizeTablature({
   version: 1,
   tempo: 90,
   beatsPerBar: 4,
@@ -29,11 +34,11 @@ const tab: Tablature = {
     { string: 0, fret: 0, tick: 0 },
     { string: 5, fret: 12, tick: 24 }
   ]
-};
-const changed: Tablature = {
+})!;
+const changed = normalizeTablature({
   ...tab,
   notes: [{ string: 1, fret: 3, tick: 12 }]
-};
+})!;
 let content: string;
 let missing: boolean;
 let autoCommit: boolean;
@@ -108,6 +113,33 @@ test.each([false, true])(
     }
   }
 );
+
+test("editing a migrated riff refreshes its legacy generated preview", async () => {
+  content = legacyTablatureText(tab);
+  usePreferences.setState({
+    songs: { 7: { ...defaultSongPreferences, tablature: tab } }
+  });
+  await saveTablature({ id: 7, title: "Riff", tablature: changed });
+  const update = executeSql.mock.calls.find(([sql]) =>
+    sql.startsWith("UPDATE songs")
+  )!;
+  expect(update[1]?.[1]).toBe(tablatureText(changed));
+});
+
+test("a rest-only part can be saved and is listed with other tabs", async () => {
+  const rest = normalizeTablature({
+    ...emptyTablature(),
+    rests: [{ tick: 0, duration: 96 }],
+    barCount: 2
+  })!;
+  await expect(
+    saveTablature({ title: "Tacit intro", tablature: rest })
+  ).resolves.toBe(42);
+  expect(usePreferences.getState().songs[42].tablature).toEqual(rest);
+  executeSql.mockClear();
+  await listTablatureSongs();
+  expect(executeSql.mock.calls[0][0]).toContain("s.id IN (42)");
+});
 
 test("attaching tabs preserves lyrics, song metadata and later preference edits", async () => {
   usePreferences.setState({

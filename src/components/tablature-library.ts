@@ -9,7 +9,12 @@ import {
   usePreferences,
   writePreferences
 } from "./preferences";
-import { normalizeTablature, Tablature, tablatureText } from "./tablature";
+import {
+  legacyTablatureText,
+  normalizeTablature,
+  Tablature,
+  tablatureText
+} from "./tablature";
 
 export const TAB_LIBRARY_PAGE_SIZE = 30;
 export interface TablatureSong {
@@ -28,7 +33,10 @@ export async function listTablatureSongs(
   if (!Number.isSafeInteger(offset) || offset < 0)
     throw new Error("Invalid pagination");
   const ids = Object.entries(usePreferences.getState().songs)
-    .filter(([, song]) => !!song.tablature?.notes.length)
+    .filter(
+      ([, song]) =>
+        !!(song.tablature?.notes.length || song.tablature?.rests?.length)
+    )
     .map(([id]) => Number(id))
     .filter(validId);
   if (onlyTabs && !ids.length) return [];
@@ -87,7 +95,8 @@ export async function saveTablature({
   tablature: Tablature;
 }): Promise<number> {
   const tab = normalizeTablature(tablature);
-  if (!tab?.notes.length) throw new Error("TablatureInvalid");
+  if (!tab || (!tab.notes.length && !tab.rests?.length))
+    throw new Error("TablatureInvalid");
   const name = title.trim();
   if (!name) throw new Error("FieldRequired");
   if (name.length > songFieldLimits.title) throw new Error("FileTooLarge");
@@ -134,7 +143,9 @@ export async function saveTablature({
               const original = result.rows.item(0).content as string;
               const previous = usePreferences.getState().songs[id]?.tablature;
               const content =
-                previous && original === tablatureText(previous)
+                previous &&
+                (original === tablatureText(previous) ||
+                  original === legacyTablatureText(previous))
                   ? preview
                   : original;
               tx.executeSql(

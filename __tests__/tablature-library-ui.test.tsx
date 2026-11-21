@@ -34,10 +34,13 @@ jest.mock("../src/screens/song/tools", () => ({
 }));
 
 const tab: Tablature = {
-  version: 1,
+  version: 2,
   tempo: 80,
   beatsPerBar: 4,
-  notes: [{ string: 2, fret: 7, tick: 24 }]
+  beatUnit: 4,
+  barCount: 1,
+  rests: [],
+  notes: [{ string: 2, fret: 7, tick: 24, duration: 24 }]
 };
 let screen: Renderer.ReactTestRenderer | undefined;
 let callbacks: {
@@ -110,6 +113,23 @@ afterEach(async () => {
   jest.clearAllTimers();
   jest.useRealTimers();
   jest.restoreAllMocks();
+});
+
+test("a composed rest-only part can be saved from the library dialog", async () => {
+  const silence = {
+    ...tab,
+    notes: [],
+    rests: [{ tick: 0, duration: 24 }]
+  };
+  await render({ tab: silence });
+  await act(async () => titleInput().props.onChangeText("Count a rest"));
+  expect(action("TabSave").props.disabled).toBe(false);
+  await act(async () => action("TabSave").props.onPress());
+  expect(saveTablature).toHaveBeenCalledWith({
+    id: undefined,
+    title: "Count a rest",
+    tablature: silence
+  });
 });
 
 test.each([false, true])(

@@ -8,7 +8,15 @@ import { Action, Sheet } from "../src/screens/song/tools";
 import { guitarLayout } from "../src/screens/tuner/guitar-layout";
 import { performanceAudio } from "../src/components/performance-audio";
 import { warmGuitar } from "../src/components/guitar-audio";
-import { emptyTablature, Tablature } from "../src/components/tablature";
+import {
+  emptyTablature,
+  normalizeTablature,
+  Tablature
+} from "../src/components/tablature";
+import {
+  readTablatureDraft,
+  writeTablatureDraft
+} from "../src/components/tablature-draft";
 import {
   getTablatureSong,
   listTablatureSongs,
@@ -73,6 +81,10 @@ jest.mock("../src/components/tablature-library", () => ({
   saveTablature: jest.fn(),
   TAB_LIBRARY_PAGE_SIZE: 30
 }));
+jest.mock("../src/components/tablature-draft", () => ({
+  readTablatureDraft: jest.fn().mockResolvedValue(null),
+  writeTablatureDraft: jest.fn().mockResolvedValue(undefined)
+}));
 jest.mock("../src/screens/song/tools", () => ({
   Diagram: () => null,
   Sheet: ({ children, ...props }: any) =>
@@ -98,7 +110,7 @@ const dimensions = { width: 390, height: 640 };
 const manager = { begin: jest.fn(), activate: jest.fn(), end: jest.fn() };
 const saved: Tablature = {
   ...emptyTablature(),
-  notes: [{ string: 1, fret: 3, tick: 0 }]
+  notes: [{ string: 1, fret: 3, tick: 0, duration: 24 }]
 };
 async function render() {
   await act(async () => {
@@ -126,6 +138,8 @@ async function pluck(string: number) {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
+  jest.mocked(readTablatureDraft).mockResolvedValue(null);
+  jest.mocked(writeTablatureDraft).mockResolvedValue(undefined);
   mockFocused = true;
   mockParams = {};
   mockNavigation.setParams.mockImplementation((patch) => {
@@ -184,8 +198,8 @@ test("screen-string touches record chosen frets and timing, save, and reopen the
   await act(async () => transport().stopRecording());
   const recorded = transport().tab;
   expect(recorded.notes).toEqual([
-    { string: 0, fret: 2, tick: 0 },
-    { string: 4, fret: 0, tick: 24 }
+    { string: 0, fret: 2, tick: 0, duration: 24 },
+    { string: 4, fret: 0, tick: 24, duration: 24 }
   ]);
   expect(performanceAudio.guitarString).toHaveBeenCalledWith(
     "440:42:string0",
@@ -249,11 +263,13 @@ test.each(["Cancel", "TabDiscard"])(
     );
     mockParams = { tablatureSongId: 7, tablatureRequest: 1 };
     await render();
-    const draft = {
+    const draft = normalizeTablature({
       ...emptyTablature(),
       notes: [{ string: 5, fret: 12, tick: 0 }]
-    };
-    await act(async () => transport().setTab(draft));
+    })!;
+    await act(async () => {
+      transport().setTab(draft);
+    });
     await act(async () =>
       finish({ id: 7, title: "Saved riff", tablature: saved })
     );
@@ -277,7 +293,9 @@ test.each(["Cancel", "TabDiscard"])(
 
 test("leaving Play cancels pending audio preparation and keeps the tab", async () => {
   await render();
-  await act(async () => transport().setTab(saved));
+  await act(async () => {
+    transport().setTab(saved);
+  });
   let release!: () => void;
   jest.mocked(warmGuitar).mockImplementationOnce(
     () =>
@@ -303,12 +321,12 @@ test("leaving Play cancels pending audio preparation and keeps the tab", async (
 
 test("manual strings pause tab playback and retain their chosen chord frets", async () => {
   await render();
-  await act(async () =>
+  await act(async () => {
     transport().setTab({
       ...emptyTablature(),
       notes: [{ string: 2, fret: 5, tick: 0 }]
-    })
-  );
+    });
+  });
   await act(async () => {
     await transport().play();
   });
@@ -322,5 +340,106 @@ test("manual strings pause tab playback and retain their chosen chord frets", as
     "440:52:string2",
     2
   );
-  expect(transport().tab.notes).toEqual([{ string: 2, fret: 5, tick: 0 }]);
+  expect(transport().tab.notes).toEqual([
+    { string: 2, fret: 5, tick: 0, duration: 24 }
+  ]);
+});
+
+test("draft hydration locks tab actions and restores unsaved rhythm with its library link", async () => {
+  let finish!: (value: Awaited<ReturnType<typeof readTablatureDraft>>) => void;
+  jest.mocked(readTablatureDraft).mockReturnValue(
+    new Promise((resolve) => {
+      finish = resolve;
+    })
+  );
+  await render();
+  expect(panel().props.disabled).toBe(true);
+  await act(async () => panel().props.onRecord());
+  expect(transport().status).toBe("idle");
+  const tab = {
+    ...emptyTablature(112, 6, 8),
+    barCount: 2,
+    notes: [{ string: 0, fret: 3, tick: 0, duration: 18 }],
+    rests: [{ tick: 18, duration: 6 }]
+  };
+  await act(async () =>
+    finish({
+      version: 1,
+      tab,
+      savedTab: saved,
+      song: { id: 7, title: "Recovered riff" }
+    })
+  );
+  expect(panel().props.disabled).toBe(false);
+  expect(panel().props.title).toBe("Recovered riff");
+  expect(panel().props.dirty).toBe(true);
+  expect(transport().tab).toEqual(tab);
+  expect(transport().canUndo).toBe(false);
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(1000);
+  });
+  expect(writeTablatureDraft).not.toHaveBeenCalled();
+});
+
+test("an incoming library tab waits for the restored unsaved draft to be confirmed", async () => {
+  const draft = {
+    ...saved,
+    tempo: 120
+  };
+  jest.mocked(readTablatureDraft).mockResolvedValue({
+    version: 1,
+    tab: draft,
+    savedTab: saved,
+    song: { id: 7, title: "Local edit" }
+  });
+  mockParams = { tablatureSongId: 7, tablatureRequest: 1 };
+  await render();
+  expect(getTablatureSong).not.toHaveBeenCalled();
+  expect(transport().tab).toEqual(draft);
+  expect(Alert.alert).toHaveBeenCalledWith(
+    "TabUnsavedTitle",
+    "TabDiscardMessage",
+    expect.any(Array)
+  );
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)![2]!
+      .find((button) => button.text === "Cancel")!.onPress!()
+  );
+  expect(transport().tab).toEqual(draft);
+  expect(mockParams.tablatureSongId).toBeUndefined();
+});
+
+test("replacing a recording keeps its chosen meter and can be undone in one action", async () => {
+  await render();
+  const previous = {
+    ...emptyTablature(120, 6, 8),
+    notes: [{ string: 1, fret: 8, tick: 0, duration: 24 }],
+    rests: [{ tick: 24, duration: 12 }]
+  };
+  await act(async () => {
+    transport().replaceTab(previous);
+  });
+  await act(async () => panel().props.onRecord());
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)![2]!
+      .find((button) => button.text === "TabRecord")!.onPress!()
+  );
+  await pluck(2);
+  await act(async () => transport().stopRecording());
+  expect(transport().tab).toMatchObject({
+    tempo: 120,
+    beatsPerBar: 6,
+    beatUnit: 8,
+    notes: [{ string: 2, fret: 2, tick: 0, duration: 24 }],
+    rests: []
+  });
+  expect(transport().canUndo).toBe(true);
+  await act(async () => transport().undo());
+  expect(transport().tab).toEqual(previous);
+  expect(transport().canUndo).toBe(false);
+  expect(transport().canRedo).toBe(true);
 });

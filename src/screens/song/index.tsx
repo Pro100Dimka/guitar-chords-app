@@ -440,7 +440,10 @@ const SongDetail: React.FC = () => {
       {!!song?.band_name && (
         <Text style={styles.metadata}>{song.band_name}</Text>
       )}
-      {!!preferences.tablature?.notes.length && (
+      {!!(
+        preferences.tablature?.notes.length ||
+        preferences.tablature?.rests?.length
+      ) && (
         <Action
           glass
           label={t("TabOpenInPlay")}

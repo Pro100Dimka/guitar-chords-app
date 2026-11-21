@@ -16,7 +16,11 @@ const LibraryItem: React.FC<{ song: ISong; onLongPress?: () => void }> = ({
   const favorite = usePreferences((state) => state.songs[song.id]?.favorite);
   const cover = usePreferences((state) => state.songs[song.id]?.cover);
   const hasTablature = usePreferences(
-    (state) => !!state.songs[song.id]?.tablature?.notes.length
+    (state) =>
+      !!(
+        state.songs[song.id]?.tablature?.notes.length ||
+        state.songs[song.id]?.tablature?.rests?.length
+      )
   );
   return (
     <Pressable

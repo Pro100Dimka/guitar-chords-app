@@ -176,7 +176,7 @@ export function TablatureLibrary({
       refreshing ||
       (refreshFailed && target !== undefined) ||
       !title.trim() ||
-      !tab.notes.length
+      (!tab.notes.length && !tab.rests?.length)
     )
       return;
     inFlight.current = true;
@@ -326,7 +326,7 @@ export function TablatureLibrary({
               blocked ||
               (refreshFailed && target !== undefined) ||
               !title.trim() ||
-              !tab.notes.length
+              (!tab.notes.length && !tab.rests?.length)
             }
             onPress={() => void save()}
           />

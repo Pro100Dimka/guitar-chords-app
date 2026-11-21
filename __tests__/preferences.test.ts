@@ -48,12 +48,15 @@ jest.mock("../src/components/database/crud", () => ({
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
 const tablature: Tablature = {
-  version: 1,
+  version: 2,
   tempo: 92,
   beatsPerBar: 4,
+  beatUnit: 4,
+  barCount: 1,
+  rests: [],
   notes: [
-    { string: 0, fret: 0, tick: 0 },
-    { string: 5, fret: 7, tick: 24 }
+    { string: 0, fret: 0, tick: 0, duration: 24 },
+    { string: 5, fret: 7, tick: 24, duration: 24 }
   ]
 };
 
@@ -386,7 +389,7 @@ test("exported backup retains artist, lyrics, cover and chord shapes", async () 
 
 test.each([
   null,
-  { ...tablature, version: 2 },
+  { ...tablature, version: 3 },
   { ...tablature, notes: [{ string: 6, fret: 0, tick: 0 }] },
   { ...tablature, notes: [{ string: 0, fret: 0, tick: -1 }] }
 ])(
@@ -415,7 +418,7 @@ test.each([
 
 test("export refuses invalid tablature before reporting a successful backup", async () => {
   usePreferences.getState().updateSong(17, {
-    tablature: { ...tablature, version: 2 } as unknown as Tablature
+    tablature: { ...tablature, version: 3 } as unknown as Tablature
   });
   jest.mocked(getAllItems).mockResolvedValue([
     {

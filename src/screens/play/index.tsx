@@ -448,7 +448,41 @@ export default function PlayGuitar() {
           onOpen={tabSession.open}
           onSave={tabSession.save}
           onRecord={tabSession.record}
+          disabled={!tabSession.draftReady}
         />
+        {(tabSession.expanded ||
+          !tabSession.draftReady ||
+          tabSession.draftStatus === "writeError") && (
+          <View style={styles.draftStatus}>
+            <Text accessibilityLiveRegion="polite" style={styles.draftMessage}>
+              {t(
+                {
+                  loading: "TabDraftLoading",
+                  saving: "TabDraftSaving",
+                  saved: "TabDraftSaved",
+                  restored: "TabDraftRestored",
+                  readError: "TabDraftReadFailed",
+                  writeError: "TabDraftWriteFailed"
+                }[tabSession.draftStatus]
+              )}
+            </Text>
+            {["readError", "writeError"].includes(tabSession.draftStatus) && (
+              <Action
+                glass
+                compact
+                label={t("TabDraftRetry")}
+                onPress={tabSession.retryDraft}
+              />
+            )}
+            {tabSession.draftStatus === "readError" && (
+              <Action
+                glass
+                label={t("TabDraftStartNew")}
+                onPress={tabSession.resetDraft}
+              />
+            )}
+          </View>
+        )}
       </TabPanelContainer>
       <View
         style={styles.stage}
@@ -912,6 +946,16 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: palette.colors.black },
   sideLayout: { flexDirection: "row" },
   sideTabs: { flexGrow: 0, flexShrink: 0 },
+  draftStatus: {
+    marginHorizontal: 18,
+    marginTop: 3,
+    marginBottom: 4,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6
+  },
+  draftMessage: { flexShrink: 1, fontSize: 11, color: palette.glass.muted },
   stage: { flex: 1, overflow: "hidden" },
   tabFret: {
     position: "absolute",

@@ -8,6 +8,7 @@ import { performanceAudio } from "../src/components/performance-audio";
 import { warmGuitar } from "../src/components/guitar-audio";
 import {
   emptyTablature,
+  normalizeTablature,
   tablatureLength,
   TAB_MAX_BARS,
   TAB_MAX_NOTES,
@@ -24,10 +25,8 @@ jest.mock("../src/components/performance-audio", () => ({
   }
 }));
 
-const score = (notes: Tablature["notes"]): Tablature => ({
-  ...emptyTablature(),
-  notes
-});
+const score = (notes: Tablature["notes"]): Tablature =>
+  normalizeTablature({ ...emptyTablature(), notes })!;
 let transport: TablatureTransport;
 let onNotes: jest.Mock;
 beforeEach(() => {
@@ -56,9 +55,9 @@ test("recording starts on the first touch and keeps string, fret and musical tim
   transport.stopRecording();
   expect(transport.getSnapshot()).toMatchObject({ status: "idle", tick: 0 });
   expect(transport.getSnapshot().tab.notes).toEqual([
-    { string: 0, fret: 3, tick: 0 },
-    { string: 5, fret: 7, tick: 0 },
-    { string: 2, fret: 4, tick: 24 }
+    { string: 0, fret: 3, tick: 0, duration: 24 },
+    { string: 5, fret: 7, tick: 0, duration: 24 },
+    { string: 2, fret: 4, tick: 24, duration: 24 }
   ]);
   expect(jest.getTimerCount()).toBe(0);
   expect(performanceAudio.guitarString).not.toHaveBeenCalled();
@@ -77,8 +76,8 @@ test("same-tick string changes replace the note and invalid input starts no time
   ]);
   transport.capture([{ string: 0, fret: 4 }]);
   expect(transport.getSnapshot().tab.notes).toEqual([
-    { string: 0, fret: 4, tick: 0 },
-    { string: 5, fret: 0, tick: 0 }
+    { string: 0, fret: 4, tick: 0, duration: 24 },
+    { string: 5, fret: 0, tick: 0, duration: 24 }
   ]);
 });
 
@@ -150,23 +149,23 @@ test("playback uses the recorded string sample and emits simultaneous notes toge
   );
 });
 
-test("pause and resume preserve the cursor without repeating an already played note", async () => {
+test("pause and resume preserve the cursor without repeating expired notes", async () => {
   transport.setTab(
     score([
-      { string: 0, fret: 0, tick: 0 },
-      { string: 1, fret: 2, tick: 12 },
+      { string: 0, fret: 0, tick: 0, duration: 6 },
+      { string: 1, fret: 2, tick: 12, duration: 6 },
       { string: 2, fret: 2, tick: 24 }
     ])
   );
   await transport.play();
-  await jest.advanceTimersByTimeAsync(375);
+  await jest.advanceTimersByTimeAsync(625);
   expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
   transport.pause();
   await jest.advanceTimersByTimeAsync(2000);
   expect(jest.getTimerCount()).toBe(0);
   await transport.play();
   expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
-  await jest.advanceTimersByTimeAsync(375);
+  await jest.advanceTimersByTimeAsync(125);
   expect(performanceAudio.guitarString).toHaveBeenCalledTimes(3);
 });
 
@@ -286,7 +285,7 @@ test("notes just before the end of a fast bar are emitted before transport stops
   transport.setTab({
     ...score([
       { string: 0, fret: 0, tick: 0 },
-      { string: 5, fret: 7, tick: 95 }
+      { string: 5, fret: 7, tick: 95, duration: 1 }
     ]),
     tempo: 200
   });
@@ -392,4 +391,309 @@ test("hook stops transport when unfocused or unmounted and keeps the recorded dr
   });
   expect(jest.getTimerCount()).toBe(0);
   expect(performanceAudio.stopGuitarString).toHaveBeenCalled();
+});
+
+test("edited notes release independently at their musical duration and speed", async () => {
+  transport.replaceTab(
+    score([
+      { string: 0, fret: 0, tick: 0, duration: 12 },
+      { string: 5, fret: 7, tick: 0, duration: 24 }
+    ])
+  );
+  transport.setSpeed(0.5);
+  await transport.play();
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(749);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(1);
+  expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
+    [0]
+  ]);
+  await jest.advanceTimersByTimeAsync(749);
+  expect(performanceAudio.stopGuitarString).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(1);
+  expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
+    [0],
+    [5]
+  ]);
+});
+
+test("an old note release cannot cut off a newer attack on the same string", async () => {
+  transport.replaceTab(
+    score([
+      { string: 0, fret: 0, tick: 0, duration: 24 },
+      { string: 0, fret: 3, tick: 12, duration: 48 }
+    ])
+  );
+  await transport.play();
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(750);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(1125);
+  expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
+    [0]
+  ]);
+});
+
+test("pause, document replacement and blur cancel outstanding note releases", async () => {
+  transport.replaceTab(score([{ string: 0, fret: 0, tick: 0, duration: 96 }]));
+  await transport.play();
+  transport.pause();
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(4000);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  expect(jest.getTimerCount()).toBe(0);
+  transport.rewind();
+  await transport.play();
+  transport.replaceTab(score([{ string: 5, fret: 7, tick: 0, duration: 12 }]));
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(4000);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  await transport.play();
+  transport.setActive(false);
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(4000);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test("an explicit rest and empty ending bars remain silent while time advances", async () => {
+  transport.replaceTab({
+    ...emptyTablature(80, 6, 8),
+    barCount: 2,
+    rests: [{ tick: 0, duration: 72 }]
+  });
+  await transport.play();
+  expect(warmGuitar).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(3000);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "playing",
+    tick: 96
+  });
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(1500);
+  expect(transport.getSnapshot()).toMatchObject({ status: "idle", tick: 144 });
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test("selected loops stop a crossing note at the range end and restart cleanly", async () => {
+  transport.replaceTab(score([{ string: 0, fret: 0, tick: 0, duration: 144 }]));
+  transport.setRange({ start: 0, end: 96 });
+  transport.setLoop(true);
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(3000);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(1500);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+});
+
+test("undo and redo preserve exact notes, rests, durations and bar edits", () => {
+  const initial = score([{ string: 0, fret: 0, tick: 0, duration: 12 }]);
+  transport.replaceTab(initial);
+  const edited = {
+    ...initial,
+    barCount: 3,
+    rests: [{ tick: 24, duration: 12 }]
+  };
+  expect(transport.setTab(edited)).toBe(true);
+  expect(transport.getSnapshot()).toMatchObject({
+    canUndo: true,
+    canRedo: false
+  });
+  transport.undo();
+  expect(transport.getSnapshot().tab).toEqual(initial);
+  expect(transport.getSnapshot()).toMatchObject({
+    canUndo: false,
+    canRedo: true
+  });
+  transport.redo();
+  expect(transport.getSnapshot().tab).toEqual(edited);
+  transport.undo();
+  transport.setTab({ ...initial, tempo: 90 });
+  expect(transport.getSnapshot().canRedo).toBe(false);
+  transport.redo();
+  expect(transport.getSnapshot().tab.tempo).toBe(90);
+});
+
+test("unchanged and rejected documents create no extra undo entries", () => {
+  const initial = score([{ string: 0, fret: 0, tick: 0, duration: 12 }]);
+  transport.replaceTab(initial);
+  expect(transport.setTab(initial)).toBe(true);
+  expect(
+    transport.setTab({ ...initial, rests: [{ tick: 0, duration: 24 }] })
+  ).toBe(false);
+  expect(transport.getSnapshot().tab).toEqual(initial);
+  expect(transport.getSnapshot().canUndo).toBe(false);
+  transport.setTab({ ...initial, tempo: 90 });
+  transport.replaceTab(initial);
+  expect(transport.getSnapshot()).toMatchObject({
+    canUndo: false,
+    canRedo: false,
+    error: null
+  });
+});
+
+test("a complete replacement recording is one undo operation and preserves its meter", () => {
+  const original = {
+    ...emptyTablature(80, 6, 8),
+    notes: [{ string: 5, fret: 12, tick: 0, duration: 48 }],
+    rests: [{ tick: 48, duration: 12 }]
+  };
+  transport.replaceTab(original);
+  transport.startRecording();
+  transport.capture([{ string: 0, fret: 0 }]);
+  jest.advanceTimersByTime(250);
+  transport.capture([{ string: 0, fret: 3 }]);
+  jest.advanceTimersByTime(2250);
+  transport.stopRecording();
+  const recorded = transport.getSnapshot().tab;
+  expect(recorded).toMatchObject({
+    beatUnit: 8,
+    beatsPerBar: 6,
+    tempo: 80,
+    barCount: 2,
+    rests: []
+  });
+  expect(recorded.notes).toEqual([
+    { string: 0, fret: 0, tick: 0, duration: 8 },
+    { string: 0, fret: 3, tick: 8, duration: 24 }
+  ]);
+  transport.undo();
+  expect(transport.getSnapshot().tab).toEqual(original);
+  expect(transport.getSnapshot().canUndo).toBe(false);
+  transport.redo();
+  expect(transport.getSnapshot().tab).toEqual(recorded);
+});
+
+test("undo cancels audio and the bounded history retains the latest fifty edits", async () => {
+  const initial = score([{ string: 0, fret: 0, tick: 0, duration: 24 }]);
+  transport.replaceTab(initial);
+  for (let edit = 1; edit <= 60; edit++)
+    transport.setTab({ ...initial, tempo: 80 + edit });
+  await transport.play();
+  transport.undo();
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "idle",
+    canRedo: true
+  });
+  expect(jest.getTimerCount()).toBe(0);
+  for (let edit = 0; edit < 60; edit++) transport.undo();
+  expect(transport.getSnapshot().tab.tempo).toBe(90);
+  expect(transport.getSnapshot().canUndo).toBe(false);
+});
+
+test("live speed changes preserve sustained voices and rebase their remaining release", async () => {
+  transport.replaceTab(
+    score([
+      { string: 0, fret: 0, tick: 0, duration: 96 },
+      { string: 5, fret: 7, tick: 48, duration: 24 }
+    ])
+  );
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(375);
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  transport.setSpeed(0.5);
+  expect(transport.getSnapshot()).toMatchObject({
+    status: "playing",
+    tick: 12,
+    speed: 0.5
+  });
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(2250);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  expect(transport.getSnapshot().tick).toBe(48);
+  transport.setSpeed(1);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  await jest.advanceTimersByTimeAsync(749);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(1);
+  expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
+    [5]
+  ]);
+  await jest.advanceTimersByTimeAsync(749);
+  expect(performanceAudio.stopGuitarString).toHaveBeenCalledTimes(1);
+  await jest.advanceTimersByTimeAsync(1);
+  expect(transport.getSnapshot().status).toBe("idle");
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+});
+
+test("resume rearticulates only the latest still-sustaining note for its remaining time", async () => {
+  transport.replaceTab(
+    score([
+      { string: 0, fret: 0, tick: 0, duration: 96 },
+      { string: 0, fret: 3, tick: 12, duration: 6 },
+      { string: 5, fret: 7, tick: 0, duration: 48 }
+    ])
+  );
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(750);
+  transport.pause();
+  await jest.advanceTimersByTimeAsync(2000);
+  jest.mocked(performanceAudio.guitarString).mockClear();
+  await transport.play();
+  expect(jest.mocked(performanceAudio.guitarString).mock.calls).toEqual([
+    ["440:71:string5", 5]
+  ]);
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(749);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(1);
+  expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
+    [5]
+  ]);
+});
+
+test("resume inside an explicit rest does not resurrect an earlier clipped sustain", async () => {
+  transport.replaceTab({
+    ...emptyTablature(),
+    notes: [
+      { string: 0, fret: 0, tick: 0, duration: 96 },
+      { string: 0, fret: 3, tick: 12, duration: 12 }
+    ],
+    rests: [{ tick: 24, duration: 24 }]
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(1000);
+  transport.pause();
+  jest.mocked(performanceAudio.guitarString).mockClear();
+  await transport.play();
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(500);
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+});
+
+test("a range and its loop restore a note attacked before the range starts", async () => {
+  transport.replaceTab(score([{ string: 0, fret: 3, tick: 72, duration: 96 }]));
+  transport.setRange({ start: 96, end: 192 });
+  transport.setLoop(true);
+  await transport.play();
+  expect(warmGuitar).toHaveBeenCalledWith(
+    [43],
+    440,
+    expect.any(AbortSignal),
+    0
+  );
+  expect(jest.mocked(performanceAudio.guitarString).mock.calls).toEqual([
+    ["440:43:string0", 0]
+  ]);
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(2249);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(1);
+  expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
+    [0]
+  ]);
+  await jest.advanceTimersByTimeAsync(750);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  await jest.advanceTimersByTimeAsync(2249);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  await jest.advanceTimersByTimeAsync(1);
+  expect(jest.mocked(performanceAudio.stopGuitarString).mock.calls).toEqual([
+    [0]
+  ]);
 });
