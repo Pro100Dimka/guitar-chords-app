@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   AppState,
   Image,
@@ -66,6 +73,7 @@ export default function PlayGuitar() {
   const [freeFrets, setFreeFrets] = useState([0, 0, 0, 0, 0, 0]);
   const [tabNotes, setTabNotes] = useState<TabNote[]>([]);
   const [practiceOpen, setPracticeOpen] = useState(false);
+  const [audioInterruption, setAudioInterruption] = useState(0);
   const plucks = useSharedValue<number[]>([]);
   const rms = useSharedValue(0);
   const fill = useSharedValue(0);
@@ -167,6 +175,39 @@ export default function PlayGuitar() {
   );
   const sideTabs = screenSize.width > screenSize.height && tabSession.expanded;
   const TabPanelContainer = sideTabs ? ScrollView : View;
+  const touchContext = useMemo(
+    () => ({
+      active,
+      status: tablature.status,
+      practiceOpen,
+      audioInterruption
+    }),
+    [active, tablature.status, practiceOpen, audioInterruption]
+  );
+  const liveTouchContext = useRef<typeof touchContext | null>(null);
+  const strumTouchContext = useRef<typeof touchContext | null>(null);
+
+  useLayoutEffect(() => {
+    const previous = liveTouchContext.current;
+    // Let an ongoing strum finish its own pause of tab playback. Any later
+    // transport, navigation or interruption change revokes that handoff.
+    if (
+      strumTouchContext.current !== previous ||
+      touchContext.status !== "idle" ||
+      touchContext.active !== previous?.active ||
+      touchContext.practiceOpen !== previous?.practiceOpen ||
+      touchContext.audioInterruption !== previous?.audioInterruption
+    )
+      strumTouchContext.current = null;
+    liveTouchContext.current = touchContext;
+  }, [touchContext]);
+  useLayoutEffect(
+    () => () => {
+      liveTouchContext.current = null;
+      strumTouchContext.current = null;
+    },
+    []
+  );
 
   useEffect(() => {
     if (tabOwnsAudio) stopBacking();
@@ -175,6 +216,9 @@ export default function PlayGuitar() {
   useEffect(() => {
     const listener = performanceAudio.listen((event) => {
       if (event.state !== "playbackInterrupted") return;
+      liveTouchContext.current = null;
+      strumTouchContext.current = null;
+      setAudioInterruption((value) => value + 1);
       prepared.current.clear();
       pauseTabPlayback();
       stopBacking();
@@ -308,8 +352,19 @@ export default function PlayGuitar() {
 
   const playStrings = useCallback(
     (indices: number[]) => {
-      if (!active) return;
-      if (tabPlayback) pauseTabPlayback();
+      // UI-thread touches can reach JS after navigation or a new recording.
+      // Only the context that received the touch may play or capture it.
+      if (
+        (liveTouchContext.current !== touchContext &&
+          strumTouchContext.current !== touchContext) ||
+        !touchContext.active ||
+        touchContext.practiceOpen
+      )
+        return;
+      if (tabPlayback) {
+        strumTouchContext.current = touchContext;
+        pauseTabPlayback();
+      }
       captureTabNotes(
         indices.flatMap((index) => {
           const midi = currentPitches.current[index];
@@ -329,7 +384,7 @@ export default function PlayGuitar() {
         performanceAudio.guitarString(key, index);
       });
     },
-    [active, captureTabNotes, pauseTabPlayback, tabPlayback]
+    [captureTabNotes, pauseTabPlayback, tabPlayback, touchContext]
   );
   const gesture = Gesture.Manual()
     .onTouchesDown((event, manager) => {

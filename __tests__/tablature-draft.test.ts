@@ -124,6 +124,16 @@ test("practice settings survive draft storage while older drafts remain readable
   expect((await readTablatureDraft())?.practice).toBeUndefined();
 });
 
+test("existing legacy song titles do not prevent autosaving musical edits", async () => {
+  const value: TablatureDraft = {
+    ...draft(),
+    song: { id: 7, title: "Старая песня 🎸 ".repeat(100) }
+  };
+  expect(value.song!.title.length).toBeGreaterThan(1000);
+  await writeTablatureDraft(value);
+  await expect(readTablatureDraft()).resolves.toEqual(canonical(value));
+});
+
 test("takes an immutable snapshot before a pending database write", async () => {
   autoCommit = false;
   const value = draft();
@@ -233,10 +243,10 @@ test.each([
   { savedTab: {} },
   { song: { id: 0, title: "Riff" } },
   { song: { id: 7, title: " " } },
-  { song: { id: 7, title: "x".repeat(1001) } },
+  { song: { id: 7, title: "x".repeat(1048577) } },
   { song: undefined }
 ])(
-  "invalid new draft never replaces the recoverable version (%j)",
+  "invalid new draft never replaces the recoverable version (%#)",
   async (patch) => {
     const value = draft();
     await writeTablatureDraft(value);

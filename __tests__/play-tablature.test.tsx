@@ -35,6 +35,7 @@ let mockParams: { tablatureSongId?: number; tablatureRequest?: number } = {};
 const mockNavigation = { setParams: jest.fn() };
 let mockDown: (event: any, manager: any) => void;
 let mockUp: (event: any, manager: any) => void;
+let mockQueuedTouches: Array<() => void> | null = null;
 jest.mock("@react-navigation/native", () => ({
   useIsFocused: () => mockFocused,
   useRoute: () => ({ params: mockParams }),
@@ -48,7 +49,14 @@ jest.mock("../src/screens/tuner/strings", () => () => null);
 jest.mock("react-native-reanimated", () => ({
   useSharedValue: (value: unknown) => require("react").useRef({ value }).current
 }));
-jest.mock("react-native-worklets", () => ({ runOnJS: (fn: unknown) => fn }));
+jest.mock("react-native-worklets", () => ({
+  runOnJS:
+    (fn: (...args: any[]) => void) =>
+    (...args: any[]) => {
+      if (mockQueuedTouches) mockQueuedTouches.push(() => fn(...args));
+      else fn(...args);
+    }
+}));
 jest.mock("react-native-gesture-handler", () => ({
   GestureDetector: ({ children }: any) => children,
   Gesture: {
@@ -168,6 +176,7 @@ beforeEach(() => {
   jest.mocked(readTablatureDraft).mockResolvedValue(null);
   jest.mocked(writeTablatureDraft).mockResolvedValue(undefined);
   mockFocused = true;
+  mockQueuedTouches = null;
   mockParams = {};
   mockNavigation.setParams.mockImplementation((patch) => {
     Object.assign(mockParams, patch);
@@ -372,6 +381,96 @@ test("manual strings pause tab playback and retain their chosen chord frets", as
     { string: 2, fret: 5, tick: 0, duration: 24 }
   ]);
 });
+
+test.each(["blur", "return", "unmount", "record", "practice", "interruption"])(
+  "a queued string touch cannot sound after a newer %s transition",
+  async (transition) => {
+    await render();
+    const queued: Array<() => void> = [];
+    mockQueuedTouches = queued;
+    await pluck(2);
+    expect(queued).toHaveLength(1);
+    if (transition === "blur" || transition === "return") {
+      mockFocused = false;
+      await act(async () => screen!.update(<PlayGuitar />));
+      if (transition === "return") {
+        mockFocused = true;
+        await act(async () => screen!.update(<PlayGuitar />));
+      }
+    } else if (transition === "unmount") {
+      await act(async () => screen!.unmount());
+      screen = undefined;
+    } else if (transition === "interruption") {
+      const listener = jest
+        .mocked(performanceAudio.listen)
+        .mock.calls.at(-1)![0];
+      await act(async () => listener({ state: "playbackInterrupted" }));
+    } else if (transition === "record") {
+      await act(async () => panel().props.onRecord());
+      expect(transport().status).toBe("recording");
+    } else {
+      await act(async () => panel().props.onPractice());
+      expect(screen!.root.findAllByType(TablaturePractice)).toHaveLength(1);
+    }
+    jest.mocked(performanceAudio.guitarString).mockClear();
+    mockQueuedTouches = null;
+    await act(async () => queued.forEach((touch) => touch()));
+    expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+    if (transition === "record") expect(transport().tab.notes).toEqual([]);
+    if (transition === "interruption") {
+      await pluck(2);
+      expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+    }
+  }
+);
+
+test("a queued string touch survives ordinary recording clock renders", async () => {
+  await render();
+  await act(async () => panel().props.onRecord());
+  await pluck(1);
+  const queued: Array<() => void> = [];
+  mockQueuedTouches = queued;
+  await pluck(2);
+  await act(async () => jest.advanceTimersByTimeAsync(50));
+  jest.mocked(performanceAudio.guitarString).mockClear();
+  mockQueuedTouches = null;
+  await act(async () => queued.forEach((touch) => touch()));
+  expect(performanceAudio.guitarString).toHaveBeenCalledWith(
+    "440:52:string2",
+    2
+  );
+  expect(transport().tab.notes).toHaveLength(2);
+});
+
+test.each([false, true])(
+  "queued strumming completes its own pause without interrupting a later Play (%s)",
+  async (restart) => {
+    await render();
+    await act(async () => {
+      transport().setTab(saved);
+    });
+    await act(async () => transport().play());
+    const queued: Array<() => void> = [];
+    mockQueuedTouches = queued;
+    await pluck(1);
+    await pluck(2);
+    mockQueuedTouches = null;
+    await act(async () => queued[0]());
+    expect(transport().status).toBe("idle");
+    if (restart) await act(async () => transport().play());
+    jest.mocked(performanceAudio.guitarString).mockClear();
+    await act(async () => queued[1]());
+    if (restart) {
+      expect(transport().status).toBe("playing");
+      expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+    } else {
+      expect(performanceAudio.guitarString).toHaveBeenCalledWith(
+        "440:52:string2",
+        2
+      );
+    }
+  }
+);
 
 test("practice opens from Play, keeps the display awake and pauses when closed", async () => {
   await render();
@@ -763,4 +862,207 @@ test("replacing a recording keeps its chosen meter and can be undone in one acti
   expect(transport().tab).toEqual(previous);
   expect(transport().canUndo).toBe(false);
   expect(transport().canRedo).toBe(true);
+});
+
+test.each(["new", "record"])(
+  "a stale %s confirmation cannot replace a subsequently loaded song",
+  async (action) => {
+    await render();
+    await act(async () => {
+      transport().setTab(saved);
+    });
+    if (action === "new") {
+      await act(async () => panel().props.onOpen());
+      await act(async () =>
+        screen!.root.findByType(TablatureLibrary).props.onNew()
+      );
+    } else await act(async () => panel().props.onRecord());
+    const stale = jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)![2]!
+      .find(
+        (button) =>
+          button.text === (action === "new" ? "TabDiscard" : "TabRecord")
+      )!.onPress!;
+    const replacement = {
+      ...saved,
+      notes: [{ string: 5, fret: 9, tick: 0, duration: 24 }]
+    };
+    await act(async () => panel().props.onOpen());
+    await act(async () =>
+      screen!.root
+        .findByType(TablatureLibrary)
+        .props.onLoad({ id: 8, title: "Newer song" }, replacement)
+    );
+    await act(async () =>
+      jest
+        .mocked(Alert.alert)
+        .mock.calls.at(-1)![2]!
+        .find((button) => button.text === "TabDiscard")!.onPress!()
+    );
+    expect(panel().props.title).toBe("Newer song");
+    await act(async () => stale());
+    expect(transport().tab).toEqual(replacement);
+    expect(panel().props.title).toBe("Newer song");
+    expect(transport().status).toBe("idle");
+  }
+);
+
+test("a navigation confirmation shown before New cannot revive its superseded request", async () => {
+  await render();
+  await act(async () => {
+    transport().setTab(saved);
+  });
+  mockParams = { tablatureSongId: 7, tablatureRequest: 10 };
+  await act(async () => screen!.update(<PlayGuitar />));
+  const incoming = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)![2]!
+    .find((button) => button.text === "TabDiscard")!.onPress!;
+  expect(getTablatureSong).not.toHaveBeenCalled();
+  await act(async () => panel().props.onOpen());
+  await act(async () =>
+    screen!.root.findByType(TablatureLibrary).props.onNew()
+  );
+  await act(async () =>
+    jest
+      .mocked(Alert.alert)
+      .mock.calls.at(-1)![2]!
+      .find((button) => button.text === "TabDiscard")!.onPress!()
+  );
+  expect(transport().tab).toEqual(emptyTablature());
+  await act(async () => incoming());
+  expect(transport().tab).toEqual(emptyTablature());
+  expect(panel().props.title).toBeUndefined();
+  expect(getTablatureSong).not.toHaveBeenCalled();
+});
+
+test("a recording confirmation from before leaving Play cannot restart when returning", async () => {
+  await render();
+  await act(async () => {
+    transport().setTab(saved);
+  });
+  await act(async () => panel().props.onRecord());
+  const start = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)![2]!
+    .find((button) => button.text === "TabRecord")!.onPress!;
+  mockFocused = false;
+  await act(async () => screen!.update(<PlayGuitar />));
+  mockFocused = true;
+  await act(async () => screen!.update(<PlayGuitar />));
+  await act(async () => start());
+  expect(transport().status).toBe("idle");
+  expect(transport().tab).toEqual(saved);
+});
+
+test("restoring a clean draft does not overwrite newer library practice until the user changes it", async () => {
+  const restored = {
+    ...defaultTabPractice(),
+    volume: 0.3,
+    countInBars: 1 as const
+  };
+  const libraryPractice = {
+    ...defaultTabPractice(),
+    volume: 0.8,
+    countInBars: 2 as const
+  };
+  usePreferences.setState({
+    songs: {
+      7: {
+        ...defaultSongPreferences,
+        tablature: saved,
+        tabPractice: libraryPractice
+      }
+    }
+  });
+  jest.mocked(readTablatureDraft).mockResolvedValue({
+    version: 1,
+    tab: saved,
+    savedTab: saved,
+    song: { id: 7, title: "Recovered song" },
+    practice: restored
+  });
+  await render();
+  expect(transport().practice).toEqual(restored);
+  expect(panel().props.dirty).toBe(false);
+  expect(usePreferences.getState().songs[7].tabPractice).toEqual(
+    libraryPractice
+  );
+  const edited = { ...restored, volume: 0.4 };
+  await act(async () => transport().setPractice(edited));
+  expect(usePreferences.getState().songs[7].tabPractice).toEqual(edited);
+});
+
+test("a draft reset confirmation cannot erase a working copy restored by a later retry", async () => {
+  jest
+    .mocked(readTablatureDraft)
+    .mockRejectedValueOnce(new Error("read failure"));
+  await render();
+  const button = (label: string) =>
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === label)!;
+  await act(async () => button("TabDraftStartNew").props.onPress());
+  const reset = jest
+    .mocked(Alert.alert)
+    .mock.calls.at(-1)![2]!
+    .find((entry) => entry.text === "TabDraftStartNew")!.onPress!;
+  jest.mocked(readTablatureDraft).mockResolvedValueOnce({
+    version: 1,
+    tab: saved,
+    savedTab: emptyTablature(),
+    song: { id: 7, title: "Recovered after retry" },
+    practice: defaultTabPractice()
+  });
+  await act(async () => button("TabDraftRetry").props.onPress());
+  expect(transport().tab).toEqual(saved);
+  jest.mocked(writeTablatureDraft).mockClear();
+  await act(async () => reset());
+  expect(writeTablatureDraft).not.toHaveBeenCalledWith(null);
+  expect(transport().tab).toEqual(saved);
+  expect(panel().props.title).toBe("Recovered after retry");
+  expect(panel().props.dirty).toBe(true);
+});
+
+test("saving a snapshot while newer edits arrive preserves them and completes even after backgrounding", async () => {
+  let finish!: (id: number) => void;
+  jest.mocked(saveTablature).mockImplementationOnce(
+    () =>
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+  );
+  await render();
+  await act(async () => {
+    transport().setTab(saved);
+  });
+  await act(async () => panel().props.onSave());
+  const library = () => screen!.root.findByType(TablatureLibrary);
+  await act(async () =>
+    library().findByType(TextInput).props.onChangeText("Saved snapshot")
+  );
+  await act(async () =>
+    library()
+      .findAllByType(Action)
+      .find((node) => node.props.label === "TabSave")!
+      .props.onPress()
+  );
+  const newer = {
+    ...saved,
+    notes: [{ string: 5, fret: 12, tick: 0, duration: 12 }]
+  };
+  await act(async () => {
+    transport().setTab(newer);
+  });
+  mockFocused = false;
+  await act(async () => screen!.update(<PlayGuitar />));
+  await act(async () => finish(7));
+  expect(saveTablature).toHaveBeenCalledWith(
+    expect.objectContaining({ tablature: saved, title: "Saved snapshot" })
+  );
+  expect(transport().tab).toEqual(newer);
+  expect(panel().props.dirty).toBe(true);
+  expect(panel().props.title).toBe("Saved snapshot");
+  expect(screen!.root.findAllByType(TablatureLibrary)).toHaveLength(0);
 });

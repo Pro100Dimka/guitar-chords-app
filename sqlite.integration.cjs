@@ -443,7 +443,7 @@ async function main() {
   await drafts.writeTablatureDraft(draft);
   assert.equal(JSON.stringify(await drafts.readTablatureDraft()),JSON.stringify(draft));
   const maximumTab=tabModel.normalizeTablature({...tabModel.emptyTablature(),barCount:128,notes:Array.from({length:2048},(_,index)=>({string:index%6,fret:index%25,tick:index*6,duration:6}))});
-  const largeDraft={...draft,tab:maximumTab,savedTab:maximumTab,song:{...draft.song,title:"🎸".repeat(500)}};
+  const largeDraft={...draft,tab:maximumTab,savedTab:maximumTab,song:{...draft.song,title:largeTitle+"🎸".repeat(500)}};
   await drafts.writeTablatureDraft(largeDraft);
   assert.equal(JSON.stringify(await drafts.readTablatureDraft()),JSON.stringify(largeDraft));
   const draftChunks=sqlite.prepare("SELECT key,value FROM settings WHERE key GLOB 'tablature-draft:[0-9]*'").all();
@@ -464,7 +464,7 @@ async function main() {
   await Promise.all([drafts.writeTablatureDraft(largeDraft),drafts.writeTablatureDraft(draft),drafts.writeTablatureDraft(null)]);
   assert.equal(await drafts.readTablatureDraft(),null);
   assert.equal((await tabs.listTablatureSongs()).length,3,"Draft cleanup leaves library songs untouched");
-  console.log("Tablature draft SQLite checks passed: canonical restore, bounded Unicode chunks, atomic rollback, corrupt-data rejection and ordered save/clear.");
+  console.log("Tablature draft SQLite checks passed: canonical restore, legacy song titles, bounded Unicode chunks, atomic rollback, corrupt-data rejection and ordered save/clear.");
   sqlite.exec("PRAGMA user_version = 99");
   await assert.rejects(migrate(db), /newer application version/);
   assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 99);

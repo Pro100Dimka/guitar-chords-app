@@ -1,4 +1,3 @@
-import { songFieldLimits } from "../@interfaces";
 import { db } from "./database";
 import { normalizeTablature, Tablature } from "./tablature";
 import {
@@ -17,6 +16,7 @@ export interface TablatureDraft {
 const PREFIX = "tablature-draft:";
 const CHUNK_SIZE = 65536;
 const MAX_CHUNKS = 16;
+const MAX_DRAFT_LENGTH = CHUNK_SIZE * MAX_CHUNKS;
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 const invalid = () => new Error("TabDraftInvalid");
@@ -36,7 +36,9 @@ function normalizeDraft(value: unknown): TablatureDraft {
       song.id <= 0 ||
       typeof song.title !== "string" ||
       !song.title.trim() ||
-      song.title.length > songFieldLimits.title
+      // This is an existing song's label, not a new title input. Legacy
+      // libraries may exceed today's creation limit; retain their draft too.
+      song.title.length > MAX_DRAFT_LENGTH
     )
       throw invalid();
     link = { id: song.id, title: song.title };
@@ -108,7 +110,7 @@ export function readTablatureDraft(): Promise<TablatureDraft | null> {
                   typeof header.length !== "number" ||
                   !Number.isInteger(header.length) ||
                   header.length < 1 ||
-                  header.length > CHUNK_SIZE * MAX_CHUNKS ||
+                  header.length > MAX_DRAFT_LENGTH ||
                   values.size !== header.parts + 1
                 )
                   throw invalid();
@@ -140,7 +142,7 @@ export async function writeTablatureDraft(
   // Snapshot before queueing: a caller may continue editing this object while
   // an earlier SQLite transaction is still in flight.
   const text = draft === null ? null : JSON.stringify(normalizeDraft(draft));
-  if (text && text.length > CHUNK_SIZE * MAX_CHUNKS) throw invalid();
+  if (text && text.length > MAX_DRAFT_LENGTH) throw invalid();
   const chunks: string[] = [];
   if (text) {
     for (let start = 0; start < text.length; ) {

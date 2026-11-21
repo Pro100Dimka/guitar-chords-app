@@ -394,7 +394,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
         }
     }
-    @Synchronized override fun onHostResume() { instrumentPlaybackActive = !invalidated }
+    @Synchronized override fun onHostResume() { instrumentPlaybackActive = !invalidated && context.lifecycleState == LifecycleState.RESUMED }
     @Synchronized override fun onHostPause() {
         instrumentPlaybackActive = false
         finishTake(); stopPlayback()
