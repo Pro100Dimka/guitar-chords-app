@@ -14,6 +14,7 @@ export interface PerformanceEvent {
     | "stopped"
     | "processing"
     | "processingFailed"
+    | "playbackInterrupted"
     | "interrupted";
   uri?: string;
 }
@@ -43,6 +44,14 @@ export const performanceAudio = {
   stopGuitarString: (index: number) => native.stopGuitarString(index),
   metronome: (tempo: number, enabled: boolean, phase = 0) =>
     native.setMetronome(tempo, enabled, phase),
+  metronomeBeat: (accent: number, volume: number) => {
+    if (!Number.isFinite(accent) || !Number.isFinite(volume)) return;
+    native.playMetronomeBeat?.(
+      Math.round(Math.max(0, Math.min(2, accent))),
+      Math.max(0, Math.min(1, volume))
+    );
+  },
+  stopMetronomeBeats: () => native.stopMetronomeBeats?.(),
   guitar: (wave: string, key?: string) =>
     key && native.prepareGuitar && native.playPreparedGuitar
       ? native.playPreparedGuitar(key)

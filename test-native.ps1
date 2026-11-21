@@ -32,15 +32,35 @@ try {
     if (@($filesStart, $filesEnd, $deleteStart, $deleteEnd) | Where-Object { $_ -lt 0 }) { throw 'Production recording file methods not found' }
     $filesProbe = Join-Path $OutputDirectory 'RecordingStoreProbe.kt'
     Set-Content -LiteralPath $filesProbe -Encoding utf8 -Value ("package com.freetune`nimport android.media.*`nimport com.facebook.react.bridge.*`nimport java.io.File`nimport java.nio.ByteBuffer`nclass RecordingStoreProbe(val directory: File) {`nval processing=mutableSetOf<String>()`nvar take: File?=null`nvar recorder: Any?=null`nfun stopPlayback() {}`n" + $recorder.Substring($filesStart, $filesEnd-$filesStart) + $recorder.Substring($deleteStart, $deleteEnd-$deleteStart) + "`n}")
+    function Get-InstrumentMethod([string]$Source, [string]$Name) {
+        $index = $Source.IndexOf("fun $Name(")
+        if ($index -lt 0) { throw "Production instrument method missing: $Name" }
+        $begin = $Source.LastIndexOf("`n", $index) + 1
+        $opening = $Source.IndexOf('{', $index)
+        $end = $opening + 1
+        $depth = 1
+        while ($depth -gt 0 -and $end -lt $Source.Length) {
+            if ($Source[$end] -eq '{') { $depth++ }
+            if ($Source[$end] -eq '}') { $depth-- }
+            $end++
+        }
+        if ($depth -ne 0) { throw "Unclosed instrument method: $Name" }
+        return $Source.Substring($begin, $end - $begin).Replace('@ReactMethod ', '')
+    }
+    $instrumentProbe = Join-Path $OutputDirectory 'InstrumentPlaybackProbe.kt'
+    $instrumentMethods = @('onHostResume', 'onHostPause', 'onHostDestroy', 'invalidate', 'clearGuitars', 'stopPlayback', 'playMetronomeBeat', 'stopMetronomeBeats', 'playGuitarString', 'stopGuitarString') | ForEach-Object { Get-InstrumentMethod $recorder $_ }
+    Set-Content -LiteralPath $instrumentProbe -Encoding utf8 -Value ("import java.nio.ByteBuffer`nimport java.nio.ByteOrder`nimport InstrumentTrack as AudioTrack`nclass PerformanceAudio(context: InstrumentContext) : InstrumentModule(context) {`n" + ($instrumentMethods -join "`n") + "`n}")
     $recognition = Get-Content -LiteralPath "$PSScriptRoot/android/app/src/main/java/com/freetune/SongRecognitionModule.kt" -Raw
     $sessionStart = $recognition.IndexOf('internal class RecognitionSession')
     if ($sessionStart -lt 0) { throw 'Recognition session class not found' }
     Set-Content -LiteralPath (Join-Path $OutputDirectory 'RecognitionSession.kt') -Encoding utf8 -Value ("package com.freetune`nimport java.util.concurrent.*`nimport java.util.concurrent.atomic.*`nimport android.os.CancellationSignal`nimport java.io.Closeable`n" + $recognition.Substring($sessionStart))
     $separator = [IO.Path]::PathSeparator
-    & java -cp "$KotlinLib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -classpath "$standardLibrary$separator$annotations" -d $artifact @sources (Join-Path $OutputDirectory 'RecognitionSession.kt') $filesProbe $recorderFile "$PSScriptRoot/android/app/src/main/java/com/freetune/MicrophoneStreamModule.kt" "$PSScriptRoot/android/app/src/main/java/com/freetune/RecordingPolish.kt"
+    & java -cp "$KotlinLib/*" org.jetbrains.kotlin.cli.jvm.K2JVMCompiler -no-stdlib -no-reflect -classpath "$standardLibrary$separator$annotations" -d $artifact @sources (Join-Path $OutputDirectory 'RecognitionSession.kt') $filesProbe $instrumentProbe $recorderFile "$PSScriptRoot/android/app/src/main/java/com/freetune/MicrophoneStreamModule.kt" "$PSScriptRoot/android/app/src/main/java/com/freetune/RecordingPolish.kt"
     if ($LASTEXITCODE -ne 0) { throw 'Kotlin compilation failed' }
     & java -cp "$artifact$separator$standardLibrary" CheckKt "$PSScriptRoot/assets/notebooks" $OutputDirectory
     if ($LASTEXITCODE -ne 0) { throw 'Native regression checks failed' }
+    & java -cp "$artifact$separator$standardLibrary" InstrumentPlaybackCheckKt
+    if ($LASTEXITCODE -ne 0) { throw 'Native instrument regression checks failed' }
 } finally {
     $env:TEMP = $previousTemp
     $env:TMP = $previousTmp

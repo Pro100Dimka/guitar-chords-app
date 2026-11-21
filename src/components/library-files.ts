@@ -330,6 +330,12 @@ interface BackupSong {
 }
 const record = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
+function backupPreferences(value: unknown): SongPreferences {
+  const preferences = normalizeSongPreferences(value);
+  if (record(value) && value.tablature !== undefined && !preferences.tablature)
+    throw new Error("BackupInvalid");
+  return preferences;
+}
 export function parseLibraryBackup(text: string): BackupSong[] {
   let data: unknown;
   try {
@@ -371,7 +377,7 @@ export function parseLibraryBackup(text: string): BackupSong[] {
       band_name: strings.band_name,
       youtube_music: strings.youtube_music,
       youtobe_lesson: strings.youtobe_lesson,
-      preferences: normalizeSongPreferences(song.preferences)
+      preferences: backupPreferences(song.preferences)
     };
   });
 }
@@ -384,13 +390,14 @@ export async function exportLibrary() {
     joins: ["LEFT JOIN bands ON songs.band_id = bands.id"]
   });
   const state = usePreferences.getState();
+  for (const song of songs) backupPreferences(state.songs[song.id]);
   const identities = Object.fromEntries(
     songs
       .filter((song) => !state.songs[song.id]?.backupId)
       .map((song) => [
         song.id,
         {
-          ...normalizeSongPreferences(state.songs[song.id]),
+          ...backupPreferences(state.songs[song.id]),
           backupId: `${Date.now().toString(36)}-${song.id}-${Math.random().toString(36).slice(2)}`
         }
       ])
@@ -444,7 +451,7 @@ export async function exportLibrary() {
       band_name: song.band_name,
       youtube_music: song.youtube_music ?? "",
       youtobe_lesson: song.youtobe_lesson ?? "",
-      preferences: normalizeSongPreferences(preferences[song.id])
+      preferences: backupPreferences(preferences[song.id])
     };
     const size = encodeURIComponent(JSON.stringify(entry)).replace(
       /%[\dA-F]{2}/g,
