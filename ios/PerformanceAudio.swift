@@ -11,33 +11,68 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     private var preparedStrings: [String: AVAudioPlayer] = [:]
     private var preparedStringOrder: [String] = []
     private var guitarStrings: [Int: AVAudioPlayer] = [:]
-    private var stringGeneration: [Int: Int] = [:]
     private var stringSessionActive = false
     private var metronomeEngine: AVAudioEngine?
     private var metronomeNode: AVAudioPlayerNode?
+    private var beatEngine: AVAudioEngine?
+    private var beatNodes: [AVAudioPlayerNode] = []
+    private var beatBuffers: [AVAudioPCMBuffer] = []
     private var lastTake: URL?
     private var startedAt: Date?
     private var processing = Set<String>()
     private let worker = DispatchQueue(label: "recording.polish", qos: .userInitiated)
     private var observers: [NSObjectProtocol] = []
+    private var observing = false
+    private var instrumentInterrupted = false
+    private var canPlayInstrument: Bool { !instrumentInterrupted && UIApplication.shared.applicationState == .active }
     private var directory: URL {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask)[0].appendingPathComponent("performances", isDirectory: true)
     }
     override init() {
         super.init()
         try? reconcileRecordings()
-        for name in [UIApplication.didEnterBackgroundNotification, AVAudioSession.interruptionNotification] {
-            observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
-                self?.finishTake()
-                self?.stopPlayback()
-            })
+        observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.finishTake()
+            self?.stopPlayback()
+            self?.emit("playbackInterrupted")
+        })
+        observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: .main) { [weak self] _ in
+            self?.handleForeground()
+        })
+        observers.append(NotificationCenter.default.addObserver(forName: AVAudioSession.interruptionNotification, object: nil, queue: .main) { [weak self] notification in
+            self?.handleInterruption(notification)
+        })
+    }
+    private func handleForeground() {
+        guard UIApplication.shared.applicationState == .active else { return }
+        // An interruption need not deliver .ended. Permit the next explicit
+        // Play to reactivate the session, without starting audio on foreground.
+        instrumentInterrupted = false
+    }
+    private func handleInterruption(_ notification: Notification) {
+        guard let value = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+              let type = AVAudioSession.InterruptionType(rawValue: value) else { return }
+        if type == .began {
+            // Suspension notifications can arrive after didBecomeActive.
+            // They describe an inactive session, not an ongoing interruption.
+            let suspended = notification.userInfo?[AVAudioSessionInterruptionWasSuspendedKey] as? Bool == true
+            instrumentInterrupted = !(suspended && UIApplication.shared.applicationState == .active)
+            finishTake()
+            stopPlayback()
+            emit("playbackInterrupted")
+        } else if type == .ended {
+            // The JS transport requires an explicit new Play; this only permits it.
+            instrumentInterrupted = false
         }
     }
-    deinit { observers.forEach(NotificationCenter.default.removeObserver) }
+    deinit { clearMetronomeBeats(); observers.forEach(NotificationCenter.default.removeObserver) }
     @objc override static func requiresMainQueueSetup() -> Bool { true }
     override var methodQueue: DispatchQueue! { DispatchQueue.main }
     override func supportedEvents() -> [String]! { ["onPerformanceAudio"] }
+    override func startObserving() { observing = true }
+    override func stopObserving() { observing = false }
     private func emit(_ state: String, uri: String? = nil) {
+        if state == "playbackInterrupted" && !observing { return }
         sendEvent(withName: "onPerformanceAudio", body: ["state": state, "uri": uri ?? ""])
     }
     @objc func startTake(_ songId: String, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
@@ -187,6 +222,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         stringSessionActive = false
         metronomeNode?.stop(); metronomeEngine?.stop()
         metronomeNode = nil; metronomeEngine = nil
+        clearMetronomeBeats()
         if wasPlaying && recorder == nil { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
         if wasPlaying { emit("stopped") }
     }
@@ -196,7 +232,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         catch { reject("DELETE_FAILED", "Could not delete recording", error) }
     }
     @objc func playSuccess() {
-        guard recorder == nil, player == nil, let url = Bundle.main.url(forResource: "tuner_success", withExtension: "wav") else { return }
+        guard canPlayInstrument, recorder == nil, player == nil, let url = Bundle.main.url(forResource: "tuner_success", withExtension: "wav") else { return }
         cue?.stop()
         cue = try? AVAudioPlayer(contentsOf: url)
         cue?.volume = 0.3
@@ -205,7 +241,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     @objc func setMetronome(_ tempo: Double, enabled: Bool, phase: Double) {
         metronomeNode?.stop(); metronomeEngine?.stop()
         metronomeNode = nil; metronomeEngine = nil
-        guard enabled, recorder == nil, tempo.isFinite, (40...200).contains(tempo) else { return }
+        guard enabled, canPlayInstrument, recorder == nil, tempo.isFinite, (40...200).contains(tempo) else { return }
         let rate = 22050.0
         let frames = AVAudioFrameCount((rate * 60 / tempo).rounded())
         let shift = phase.isFinite ? Int((Double(frames) * min(1, max(0, phase))).rounded()) % Int(frames) : 0
@@ -233,6 +269,64 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             stringSessionActive = true
         } catch { engine.stop() }
     }
+    private func prepareMetronomeBeats() -> Bool {
+        if beatEngine != nil { return true }
+        let rate = 22050.0
+        let frames = AVAudioFrameCount(rate * 0.03)
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1) else { return false }
+        let engine = AVAudioEngine()
+        var nodes: [AVAudioPlayerNode] = []
+        var buffers: [AVAudioPCMBuffer] = []
+        for accent in 0...2 {
+            guard let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
+                  let samples = buffer.floatChannelData?[0] else { return false }
+            buffer.frameLength = frames
+            let frequency = accent == 2 ? 1800.0 : accent == 1 ? 1350.0 : 900.0
+            let level = accent == 2 ? 0.24 : accent == 1 ? 0.18 : 0.12
+            for index in 0..<Int(frames) {
+                let time = Double(index) / rate
+                samples[index] = Float(level * sin(2 * .pi * frequency * time) *
+                    (1 - exp(-3000 * time)) * exp(-180 * time) *
+                    (1 - Double(index) / Double(frames - 1)))
+            }
+            let node = AVAudioPlayerNode()
+            engine.attach(node)
+            engine.connect(node, to: engine.mainMixerNode, format: format)
+            nodes.append(node); buffers.append(buffer)
+        }
+        engine.prepare()
+        beatEngine = engine; beatNodes = nodes; beatBuffers = buffers
+        return true
+    }
+    // The tab transport owns timing. No looping buffer or independent beat timer.
+    @objc func playMetronomeBeat(_ accent: Double, volume: Double) {
+        guard canPlayInstrument, recorder == nil, accent.isFinite, volume.isFinite, volume > 0,
+              prepareMetronomeBeats(), let engine = beatEngine else { return }
+        let kind = Int(min(2, max(0, accent)).rounded())
+        do {
+            if !engine.isRunning {
+                let session = AVAudioSession.sharedInstance()
+                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                try session.setActive(true)
+                try engine.start()
+                stringSessionActive = true
+            }
+            let node = beatNodes[kind]
+            node.stop()
+            node.volume = Float(min(1, max(0, volume)))
+            node.scheduleBuffer(beatBuffers[kind], at: nil, options: [], completionHandler: nil)
+            node.play()
+        } catch { clearMetronomeBeats() }
+    }
+    @objc func stopMetronomeBeats() {
+        beatNodes.forEach { $0.stop() }
+        beatEngine?.pause()
+    }
+    private func clearMetronomeBeats() {
+        stopMetronomeBeats()
+        beatEngine?.stop(); beatEngine = nil
+        beatNodes.removeAll(); beatBuffers.removeAll()
+    }
     @objc func prepareGuitar(_ key: String, wave: String) {
         guard key.count <= 256, wave.count <= 400000 else { return }
         if preparedStrings[key] == nil {
@@ -244,7 +338,6 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         while preparedStringOrder.count > 32 { preparedStrings.removeValue(forKey: preparedStringOrder.removeFirst()) }
     }
     @objc func stopGuitarString(_ index: Int) {
-        stringGeneration[index] = (stringGeneration[index] ?? 0) + 1
         let voice = guitarStrings.removeValue(forKey: index)
         voice?.setVolume(0, fadeDuration: 0.016)
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
@@ -252,29 +345,33 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         }
     }
     @objc func playGuitarString(_ key: String, index: Int) {
-        guard recorder == nil, (0..<6).contains(index), let audio = preparedStrings[key] else { return }
-        let previous = guitarStrings[index]
-        previous?.setVolume(0, fadeDuration: 0.008)
-        guitarStrings[index] = audio
-        let generation = (stringGeneration[index] ?? 0) + 1
-        stringGeneration[index] = generation
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
-            if previous !== self?.guitarStrings[index] { previous?.stop() }
-            guard self?.stringGeneration[index] == generation, self?.guitarStrings[index] === audio else { return }
-            if previous === audio { audio.stop() }
-            if self?.stringSessionActive == false {
-                let session = AVAudioSession.sharedInstance()
-                do {
-                    try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-                    try session.setActive(true)
-                    self?.stringSessionActive = true
-                } catch { return }
-            }
-            audio.currentTime = 0; audio.volume = 0.22; audio.play()
+        guard canPlayInstrument, recorder == nil, (0..<6).contains(index), let audio = preparedStrings[key] else { return }
+        if !stringSessionActive {
+            let session = AVAudioSession.sharedInstance()
+            do {
+                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                try session.setActive(true)
+                stringSessionActive = true
+            } catch { return }
         }
+        let previous = guitarStrings[index]
+        if previous === audio {
+            audio.stop()
+        } else if let previous = previous {
+            previous.setVolume(0, fadeDuration: 0.008)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) { [weak self] in
+                if self?.guitarStrings[index] !== previous { previous.stop() }
+            }
+        }
+        guitarStrings[index] = audio
+        // Begin on the transport's attack, before even a very short note's gate
+        // can release it. Only the old voice's fade cleanup is deferred.
+        audio.currentTime = 0
+        audio.setVolume(0.22, fadeDuration: 0)
+        audio.play()
     }
     @objc func playGuitar(_ wave: String) {
-        guard recorder == nil, wave.count <= 400000, let data = Data(base64Encoded: wave) else { return }
+        guard canPlayInstrument, recorder == nil, wave.count <= 400000, let data = Data(base64Encoded: wave) else { return }
         let previous = cue
         cue = nil
         previous?.setVolume(0, fadeDuration: 0.016)

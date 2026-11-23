@@ -37,6 +37,8 @@ import {
   usePreferences
 } from "../src/components/preferences";
 import { SQLTransaction } from "react-native-sqlite-2";
+import { Tablature } from "../src/components/tablature";
+import { defaultTabPractice } from "../src/components/tablature-practice";
 
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
@@ -46,6 +48,24 @@ jest.mock("../src/components/database/crud", () => ({
 }));
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
+const tabPractice = {
+  ...defaultTabPractice(),
+  metronome: true,
+  countInBars: 2 as const,
+  trainer: { enabled: true, startBpm: 60, targetBpm: 100, stepBpm: 5, repeats: 3 }
+};
+const tablature: Tablature = {
+  version: 2,
+  tempo: 92,
+  beatsPerBar: 4,
+  beatUnit: 4,
+  barCount: 1,
+  rests: [],
+  notes: [
+    { string: 0, fret: 0, tick: 0, duration: 24 },
+    { string: 5, fret: 7, tick: 24, duration: 24 }
+  ]
+};
 
 test.each(["resize", "readFile"])(
   "remote cover deadline includes stalled %s processing and cleans late results",
@@ -295,6 +315,8 @@ test("song preferences and cover survive serialization and reload; failed commit
     else success?.();
   });
   usePreferences.getState().updateSong(17, {
+    tablature,
+    tabPractice,
     cover,
     favorite: true,
     position: 125,
@@ -317,6 +339,8 @@ test("song preferences and cover survive serialization and reload; failed commit
   });
   await loadPreferences();
   expect(usePreferences.getState().songs[17]).toMatchObject({
+    tablature,
+    tabPractice,
     cover,
     favorite: true,
     position: 125,
@@ -332,7 +356,9 @@ test("exported backup retains artist, lyrics, cover and chord shapes", async () 
   };
   usePreferences
     .getState()
-    .updateSong(17, { cover, shapes: { Am: 2 }, contentSource });
+    .updateSong(17, {
+      cover, shapes: { Am: 2 }, contentSource, tablature, tabPractice
+    });
   jest.mocked(getAllItems).mockResolvedValue([
     {
       id: 17,
@@ -364,12 +390,59 @@ test("exported backup retains artist, lyrics, cover and chord shapes", async () 
     title: "Song",
     band_name: "Artist",
     content: "Am C\nWords",
-    preferences: { cover, shapes: { Am: 2 }, contentSource }
+    preferences: { cover, shapes: { Am: 2 }, contentSource, tablature, tabPractice }
   });
   expect(FileSystem.unlink).toHaveBeenCalledTimes(1);
   expect(() => parseLibraryBackup('{"format":"broken"}')).toThrow(
     "BackupInvalid"
   );
+});
+
+test.each([
+  null,
+  { ...tablature, version: 3 },
+  { ...tablature, notes: [{ string: 6, fret: 0, tick: 0 }] },
+  { ...tablature, notes: [{ string: 0, fret: 0, tick: -1 }] }
+])(
+  "backup rejects explicit malformed tablature instead of dropping it: %j",
+  (invalid) => {
+    expect(() =>
+      parseLibraryBackup(
+        JSON.stringify({
+          format: "freetune-library",
+          version: 2,
+          songs: [
+            {
+              title: "Riff",
+              content: "Saved tab",
+              band_name: "",
+              youtube_music: "",
+              youtobe_lesson: "",
+              preferences: { tablature: invalid }
+            }
+          ]
+        })
+      )
+    ).toThrow("BackupInvalid");
+  }
+);
+
+test("export refuses invalid tablature before reporting a successful backup", async () => {
+  usePreferences.getState().updateSong(17, {
+    tablature: { ...tablature, version: 3 } as unknown as Tablature
+  });
+  jest.mocked(getAllItems).mockResolvedValue([
+    {
+      id: 17,
+      title: "Invalid riff",
+      content: "Saved tab",
+      band_name: "",
+      youtube_music: "",
+      youtobe_lesson: ""
+    }
+  ]);
+  await expect(exportLibrary()).rejects.toThrow("BackupInvalid");
+  expect(FileSystem.writeFile).not.toHaveBeenCalled();
 });
 
 test.each([false, true])(

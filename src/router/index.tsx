@@ -13,9 +13,10 @@ import CreateChordSong from "@/screens/create-song-chords";
 import RecognizeSong from "@/screens/recognize-song";
 import type { FormValues } from "@/screens/create-song-chords";
 import Header from "@/components/header";
+import type { PlayTabParams } from "../screens/play/use-tablature-session";
 
 export type RootStackParamList = {
-  Tabs: { screen: string; id?: string };
+  Tabs: { screen: string; id?: string; params?: PlayTabParams };
   Song: { id: string; recordings?: boolean } | undefined;
   GuideArticle: { id: string };
   createSong:

@@ -14,6 +14,7 @@ import android.media.MediaMuxer
 import android.media.MediaExtractor
 import android.content.Context
 import com.facebook.react.bridge.*
+import com.facebook.react.common.LifecycleState
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.io.File
 import java.util.concurrent.Executors
@@ -28,6 +29,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     private var cue: MediaPlayer? = null
     private var guitar: AudioTrack? = null
     private var metronome: AudioTrack? = null
+    private val metronomeBeats = mutableMapOf<Int, AudioTrack>()
     private val guitarStrings = mutableMapOf<Int, AudioTrack>()
     private val guitarPcm = linkedMapOf<String, ByteArray>()
     private val preparedGuitars = linkedMapOf<String, AudioTrack>()
@@ -35,10 +37,17 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     private var lastTake: String? = null
     private val processing = ConcurrentHashMap.newKeySet<String>()
     private val worker = Executors.newSingleThreadExecutor()
+    private var instrumentPlaybackActive = context.lifecycleState == LifecycleState.RESUMED
+    private var invalidated = false
     private val directory get() = File(context.filesDir, "performances").apply { mkdirs() }
     private val audioManager get() = context.getSystemService(Context.AUDIO_SERVICE) as AudioManager
     private val focusListener = AudioManager.OnAudioFocusChangeListener { change ->
-        if (change < 0) { finishTake(); stopPlayback() }
+        if (change < 0) {
+            synchronized(this) {
+                finishTake(); stopPlayback()
+                if (!invalidated && context.hasActiveReactInstance()) emit("playbackInterrupted")
+            }
+        }
     }
     init {
         context.addLifecycleEventListener(this)
@@ -206,6 +215,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         cue?.release(); cue = null
         guitar?.release(); guitar = null
         metronome?.release(); metronome = null
+        metronomeBeats.values.forEach { it.release() }; metronomeBeats.clear()
         guitarStrings.values.forEach { it.release() }; guitarStrings.clear()
         if (recorder == null) audioManager.abandonAudioFocus(focusListener)
         if (wasPlaying) emit("stopped")
@@ -224,7 +234,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         catch (error: Exception) { promise.reject("DELETE_FAILED", error) }
     }
     @ReactMethod @Synchronized fun playSuccess() {
-        if (recorder != null || player != null) return
+        if (!instrumentPlaybackActive || recorder != null || player != null) return
         cue?.release()
         cue = MediaPlayer.create(context, R.raw.tuner_success)?.apply {
             setVolume(0.3f, 0.3f)
@@ -254,7 +264,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     }
     @ReactMethod @Synchronized fun setMetronome(tempo: Double, enabled: Boolean, phase: Double) {
         fadeGuitar(metronome); metronome = null
-        if (!enabled || recorder != null || !tempo.isFinite() || tempo !in 40.0..200.0) return
+        if (!enabled || !instrumentPlaybackActive || recorder != null || !tempo.isFinite() || tempo !in 40.0..200.0) return
         val rate = 22050
         val frames = Math.round(rate * 60.0 / tempo).toInt()
         val shift = if (phase.isFinite()) Math.round(frames * phase.coerceIn(0.0, 1.0)).toInt() % frames else 0
@@ -272,8 +282,37 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             track.play()
         } catch (_: Exception) { metronome?.release(); metronome = null }
     }
+    // The tab transport owns timing. These cached static voices play one click only.
+    @ReactMethod @Synchronized fun playMetronomeBeat(accent: Double, volume: Double) {
+        if (!instrumentPlaybackActive || recorder != null || !accent.isFinite() || !volume.isFinite() || volume <= 0) return
+        val kind = Math.round(accent.coerceIn(0.0, 2.0)).toInt()
+        try {
+            val voice = metronomeBeats.getOrPut(kind) {
+                val rate = 22050
+                val frames = (rate * 0.03).toInt()
+                val frequency = when (kind) { 2 -> 1800.0; 1 -> 1350.0; else -> 900.0 }
+                val level = when (kind) { 2 -> 0.24; 1 -> 0.18; else -> 0.12 }
+                val pcm = ByteBuffer.allocate(frames * 2).order(ByteOrder.LITTLE_ENDIAN)
+                for (index in 0 until frames) {
+                    val time = index.toDouble() / rate
+                    val value = level * kotlin.math.sin(2 * Math.PI * frequency * time) *
+                        (1 - kotlin.math.exp(-3000 * time)) * kotlin.math.exp(-180 * time) *
+                        (1 - index.toDouble() / (frames - 1))
+                    pcm.putShort((value * 32767).toInt().toShort())
+                }
+                pcmTrack(pcm.array(), rate, 1)
+            }
+            voice.pause()
+            check(voice.setPlaybackHeadPosition(0) == AudioTrack.SUCCESS)
+            voice.setVolume(volume.coerceIn(0.0, 1.0).toFloat())
+            voice.play()
+        } catch (_: Exception) { metronomeBeats.remove(kind)?.release() }
+    }
+    @ReactMethod @Synchronized fun stopMetronomeBeats() {
+        metronomeBeats.values.forEach { runCatching { it.pause(); it.setPlaybackHeadPosition(0) } }
+    }
     @ReactMethod @Synchronized fun prepareGuitar(key: String, wave: String) {
-        if (key.length > 256 || wave.length > 8_000_000) return
+        if (invalidated || key.length > 256 || wave.length > 8_000_000) return
         try {
             val bytes = guitarPcm[key] ?: android.util.Base64.decode(wave, android.util.Base64.DEFAULT).also {
                 require(it.size > 44)
@@ -299,7 +338,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         promise.resolve(preparedGuitars.containsKey(key))
     }
     @ReactMethod @Synchronized fun playGuitarString(key: String, index: Int) {
-        if (recorder != null || index !in 0..5) return
+        if (!instrumentPlaybackActive || recorder != null || index !in 0..5) return
         val bytes = guitarPcm[key] ?: return
         val voice = try { preparedGuitars.remove(key) ?: guitarTrack(bytes) } catch (_: Exception) { return }
         fadeGuitar(guitarStrings.remove(index), 0.22f)
@@ -339,7 +378,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         }
     }
     @ReactMethod @Synchronized fun playPreparedGuitar(key: String) {
-        if (recorder != null) return
+        if (!instrumentPlaybackActive || recorder != null) return
         val bytes = guitarPcm[key] ?: return
         val prepared = try { preparedGuitars.remove(key) ?: guitarTrack(bytes) } catch (_: Exception) { return }
         val previous = guitar
@@ -355,14 +394,18 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
         }
     }
-    override fun onHostResume() {}
-    override fun onHostPause() { finishTake(); stopPlayback() }
+    @Synchronized override fun onHostResume() { instrumentPlaybackActive = !invalidated && context.lifecycleState == LifecycleState.RESUMED }
+    @Synchronized override fun onHostPause() {
+        instrumentPlaybackActive = false
+        finishTake(); stopPlayback()
+        if (!invalidated && context.hasActiveReactInstance()) emit("playbackInterrupted")
+    }
     @Synchronized private fun clearGuitars() {
         preparedGuitars.values.forEach { it.release() }
         preparedGuitars.clear(); guitarPcm.clear()
     }
-    override fun onHostDestroy() { finishTake(); stopPlayback() }
-    override fun invalidate() { finishTake(); stopPlayback(); clearGuitars(); worker.shutdown(); context.removeLifecycleEventListener(this); super.invalidate() }
+    @Synchronized override fun onHostDestroy() { instrumentPlaybackActive = false; finishTake(); stopPlayback() }
+    @Synchronized override fun invalidate() { invalidated = true; instrumentPlaybackActive = false; finishTake(); stopPlayback(); clearGuitars(); worker.shutdown(); context.removeLifecycleEventListener(this); super.invalidate() }
     @ReactMethod fun addListener(name: String) {}
     @ReactMethod fun removeListeners(count: Int) {}
 }

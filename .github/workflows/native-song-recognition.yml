@@ -24,6 +24,7 @@ on:
       - test-ios-pitch.py
       - test-ios-capture.py
       - test-ios-recordings.py
+      - test-ios-performance.py
       - .github/workflows/native-song-recognition.yml
       - scripts/verify-shazam.cjs
   pull_request:
@@ -105,3 +106,6 @@ jobs:
       - name: Production Swift recording file methods with real AAC
         if: ${{ !cancelled() }}
         run: python3 test-ios-recordings.py
+      - name: Production Swift instrument playback and lifecycle guards
+        if: ${{ !cancelled() }}
+        run: python3 test-ios-performance.py

@@ -1,4 +1,11 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   AppState,
   Image,
@@ -6,6 +13,7 @@ import {
   ScrollView,
   StyleSheet,
   TextInput,
+  useWindowDimensions,
   View
 } from "react-native";
 import { Canvas } from "@shopify/react-native-skia";
@@ -20,6 +28,7 @@ import Strings from "../tuner/strings";
 import guitar from "../tuner/config/guitar-classic";
 import { guitarLayout } from "../tuner/guitar-layout";
 import { noteNames } from "../tuner/tunings";
+import MicrophoneStream from "../tuner/MicrophoneStream";
 import { chordShapeOptions, guitarMidi } from "../song/chords";
 import {
   recordedChordFrets,
@@ -29,10 +38,17 @@ import { prepareGuitar, warmGuitar } from "../../components/guitar-audio";
 import { performanceAudio } from "../../components/performance-audio";
 import type { INote } from "../../@interfaces";
 import palette from "../../theme/palette";
+import type { TabNote } from "../../components/tablature";
+import { TablaturePanel } from "./tablature-panel";
+import { TablatureLibrary } from "./tablature-library";
+import { TablaturePractice } from "./tablature-practice";
+import { useTablature } from "./use-tablature";
+import { useTablatureSession } from "./use-tablature-session";
 
 export default function PlayGuitar() {
   const { t } = useTranslation();
   const focused = useIsFocused();
+  const screenSize = useWindowDimensions();
   const [foreground, setForeground] = useState(
     AppState.currentState === "active"
   );
@@ -55,6 +71,9 @@ export default function PlayGuitar() {
   const [free, setFree] = useState(false);
   const [fretsSheet, setFretsSheet] = useState(false);
   const [freeFrets, setFreeFrets] = useState([0, 0, 0, 0, 0, 0]);
+  const [tabNotes, setTabNotes] = useState<TabNote[]>([]);
+  const [practiceOpen, setPracticeOpen] = useState(false);
+  const [audioInterruption, setAudioInterruption] = useState(0);
   const plucks = useSharedValue<number[]>([]);
   const rms = useSharedValue(0);
   const fill = useSharedValue(0);
@@ -75,6 +94,7 @@ export default function PlayGuitar() {
     : [];
   const shapePages = Math.max(1, Math.ceil(options.length / 4));
   const openFingerings = (name: string) => {
+    if (!tabRecording) tablature.pause();
     const selectedShape = selectedChordShape(name, shapes[name]);
     const available = chordShapeOptions(name, selectedShape?.index);
     setShapePage(
@@ -90,6 +110,7 @@ export default function PlayGuitar() {
     setFingeringChord(name);
   };
   const selectChord = (index: number) => {
+    if (!tabRecording) tablature.pause();
     setSelected(index);
     setFree(false);
   };
@@ -114,6 +135,101 @@ export default function PlayGuitar() {
   const frame = guitarLayout(layout.width, layout.height);
   const landscape = layout.width > layout.height;
   const active = focused && foreground;
+  const showTabNotes = useCallback(
+    (notes: TabNote[]) => {
+      setTabNotes([
+        ...new Map(notes.map((entry) => [entry.string, entry])).values()
+      ]);
+      if (notes.length) {
+        const counts = [...plucks.value];
+        notes.forEach(({ string }) => {
+          counts[string] = (counts[string] ?? 0) + 1;
+        });
+        plucks.value = counts;
+      }
+    },
+    [plucks]
+  );
+  const tablature = useTablature(active, showTabNotes);
+  const { capture: captureTabNotes, pause: pauseTabPlayback } = tablature;
+  const tabRecording =
+    tablature.status === "recording" ||
+    (tablature.status === "countingIn" &&
+      tablature.countIn?.target === "record");
+  const tabPlayback =
+    tablature.status === "preparing" ||
+    tablature.status === "playing" ||
+    (tablature.status === "countingIn" && !tabRecording);
+  const tabOwnsAudio = tabPlayback || tabRecording;
+  const stopBacking = useCallback(() => {
+    setPlaying(false);
+    setMetronome(false);
+    clock.current.linkedMetronome = false;
+  }, []);
+  const tabSession = useTablatureSession(
+    tablature,
+    active,
+    tempo,
+    beats,
+    stopBacking
+  );
+  const sideTabs = screenSize.width > screenSize.height && tabSession.expanded;
+  const TabPanelContainer = sideTabs ? ScrollView : View;
+  const touchContext = useMemo(
+    () => ({
+      active,
+      status: tablature.status,
+      practiceOpen,
+      audioInterruption
+    }),
+    [active, tablature.status, practiceOpen, audioInterruption]
+  );
+  const liveTouchContext = useRef<typeof touchContext | null>(null);
+  const strumTouchContext = useRef<typeof touchContext | null>(null);
+
+  useLayoutEffect(() => {
+    const previous = liveTouchContext.current;
+    // Let an ongoing strum finish its own pause of tab playback. Any later
+    // transport, navigation or interruption change revokes that handoff.
+    if (
+      strumTouchContext.current !== previous ||
+      touchContext.status !== "idle" ||
+      touchContext.active !== previous?.active ||
+      touchContext.practiceOpen !== previous?.practiceOpen ||
+      touchContext.audioInterruption !== previous?.audioInterruption
+    )
+      strumTouchContext.current = null;
+    liveTouchContext.current = touchContext;
+  }, [touchContext]);
+  useLayoutEffect(
+    () => () => {
+      liveTouchContext.current = null;
+      strumTouchContext.current = null;
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (tabOwnsAudio) stopBacking();
+  }, [tabOwnsAudio, stopBacking]);
+
+  useEffect(() => {
+    const listener = performanceAudio.listen((event) => {
+      if (event.state !== "playbackInterrupted") return;
+      liveTouchContext.current = null;
+      strumTouchContext.current = null;
+      setAudioInterruption((value) => value + 1);
+      prepared.current.clear();
+      pauseTabPlayback();
+      stopBacking();
+    });
+    return () => listener.remove();
+  }, [pauseTabPlayback, stopBacking]);
+
+  useEffect(() => {
+    MicrophoneStream.setKeepAwake(practiceOpen && active, "tablature-practice");
+    return () => MicrophoneStream.setKeepAwake(false, "tablature-practice");
+  }, [active, practiceOpen]);
 
   useEffect(() => {
     const listener = AppState.addEventListener("change", (state) =>
@@ -136,7 +252,7 @@ export default function PlayGuitar() {
   }, [active, plucks]);
   useEffect(() => {
     const transport = clock.current;
-    const enabled = active && metronome;
+    const enabled = active && metronome && !tabOwnsAudio;
     const starting = playing && !transport.wasPlaying;
     const update =
       enabled !== transport.metronome ||
@@ -158,11 +274,11 @@ export default function PlayGuitar() {
       transport.pulseOrigin = transport.origin;
     }
     performanceAudio.metronome(tempo, enabled, phase);
-  }, [active, metronome, tempo, playing]);
+  }, [active, metronome, tempo, playing, tabOwnsAudio]);
   useEffect(() => {
-    if (!active) return;
-    const controller = new AbortController();
     prepared.current.clear();
+    if (!active || tabPlayback) return;
+    const controller = new AbortController();
     const notes = currentPitches.current;
     notes.forEach((midi, index) => {
       if (previousPitches.current[index] !== midi)
@@ -181,9 +297,10 @@ export default function PlayGuitar() {
       }
     })();
     return () => controller.abort();
-  }, [active, pitchKey]);
+  }, [active, pitchKey, tabPlayback]);
   useEffect(() => {
-    if (!active || !playing || !progression.length || free) return;
+    if (!active || !playing || !progression.length || free || tabOwnsAudio)
+      return;
     const duration = 60000 / tempo / 2;
     const slots = beats * 2;
     const now = Date.now();
@@ -222,11 +339,40 @@ export default function PlayGuitar() {
       transport.running = false;
       clearInterval(timer);
     };
-  }, [active, playing, progression.length, tempo, beats, free, pattern]);
+  }, [
+    active,
+    playing,
+    progression.length,
+    tempo,
+    beats,
+    free,
+    pattern,
+    tabOwnsAudio
+  ]);
 
   const playStrings = useCallback(
     (indices: number[]) => {
-      if (!active) return;
+      // UI-thread touches can reach JS after navigation or a new recording.
+      // Only the context that received the touch may play or capture it.
+      if (
+        (liveTouchContext.current !== touchContext &&
+          strumTouchContext.current !== touchContext) ||
+        !touchContext.active ||
+        touchContext.practiceOpen
+      )
+        return;
+      if (tabPlayback) {
+        strumTouchContext.current = touchContext;
+        pauseTabPlayback();
+      }
+      captureTabNotes(
+        indices.flatMap((index) => {
+          const midi = currentPitches.current[index];
+          return midi === null || midi === undefined
+            ? []
+            : [{ string: index, fret: midi - guitarMidi[index] }];
+        })
+      );
       indices.forEach((index) => {
         const midi = currentPitches.current[index];
         if (midi === null || midi === undefined) return;
@@ -238,7 +384,7 @@ export default function PlayGuitar() {
         performanceAudio.guitarString(key, index);
       });
     },
-    [active]
+    [captureTabNotes, pauseTabPlayback, tabPlayback, touchContext]
   );
   const gesture = Gesture.Manual()
     .onTouchesDown((event, manager) => {
@@ -335,6 +481,7 @@ export default function PlayGuitar() {
             glass
             label={name}
             onPress={() => {
+              if (!tabRecording) tablature.pause();
               if (patternStep === null) {
                 setProgression((list) => [...list, name]);
                 setSelected(progression.length);
@@ -361,7 +508,10 @@ export default function PlayGuitar() {
       </View>
     ) : null;
   const strings = guitar.stringNotes!.map((string, index) => {
-    const midi = pitches[index];
+    const cue = tabPlayback
+      ? tabNotes.find((entry) => entry.string === index)
+      : undefined;
+    const midi = cue ? guitarMidi[index] + cue.fret : pitches[index];
     return {
       ...string,
       name: midi === null ? "×" : noteNames[midi % 12],
@@ -370,412 +520,532 @@ export default function PlayGuitar() {
   });
 
   return (
-    <View
-      style={styles.root}
-      onLayout={({ nativeEvent }) => setLayout(nativeEvent.layout)}
-    >
-      {layout.width > 0 && (
-        <>
-          <Image
-            source={
-              landscape
-                ? require("../../../assets/images/screen-background/tuner-grand-auditorium-landscape.webp")
-                : require("../../../assets/images/screen-background/tuner-grand-auditorium.webp")
-            }
-            style={[styles.artwork, frame.artwork]}
-            resizeMode="stretch"
-          />
-          <View pointerEvents="none" style={[styles.chord, frame.hole]}>
-            <Text style={[styles.chordName, free && styles.freeName]}>
-              {free ? t("FreePlay") : chord}
+    <View style={[styles.root, sideTabs && styles.sideLayout]}>
+      <TabPanelContainer
+        style={
+          sideTabs && [
+            styles.sideTabs,
+            { width: Math.min(300, screenSize.width * 0.48) }
+          ]
+        }
+      >
+        <TablaturePanel
+          transport={tablature}
+          title={tabSession.song?.title}
+          dirty={tabSession.dirty}
+          expanded={tabSession.expanded}
+          onToggle={tabSession.toggle}
+          onOpen={tabSession.open}
+          onSave={tabSession.save}
+          onRecord={tabSession.record}
+          onPractice={() => {
+            if (!tabSession.draftReady || tabRecording) return;
+            stopBacking();
+            setPracticeOpen(true);
+          }}
+          disabled={!tabSession.draftReady}
+        />
+        {(tabSession.expanded ||
+          !tabSession.draftReady ||
+          tabSession.draftStatus === "writeError") && (
+          <View style={styles.draftStatus}>
+            <Text accessibilityLiveRegion="polite" style={styles.draftMessage}>
+              {t(
+                {
+                  loading: "TabDraftLoading",
+                  saving: "TabDraftSaving",
+                  saved: "TabDraftSaved",
+                  restored: "TabDraftRestored",
+                  readError: "TabDraftReadFailed",
+                  writeError: "TabDraftWriteFailed"
+                }[tabSession.draftStatus]
+              )}
             </Text>
-          </View>
-          <GestureDetector gesture={gesture}>
-            <Canvas style={StyleSheet.absoluteFill} accessible={false}>
-              <Strings
-                rms={rms}
-                plucks={plucks}
-                note={note}
-                fill={fill}
-                fillKey={fillKey}
-                stringNotes={strings}
-                currString={null}
-                width={layout.width}
-                height={layout.height}
+            {["readError", "writeError"].includes(tabSession.draftStatus) && (
+              <Action
+                glass
+                compact
+                label={t("TabDraftRetry")}
+                onPress={tabSession.retryDraft}
               />
-            </Canvas>
-          </GestureDetector>
-        </>
-      )}
-      <View style={[styles.panel, landscape && styles.landscapePanel]}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.chords}
-        >
-          {progression.map((name, index) => (
-            <Pressable
-              key={index}
-              accessibilityRole="button"
-              accessibilityLabel={name}
-              accessibilityState={{ selected: !free && selected === index }}
-              onPressIn={() => selectChord(index)}
-              onPress={() => selectChord(index)}
-              onLongPress={() => setEdit(index)}
-              style={[
-                styles.chip,
-                !free && selected === index && styles.selected
-              ]}
-            >
-              <Text
-                style={[
-                  styles.chipText,
-                  !free && selected === index && { color: palette.gold.ink }
-                ]}
-              >
-                {name}
-              </Text>
-            </Pressable>
-          ))}
-          <Action
-            icon="plus"
-            label={t("AddChord")}
-            onPress={() => {
-              setPatternStep(null);
-              setPicker(true);
-            }}
-            disabled={progression.length >= 24}
-          />
-        </ScrollView>
-        <View style={styles.controls}>
-          <Action
-            icon={playing ? "pause" : "play"}
-            label={t(playing ? "Pause" : "AutoChords")}
-            disabled={!progression.length || free}
-            onPress={() => {
-              if (playing) {
-                clock.current.linkedMetronome = metronome;
-                setMetronome(false);
-              } else {
-                setMetronome(clock.current.linkedMetronome);
-              }
-              setPlaying(!playing);
-            }}
-          />
-          <Action
-            glass
-            compact
-            label={`${tempo} BPM · ${t("PlayPattern")}`}
-            onPress={() => {
-              setPlaying(false);
-              setTempoInput(String(tempo));
-              setSettings(true);
-            }}
-          />
-          <Action
-            icon="music-note"
-            label={t("FreePlay")}
-            onPress={() => {
-              setPlaying(false);
-              setFree(true);
-              setFretsSheet(true);
-            }}
-          />
-        </View>
-      </View>
-      <View style={[styles.quickTools, landscape && styles.landscapeTools]}>
-        {[
-          {
-            icon: "metronome",
-            label: t("Metronome"),
-            selected: metronome,
-            onPress: () => {
-              clock.current.linkedMetronome = !metronome;
-              setMetronome(!metronome);
-            }
-          },
-          {
-            icon: "guitar-pick-outline",
-            label: t("Fingering"),
-            disabled: free || !chord,
-            onPress: () => openFingerings(chord)
-          }
-        ].map((button) => (
-          <View key={button.icon} style={styles.quickTool}>
-            <Action {...button} />
-            <Text style={styles.toolCaption}>{button.label}</Text>
+            )}
+            {tabSession.draftStatus === "readError" && (
+              <Action
+                glass
+                label={t("TabDraftStartNew")}
+                onPress={tabSession.resetDraft}
+              />
+            )}
           </View>
-        ))}
-      </View>
-      {picker && (
-        <Sheet title={t("AddChord")} onClose={() => setPicker(false)}>
-          {chordChoices}
-        </Sheet>
-      )}
-      {edit !== null && (
-        <Sheet title={progression[edit]} onClose={() => setEdit(null)}>
-          <Action
-            label={t("Delete")}
-            onPress={() => {
-              const remaining = progression.filter(
-                (_, index) => index !== edit
-              );
-              setProgression(remaining);
-              setPattern((previous) => {
-                if (!previous || !remaining.length) return null;
-                const markers = Object.fromEntries(
-                  Object.entries(previous)
-                    .filter(([, index]) => index !== edit)
-                    .map(([step, index]) => [
-                      step,
-                      index > edit ? index - 1 : index
-                    ])
-                );
-                return {
-                  0: Math.min(selected, remaining.length - 1),
-                  ...markers
-                };
-              });
-              setSelected(
-                Math.min(selected, Math.max(0, remaining.length - 1))
-              );
-              setPlaying(false);
-              setFree(remaining.length === 0);
-              setEdit(null);
-            }}
-          />
-        </Sheet>
-      )}
-      {fingeringChord && (
-        <Sheet
-          title={`${fingeringChord} · ${t("Fingering")}`}
-          onClose={() => setFingeringChord(null)}
-        >
-          <View style={styles.grid}>
-            {options.slice(shapePage * 4, shapePage * 4 + 4).map((option) => (
-              <Pressable
-                key={option.index}
-                accessibilityRole="button"
-                accessibilityLabel={`${t("Fingering")} ${option.index + 1}: ${option.frets.map((fret) => fret ?? "×").join(", ")}`}
-                accessibilityState={{
-                  selected: fingering?.index === option.index
-                }}
+        )}
+      </TabPanelContainer>
+      <View
+        style={styles.stage}
+        onLayout={({ nativeEvent }) => setLayout(nativeEvent.layout)}
+      >
+        {layout.width > 0 && (
+          <>
+            <Image
+              source={
+                landscape
+                  ? require("../../../assets/images/screen-background/tuner-grand-auditorium-landscape.webp")
+                  : require("../../../assets/images/screen-background/tuner-grand-auditorium.webp")
+              }
+              style={[styles.artwork, frame.artwork]}
+              resizeMode="stretch"
+            />
+            <View pointerEvents="none" style={[styles.chord, frame.hole]}>
+              <Text
+                numberOfLines={2}
                 style={[
-                  styles.shape,
-                  landscape && styles.landscapeShape,
-                  fingering?.index === option.index && styles.shapeSelected
+                  styles.chordName,
+                  (free || tabPlayback) && styles.freeName
                 ]}
-                onPress={() => {
-                  setShapes((previous) => ({
-                    ...previous,
-                    [fingeringChord]: option.index
-                  }));
-                  setFingeringChord(null);
-                }}
               >
-                <Text style={styles.position}>
-                  {option.position === 0
-                    ? t("OpenPosition")
-                    : t("PositionFret", { fret: option.position })}
-                </Text>
-                <Diagram
-                  frets={option.frets}
-                  width={104}
-                  selected={fingering?.index === option.index}
+                {tabPlayback
+                  ? tabSession.song?.title || t("TabTitle")
+                  : free
+                    ? t("FreePlay")
+                    : chord}
+              </Text>
+            </View>
+            <GestureDetector gesture={gesture}>
+              <Canvas style={StyleSheet.absoluteFill} accessible={false}>
+                <Strings
+                  rms={rms}
+                  plucks={plucks}
+                  note={note}
+                  fill={fill}
+                  fillKey={fillKey}
+                  stringNotes={strings}
+                  currString={
+                    tabNotes.length
+                      ? strings[tabNotes[tabNotes.length - 1].string]
+                      : null
+                  }
+                  width={layout.width}
+                  height={layout.height}
                 />
-                <Text style={styles.label}>
-                  {option.label}
-                  {fingering?.index === option.index ? " ✓" : ""}
+              </Canvas>
+            </GestureDetector>
+            <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+              {tabNotes.map((entry) => (
+                <View
+                  key={entry.string}
+                  style={[
+                    styles.tabFret,
+                    {
+                      left:
+                        frame.stringLeft +
+                        (frame.stringWidth / 5) * entry.string -
+                        16
+                    }
+                  ]}
+                >
+                  <Text style={styles.tabFretText}>{entry.fret}</Text>
+                </View>
+              ))}
+            </View>
+          </>
+        )}
+        <View style={[styles.panel, landscape && styles.landscapePanel]}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.chords}
+          >
+            {progression.map((name, index) => (
+              <Pressable
+                key={index}
+                accessibilityRole="button"
+                accessibilityLabel={name}
+                accessibilityState={{ selected: !free && selected === index }}
+                onPressIn={() => selectChord(index)}
+                onPress={() => selectChord(index)}
+                onLongPress={() => setEdit(index)}
+                style={[
+                  styles.chip,
+                  !free && selected === index && styles.selected
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.chipText,
+                    !free && selected === index && { color: palette.gold.ink }
+                  ]}
+                >
+                  {name}
                 </Text>
               </Pressable>
             ))}
+            <Action
+              icon="plus"
+              label={t("AddChord")}
+              onPress={() => {
+                setPatternStep(null);
+                setPicker(true);
+              }}
+              disabled={progression.length >= 24}
+            />
+          </ScrollView>
+          <View style={styles.controls}>
+            <Action
+              icon={playing ? "pause" : "play"}
+              label={t(playing ? "Pause" : "AutoChords")}
+              disabled={!progression.length || free || tabRecording}
+              onPress={() => {
+                if (!tabRecording) tablature.pause();
+                if (playing) {
+                  clock.current.linkedMetronome = metronome;
+                  setMetronome(false);
+                } else {
+                  setMetronome(clock.current.linkedMetronome);
+                }
+                setPlaying(!playing);
+              }}
+            />
+            <Action
+              glass
+              compact
+              label={`${tempo} BPM · ${t("PlayPattern")}`}
+              onPress={() => {
+                if (!tabRecording) tablature.pause();
+                setPlaying(false);
+                setTempoInput(String(tempo));
+                setSettings(true);
+              }}
+            />
+            <Action
+              icon="music-note"
+              label={t("FreePlay")}
+              onPress={() => {
+                if (!tabRecording) tablature.pause();
+                setPlaying(false);
+                setFree(true);
+                setFretsSheet(true);
+              }}
+            />
           </View>
-          {shapePages > 1 && (
-            <View style={styles.controls}>
-              <Action
-                glass
-                icon="chevron-left"
-                label={t("PreviousShapes")}
-                disabled={shapePage === 0}
-                onPress={() => setShapePage(shapePage - 1)}
-              />
-              <Text style={styles.label}>
-                {shapePage + 1} / {shapePages}
-              </Text>
-              <Action
-                glass
-                icon="chevron-right"
-                label={t("NextShapes")}
-                disabled={shapePage + 1 >= shapePages}
-                onPress={() => setShapePage(shapePage + 1)}
-              />
+        </View>
+        <View style={[styles.quickTools, landscape && styles.landscapeTools]}>
+          {[
+            {
+              icon: "metronome",
+              label: t("Metronome"),
+              selected: metronome,
+              disabled: tabOwnsAudio,
+              onPress: () => {
+                clock.current.linkedMetronome = !metronome;
+                setMetronome(!metronome);
+              }
+            },
+            {
+              icon: "guitar-pick-outline",
+              label: t("Fingering"),
+              disabled: free || !chord,
+              onPress: () => openFingerings(chord)
+            }
+          ].map((button) => (
+            <View key={button.icon} style={styles.quickTool}>
+              <Action {...button} />
+              <Text style={styles.toolCaption}>{button.label}</Text>
             </View>
-          )}
-        </Sheet>
-      )}
-      {settings && (
-        <Sheet
-          title={t(patternStep === null ? "PlayPattern" : "ChangeChord")}
-          onClose={() => {
-            setSettings(false);
-            setPatternStep(null);
-          }}
-        >
-          {patternStep !== null ? (
-            <>
-              <Action
-                glass
-                icon="chevron-left"
-                label={t("Back")}
-                onPress={() => setPatternStep(null)}
-              />
-              {patternStep > 0 && (
+          ))}
+        </View>
+        {picker && (
+          <Sheet title={t("AddChord")} onClose={() => setPicker(false)}>
+            {chordChoices}
+          </Sheet>
+        )}
+        {edit !== null && (
+          <Sheet title={progression[edit]} onClose={() => setEdit(null)}>
+            <Action
+              label={t("Delete")}
+              onPress={() => {
+                const remaining = progression.filter(
+                  (_, index) => index !== edit
+                );
+                setProgression(remaining);
+                setPattern((previous) => {
+                  if (!previous || !remaining.length) return null;
+                  const markers = Object.fromEntries(
+                    Object.entries(previous)
+                      .filter(([, index]) => index !== edit)
+                      .map(([step, index]) => [
+                        step,
+                        index > edit ? index - 1 : index
+                      ])
+                  );
+                  return {
+                    0: Math.min(selected, remaining.length - 1),
+                    ...markers
+                  };
+                });
+                setSelected(
+                  Math.min(selected, Math.max(0, remaining.length - 1))
+                );
+                setPlaying(false);
+                setFree(remaining.length === 0);
+                setEdit(null);
+              }}
+            />
+          </Sheet>
+        )}
+        {fingeringChord && (
+          <Sheet
+            title={`${fingeringChord} · ${t("Fingering")}`}
+            onClose={() => setFingeringChord(null)}
+          >
+            <View style={styles.grid}>
+              {options.slice(shapePage * 4, shapePage * 4 + 4).map((option) => (
+                <Pressable
+                  key={option.index}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${t("Fingering")} ${option.index + 1}: ${option.frets.map((fret) => fret ?? "×").join(", ")}`}
+                  accessibilityState={{
+                    selected: fingering?.index === option.index
+                  }}
+                  style={[
+                    styles.shape,
+                    landscape && styles.landscapeShape,
+                    fingering?.index === option.index && styles.shapeSelected
+                  ]}
+                  onPress={() => {
+                    setShapes((previous) => ({
+                      ...previous,
+                      [fingeringChord]: option.index
+                    }));
+                    setFingeringChord(null);
+                  }}
+                >
+                  <Text style={styles.position}>
+                    {option.position === 0
+                      ? t("OpenPosition")
+                      : t("PositionFret", { fret: option.position })}
+                  </Text>
+                  <Diagram
+                    frets={option.frets}
+                    width={104}
+                    selected={fingering?.index === option.index}
+                  />
+                  <Text style={styles.label}>
+                    {option.label}
+                    {fingering?.index === option.index ? " ✓" : ""}
+                  </Text>
+                </Pressable>
+              ))}
+            </View>
+            {shapePages > 1 && (
+              <View style={styles.controls}>
                 <Action
                   glass
-                  label={t("ContinueChord")}
-                  onPress={() => {
-                    setPattern((previous) => {
-                      const next: Record<number, number> = {
-                        0: selected,
-                        ...previous
-                      };
-                      delete next[patternStep];
-                      return next;
-                    });
-                    setPatternStep(null);
-                  }}
+                  icon="chevron-left"
+                  label={t("PreviousShapes")}
+                  disabled={shapePage === 0}
+                  onPress={() => setShapePage(shapePage - 1)}
                 />
-              )}
-              {chordChoices}
-            </>
-          ) : (
-            <>
-              <Text style={styles.label}>{t("Tempo")}</Text>
+                <Text style={styles.label}>
+                  {shapePage + 1} / {shapePages}
+                </Text>
+                <Action
+                  glass
+                  icon="chevron-right"
+                  label={t("NextShapes")}
+                  disabled={shapePage + 1 >= shapePages}
+                  onPress={() => setShapePage(shapePage + 1)}
+                />
+              </View>
+            )}
+          </Sheet>
+        )}
+        {settings && (
+          <Sheet
+            title={t(patternStep === null ? "PlayPattern" : "ChangeChord")}
+            onClose={() => {
+              setSettings(false);
+              setPatternStep(null);
+            }}
+          >
+            {patternStep !== null ? (
+              <>
+                <Action
+                  glass
+                  icon="chevron-left"
+                  label={t("Back")}
+                  onPress={() => setPatternStep(null)}
+                />
+                {patternStep > 0 && (
+                  <Action
+                    glass
+                    label={t("ContinueChord")}
+                    onPress={() => {
+                      setPattern((previous) => {
+                        const next: Record<number, number> = {
+                          0: selected,
+                          ...previous
+                        };
+                        delete next[patternStep];
+                        return next;
+                      });
+                      setPatternStep(null);
+                    }}
+                  />
+                )}
+                {chordChoices}
+              </>
+            ) : (
+              <>
+                <Text style={styles.label}>{t("Tempo")}</Text>
 
-              <View style={styles.controls}>
+                <View style={styles.controls}>
+                  <Action
+                    glass
+                    label="−"
+                    disabled={tempo <= 40}
+                    onPress={() => {
+                      const value = Math.max(40, tempo - 5);
+                      setTempo(value);
+                      setTempoInput(String(value));
+                    }}
+                  />
+                  <TextInput
+                    accessibilityLabel={t("Tempo")}
+                    style={styles.tempoInput}
+                    keyboardType="number-pad"
+                    selectTextOnFocus
+                    maxLength={3}
+                    value={tempoInput}
+                    onChangeText={(value) => {
+                      const digits = value.replace(/\D/g, "");
+                      setTempoInput(digits);
+                      const bpm = Number(digits);
+                      if (bpm >= 40 && bpm <= 200) setTempo(bpm);
+                    }}
+                    onEndEditing={() => setTempoInput(String(tempo))}
+                  />
+                  <Action
+                    glass
+                    label="+"
+                    disabled={tempo >= 200}
+                    onPress={() => {
+                      const value = Math.min(200, tempo + 5);
+                      setTempo(value);
+                      setTempoInput(String(value));
+                    }}
+                  />
+                </View>
+                <Text style={styles.label}>{t("PatternBeats")}</Text>
+                <View style={styles.controls}>
+                  {[1, 2, 3, 4, 8].map((value) => (
+                    <Action
+                      key={value}
+                      glass
+                      label={String(value)}
+                      selected={beats === value}
+                      onPress={() => setBeats(value)}
+                    />
+                  ))}
+                </View>
+                <Text style={styles.hint}>{t("PatternChangeHint")}</Text>
+                <View style={styles.grid}>
+                  {Array.from({ length: beats * 2 }, (_, slot) => {
+                    const marker =
+                      pattern?.[slot] ?? (slot === 0 ? selected : undefined);
+                    const label =
+                      marker === undefined ? "·" : (progression[marker] ?? "+");
+                    return (
+                      <Pressable
+                        key={slot}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${Math.floor(slot / 2) + 1}${slot % 2 ? ` ${t("BeatAnd")}` : ""}: ${marker === undefined ? t("ContinueChord") : label}`}
+                        style={[
+                          styles.patternSlot,
+                          marker !== undefined && styles.shapeSelected
+                        ]}
+                        onPress={() => {
+                          setPlaying(false);
+                          setPatternStep(slot);
+                        }}
+                      >
+                        <Text style={styles.position}>
+                          {slot % 2 ? t("BeatAnd") : String(slot / 2 + 1)}
+                        </Text>
+                        <Text style={styles.slotChord}>{label}</Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {pattern && (
+                  <Action
+                    glass
+                    label={t("ClearPatternChanges")}
+                    onPress={() => setPattern(null)}
+                  />
+                )}
+              </>
+            )}
+          </Sheet>
+        )}
+        {fretsSheet && (
+          <Sheet title={t("FreePlay")} onClose={() => setFretsSheet(false)}>
+            {freeFrets.map((fret, index) => (
+              <View key={index} style={styles.controls}>
+                <Text style={styles.label}>
+                  {6 - index} · {noteNames[(guitarMidi[index] + fret) % 12]}
+                </Text>
                 <Action
                   glass
                   label="−"
-                  disabled={tempo <= 40}
-                  onPress={() => {
-                    const value = Math.max(40, tempo - 5);
-                    setTempo(value);
-                    setTempoInput(String(value));
-                  }}
+                  disabled={fret === 0}
+                  onPress={() =>
+                    setFreeFrets((values) =>
+                      values.map((value, string) =>
+                        string === index ? value - 1 : value
+                      )
+                    )
+                  }
                 />
-                <TextInput
-                  accessibilityLabel={t("Tempo")}
-                  style={styles.tempoInput}
-                  keyboardType="number-pad"
-                  selectTextOnFocus
-                  maxLength={3}
-                  value={tempoInput}
-                  onChangeText={(value) => {
-                    const digits = value.replace(/\D/g, "");
-                    setTempoInput(digits);
-                    const bpm = Number(digits);
-                    if (bpm >= 40 && bpm <= 200) setTempo(bpm);
-                  }}
-                  onEndEditing={() => setTempoInput(String(tempo))}
-                />
+                <Text style={styles.label}>{t("PositionFret", { fret })}</Text>
                 <Action
                   glass
                   label="+"
-                  disabled={tempo >= 200}
-                  onPress={() => {
-                    const value = Math.min(200, tempo + 5);
-                    setTempo(value);
-                    setTempoInput(String(value));
-                  }}
+                  disabled={fret === 24}
+                  onPress={() =>
+                    setFreeFrets((values) =>
+                      values.map((value, string) =>
+                        string === index ? value + 1 : value
+                      )
+                    )
+                  }
                 />
               </View>
-              <Text style={styles.label}>{t("PatternBeats")}</Text>
-              <View style={styles.controls}>
-                {[1, 2, 3, 4, 8].map((value) => (
-                  <Action
-                    key={value}
-                    glass
-                    label={String(value)}
-                    selected={beats === value}
-                    onPress={() => setBeats(value)}
-                  />
-                ))}
-              </View>
-              <Text style={styles.hint}>{t("PatternChangeHint")}</Text>
-              <View style={styles.grid}>
-                {Array.from({ length: beats * 2 }, (_, slot) => {
-                  const marker =
-                    pattern?.[slot] ?? (slot === 0 ? selected : undefined);
-                  const label =
-                    marker === undefined ? "·" : (progression[marker] ?? "+");
-                  return (
-                    <Pressable
-                      key={slot}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${Math.floor(slot / 2) + 1}${slot % 2 ? ` ${t("BeatAnd")}` : ""}: ${marker === undefined ? t("ContinueChord") : label}`}
-                      style={[
-                        styles.patternSlot,
-                        marker !== undefined && styles.shapeSelected
-                      ]}
-                      onPress={() => {
-                        setPlaying(false);
-                        setPatternStep(slot);
-                      }}
-                    >
-                      <Text style={styles.position}>
-                        {slot % 2 ? t("BeatAnd") : String(slot / 2 + 1)}
-                      </Text>
-                      <Text style={styles.slotChord}>{label}</Text>
-                    </Pressable>
-                  );
-                })}
-              </View>
-              {pattern && (
-                <Action
-                  glass
-                  label={t("ClearPatternChanges")}
-                  onPress={() => setPattern(null)}
-                />
-              )}
-            </>
-          )}
-        </Sheet>
+            ))}
+          </Sheet>
+        )}
+      </View>
+      {tabSession.dialog && (
+        <TablatureLibrary
+          mode={tabSession.dialog}
+          tab={tablature.tab}
+          practice={tablature.practice}
+          song={tabSession.song}
+          onLoad={tabSession.choose}
+          onSaved={tabSession.saved}
+          onNew={tabSession.create}
+          onClose={tabSession.close}
+        />
       )}
-      {fretsSheet && (
-        <Sheet title={t("FreePlay")} onClose={() => setFretsSheet(false)}>
-          {freeFrets.map((fret, index) => (
-            <View key={index} style={styles.controls}>
-              <Text style={styles.label}>
-                {6 - index} · {noteNames[(guitarMidi[index] + fret) % 12]}
-              </Text>
-              <Action
-                glass
-                label="−"
-                disabled={fret === 0}
-                onPress={() =>
-                  setFreeFrets((values) =>
-                    values.map((value, string) =>
-                      string === index ? value - 1 : value
-                    )
-                  )
-                }
-              />
-              <Text style={styles.label}>{t("PositionFret", { fret })}</Text>
-              <Action
-                glass
-                label="+"
-                disabled={fret === 12}
-                onPress={() =>
-                  setFreeFrets((values) =>
-                    values.map((value, string) =>
-                      string === index ? value + 1 : value
-                    )
-                  )
-                }
-              />
-            </View>
-          ))}
-        </Sheet>
+      {practiceOpen && (
+        <TablaturePractice
+          transport={tablature}
+          title={tabSession.song?.title}
+          active={active}
+          disabled={!tabSession.draftReady}
+          onClose={() => {
+            tablature.pause();
+            setPracticeOpen(false);
+          }}
+        />
       )}
     </View>
   );
@@ -783,6 +1053,30 @@ export default function PlayGuitar() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: palette.colors.black },
+  sideLayout: { flexDirection: "row" },
+  sideTabs: { flexGrow: 0, flexShrink: 0 },
+  draftStatus: {
+    marginHorizontal: 18,
+    marginTop: 3,
+    marginBottom: 4,
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 6
+  },
+  draftMessage: { flexShrink: 1, fontSize: 11, color: palette.glass.muted },
+  stage: { flex: 1, overflow: "hidden" },
+  tabFret: {
+    position: "absolute",
+    top: 72,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: palette.glass.accent,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  tabFretText: { color: palette.gold.ink, fontSize: 16, fontWeight: "700" },
   artwork: { position: "absolute" },
   chord: {
     position: "absolute",
