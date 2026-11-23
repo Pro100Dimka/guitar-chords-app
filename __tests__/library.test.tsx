@@ -77,7 +77,7 @@ test.each(["Favorites", "RecentSongs"])(
   }
 );
 
-test("iPhone offers microphone recognition in the add menu", async () => {
+test("iPhone offers microphone and audio-file recognition in the add menu", async () => {
   jest.replaceProperty(Platform, "OS", "ios");
   jest.mocked(getAllItems).mockResolvedValue(songs);
   await act(async () => {
@@ -92,8 +92,8 @@ test("iPhone offers microphone recognition in the add menu", async () => {
   expect(
     screen.root.findAll(
       (node) => node.props.accessibilityLabel === "AutofillRecognizeFile"
-    )
-  ).toHaveLength(0);
+    ).length
+  ).toBeGreaterThan(0);
 });
 
 test("deletion completion refreshes the current search instead of its captured filter", async () => {

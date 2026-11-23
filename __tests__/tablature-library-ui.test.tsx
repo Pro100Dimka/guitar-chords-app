@@ -51,8 +51,8 @@ let callbacks: {
 };
 const action = (label: string) =>
   screen!.root
-    .findAllByType(Action)
-    .find((node) => node.props.label === label)!;
+    .findAll((node) => typeof node.props.onPress === "function")
+    .find((node) => node.props.accessibilityLabel === label)!;
 const item = (title: string) =>
   screen!.root.findAll(
     (node) =>

@@ -25,6 +25,7 @@ on:
       - test-ios-capture.py
       - test-ios-recordings.py
       - test-ios-performance.py
+      - test-ios-recognition.py
       - .github/workflows/native-song-recognition.yml
       - scripts/verify-shazam.cjs
   pull_request:

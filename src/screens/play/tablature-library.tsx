@@ -372,6 +372,7 @@ export function TablatureLibrary({
               <Pressable
                 key={destination.label}
                 accessibilityRole="button"
+                accessibilityLabel={t(destination.label)}
                 accessibilityState={{
                   selected: destination.selected,
                   disabled: blocked
