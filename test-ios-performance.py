@@ -31,13 +31,16 @@ def main():
         raise SystemExit("Requires Swift compiler. No native performance checks ran.")
     root = Path(__file__).resolve().parent
     source = (args.source or root / "ios/PerformanceAudio.swift").read_text(encoding="utf-8")
-    production = "\n".join(method(source, name) for name in ["playGuitarString", "stopGuitarString", "stopPlayback", "stopMetronomeBeats"])
+    production = "\n".join(method(source, name) for name in ["playGuitarString", "stopGuitarString", "stopPlayback", "stopMetronomeBeats", "prepareFingering", "playPreparedGuitar"])
     production += "\n" + method(source, "clearMetronomeBeats", "private")
+    production += "\n" + method(source, "cacheGuitar", "private")
     eligibility = next((line for line in source.splitlines() if "private var canPlayInstrument:" in line), "")
     interruption = method(source, "handleInterruption", "private") if "private func handleInterruption(" in source else ""
     foreground = method(source, "handleForeground", "private") if "private func handleForeground(" in source else ""
     swift = r'''
 import Foundation
+typealias RCTPromiseResolveBlock = (Any?) -> Void
+typealias RCTPromiseRejectBlock = (String?, String?, Error?) -> Void
 let AVAudioSessionInterruptionTypeKey = "type"
 let AVAudioSessionInterruptionWasSuspendedKey = "suspended"
 
@@ -68,9 +71,13 @@ final class DispatchQueue {
         }
         time = end
     }
+    func async(execute: () -> Void) { execute() }
     func reset() { work.removeAll(); time = 0 }
 }
 final class AVAudioPlayer {
+    init() {}
+    init(data: Data) throws {}
+    func prepareToPlay() -> Bool { true }
     var currentTime = 0.0
     var volume: Float = 1
     var isPlaying = false
@@ -105,6 +112,7 @@ final class AVAudioSession {
     }
     enum Failure: Error { case denied }
     static let instance = AVAudioSession()
+    var category = Category.playback
     var deny = false
     var activations = 0
     static func sharedInstance() -> AVAudioSession { instance }
@@ -126,6 +134,10 @@ final class StringPlayer {
     var player: AVAudioPlayer?
     var cue: AVAudioPlayer?
     var preparedStrings: [String: AVAudioPlayer] = [:]
+    var preparedAlternates: [String: AVAudioPlayer] = [:]
+    var preparedSizes: [String: Int] = [:]
+    var preparedStringOrder: [String] = []
+    let worker = DispatchQueue.main
     var guitarStrings: [Int: AVAudioPlayer] = [:]
     var stringGeneration: [Int: Int] = [:]
     var stringSessionActive = false
@@ -317,6 +329,32 @@ do {
     precondition(first.plays == 1)
 }
 ''' if foreground else "") + r'''
+do {
+    let (player, _, _) = fresh()
+    var ready = false
+    player.prepareFingering("chord", wave: "AAAA", resolver: { ready = $0 as? Bool == true }, rejecter: { _, _, _ in fatalError("Preparation failed") })
+    precondition(ready && player.preparedAlternates["chord"] != nil)
+    player.playPreparedGuitar("chord")
+    let first = player.cue!
+    player.playPreparedGuitar("chord")
+    let second = player.cue!
+    precondition(first !== second && first.plays == 1 && second.plays == 1)
+    DispatchQueue.main.advance(0.005)
+    player.playPreparedGuitar("chord")
+    DispatchQueue.main.advance(0.1)
+    precondition(player.cue === first && first.isPlaying && first.plays == 2 && !second.isPlaying)
+    for index in 0..<33 {
+        player.prepareFingering("note-\(index)", wave: "AAAA", resolver: { precondition($0 as? Bool == true) }, rejecter: { _, _, _ in fatalError("Preparation failed") })
+    }
+    player.prepareFingering("chord", wave: "", resolver: { ready = $0 as? Bool == true }, rejecter: { _, _, _ in fatalError("Cache lookup failed") })
+    precondition(!ready && player.preparedStrings["chord"] == nil && player.preparedAlternates["chord"] == nil)
+    player.stopPlayback()
+    player.playPreparedGuitar("missing")
+    precondition(player.cue == nil)
+    player.prepareFingering("chord", wave: "AAAA", resolver: { ready = $0 as? Bool == true }, rejecter: { _, _, _ in fatalError("Rebuild failed") })
+    player.playPreparedGuitar("chord")
+    precondition(ready && player.cue?.plays == 1)
+}
 print("Production Swift performance checks passed: short attacks, stale releases, retriggers, voice/click ownership and capture/session/foreground/interruption guards.")
 print("Deterministic audio doubles only; no hardware playback or latency was measured.")
 '''

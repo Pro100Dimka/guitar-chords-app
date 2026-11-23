@@ -68,7 +68,7 @@ final class HTTPFixture: URLProtocol {
   override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
   override func startLoading() {
     Self.count += 1
-    let body = #"{"track":{"title":"Example","subtitle":"Performer","sections":[{"metadata":[{"title":"BPM","text":"123"}]}]}}"#.data(using: .utf8)!
+    let body = #"{"track":{"title":"Example","subtitle":"Performer","sections":[{"type":"LYRICS","text":["Example words"],"footer":"Source"},{"metadata":[{"title":"BPM","text":"123"}]}]}}"#.data(using: .utf8)!
     client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: Self.status, httpVersion: nil, headerFields: ["Retry-After": "60"])!, cacheStoragePolicy: .notAllowed)
     client?.urlProtocol(self, didLoad: body)
     client?.urlProtocolDidFinishLoading(self)
@@ -128,7 +128,57 @@ running.control.async {
 precondition(stopped.wait(timeout: .now() + 3) == .success)
 precondition(cancellationDone.wait(timeout: .now() + 3) == .success)
 precondition(!CaptureSession.instance.active)
-print("Production iOS recognition passed: PCM rates, metadata, cached audio, HTTP 429, cancellation and microphone cleanup.")
+let directory = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+func audioFile(_ name: String, seconds: Int) throws -> URL {
+  let url = directory.appendingPathComponent(name)
+  let output = try AVAudioFile(forWriting: url, settings: [AVFormatIDKey: kAudioFormatLinearPCM, AVSampleRateKey: 48000, AVNumberOfChannelsKey: 1])
+  try output.write(from: pcm(48000, 48000 * seconds))
+  return url
+}
+let fileURL = try audioFile("recognition.wav", seconds: 3)
+let fileRecognizer = SongRecognition()
+let beforeFile = HTTPFixture.count
+for attempt in 0..<2 {
+  let finished = DispatchSemaphore(value: 0)
+  fileRecognizer.control.async {
+    fileRecognizer.recognizeFile(fileURL.absoluteString, resolver: { value in
+      let result = value as! [String: Any]
+      precondition(result["title"] as? String == "Example")
+      precondition(result["duration"] as? Double == 3)
+      precondition(result["tempo"] as? Double == 123)
+      precondition(result["lyrics"] as? String == "Example words")
+      finished.signal()
+    }, rejecter: { code, _, _ in fatalError(code ?? "File recognition failed") })
+  }
+  precondition(finished.wait(timeout: .now() + 10) == .success)
+  precondition(HTTPFixture.count == beforeFile + 1, "File recognition bypassed the cache on attempt \(attempt)")
+}
+let fileStopped = DispatchSemaphore(value: 0)
+let fileCancelled = DispatchSemaphore(value: 0)
+fileRecognizer.control.async {
+  fileRecognizer.recognizeFile(fileURL.absoluteString, resolver: { _ in fatalError("Cancelled file resolved") }, rejecter: { code, _, _ in
+    precondition(code == "Cancelled"); fileStopped.signal()
+  })
+  fileRecognizer.cancel({ _ in fileCancelled.signal() }, rejecter: { _, _, _ in fatalError("File cancel failed") })
+}
+precondition(fileStopped.wait(timeout: .now() + 3) == .success)
+precondition(fileCancelled.wait(timeout: .now() + 3) == .success)
+let invalidDone = DispatchSemaphore(value: 0)
+fileRecognizer.control.async {
+  fileRecognizer.recognizeFile("https://example.com/audio.mp3", resolver: { _ in fatalError("Remote file accepted") }, rejecter: { code, _, _ in
+    precondition(code == "FileUnavailable"); invalidDone.signal()
+  })
+}
+precondition(invalidDone.wait(timeout: .now() + 3) == .success)
+let timedOut = RecognitionCapture()
+timedOut.attach(NSFileCoordinator(filePresenter: nil))
+timedOut.expireReading()
+do { try fileRecognizer.check(timedOut); fatalError("File timeout ignored") }
+catch { precondition((error as NSError).domain == "FileReadTimeout") }
+timedOut.finishReading()
+precondition(!CaptureSession.instance.active, "File recognition activated the microphone")
+print("Production iOS recognition passed: PCM rates, metadata, cached audio, HTTP 429, cancellation, microphone cleanup, real WAV file decoding, file metadata/cache, file cancellation and read timeout.")
 '''
 subprocess.run(["cargo", "build", "--release", "--locked", "--lib", "--manifest-path",
                 str(root / "android/song-fingerprint/Cargo.toml")], check=True)
@@ -139,4 +189,4 @@ with tempfile.TemporaryDirectory(prefix="freetune-recognition-") as directory:
     (temporary / "Bridge.h").write_text("#include <stdint.h>\nchar *freetune_fingerprint(const int16_t *, uintptr_t);\nvoid freetune_fingerprint_free(char *);\n", encoding="utf-8")
     subprocess.run(["swiftc", str(temporary / "Probe.swift"), "-import-objc-header", str(temporary / "Bridge.h"),
                     str(target / "release/libfreetune_song_fingerprint.a"), "-o", str(temporary / "probe")], check=True)
-    subprocess.run([str(temporary / "probe")], check=True, timeout=30)
+    subprocess.run([str(temporary / "probe"), str(temporary / "audio")], check=True, timeout=60)

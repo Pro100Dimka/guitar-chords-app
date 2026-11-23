@@ -92,6 +92,18 @@ const button = (screen: Renderer.ReactTestRenderer, label: string) =>
     .findAll((node) => typeof node.props.onPress === "function")
     .find((node) => node.props.accessibilityLabel === label)!;
 const press = async (screen: Renderer.ReactTestRenderer, label: string) => {
+  if (!button(screen, label)) {
+    if (button(screen, "TabFullView"))
+      await act(async () => button(screen, "TabFullView").props.onPress());
+    const section = [
+      { pattern: /^Tab(Speed|QuarterTempo)/, label: "TabTempoShort" },
+      { pattern: /^Tab(Range|Loop|WholePiece)/, label: "TabLoopShort" },
+      { pattern: /^Tab(InsertBar|AppendBar|DuplicateBar|DeleteBar|CopyBar|PasteBar|Meter)/, label: "TabBars" }
+    ].find((entry) => entry.pattern.test(label))?.label ?? "TabScore";
+    await act(async () => button(screen, section).props.onPress());
+    if (!button(screen, label) && button(screen, "TabMoreOptions"))
+      await act(async () => button(screen, "TabMoreOptions").props.onPress());
+  }
   const target = button(screen, label);
   expect(target).toBeDefined();
   expect(target.props.disabled).not.toBe(true);
@@ -312,6 +324,7 @@ test("selected note can change fret and string, then be deleted without changing
     tick: 24,
     duration: 24
   });
+  await press(screen!, 'TabGridValue:{"value":"1/16"}');
   await press(screen!, "TabNoteLater");
   expect(updates.at(-1)!.notes).toContainEqual({
     string: 4,
@@ -397,6 +410,34 @@ const pressNote = async (string: number, fret: number) => {
     )!;
   await act(async () => target.props.onPress());
 };
+
+test("staff taps and the keypad compose chords and two-digit frets with the last duration", async () => {
+  const { updates } = await editable();
+  await press(screen!, 'TabDurationChoice:{"denominator":8}');
+  const { Sheet } = require("../src/screens/song/tools");
+  await act(async () =>
+    screen!.root.findAllByType(Sheet).at(-1)!.props.onClose()
+  );
+  await press(screen!, "TabFret: 7");
+  await press(screen!, 'TabEmptyCell:{"string":2,"bar":1,"beat":1}');
+  await press(screen!, "TabFret: 5");
+  expect(updates.at(-1)!.notes).toEqual([
+    { string: 4, fret: 5, tick: 0, duration: 12 },
+    { string: 5, fret: 7, tick: 0, duration: 12 }
+  ]);
+  await press(screen!, "TabNextPosition");
+  await press(screen!, "TabFret: 1");
+  await press(screen!, "TabFret: 2");
+  expect(updates.at(-1)!.notes).toContainEqual({
+    string: 4, fret: 12, tick: 12, duration: 12
+  });
+  await pressNote(2, 5);
+  await press(screen!, "TabFret: 3");
+  expect(updates.at(-1)!.notes).toContainEqual({
+    string: 4, fret: 3, tick: 0, duration: 12
+  });
+  expect(updates.at(-1)!.notes).toHaveLength(3);
+});
 
 test("pausing after playback changes bar keeps insertion on the displayed bar", async () => {
   const transport = mockTransport({ ...example, barCount: 3 });
@@ -492,21 +533,24 @@ test("playing locks hidden note edits but preserves pause and playback preferenc
       />
     );
   });
+  await press(screen!, "TabScore");
+  await press(screen!, "TabMoreOptions");
   for (const label of [
     "TabFret: +",
     "TabDeleteNote",
-    "TabUndo",
-    "TabDuplicateBar",
-    "TabQuarterTempo: +"
+    "TabUndo"
   ])
     expect(button(screen!, label).props.disabled).toBe(true);
   expect(button(screen!, "Pause").props.disabled).not.toBe(true);
   expect(button(screen!, "TabRewind").props.disabled).not.toBe(true);
+  await press(screen!, "TabTempoShort");
+  expect(button(screen!, "TabQuarterTempo: +").props.disabled).toBe(true);
   expect(
     button(screen!, 'TabSpeedPercent:{"percent":50}').props.disabled
   ).not.toBe(true);
+  await press(screen!, "TabLoopShort");
   expect(button(screen!, "TabLoop").props.disabled).not.toBe(true);
-  expect(JSON.stringify(screen!.toJSON())).toContain("TabPauseToEdit");
+  expect(transport.setTab).not.toHaveBeenCalled();
 });
 
 test("compact playback metadata shows the effective practice tempo", async () => {
@@ -527,6 +571,7 @@ test("fixed speed is not marked selected while the progressive trainer controls 
     screen = Renderer.create(<TablaturePanel {...props(transport)} />);
   });
   await press(screen!, "TabFullView");
+  await press(screen!, "TabTempoShort");
   expect(
     button(screen!, 'TabSpeedPercent:{"percent":100}').props.selected
   ).toBe(false);
@@ -672,7 +717,8 @@ test("six-eight changes bar boundaries and loop lengths using eighth-note beats"
   });
   await press(screen!, "TabRangeTo: −");
   expect(base.setRange).toHaveBeenCalledWith({ start: 0, end: 144 });
-  expect(JSON.stringify(screen!.toJSON())).toContain("TabQuarterTempo");
+  await press(screen!, "TabTempoShort");
+  expect(button(screen!, "TabQuarterTempo: +")).toBeDefined();
 });
 
 test("history controls call transport undo and redo, and all editing locks while recording", async () => {
@@ -694,16 +740,16 @@ test("history controls call transport undo and redo, and all editing locks while
       />
     );
   });
-  for (const label of [
-    "TabUndo",
-    "TabRedo",
-    "TabFret: +",
-    "TabTriplet",
-    "TabDuplicateBar",
-    "TabQuarterTempo: +",
-    'TabMeterValue:{"beats":6,"unit":8}'
-  ])
-    expect(button(screen!, label).props.disabled).toBe(true);
+  for (const [section, labels] of [
+    ["TabScore", ["TabUndo", "TabRedo", "TabFret: +", "TabTriplet"]],
+    ["TabBars", ["TabDuplicateBar", 'TabMeterValue:{"beats":6,"unit":8}']],
+    ["TabTempoShort", ["TabQuarterTempo: +"]]
+  ] as const) {
+    await press(screen!, section);
+    if (section === "TabScore") await press(screen!, "TabMoreOptions");
+    for (const label of labels)
+      expect(button(screen!, label).props.disabled).toBe(true);
+  }
   expect(button(screen!, "TabStopRecording").props.disabled).not.toBe(true);
 });
 

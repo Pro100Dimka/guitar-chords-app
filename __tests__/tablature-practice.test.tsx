@@ -125,7 +125,7 @@ test("fullscreen practice renders several readonly bars and tapping a bar only s
   await mount(transport, { title: "My exercise" });
   const modal = screen!.root.findByType(Modal);
   expect(modal.props.presentationStyle).toBe("fullScreen");
-  expect(modal.props.supportedOrientations).toContain("landscape");
+  expect(modal.props.supportedOrientations).toEqual(["landscape-right"]);
   const bars = screen!.root.findAllByType(TablatureBar);
   expect(bars.length).toBeGreaterThan(1);
   for (const bar of bars) {

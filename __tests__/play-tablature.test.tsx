@@ -30,6 +30,17 @@ import {
   saveTablature
 } from "../src/components/tablature-library";
 
+let mockTransport: React.ComponentProps<typeof TablaturePanel>["transport"];
+jest.mock("../src/screens/play/use-tablature", () => {
+  const actual = jest.requireActual("../src/screens/play/use-tablature");
+  return {
+    ...actual,
+    useTablature: (...args: Parameters<typeof actual.useTablature>) => {
+      mockTransport = actual.useTablature(...args);
+      return mockTransport;
+    }
+  };
+});
 let mockFocused = true;
 let mockParams: { tablatureSongId?: number; tablatureRequest?: number } = {};
 const mockNavigation = { setParams: jest.fn() };
@@ -135,11 +146,22 @@ jest.mock("../src/screens/song/tools", () => ({
 }));
 
 let screen: Renderer.ReactTestRenderer | undefined;
-const panel = () => screen!.root.findByType(TablaturePanel);
-const transport = () =>
-  panel().props.transport as React.ComponentProps<
-    typeof TablaturePanel
-  >["transport"];
+const panel = async () => {
+  if (!screen!.root.findAllByType(TablaturePanel).length) {
+    await act(async () => {
+      screen!.root.findAll((node) =>
+        node.props.accessibilityLabel === "TabTitle" &&
+        typeof node.props.onPress === "function"
+      )[0].props.onPress();
+    });
+  }
+  return screen!.root.findByType(TablaturePanel);
+};
+const transport = () => mockTransport;
+async function panelAction(name: "onRecord" | "onSave" | "onOpen" | "onPractice") {
+  const current = await panel();
+  await act(async () => current.props[name]());
+}
 const dimensions = { width: 390, height: 640 };
 const manager = { begin: jest.fn(), activate: jest.fn(), end: jest.fn() };
 const saved: Tablature = {
@@ -202,11 +224,10 @@ afterEach(async () => {
 
 test("screen-string touches record chosen frets and timing, save, and reopen the same tab", async () => {
   await render();
-  await act(async () => panel().props.onRecord());
+  await panelAction("onRecord");
   await act(async () =>
     screen!.root
-      .findAllByType(Action)
-      .find((node) => node.props.label === "FreePlay")!
+      .findAll((node) => node.props.accessibilityLabel === "FreePlay" && typeof node.props.onPress === "function")[0]
       .props.onPress()
   );
   const free = () =>
@@ -245,8 +266,8 @@ test("screen-string touches record chosen frets and timing, save, and reopen the
     "440:59:string4",
     4
   );
-  expect(panel().props.dirty).toBe(true);
-  await act(async () => panel().props.onSave());
+  expect((await panel()).props.dirty).toBe(true);
+  await panelAction("onSave");
   const library = () => screen!.root.findByType(TablatureLibrary);
   await act(async () =>
     library().findByType(TextInput).props.onChangeText("My riff")
@@ -263,14 +284,14 @@ test("screen-string touches record chosen frets and timing, save, and reopen the
     tablature: recorded,
     practice: defaultTabPractice()
   });
-  expect(panel().props.dirty).toBe(false);
+  expect((await panel()).props.dirty).toBe(false);
   jest
     .mocked(getTablatureSong)
     .mockResolvedValue({ id: 7, title: "My riff", tablature: recorded });
   jest
     .mocked(listTablatureSongs)
     .mockResolvedValue([{ id: 7, title: "My riff" }]);
-  await act(async () => panel().props.onOpen());
+  await panelAction("onOpen");
   await act(async () => {
     await jest.advanceTimersByTimeAsync(150);
   });
@@ -284,7 +305,7 @@ test("screen-string touches record chosen frets and timing, save, and reopen the
       .props.onPress()
   );
   expect(transport().tab).toEqual(recorded);
-  expect(panel().props.title).toBe("My riff");
+  expect((await panel()).props.title).toBe("My riff");
   expect(screen!.root.findAllByType(TablatureLibrary)).toHaveLength(0);
 });
 
@@ -311,7 +332,7 @@ test.each(["Cancel", "TabDiscard"])(
       finish({ id: 7, title: "Saved riff", tablature: saved })
     );
     expect(transport().tab).toEqual(draft);
-    expect(panel().props.dirty).toBe(true);
+    expect((await panel()).props.dirty).toBe(true);
     expect(Alert.alert).toHaveBeenCalledWith(
       "TabUnsavedTitle",
       "TabDiscardMessage",
@@ -324,7 +345,7 @@ test.each(["Cancel", "TabDiscard"])(
         .find((button) => button.text === decision)!.onPress!()
     );
     expect(transport().tab).toEqual(decision === "Cancel" ? draft : saved);
-    expect(panel().props.dirty).toBe(decision === "Cancel");
+    expect((await panel()).props.dirty).toBe(decision === "Cancel");
   }
 );
 
@@ -406,10 +427,10 @@ test.each(["blur", "return", "unmount", "record", "practice", "interruption"])(
         .mock.calls.at(-1)![0];
       await act(async () => listener({ state: "playbackInterrupted" }));
     } else if (transition === "record") {
-      await act(async () => panel().props.onRecord());
+      await panelAction("onRecord");
       expect(transport().status).toBe("recording");
     } else {
-      await act(async () => panel().props.onPractice());
+      await panelAction("onPractice");
       expect(screen!.root.findAllByType(TablaturePractice)).toHaveLength(1);
     }
     jest.mocked(performanceAudio.guitarString).mockClear();
@@ -426,7 +447,7 @@ test.each(["blur", "return", "unmount", "record", "practice", "interruption"])(
 
 test("a queued string touch survives ordinary recording clock renders", async () => {
   await render();
-  await act(async () => panel().props.onRecord());
+  await panelAction("onRecord");
   await pluck(1);
   const queued: Array<() => void> = [];
   mockQueuedTouches = queued;
@@ -476,8 +497,9 @@ test("practice opens from Play, keeps the display awake and pauses when closed",
   await render();
   await act(async () => {
     transport().setTab(saved);
-    panel().props.onPractice();
+
   });
+  await panelAction("onPractice");
   const practice = () => screen!.root.findByType(TablaturePractice);
   expect(practice().props.active).toBe(true);
   expect(MicrophoneStream.setKeepAwake).toHaveBeenLastCalledWith(
@@ -506,7 +528,7 @@ test("creating a new part supersedes a pending incoming song even when both draf
   mockParams = { tablatureSongId: 7, tablatureRequest: 1 };
   await render();
   expect(getTablatureSong).toHaveBeenCalledTimes(1);
-  await act(async () => panel().props.onOpen());
+  await panelAction("onOpen");
   await act(async () =>
     screen!.root.findByType(TablatureLibrary).props.onNew()
   );
@@ -514,7 +536,7 @@ test("creating a new part supersedes a pending incoming song even when both draf
     finish({ id: 7, title: "Late riff", tablature: saved })
   );
   expect(transport().tab).toEqual(emptyTablature());
-  expect(panel().props.title).toBeUndefined();
+  expect((await panel()).props.title).toBeUndefined();
   expect(mockParams.tablatureSongId).toBeUndefined();
 });
 
@@ -528,7 +550,7 @@ test("an obsolete incoming read failure cannot replace the new session with an e
   );
   mockParams = { tablatureSongId: 7, tablatureRequest: 1 };
   await render();
-  await act(async () => panel().props.onOpen());
+  await panelAction("onOpen");
   await act(async () =>
     screen!.root.findByType(TablatureLibrary).props.onNew()
   );
@@ -538,7 +560,7 @@ test("an obsolete incoming read failure cannot replace the new session with an e
   expect(mockParams.tablatureSongId).toBeUndefined();
 });
 
-test.each(["onOpen", "onSave"])(
+test.each(["onOpen", "onSave"] as const)(
   "%s protects the active library dialog and typed text from an older incoming song",
   async (action) => {
     let finish!: (value: Awaited<ReturnType<typeof getTablatureSong>>) => void;
@@ -557,7 +579,7 @@ test.each(["onOpen", "onSave"])(
     });
     mockParams = { tablatureSongId: 7, tablatureRequest: 1 };
     await render();
-    await act(async () => panel().props[action]());
+    await panelAction(action);
     await act(async () =>
       screen!.root
         .findByType(TablatureLibrary)
@@ -572,7 +594,7 @@ test.each(["onOpen", "onSave"])(
       screen!.root.findByType(TablatureLibrary).findByType(TextInput).props
         .value
     ).toBe("My current work");
-    expect(panel().props.title).toBeUndefined();
+    expect((await panel()).props.title).toBeUndefined();
   }
 );
 
@@ -621,8 +643,9 @@ test("backgrounding cancels the shared count-in, releases the display and does n
   await act(async () => {
     transport().setTab(saved);
     transport().setPractice({ ...defaultTabPractice(), countInBars: 1 });
-    panel().props.onPractice();
+
   });
+  await panelAction("onPractice");
   await act(async () => transport().play());
   expect(transport().status).toBe("countingIn");
   expect(performanceAudio.metronomeBeat).toHaveBeenCalled();
@@ -651,7 +674,7 @@ test("recording count-in permits fingering changes but preserves the old tab whe
     transport().replaceTab(saved);
     transport().setPractice({ ...defaultTabPractice(), countInBars: 1 });
   });
-  await act(async () => panel().props.onRecord());
+  await panelAction("onRecord");
   await act(async () =>
     jest
       .mocked(Alert.alert)
@@ -661,8 +684,7 @@ test("recording count-in permits fingering changes but preserves the old tab whe
   expect(transport().status).toBe("countingIn");
   await act(async () =>
     screen!.root
-      .findAllByType(Action)
-      .find((node) => node.props.label === "FreePlay")!
+      .findAll((node) => node.props.accessibilityLabel === "FreePlay" && typeof node.props.onPress === "function")[0]
       .props.onPress()
   );
   await pluck(0);
@@ -670,8 +692,7 @@ test("recording count-in permits fingering changes but preserves the old tab whe
   expect(transport().tab).toEqual(saved);
   expect(
     screen!.root
-      .findAllByType(Action)
-      .find((node) => node.props.label === "Metronome")!.props.disabled
+      .findAll((node) => node.props.accessibilityLabel === "Metronome" && typeof node.props.onPress === "function")[0].props.disabled
   ).toBe(true);
   await act(async () => transport().stopRecording());
   expect(transport().status).toBe("idle");
@@ -716,7 +737,7 @@ test("practice settings save per song and changing songs never overwrites the pr
   const changed = { ...first, volume: 0.5 };
   await act(async () => transport().setPractice(changed));
   expect(usePreferences.getState().songs[7].tabPractice).toEqual(changed);
-  expect(panel().props.dirty).toBe(false);
+  expect((await panel()).props.dirty).toBe(false);
   await act(async () => {
     await jest.advanceTimersByTimeAsync(500);
   });
@@ -726,7 +747,7 @@ test("practice settings save per song and changing songs never overwrites the pr
       song: { id: 7, title: "First riff" }
     })
   );
-  await act(async () => panel().props.onOpen());
+  await panelAction("onOpen");
   await act(async () =>
     screen!.root
       .findByType(TablatureLibrary)
@@ -757,7 +778,7 @@ test("restoring a draft restores practice without creating a score edit", async 
   await render();
   expect(transport().practice).toEqual(practice);
   expect(transport().canUndo).toBe(false);
-  expect(panel().props.dirty).toBe(false);
+  expect((await panel()).props.dirty).toBe(false);
   await act(async () => {
     await jest.advanceTimersByTimeAsync(1000);
   });
@@ -772,8 +793,12 @@ test("draft hydration locks tab actions and restores unsaved rhythm with its lib
     })
   );
   await render();
-  expect(panel().props.disabled).toBe(true);
-  await act(async () => panel().props.onRecord());
+  const opener = screen!.root.findAll((node) =>
+    node.props.accessibilityLabel === "TabTitle" &&
+    typeof node.props.onPress === "function"
+  )[0];
+  expect(opener.props.disabled).toBe(true);
+  expect(screen!.root.findAllByType(TablaturePanel)).toHaveLength(0);
   expect(transport().status).toBe("idle");
   const tab = {
     ...emptyTablature(112, 6, 8),
@@ -790,9 +815,9 @@ test("draft hydration locks tab actions and restores unsaved rhythm with its lib
       practice: defaultTabPractice()
     })
   );
-  expect(panel().props.disabled).toBe(false);
-  expect(panel().props.title).toBe("Recovered riff");
-  expect(panel().props.dirty).toBe(true);
+  expect((await panel()).props.disabled).toBe(false);
+  expect((await panel()).props.title).toBe("Recovered riff");
+  expect((await panel()).props.dirty).toBe(true);
   expect(transport().tab).toEqual(tab);
   expect(transport().canUndo).toBe(false);
   await act(async () => {
@@ -841,7 +866,7 @@ test("replacing a recording keeps its chosen meter and can be undone in one acti
   await act(async () => {
     transport().replaceTab(previous);
   });
-  await act(async () => panel().props.onRecord());
+  await panelAction("onRecord");
   await act(async () =>
     jest
       .mocked(Alert.alert)
@@ -872,11 +897,11 @@ test.each(["new", "record"])(
       transport().setTab(saved);
     });
     if (action === "new") {
-      await act(async () => panel().props.onOpen());
+      await panelAction("onOpen");
       await act(async () =>
         screen!.root.findByType(TablatureLibrary).props.onNew()
       );
-    } else await act(async () => panel().props.onRecord());
+    } else await panelAction("onRecord");
     const stale = jest
       .mocked(Alert.alert)
       .mock.calls.at(-1)![2]!
@@ -888,7 +913,7 @@ test.each(["new", "record"])(
       ...saved,
       notes: [{ string: 5, fret: 9, tick: 0, duration: 24 }]
     };
-    await act(async () => panel().props.onOpen());
+    await panelAction("onOpen");
     await act(async () =>
       screen!.root
         .findByType(TablatureLibrary)
@@ -900,10 +925,10 @@ test.each(["new", "record"])(
         .mock.calls.at(-1)![2]!
         .find((button) => button.text === "TabDiscard")!.onPress!()
     );
-    expect(panel().props.title).toBe("Newer song");
+    expect((await panel()).props.title).toBe("Newer song");
     await act(async () => stale());
     expect(transport().tab).toEqual(replacement);
-    expect(panel().props.title).toBe("Newer song");
+    expect((await panel()).props.title).toBe("Newer song");
     expect(transport().status).toBe("idle");
   }
 );
@@ -920,7 +945,7 @@ test("a navigation confirmation shown before New cannot revive its superseded re
     .mock.calls.at(-1)![2]!
     .find((button) => button.text === "TabDiscard")!.onPress!;
   expect(getTablatureSong).not.toHaveBeenCalled();
-  await act(async () => panel().props.onOpen());
+  await panelAction("onOpen");
   await act(async () =>
     screen!.root.findByType(TablatureLibrary).props.onNew()
   );
@@ -933,7 +958,7 @@ test("a navigation confirmation shown before New cannot revive its superseded re
   expect(transport().tab).toEqual(emptyTablature());
   await act(async () => incoming());
   expect(transport().tab).toEqual(emptyTablature());
-  expect(panel().props.title).toBeUndefined();
+  expect((await panel()).props.title).toBeUndefined();
   expect(getTablatureSong).not.toHaveBeenCalled();
 });
 
@@ -942,7 +967,7 @@ test("a recording confirmation from before leaving Play cannot restart when retu
   await act(async () => {
     transport().setTab(saved);
   });
-  await act(async () => panel().props.onRecord());
+  await panelAction("onRecord");
   const start = jest
     .mocked(Alert.alert)
     .mock.calls.at(-1)![2]!
@@ -985,7 +1010,7 @@ test("restoring a clean draft does not overwrite newer library practice until th
   });
   await render();
   expect(transport().practice).toEqual(restored);
-  expect(panel().props.dirty).toBe(false);
+  expect((await panel()).props.dirty).toBe(false);
   expect(usePreferences.getState().songs[7].tabPractice).toEqual(
     libraryPractice
   );
@@ -1021,8 +1046,8 @@ test("a draft reset confirmation cannot erase a working copy restored by a later
   await act(async () => reset());
   expect(writeTablatureDraft).not.toHaveBeenCalledWith(null);
   expect(transport().tab).toEqual(saved);
-  expect(panel().props.title).toBe("Recovered after retry");
-  expect(panel().props.dirty).toBe(true);
+  expect((await panel()).props.title).toBe("Recovered after retry");
+  expect((await panel()).props.dirty).toBe(true);
 });
 
 test("saving a snapshot while newer edits arrive preserves them and completes even after backgrounding", async () => {
@@ -1037,7 +1062,7 @@ test("saving a snapshot while newer edits arrive preserves them and completes ev
   await act(async () => {
     transport().setTab(saved);
   });
-  await act(async () => panel().props.onSave());
+  await panelAction("onSave");
   const library = () => screen!.root.findByType(TablatureLibrary);
   await act(async () =>
     library().findByType(TextInput).props.onChangeText("Saved snapshot")
@@ -1062,7 +1087,7 @@ test("saving a snapshot while newer edits arrive preserves them and completes ev
     expect.objectContaining({ tablature: saved, title: "Saved snapshot" })
   );
   expect(transport().tab).toEqual(newer);
-  expect(panel().props.dirty).toBe(true);
-  expect(panel().props.title).toBe("Saved snapshot");
+  expect((await panel()).props.dirty).toBe(true);
+  expect((await panel()).props.title).toBe("Saved snapshot");
   expect(screen!.root.findAllByType(TablatureLibrary)).toHaveLength(0);
 });

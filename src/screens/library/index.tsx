@@ -229,7 +229,7 @@ const Library: React.FC = () => {
                   }
                 ]
               : []),
-            ...(Platform.OS === "android"
+            ...(["android", "ios"].includes(Platform.OS)
               ? [
                   {
                     label: "AutofillRecognizeFile",

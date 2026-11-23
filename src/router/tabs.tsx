@@ -2,17 +2,26 @@
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import React from "react";
 import { StyleSheet } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets
+} from "react-native-safe-area-context";
 import screens from "../screens";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import {
+  createBottomTabNavigator,
+  type BottomTabBarButtonProps
+} from "@react-navigation/bottom-tabs";
+import { PlatformPressable } from "@react-navigation/elements";
 import palette from "../theme/palette";
 import { useTranslation } from "react-i18next";
 import { usePreferences } from "@/components/preferences";
+import Text from "../components/styled-text";
 
 const Tab = createBottomTabNavigator();
 
 const TabLayout = () => {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
   return (
     <SafeAreaView edges={["top", "left", "right"]} style={layout.container}>
       <Tab.Navigator
@@ -26,26 +35,30 @@ const TabLayout = () => {
           return {
             headerShown: false,
             freezeOnBlur: !["tuner", "play"].includes(route.name),
-            tabBarLabelStyle: {
-              fontSize: 12,
-              fontFamily: palette.typography.strong,
-              fontWeight: "600",
-              marginBottom: 4
+            tabBarLabelPosition: "below-icon",
+            tabBarActiveBackgroundColor: palette.glass.cell,
+            tabBarButton: (props: BottomTabBarButtonProps) => (
+              <PlatformPressable
+                {...props}
+                style={[props.style, layout.tabButton]}
+              />
+            ),
+            tabBarItemStyle: {
+              marginHorizontal: 3,
+              marginTop: 5,
+              marginBottom: 5,
+              paddingVertical: 5,
+              borderRadius: 14,
+              overflow: "hidden"
             },
-            tabBarItemStyle: { paddingTop: 6 },
             tabBarIcon: ({ color, size }) => (
               <MaterialCommunityIcons name={icon} size={size} color={color} />
             ),
             ...styles,
-            ...(route.name !== "tuner" && {
-              tabBarStyle: {
-                ...styles.tabBarStyle,
-                backgroundColor: palette.glass.header,
-                borderTopColor: palette.glass.edge
-              },
-              tabBarActiveTintColor: palette.glass.accent,
-              tabBarInactiveTintColor: palette.glass.muted
-            })
+            tabBarStyle: {
+              ...styles.tabBarStyle,
+              height: 64 + insets.bottom
+            }
           };
         }}
       >
@@ -56,6 +69,16 @@ const TabLayout = () => {
             component={screens[name].component}
             options={{
               title: t(screens[name].title ?? name),
+              tabBarLabel: ({ color }) => (
+                <Text
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.75}
+                  style={[layout.tabLabel, { color }]}
+                >
+                  {t(screens[name].title ?? name)}
+                </Text>
+              ),
               lazy: false
             }}
           />
@@ -74,6 +97,17 @@ const styles = {
   tabBarActiveTintColor: palette.glass.accent,
   tabBarInactiveTintColor: palette.chromatic.muted
 };
-const layout = StyleSheet.create({ container: { flex: 1 } });
+const layout = StyleSheet.create({
+  container: { flex: 1 },
+  tabButton: { borderRadius: 14 },
+  tabLabel: {
+    width: "100%",
+    paddingHorizontal: 2,
+    fontSize: 10,
+    lineHeight: 16,
+    fontWeight: "600",
+    textAlign: "center"
+  }
+});
 
 export default TabLayout;

@@ -7,6 +7,7 @@ import { NavigationProp } from "@/router";
 import { ISong } from "@/@interfaces";
 import { usePreferences } from "@/components/preferences";
 import { useTranslation } from "react-i18next";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 const LibraryItem: React.FC<{ song: ISong; onLongPress?: () => void }> = ({
   song,
   onLongPress
@@ -46,16 +47,22 @@ const LibraryItem: React.FC<{ song: ISong; onLongPress?: () => void }> = ({
         <Text numberOfLines={2} style={styles.title}>
           {song.title}
         </Text>
-        <Text numberOfLines={1} style={styles.artist}>
-          {song.band_name}
-        </Text>
+        {!!song.band_name && (
+          <Text numberOfLines={1} style={styles.artist}>
+            {song.band_name}
+          </Text>
+        )}
       </View>
       {hasTablature && (
         <Text style={styles.tabBadge} accessibilityLabel={t("TabTitle")}>
           TAB
         </Text>
       )}
-      <Text style={styles.star}>{favorite ? "★" : "›"}</Text>
+      <MaterialCommunityIcons
+        name={favorite ? "star" : "chevron-right"}
+        size={22}
+        color={favorite ? palette.glass.accent : palette.glass.muted}
+      />
     </Pressable>
   );
 };
@@ -80,7 +87,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 3
   },
-  star: { color: palette.glass.accent, fontSize: 24 },
   card: {
     flexDirection: "row",
     alignItems: "center",
