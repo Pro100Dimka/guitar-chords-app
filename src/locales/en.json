@@ -631,7 +631,7 @@
   "GuideEnlarge": "Enlarge screen illustration",
   "GuideScreenshot": "On screen · enlarge",
   "GuideScreenshotHint": "Interface illustration. The language and content on your screen may differ.",
-  "GuideAndroidOnly": "Microphone recognition is available on iPhone and Android. Audio-file recognition is currently available on Android.",
+  "GuideAndroidOnly": "Microphone and audio-file recognition are available on iPhone and Android.",
   "GuideBackHint": "To return to the guide, tap Guide in the bottom menu.",
   "GuideRelated": "You might also need",
   "GuideSections": {

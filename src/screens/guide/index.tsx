@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   Image,
   Keyboard,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -413,9 +412,6 @@ export function GuideArticle() {
         {t(`${key}.title`)}
       </Text>
       <Text style={styles.intro}>{t(`${key}.summary`)}</Text>
-      {article.id === "recognize" && Platform.OS !== "android" && (
-        <Text style={styles.tip}>{t("GuideAndroidOnly")}</Text>
-      )}
       <View style={styles.steps}>
         {(Array.isArray(steps) ? steps : []).map((text, step) => (
           <View key={step} style={styles.step}>

@@ -4,12 +4,14 @@ import React
 import UIKit
 
 @objc(PerformanceAudio)
-class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerDelegate {
-    private var recorder: AVAudioRecorder?
+class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
+    private var recorder: StreamingTake?
     private var player: AVAudioPlayer?
     private var cue: AVAudioPlayer?
     private var preparedStrings: [String: AVAudioPlayer] = [:]
     private var preparedStringOrder: [String] = []
+    private var preparedAlternates: [String: AVAudioPlayer] = [:]
+    private var preparedSizes: [String: Int] = [:]
     private var guitarStrings: [Int: AVAudioPlayer] = [:]
     private var stringSessionActive = false
     private var metronomeEngine: AVAudioEngine?
@@ -18,9 +20,8 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     private var beatNodes: [AVAudioPlayerNode] = []
     private var beatBuffers: [AVAudioPCMBuffer] = []
     private var lastTake: URL?
-    private var startedAt: Date?
     private var processing = Set<String>()
-    private let worker = DispatchQueue(label: "recording.polish", qos: .userInitiated)
+    private let worker = DispatchQueue(label: "guitar.prepare", qos: .userInitiated)
     private var observers: [NSObjectProtocol] = []
     private var observing = false
     private var instrumentInterrupted = false
@@ -65,7 +66,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             instrumentInterrupted = false
         }
     }
-    deinit { clearMetronomeBeats(); observers.forEach(NotificationCenter.default.removeObserver) }
+    deinit { recorder?.finish(interrupted: true) { _ in }; clearMetronomeBeats(); observers.forEach(NotificationCenter.default.removeObserver) }
     @objc override static func requiresMainQueueSetup() -> Bool { true }
     override var methodQueue: DispatchQueue! { DispatchQueue.main }
     override func supportedEvents() -> [String]! { ["onPerformanceAudio"] }
@@ -76,51 +77,57 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         sendEvent(withName: "onPerformanceAudio", body: ["state": state, "uri": uri ?? ""])
     }
     @objc func startTake(_ songId: String, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
-        guard songId.range(of: "^[1-9][0-9]*$", options: .regularExpression) != nil, recorder == nil else {
+        guard songId.range(of: "^[1-9][0-9]*$", options: .regularExpression) != nil, recorder == nil, processing.isEmpty else {
             reject("RECORDING_BUSY", "Recording unavailable", nil); return
+        }
+        guard AVAudioSession.sharedInstance().recordPermission == .granted else {
+            reject("RECORDING_FAILED", "Microphone permission denied", nil); return
         }
         stopPlayback()
         var ownedURL: URL?
+        var capture: StreamingTake?
         do {
             let url = try reserveRecordingURL(songId)
             ownedURL = url
             let session = AVAudioSession.sharedInstance()
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
             try session.setActive(true)
-            let capture = try AVAudioRecorder(url: url, settings: [
-                AVFormatIDKey: kAudioFormatMPEG4AAC,
-                AVSampleRateKey: 44100,
-                AVNumberOfChannelsKey: 1,
-                AVEncoderBitRateKey: 128000,
-                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
-            ])
-            capture.delegate = self
-            guard capture.prepareToRecord(), capture.record(forDuration: 1800) else {
-                throw NSError(domain: "PerformanceAudio", code: 1)
+            guard session.isInputAvailable else { throw NSError(domain: "PerformanceAudio", code: 1) }
+            let recording = try StreamingTake(url: url)
+            capture = recording
+            recording.onStop = { [weak self, weak recording] in
+                guard let self = self, let recording = recording, self.recorder === recording else { return }
+                self.finishTake()
             }
-            startedAt = Date()
-            recorder = capture
+            recorder = recording
+            try recording.start()
             lastTake = nil
             resolve(url.path)
         } catch {
-            if let url = ownedURL { try? FileManager.default.removeItem(at: url) }
+            recorder = nil
+            capture?.cancelStartup()
+            if let url = ownedURL { try? removeRecordingFiles(url) }
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             reject("RECORDING_FAILED", "Could not start recording", error)
         }
     }
     @discardableResult private func finishTake() -> String? {
         guard let capture = recorder else { return lastTake?.path }
-        let duration = max(capture.currentTime, startedAt.map { Date().timeIntervalSince($0) } ?? 0)
-        startedAt = nil
         recorder = nil
-        capture.stop()
-        if duration >= 0.2 {
-            lastTake = capture.url
-            polish(capture.url)
-        } else {
-            try? FileManager.default.removeItem(at: capture.url)
-            lastTake = nil
-            emit("error")
+        let url = capture.url
+        lastTake = capture.currentTime >= 0.2 ? url : nil
+        processing.insert(url.path)
+        emit("processing", uri: url.path)
+        capture.finish(interrupted: instrumentInterrupted || UIApplication.shared.applicationState != .active) { [weak self] result in
+            guard let self = self else { return }
+            self.processing.remove(url.path)
+            switch result {
+            case .success(let interrupted):
+                self.emit(interrupted ? "interrupted" : "saved", uri: url.path)
+            case .failure:
+                if self.lastTake == url { self.lastTake = nil }
+                self.emit("error", uri: url.path)
+            }
         }
         try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         return lastTake?.path
@@ -168,6 +175,8 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             } else if let audio = try? AVAudioFile(forReading: partial), audio.length > 0 {
                 if files.fileExists(atPath: target.path) { try files.removeItem(at: target) }
                 try files.moveItem(at: partial, to: target)
+                let marker = target.deletingPathExtension().appendingPathExtension("interrupted")
+                if !files.fileExists(atPath: marker.path) { try Data().write(to: marker, options: .withoutOverwriting) }
             } else { try files.removeItem(at: partial) }
         }
         for url in try files.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey]) {
@@ -175,6 +184,14 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
                !active.contains(url.resolvingSymlinksInPath().path),
                (try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) == 0 {
                 try files.removeItem(at: url)
+            }
+        }
+        for marker in try files.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
+            guard marker.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.interrupted$", options: .regularExpression) != nil else { continue }
+            let target = marker.deletingPathExtension().appendingPathExtension("m4a")
+            let partial = marker.deletingPathExtension().appendingPathExtension("processing.m4a")
+            if !active.contains(target.resolvingSymlinksInPath().path), !files.fileExists(atPath: target.path), !files.fileExists(atPath: partial.path) {
+                try files.removeItem(at: marker)
             }
         }
     }
@@ -185,7 +202,8 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             throw NSError(domain: "PerformanceAudio", code: 2)
         }
         let partial = url.deletingPathExtension().appendingPathExtension("processing.m4a")
-        for file in [partial, url] where FileManager.default.fileExists(atPath: file.path) {
+        let marker = url.deletingPathExtension().appendingPathExtension("interrupted")
+        for file in [partial, url, marker] where FileManager.default.fileExists(atPath: file.path) {
             try FileManager.default.removeItem(at: file)
         }
     }
@@ -195,7 +213,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
             let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey])
             let rows: [[String: Any]] = try files.filter { $0.lastPathComponent.hasPrefix("song-\(songId)-") && $0.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.m4a$", options: .regularExpression) != nil && $0 != recorder?.url }.map { url in
                 let values = try url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
-                return ["path": url.path, "date": (values.contentModificationDate ?? .distantPast).timeIntervalSince1970 * 1000, "bytes": values.fileSize ?? 0, "processing": processing.contains(url.path)]
+                return ["path": url.path, "date": (values.contentModificationDate ?? .distantPast).timeIntervalSince1970 * 1000, "bytes": values.fileSize ?? 0, "processing": processing.contains(url.path), "interrupted": FileManager.default.fileExists(atPath: url.deletingPathExtension().appendingPathExtension("interrupted").path)]
             }
             resolve(rows.sorted { ($0["date"] as? Double ?? 0) > ($1["date"] as? Double ?? 0) })
         } catch { reject("FILES_FAILED", "Could not load recordings", error) }
@@ -327,15 +345,76 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         beatEngine?.stop(); beatEngine = nil
         beatNodes.removeAll(); beatBuffers.removeAll()
     }
-    @objc func prepareGuitar(_ key: String, wave: String) {
-        guard key.count <= 256, wave.count <= 400000 else { return }
-        if preparedStrings[key] == nil {
-            guard let data = Data(base64Encoded: wave), let audio = try? AVAudioPlayer(data: data) else { return }
-            audio.prepareToPlay()
-            preparedStrings[key] = audio
-        }
+    private func cacheGuitar(_ key: String, player: AVAudioPlayer, alternate: AVAudioPlayer? = nil, bytes: Int) {
+        preparedStrings[key] = player
+        preparedAlternates[key] = alternate
+        preparedSizes[key] = bytes
         preparedStringOrder.removeAll { $0 == key }; preparedStringOrder.append(key)
-        while preparedStringOrder.count > 32 { preparedStrings.removeValue(forKey: preparedStringOrder.removeFirst()) }
+        while preparedStringOrder.count > 32 || preparedSizes.values.reduce(0, +) > 32 * 1024 * 1024 {
+            let oldest = preparedStringOrder.removeFirst()
+            preparedStrings.removeValue(forKey: oldest)
+            preparedAlternates.removeValue(forKey: oldest)
+            preparedSizes.removeValue(forKey: oldest)
+        }
+    }
+    @objc func prepareGuitar(_ key: String, wave: String) {
+        guard key.count <= 256, wave.count <= 8000000 else { return }
+        if let player = preparedStrings[key] {
+            cacheGuitar(key, player: player, alternate: preparedAlternates[key], bytes: preparedSizes[key] ?? 0)
+            return
+        }
+        guard let data = Data(base64Encoded: wave), let audio = try? AVAudioPlayer(data: data), audio.prepareToPlay() else { return }
+        cacheGuitar(key, player: audio, bytes: data.count)
+    }
+    @objc func prepareFingering(_ key: String, wave: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+        guard key.count <= 256, wave.count <= 8000000 else { resolve(false); return }
+        if let player = preparedStrings[key], let alternate = preparedAlternates[key] {
+            cacheGuitar(key, player: player, alternate: alternate, bytes: preparedSizes[key] ?? 0)
+            resolve(true); return
+        }
+        guard !wave.isEmpty else { resolve(false); return }
+        worker.async { [weak self] in
+            guard let data = Data(base64Encoded: wave),
+                  let first = try? AVAudioPlayer(data: data), let second = try? AVAudioPlayer(data: data),
+                  first.prepareToPlay(), second.prepareToPlay() else {
+                DispatchQueue.main.async { resolve(false) }; return
+            }
+            DispatchQueue.main.async {
+                guard let self = self else { resolve(false); return }
+                self.cacheGuitar(key, player: first, alternate: second, bytes: data.count * 2)
+                resolve(self.preparedStrings[key] != nil)
+            }
+        }
+    }
+    @objc func playPreparedGuitar(_ key: String) {
+        guard canPlayInstrument, recorder == nil, let audio = preparedStrings[key] else { return }
+        let wasActive = stringSessionActive
+        let previous = cue
+        cue = nil
+        if previous === audio { previous?.stop() }
+        else {
+            previous?.setVolume(0, fadeDuration: 0.016)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { [weak self] in
+                if self?.cue !== previous { previous?.stop() }
+            }
+        }
+        stopPlayback()
+        do {
+            let session = AVAudioSession.sharedInstance()
+            if !wasActive || session.category != .playback {
+                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                try session.setActive(true)
+            }
+            stringSessionActive = true
+            audio.currentTime = 0
+            audio.setVolume(1, fadeDuration: 0)
+            guard audio.play() else { return }
+            cue = audio
+            if let alternate = preparedAlternates[key] {
+                preparedStrings[key] = alternate; preparedAlternates[key] = audio
+            }
+            preparedStringOrder.removeAll { $0 == key }; preparedStringOrder.append(key)
+        } catch { cue = nil }
     }
     @objc func stopGuitarString(_ index: Int) {
         let voice = guitarStrings.removeValue(forKey: index)
@@ -371,73 +450,14 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
         audio.play()
     }
     @objc func playGuitar(_ wave: String) {
-        guard canPlayInstrument, recorder == nil, wave.count <= 400000, let data = Data(base64Encoded: wave) else { return }
-        let previous = cue
-        cue = nil
-        previous?.setVolume(0, fadeDuration: 0.016)
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.02) { previous?.stop() }
-        stopPlayback()
-        do {
-            let session = AVAudioSession.sharedInstance()
-            if session.category != .playAndRecord {
-                try session.setCategory(.ambient, mode: .default)
-            }
-            try session.setActive(true)
-            cue = try AVAudioPlayer(data: data)
-            cue?.prepareToPlay()
-            cue?.play()
-        } catch { cue = nil }
-    }
-    private func polish(_ url: URL) {
-        processing.insert(url.path)
-        emit("processing", uri: url.path)
-        worker.async { [self] in
-            let output = url.deletingPathExtension().appendingPathExtension("processing.m4a")
-            var state = "saved"
-            do {
-                let date = try url.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate
-                try autoreleasepool { try Self.renderPolished(url, output: output) }
-                _ = try FileManager.default.replaceItemAt(url, withItemAt: output)
-                if let date = date { try? FileManager.default.setAttributes([.modificationDate: date], ofItemAtPath: url.path) }
-            } catch { state = "processingFailed" }
-            try? FileManager.default.removeItem(at: output)
-            let completedState = state
-            DispatchQueue.main.async { [self] in
-                processing.remove(url.path)
-                emit(completedState, uri: url.path)
-            }
-        }
-    }
-    private static func renderPolished(_ input: URL, output: URL) throws {
-        let reader = try AVAudioFile(forReading: input, commonFormat: .pcmFormatFloat32, interleaved: false)
-        let format = reader.processingFormat
-        guard format.channelCount == 1, reader.length > 0,
-              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 65536) else {
-            throw NSError(domain: "PerformanceAudio", code: 4)
-        }
-        let writer = try AVAudioFile(forWriting: output, settings: [
-            AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: format.sampleRate,
-            AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 160000
-        ], commonFormat: .pcmFormatFloat32, interleaved: false)
-        var effect = RecordingPolish(rate: format.sampleRate)
-        while reader.framePosition < reader.length {
-            try autoreleasepool {
-                try reader.read(into: buffer)
-                guard buffer.frameLength > 0, let samples = buffer.floatChannelData?[0] else {
-                    throw NSError(domain: "PerformanceAudio", code: 5)
-                }
-                for index in 0..<Int(buffer.frameLength) { samples[index] = Float(effect.process(Double(samples[index]))) }
-                try writer.write(from: buffer)
-            }
-        }
-        var tail = Int(format.sampleRate)
-        while tail > 0 {
-            buffer.frameLength = AVAudioFrameCount(min(tail, Int(buffer.frameCapacity)))
-            guard let samples = buffer.floatChannelData?[0] else { break }
-            for index in 0..<Int(buffer.frameLength) { samples[index] = Float(effect.process(0) * min(1, Double(tail - index - 1) / (format.sampleRate * 0.08))) }
-            try writer.write(from: buffer)
-            tail -= Int(buffer.frameLength)
-        }
+        let key = "inline-preview"
+        guard wave.count <= 8000000 else { return }
+        preparedStrings.removeValue(forKey: key)
+        preparedAlternates.removeValue(forKey: key)
+        preparedSizes.removeValue(forKey: key)
+        preparedStringOrder.removeAll { $0 == key }
+        prepareGuitar(key, wave: wave)
+        playPreparedGuitar(key)
     }
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         if player === self.player { stopPlayback() }
@@ -445,11 +465,196 @@ class PerformanceAudio: RCTEventEmitter, AVAudioRecorderDelegate, AVAudioPlayerD
     func audioPlayerDecodeErrorDidOccur(_ player: AVAudioPlayer, error: Error?) {
         if player === self.player { stopPlayback(); emit("error") }
     }
-    func audioRecorderDidFinishRecording(_ recorder: AVAudioRecorder, successfully flag: Bool) {
-        if recorder === self.recorder { finishTake() }
+
+}
+
+private final class StreamingTake {
+    let url: URL
+    var onStop: (() -> Void)?
+    private let engine: AVAudioEngine
+    private let queue = DispatchQueue(label: "recording.stream", qos: .userInitiated)
+    private let lock = NSLock()
+    private let rate: Double
+    private let output: URL
+    private let marker: URL
+    private var writer: AVAudioFile?
+    private var effect: RecordingPolish
+    private var frames: Int64 = 0
+    private var written: Int64 = 0
+    private var pending = 0
+    private var pendingFrames: Int64 = 0
+    private var lastBuffer = ProcessInfo.processInfo.systemUptime
+    private var watchdog: DispatchSourceTimer?
+    private var stopped = false
+    private var finishing = false
+    private var issue: Error?
+    private var writeIssue: Error?
+    private var tapInstalled = false
+
+    var currentTime: Double {
+        lock.lock(); defer { lock.unlock() }
+        return Double(frames) / rate
     }
-    func audioRecorderEncodeErrorDidOccur(_ recorder: AVAudioRecorder, error: Error?) {
-        if recorder === self.recorder { finishTake(); emit("error") }
+
+    init(url: URL) throws {
+        let inputEngine = AVAudioEngine()
+        engine = inputEngine
+        self.url = url
+        output = url.deletingPathExtension().appendingPathExtension("processing.m4a")
+        marker = url.deletingPathExtension().appendingPathExtension("interrupted")
+        let format = inputEngine.inputNode.outputFormat(forBus: 0)
+        guard format.sampleRate.isFinite, (8000...192000).contains(format.sampleRate),
+              (1...32).contains(format.channelCount), format.commonFormat == .pcmFormatFloat32,
+              !format.isInterleaved else { throw NSError(domain: "RecordingFormat", code: 1) }
+        rate = format.sampleRate
+        effect = RecordingPolish(rate: format.sampleRate)
+        try Data().write(to: marker, options: .withoutOverwriting)
+        writer = try AVAudioFile(forWriting: output, settings: [
+            AVFormatIDKey: kAudioFormatMPEG4AAC, AVSampleRateKey: rate,
+            AVNumberOfChannelsKey: 2, AVEncoderBitRateKey: 160000
+        ], commonFormat: .pcmFormatFloat32, interleaved: false)
+    }
+
+    func start() throws {
+        let format = engine.inputNode.outputFormat(forBus: 0)
+        engine.inputNode.installTap(onBus: 0, bufferSize: 2048, format: format) { [weak self] buffer, _ in
+            self?.append(buffer)
+        }
+        tapInstalled = true
+        engine.prepare()
+        try engine.start()
+        let timer = DispatchSource.makeTimerSource(queue: .main)
+        timer.schedule(deadline: .now() + 1, repeating: 1)
+        timer.setEventHandler { [weak self] in
+            guard let self = self else { return }
+            self.lock.lock()
+            let stalled = !self.stopped && self.issue == nil && ProcessInfo.processInfo.systemUptime - self.lastBuffer > 3
+            if stalled { self.issue = NSError(domain: "RecordingInputUnavailable", code: 1) }
+            self.lock.unlock()
+            if stalled { self.onStop?() }
+        }
+        watchdog = timer
+        timer.resume()
+    }
+
+    private func append(_ buffer: AVAudioPCMBuffer) {
+        lock.lock()
+        guard !stopped, issue == nil else { lock.unlock(); return }
+        guard frames < Int64(rate * 1800) else {
+            stopped = true; lock.unlock()
+            DispatchQueue.main.async { [weak self] in self?.onStop?() }; return
+        }
+        guard pending < 8, pendingFrames + Int64(buffer.frameLength) <= Int64(rate),
+              buffer.frameLength > 0, buffer.frameLength <= 65536,
+              buffer.format.sampleRate == rate,
+              let source = buffer.floatChannelData,
+              let copy = AVAudioPCMBuffer(pcmFormat: buffer.format, frameCapacity: buffer.frameLength),
+              let destination = copy.floatChannelData else {
+            issue = NSError(domain: "RecordingBacklog", code: 1)
+            lock.unlock()
+            DispatchQueue.main.async { [weak self] in self?.onStop?() }; return
+        }
+        copy.frameLength = buffer.frameLength
+        for channel in 0..<Int(buffer.format.channelCount) {
+            destination[channel].update(from: source[channel], count: Int(buffer.frameLength))
+        }
+        pending += 1
+        pendingFrames += Int64(buffer.frameLength)
+        frames += Int64(buffer.frameLength)
+        lastBuffer = ProcessInfo.processInfo.systemUptime
+        queue.async { [self] in
+            do {
+                if writeIssue == nil { try render(copy) }
+            } catch {
+                writeIssue = error
+                lock.lock(); issue = error; lock.unlock()
+                DispatchQueue.main.async { [weak self] in self?.onStop?() }
+            }
+            lock.lock(); pending -= 1; pendingFrames -= Int64(copy.frameLength); lock.unlock()
+        }
+        lock.unlock()
+    }
+
+    private func render(_ input: AVAudioPCMBuffer) throws {
+        guard let writer = writer, let samples = input.floatChannelData,
+              let stereo = AVAudioPCMBuffer(pcmFormat: writer.processingFormat, frameCapacity: input.frameLength),
+              let output = stereo.floatChannelData else { throw NSError(domain: "RecordingWrite", code: 1) }
+        stereo.frameLength = input.frameLength
+        let channels = Int(input.format.channelCount)
+        for frame in 0..<Int(input.frameLength) {
+            var sample = 0.0
+            for channel in 0..<channels { sample += Double(samples[channel][frame]) }
+            let value = effect.processStereo(sample / Double(channels))
+            output[0][frame] = Float(value.0); output[1][frame] = Float(value.1)
+        }
+        try writer.write(from: stereo)
+        written += Int64(input.frameLength)
+    }
+
+    private func stopInput() {
+        watchdog?.cancel(); watchdog = nil
+        if tapInstalled { engine.inputNode.removeTap(onBus: 0); tapInstalled = false }
+        engine.stop()
+    }
+
+    func cancelStartup() {
+        lock.lock(); stopped = true; lock.unlock()
+        stopInput()
+        queue.sync { writer = nil }
+    }
+
+    func finish(interrupted: Bool, completion: @escaping (Result<Bool, Error>) -> Void) {
+        lock.lock()
+        if finishing { lock.unlock(); return }
+        finishing = true; stopped = true
+        lock.unlock()
+        stopInput()
+        queue.async { [self] in
+            lock.lock(); var partial = interrupted || issue != nil; lock.unlock()
+            if !partial {
+                do { try appendTail() } catch { partial = true; writeIssue = error }
+            }
+            writer = nil
+            let result: Result<Bool, Error>
+            do {
+                guard written >= Int64(rate * 0.2),
+                      let file = try? AVAudioFile(forReading: output), file.length > 0 else {
+                    throw writeIssue ?? NSError(domain: "RecordingEmpty", code: 1)
+                }
+                _ = try FileManager.default.replaceItemAt(url, withItemAt: output)
+                if !partial {
+                    do { try FileManager.default.removeItem(at: marker) } catch { partial = true }
+                }
+                result = .success(partial)
+            } catch {
+                if written < Int64(rate * 0.2) {
+                    try? FileManager.default.removeItem(at: output)
+                    try? FileManager.default.removeItem(at: marker)
+                }
+                if (try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize) == 0 {
+                    try? FileManager.default.removeItem(at: url)
+                }
+                result = .failure(error)
+            }
+            DispatchQueue.main.async { completion(result) }
+        }
+    }
+
+    private func appendTail() throws {
+        guard let writer = writer,
+              let buffer = AVAudioPCMBuffer(pcmFormat: writer.processingFormat, frameCapacity: 4096),
+              let samples = buffer.floatChannelData else { throw NSError(domain: "RecordingTail", code: 1) }
+        var remaining = Int(rate)
+        while remaining > 0 {
+            buffer.frameLength = AVAudioFrameCount(min(remaining, 4096))
+            for frame in 0..<Int(buffer.frameLength) {
+                let value = effect.processStereo(0)
+                let fade = min(1, Double(remaining - frame - 1) / (rate * 0.08))
+                samples[0][frame] = Float(value.0 * fade); samples[1][frame] = Float(value.1 * fade)
+            }
+            try writer.write(from: buffer)
+            remaining -= Int(buffer.frameLength)
+        }
     }
 }
 
@@ -485,6 +690,10 @@ private struct RecordingPolish {
         delays = [0.0437, 0.0573, 0.0719, 0.0893, 0.1091, 0.1317].map { [Double](repeating: 0, count: Int($0 * rate)) }
     }
     mutating func process(_ input: Double) -> Double {
+        let stereo = processStereo(input)
+        return (stereo.0 + stereo.1) * 0.5
+    }
+    mutating func processStereo(_ input: Double) -> (Double, Double) {
         let sample = input.isFinite ? input : 0
         filtered = highPass * (filtered + sample - previous)
         previous = sample
@@ -513,18 +722,19 @@ private struct RecordingPolish {
             if diffusionPositions[i] == diffusion[i].count { diffusionPositions[i] = 0 }
             diffuse = output
         }
-        var room = 0.0
+        var roomLeft = 0.0, roomRight = 0.0
         for i in delays.indices {
             let delayed = delays[i][positions[i]]
             damping[i] = roomDamping * damping[i] + (1 - roomDamping) * delayed
             delays[i][positions[i]] = diffuse + 0.48 * damping[i]
             positions[i] += 1
             if positions[i] == delays[i].count { positions[i] = 0 }
-            room += delayed
+            if i % 2 == 0 { roomLeft += delayed } else { roomRight += delayed }
         }
-        let mixed = dry + 0.65 * room / Double(delays.count)
-        let ceiling = min(1, 0.88 / max(abs(mixed), 1e-12))
+        let roomGain = 0.65 / Double(delays.count / 2)
+        let left = dry + roomGain * roomLeft, right = dry + roomGain * roomRight
+        let ceiling = min(1, 0.88 / max(max(abs(left), abs(right)), 1e-12))
         limiter = ceiling < limiter ? ceiling : release * limiter + (1 - release) * ceiling
-        return min(0.88, max(-0.88, mixed * limiter))
+        return (min(0.88, max(-0.88, left * limiter)), min(0.88, max(-0.88, right * limiter)))
     }
 }

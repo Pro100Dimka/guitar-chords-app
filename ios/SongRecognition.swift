@@ -8,6 +8,31 @@ private final class RecognitionCapture {
   private var stopped = false
   private var samples = [Int16]()
   private var task: URLSessionDataTask?
+  private var fileCoordinator: NSFileCoordinator?
+  private var readExpired = false
+
+  var fileReadExpired: Bool {
+    lock.lock(); defer { lock.unlock() }
+    return readExpired
+  }
+  func attach(_ coordinator: NSFileCoordinator) {
+    lock.lock()
+    fileCoordinator = coordinator
+    let cancel = stopped
+    lock.unlock()
+    if cancel { coordinator.cancel() }
+  }
+  func finishReading() {
+    lock.lock(); defer { lock.unlock() }
+    fileCoordinator = nil
+  }
+  func expireReading() {
+    lock.lock()
+    let coordinator = fileCoordinator
+    if coordinator != nil { readExpired = true }
+    lock.unlock()
+    coordinator?.cancel()
+  }
   private var inputFrames: Int64 = 0
   private var outputFrames: Int64 = 0
   private var sampleSum: Float = 0
@@ -21,8 +46,10 @@ private final class RecognitionCapture {
     lock.lock()
     stopped = true
     let pending = task
+    let coordinator = fileCoordinator
     lock.unlock()
     pending?.cancel()
+    coordinator?.cancel()
   }
   func attach(_ value: URLSessionDataTask) {
     lock.lock(); defer { lock.unlock() }
@@ -141,9 +168,74 @@ final class SongRecognition: NSObject, RCTBridgeModule {
     }
   }
 
+  @objc func recognizeFile(_ uri: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    guard active == nil else { reject("Busy", "RecognitionBusy", nil); return }
+    guard let url = URL(string: uri), url.isFileURL else { reject("FileUnavailable", "FileUnavailable", nil); return }
+    let capture = RecognitionCapture()
+    active = capture
+    worker.async {
+      let scoped = url.startAccessingSecurityScopedResource()
+      defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+      var result: [String: Any]?
+      var failure: Error?
+      do {
+        try self.check(capture)
+        let coordinator = NSFileCoordinator(filePresenter: nil)
+        capture.attach(coordinator)
+        let timeout = DispatchWorkItem { capture.expireReading() }
+        DispatchQueue.global(qos: .utility).asyncAfter(deadline: .now() + 30, execute: timeout)
+        var coordinationError: NSError?
+        var samples: [Int16]?
+        var duration: Double?
+        coordinator.coordinate(readingItemAt: url, options: .withoutChanges, error: &coordinationError) { localURL in
+          do {
+            try self.check(capture)
+            let audio = try AVAudioFile(forReading: localURL, commonFormat: .pcmFormatFloat32, interleaved: false)
+            let format = audio.processingFormat
+            guard format.sampleRate.isFinite, (8000...384000).contains(format.sampleRate), (1...32).contains(format.channelCount), audio.length > 0,
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 4096) else { throw self.error("UnsupportedAudio") }
+            let seconds = Double(audio.length) / format.sampleRate
+            duration = seconds
+            if seconds > 15 { audio.framePosition = max(0, audio.length / 2 - AVAudioFramePosition(format.sampleRate * 6)) }
+            var remaining = AVAudioFramePosition(format.sampleRate * 12)
+            while remaining > 0 && audio.framePosition < audio.length {
+              try self.check(capture)
+              try audio.read(into: buffer, frameCount: AVAudioFrameCount(min(4096, remaining)))
+              guard buffer.frameLength > 0 else { break }
+              capture.append(buffer)
+              remaining -= AVAudioFramePosition(buffer.frameLength)
+            }
+            try self.check(capture)
+            guard let decoded = capture.snapshot(16000) else { throw self.error("AudioTooShort") }
+            samples = decoded
+          } catch { failure = error }
+        }
+        timeout.cancel()
+        capture.finishReading()
+        try self.check(capture)
+        if let failure = failure { throw failure }
+        guard coordinationError == nil, let samples = samples else { throw self.error("FileUnavailable") }
+        result = try self.identify(samples, capture)
+        if let duration = duration, duration.isFinite, duration > 0, duration <= 86400 { result?["duration"] = duration }
+      } catch { failure = error }
+      capture.finishReading()
+      self.control.async {
+        if self.active === capture { self.active = nil }
+        if capture.cancelled { reject("Cancelled", "Cancelled", nil) }
+        else if let failure = failure {
+          let code = (failure as NSError).domain
+          let known = ["AudioTooShort", "UnsupportedAudio", "FileReadTimeout", "NetworkError", "RateLimited", "ServiceUnavailable", "FileUnavailable"]
+          let message = known.contains(code) ? code : "AudioDecodeFailed"
+          reject(message, message, failure)
+        } else { resolve(result) }
+      }
+    }
+  }
+
   private func error(_ code: String) -> NSError { NSError(domain: code, code: 1) }
   private func check(_ capture: RecognitionCapture) throws {
     if capture.cancelled { throw error("Cancelled") }
+    if capture.fileReadExpired { throw error("FileReadTimeout") }
   }
   private func identify(_ samples: [Int16], _ capture: RecognitionCapture) throws -> [String: Any]? {
     try check(capture)
@@ -187,12 +279,23 @@ final class SongRecognition: NSObject, RCTBridgeModule {
     result["cover"] = (track["images"] as? [String: Any])?["coverart"]
     result["url"] = track["url"]
     result["genre"] = (track["genres"] as? [String: Any])?["primary"]
+    for key in ["bpm", "tempo"] {
+      if let tempo = track[key] as? Double, tempo.isFinite, (40...200).contains(tempo) { result["tempo"] = tempo; break }
+    }
+    if let duration = track["duration"] as? Double, duration.isFinite, duration > 0, duration <= 86400 { result["duration"] = duration }
     for section in track["sections"] as? [[String: Any]] ?? [] {
+      if section["type"] as? String == "LYRICS", let lines = section["text"] as? [String] {
+        let lyrics = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
+        if !lyrics.isEmpty && lyrics.count <= 200000 {
+          result["lyrics"] = lyrics
+          result["lyricsCredit"] = String((section["footer"] as? String ?? "").prefix(2000))
+        }
+      }
       for entry in section["metadata"] as? [[String: Any]] ?? [] {
         let label = (entry["title"] as? String ?? "").lowercased()
         if label == "album" { result["album"] = entry["text"] }
-        if ["bpm", "tempo"].contains(label), let text = entry["text"] as? String,
-          let tempo = Double(text), (30...300).contains(tempo) { result["tempo"] = tempo }
+        if ["bpm", "tempo", "темп"].contains(label.trimmingCharacters(in: .whitespacesAndNewlines)), let text = entry["text"] as? String,
+          let tempo = Double(text.replacingOccurrences(of: "bpm", with: "", options: .caseInsensitive).trimmingCharacters(in: .whitespacesAndNewlines)), tempo.isFinite, (40...200).contains(tempo) { result["tempo"] = tempo }
       }
     }
     if cached.count >= 20 { cached.removeAll() }
