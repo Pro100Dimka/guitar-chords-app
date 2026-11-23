@@ -2,12 +2,14 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Keyboard,
   Pressable,
   StyleSheet,
   TextInput,
   View
 } from "react-native";
 import { useTranslation } from "react-i18next";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { songFieldLimits } from "../../@interfaces";
 import Text from "../../components/styled-text";
 import type { Tablature } from "../../components/tablature";
@@ -212,6 +214,8 @@ export function TablatureLibrary({
 
   return (
     <Sheet
+      landscapeOnly
+      compact
       title={t(mode === "open" ? "TabOpen" : "TabSave")}
       onClose={() => {
         if (!inFlight.current) onClose();
@@ -220,7 +224,13 @@ export function TablatureLibrary({
       {choosing ? (
         <>
           {mode === "open" ? (
-            <Action glass label={t("TabNew")} onPress={onNew} disabled={busy} />
+            <Action
+              glass
+              primary
+              label={t("TabNew")}
+              onPress={onNew}
+              disabled={busy}
+            />
           ) : (
             <Action
               glass
@@ -239,6 +249,10 @@ export function TablatureLibrary({
             placeholderTextColor={palette.glass.muted}
             value={search}
             maxLength={songFieldLimits.title}
+            returnKeyType="search"
+            keyboardAppearance="dark"
+            onSubmitEditing={Keyboard.dismiss}
+            autoCorrect={false}
             editable={!blocked}
             onChangeText={(value) => {
               setSearch(value);
@@ -252,9 +266,16 @@ export function TablatureLibrary({
             />
           )}
           {!loading && !error && items.length === 0 && (
-            <Text style={styles.hint}>
-              {t(mode === "open" ? "TabNoSaved" : "TabNoSongs")}
-            </Text>
+            <View style={styles.empty}>
+              <MaterialCommunityIcons
+                name="music-box-multiple-outline"
+                size={32}
+                color={palette.glass.accent}
+              />
+              <Text style={styles.emptyText}>
+                {t(mode === "open" ? "TabNoSaved" : "TabNoSongs")}
+              </Text>
+            </View>
           )}
           {!loading &&
             !error &&
@@ -267,26 +288,44 @@ export function TablatureLibrary({
                 onPress={() => void select(item.id)}
                 style={styles.item}
               >
-                <Text style={styles.itemTitle}>{item.title}</Text>
+                <View style={styles.itemIcon}>
+                  <MaterialCommunityIcons
+                    name="music-note-eighth"
+                    size={22}
+                    color={palette.glass.accent}
+                  />
+                </View>
+                <Text numberOfLines={2} style={styles.itemTitle}>
+                  {item.title}
+                </Text>
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={20}
+                  color={palette.glass.muted}
+                />
               </Pressable>
             ))}
-          <View style={styles.actions}>
-            <Action
-              glass
-              label={t("TabLibraryPrevious")}
-              icon="chevron-left"
-              disabled={page === 0 || busy || loading}
-              onPress={() => setPage(page - 1)}
-            />
-            <Text style={styles.hint}>{page + 1}</Text>
-            <Action
-              glass
-              label={t("TabLibraryNext")}
-              icon="chevron-right"
-              disabled={items.length < TAB_LIBRARY_PAGE_SIZE || busy || loading}
-              onPress={() => setPage(page + 1)}
-            />
-          </View>
+          {(page > 0 || items.length === TAB_LIBRARY_PAGE_SIZE) && (
+            <View style={styles.actions}>
+              <Action
+                glass
+                label={t("TabLibraryPrevious")}
+                icon="chevron-left"
+                disabled={page === 0 || busy || loading}
+                onPress={() => setPage(page - 1)}
+              />
+              <Text style={styles.hint}>{page + 1}</Text>
+              <Action
+                glass
+                label={t("TabLibraryNext")}
+                icon="chevron-right"
+                disabled={
+                  items.length < TAB_LIBRARY_PAGE_SIZE || busy || loading
+                }
+                onPress={() => setPage(page + 1)}
+              />
+            </View>
+          )}
         </>
       ) : (
         <>
@@ -303,30 +342,57 @@ export function TablatureLibrary({
               setTitle(value);
             }}
             editable={!blocked}
+            keyboardAppearance="dark"
+            returnKeyType="done"
+            onSubmitEditing={Keyboard.dismiss}
           />
-          <View style={styles.actions}>
-            <Action
-              glass
-              label={t("TabSaveAsNew")}
-              selected={target === undefined}
-              disabled={blocked}
-              onPress={() => {
-                setTarget(undefined);
-                setRefreshError("");
-                setError("");
-              }}
-            />
-            <Action
-              glass
-              label={t("TabAttachSong")}
-              selected={target !== undefined}
-              disabled={blocked}
-              onPress={() => {
-                setPage(0);
-                setSearch("");
-                setChoosing(true);
-              }}
-            />
+          <View style={styles.destinations}>
+            {[
+              {
+                label: "TabSaveAsNew",
+                icon: "plus-circle-outline",
+                selected: target === undefined,
+                onPress: () => {
+                  setTarget(undefined);
+                  setRefreshError("");
+                  setError("");
+                }
+              },
+              {
+                label: "TabAttachSong",
+                icon: "music-box-outline",
+                selected: target !== undefined,
+                onPress: () => {
+                  setPage(0);
+                  setSearch("");
+                  setChoosing(true);
+                }
+              }
+            ].map((destination) => (
+              <Pressable
+                key={destination.label}
+                accessibilityRole="button"
+                accessibilityState={{
+                  selected: destination.selected,
+                  disabled: blocked
+                }}
+                disabled={blocked}
+                onPress={destination.onPress}
+                style={[
+                  styles.destination,
+                  destination.selected && styles.destinationSelected
+                ]}
+              >
+                <MaterialCommunityIcons
+                  name={destination.icon}
+                  size={23}
+                  color={palette.glass.accent}
+                />
+                <Text style={styles.destinationLabel}>
+                  {t(destination.label)}
+                </Text>
+              </Pressable>
+            ))}
           </View>
           <Action
             glass
@@ -367,7 +433,34 @@ export function TablatureLibrary({
 }
 
 const styles = StyleSheet.create({
+  destinations: { flexDirection: "row", gap: 10 },
+  destination: {
+    flex: 1,
+    minHeight: 60,
+    padding: 10,
+    flexDirection: "row",
+    gap: 8,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: palette.glass.edge,
+    backgroundColor: palette.glass.control,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  destinationSelected: {
+    borderColor: palette.glass.accent,
+    backgroundColor: palette.glass.cell
+  },
+  destinationLabel: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+    color: palette.glass.ink,
+    textAlign: "left"
+  },
   input: {
+    fontFamily: palette.typography.body,
+    fontSize: 16,
     color: palette.glass.ink,
     backgroundColor: palette.glass.surface,
     borderColor: palette.glass.edge,
@@ -377,6 +470,18 @@ const styles = StyleSheet.create({
     minHeight: 48
   },
   hint: { color: palette.glass.muted, fontSize: 14 },
+  empty: {
+    alignItems: "center",
+    paddingVertical: 24,
+    paddingHorizontal: 12,
+    gap: 12
+  },
+  emptyText: {
+    color: palette.glass.muted,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center"
+  },
   actions: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -385,12 +490,29 @@ const styles = StyleSheet.create({
     gap: 8
   },
   item: {
-    minHeight: 48,
-    justifyContent: "center",
-    borderBottomWidth: 1,
+    minHeight: 68,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    backgroundColor: palette.glass.control,
+    borderRadius: 14,
+    borderWidth: 1,
     borderColor: palette.glass.edge,
-    paddingVertical: 12
+    padding: 12
   },
-  itemTitle: { color: palette.glass.ink, fontSize: 16 },
+  itemIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: palette.glass.cell,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  itemTitle: {
+    flex: 1,
+    color: palette.glass.ink,
+    fontSize: 16,
+    lineHeight: 22
+  },
   error: { gap: 8 }
 });

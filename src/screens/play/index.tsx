@@ -9,6 +9,8 @@ import React, {
 import {
   AppState,
   Image,
+  NativeModules,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -16,6 +18,8 @@ import {
   useWindowDimensions,
   View
 } from "react-native";
+import LinearGradient from "react-native-linear-gradient";
+import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Canvas } from "@shopify/react-native-skia";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { useSharedValue } from "react-native-reanimated";
@@ -53,6 +57,7 @@ export default function PlayGuitar() {
     AppState.currentState === "active"
   );
   const [layout, setLayout] = useState({ width: 0, height: 0 });
+  const [tabToolsOpen, setTabToolsOpen] = useState(false);
   const [progression, setProgression] = useState(["Am", "C", "G", "Em"]);
   const [selected, setSelected] = useState(0);
   const [playing, setPlaying] = useState(false);
@@ -133,7 +138,13 @@ export default function PlayGuitar() {
   });
   currentPitches.current = pitches;
   const frame = guitarLayout(layout.width, layout.height);
-  const landscape = layout.width > layout.height;
+  const landscape = screenSize.width > screenSize.height;
+  const badgeTop = landscape
+    ? 78
+    : Math.max(90, Math.min(layout.height * 0.22, 160));
+  const badgeWidth = landscape
+    ? Math.min(240, layout.width * 0.4)
+    : Math.min(300, Math.max(220, layout.width - 60));
   const active = focused && foreground;
   const showTabNotes = useCallback(
     (notes: TabNote[]) => {
@@ -173,8 +184,11 @@ export default function PlayGuitar() {
     beats,
     stopBacking
   );
-  const sideTabs = screenSize.width > screenSize.height && tabSession.expanded;
-  const TabPanelContainer = sideTabs ? ScrollView : View;
+  const tabWindowOpen = tabToolsOpen || !!tabSession.dialog || practiceOpen;
+  useEffect(() => {
+    NativeModules.ScreenOrientation?.setLandscape(tabWindowOpen);
+    return () => NativeModules.ScreenOrientation?.setLandscape(false);
+  }, [tabWindowOpen]);
   const touchContext = useMemo(
     () => ({
       active,
@@ -520,65 +534,81 @@ export default function PlayGuitar() {
   });
 
   return (
-    <View style={[styles.root, sideTabs && styles.sideLayout]}>
-      <TabPanelContainer
-        style={
-          sideTabs && [
-            styles.sideTabs,
-            { width: Math.min(300, screenSize.width * 0.48) }
-          ]
-        }
-      >
-        <TablaturePanel
-          transport={tablature}
-          title={tabSession.song?.title}
-          dirty={tabSession.dirty}
-          expanded={tabSession.expanded}
-          onToggle={tabSession.toggle}
-          onOpen={tabSession.open}
-          onSave={tabSession.save}
-          onRecord={tabSession.record}
-          onPractice={() => {
-            if (!tabSession.draftReady || tabRecording) return;
-            stopBacking();
-            setPracticeOpen(true);
-          }}
+    <View style={styles.root}>
+      <View style={styles.topBar}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t(tabRecording ? "TabStopRecording" : "TabTitle")}
           disabled={!tabSession.draftReady}
-        />
-        {(tabSession.expanded ||
-          !tabSession.draftReady ||
-          tabSession.draftStatus === "writeError") && (
-          <View style={styles.draftStatus}>
-            <Text accessibilityLiveRegion="polite" style={styles.draftMessage}>
-              {t(
-                {
-                  loading: "TabDraftLoading",
-                  saving: "TabDraftSaving",
-                  saved: "TabDraftSaved",
-                  restored: "TabDraftRestored",
-                  readError: "TabDraftReadFailed",
-                  writeError: "TabDraftWriteFailed"
-                }[tabSession.draftStatus]
-              )}
-            </Text>
-            {["readError", "writeError"].includes(tabSession.draftStatus) && (
-              <Action
-                glass
-                compact
-                label={t("TabDraftRetry")}
-                onPress={tabSession.retryDraft}
-              />
+          onPress={() => {
+            if (tablature.status === "recording") tablature.stopRecording();
+            else if (tabRecording) tablature.pause();
+            else setTabToolsOpen(true);
+          }}
+          style={[styles.topControl, tabRecording && styles.topControlActive]}
+        >
+          <MaterialCommunityIcons
+            name={
+              tabRecording ? "stop-circle-outline" : "playlist-music-outline"
+            }
+            size={21}
+            color={palette.glass.accent}
+          />
+          <Text style={styles.topLabel}>
+            {t(tabRecording ? "TabStopRecording" : "TabTitle")}
+          </Text>
+          {tabSession.dirty && <View style={styles.unsavedDot} />}
+        </Pressable>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t("FreePlay")}
+          accessibilityState={{ selected: free }}
+          onPress={() => {
+            if (!tabRecording) tablature.pause();
+            setPlaying(false);
+            setFree(true);
+            setFretsSheet(true);
+          }}
+          style={[styles.topControl, free && styles.topControlActive]}
+        >
+          <MaterialCommunityIcons
+            name="music-note-eighth"
+            size={20}
+            color={palette.glass.accent}
+          />
+          <Text style={styles.topLabel}>{t("FreePlay")}</Text>
+        </Pressable>
+      </View>
+      {["readError", "writeError"].includes(tabSession.draftStatus) && (
+        <View style={styles.draftStatus}>
+          <Text accessibilityLiveRegion="polite" style={styles.draftMessage}>
+            {t(
+              tabSession.draftStatus === "readError"
+                ? "TabDraftReadFailed"
+                : "TabDraftWriteFailed"
             )}
-            {tabSession.draftStatus === "readError" && (
-              <Action
-                glass
-                label={t("TabDraftStartNew")}
-                onPress={tabSession.resetDraft}
-              />
-            )}
-          </View>
-        )}
-      </TabPanelContainer>
+          </Text>
+          <Action
+            glass
+            compact
+            label={t("TabDraftRetry")}
+            onPress={tabSession.retryDraft}
+          />
+          {tabSession.draftStatus === "readError" && (
+            <Action
+              glass
+              compact
+              label={t("TabDraftStartNew")}
+              onPress={tabSession.resetDraft}
+            />
+          )}
+        </View>
+      )}
+      {tablature.error && !tabToolsOpen && (
+        <Text accessibilityLiveRegion="polite" style={styles.draftMessage}>
+          {t(tablature.error)}
+        </Text>
+      )}
       <View
         style={styles.stage}
         onLayout={({ nativeEvent }) => setLayout(nativeEvent.layout)}
@@ -587,28 +617,13 @@ export default function PlayGuitar() {
           <>
             <Image
               source={
-                landscape
+                layout.width > layout.height
                   ? require("../../../assets/images/screen-background/tuner-grand-auditorium-landscape.webp")
                   : require("../../../assets/images/screen-background/tuner-grand-auditorium.webp")
               }
               style={[styles.artwork, frame.artwork]}
               resizeMode="stretch"
             />
-            <View pointerEvents="none" style={[styles.chord, frame.hole]}>
-              <Text
-                numberOfLines={2}
-                style={[
-                  styles.chordName,
-                  (free || tabPlayback) && styles.freeName
-                ]}
-              >
-                {tabPlayback
-                  ? tabSession.song?.title || t("TabTitle")
-                  : free
-                    ? t("FreePlay")
-                    : chord}
-              </Text>
-            </View>
             <GestureDetector gesture={gesture}>
               <Canvas style={StyleSheet.absoluteFill} accessible={false}>
                 <Strings
@@ -648,110 +663,249 @@ export default function PlayGuitar() {
             </View>
           </>
         )}
-        <View style={[styles.panel, landscape && styles.landscapePanel]}>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.chords}
+        {!tabPlayback && (
+          <View
+            style={[
+              styles.chordBadge,
+              landscape && styles.landscapeChordBadge,
+              {
+                top: badgeTop,
+                width: badgeWidth
+              }
+            ]}
           >
-            {progression.map((name, index) => (
-              <Pressable
-                key={index}
-                accessibilityRole="button"
-                accessibilityLabel={name}
-                accessibilityState={{ selected: !free && selected === index }}
-                onPressIn={() => selectChord(index)}
-                onPress={() => selectChord(index)}
-                onLongPress={() => setEdit(index)}
-                style={[
-                  styles.chip,
-                  !free && selected === index && styles.selected
-                ]}
-              >
-                <Text
+            <LinearGradient
+              pointerEvents="none"
+              colors={["#322114", "#120C08", "#21150D"]}
+              style={styles.railFinish}
+            />
+            {[-1, 1].map((direction) => (
+              <React.Fragment key={direction}>
+                {direction === 1 && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={t(free ? "FreePlay" : "Fingering")}
+                    onPress={() =>
+                      free ? setFretsSheet(true) : openFingerings(chord)
+                    }
+                    style={styles.currentChord}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      style={[
+                        styles.currentChordName,
+                        free && styles.freeChordName
+                      ]}
+                    >
+                      {free ? t("FreePlay") : chord}
+                    </Text>
+                    {!free && <Diagram frets={frets} width={60} selected />}
+                  </Pressable>
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t(
+                    direction < 0 ? "PlayPreviousChord" : "PlayNextChord"
+                  )}
+                  disabled={free || progression.length < 2}
+                  onPress={() =>
+                    selectChord(
+                      (selected + direction + progression.length) %
+                        progression.length
+                    )
+                  }
+                  style={styles.chordArrow}
+                >
+                  <MaterialCommunityIcons
+                    name={direction < 0 ? "chevron-left" : "chevron-right"}
+                    size={28}
+                    color={
+                      free ? palette.glass.muted : palette.finish.highlight
+                    }
+                  />
+                </Pressable>
+              </React.Fragment>
+            ))}
+          </View>
+        )}
+        <View style={[styles.playDock, landscape && styles.landscapeDock]}>
+          <View style={styles.chordRail}>
+            <LinearGradient
+              pointerEvents="none"
+              colors={["#2A1C12", "#120C08"]}
+              style={styles.railFinish}
+            />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.chords}
+            >
+              {progression.map((name, index) => (
+                <Pressable
+                  key={index}
+                  accessibilityRole="button"
+                  accessibilityLabel={name}
+                  accessibilityState={{ selected: !free && selected === index }}
+                  onPressIn={() => selectChord(index)}
+                  onPress={() => selectChord(index)}
+                  onLongPress={() => setEdit(index)}
                   style={[
-                    styles.chipText,
-                    !free && selected === index && { color: palette.gold.ink }
+                    styles.chip,
+                    !free && selected === index && styles.selected
                   ]}
                 >
-                  {name}
-                </Text>
-              </Pressable>
-            ))}
-            <Action
-              icon="plus"
-              label={t("AddChord")}
+                  <Text
+                    style={[
+                      styles.chipText,
+                      !free && selected === index && styles.selectedInk
+                    ]}
+                  >
+                    {name}
+                  </Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("AddChord")}
+              disabled={progression.length >= 24}
               onPress={() => {
                 setPatternStep(null);
                 setPicker(true);
               }}
-              disabled={progression.length >= 24}
+              style={styles.dockIcon}
+            >
+              <MaterialCommunityIcons
+                name="plus"
+                size={24}
+                color={palette.finish.highlight}
+              />
+            </Pressable>
+          </View>
+          <View style={styles.transportRail}>
+            <LinearGradient
+              pointerEvents="none"
+              colors={["#2A1C12", "#120C08"]}
+              style={styles.railFinish}
             />
-          </ScrollView>
-          <View style={styles.controls}>
-            <Action
-              icon={playing ? "pause" : "play"}
-              label={t(playing ? "Pause" : "AutoChords")}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t(playing ? "Pause" : "AutoChords")}
+              accessibilityState={{
+                selected: playing,
+                disabled: !progression.length || free || tabRecording
+              }}
               disabled={!progression.length || free || tabRecording}
               onPress={() => {
                 if (!tabRecording) tablature.pause();
                 if (playing) {
                   clock.current.linkedMetronome = metronome;
                   setMetronome(false);
-                } else {
-                  setMetronome(clock.current.linkedMetronome);
-                }
+                } else setMetronome(clock.current.linkedMetronome);
                 setPlaying(!playing);
               }}
-            />
-            <Action
-              glass
-              compact
-              label={`${tempo} BPM · ${t("PlayPattern")}`}
-              onPress={() => {
-                if (!tabRecording) tablature.pause();
-                setPlaying(false);
-                setTempoInput(String(tempo));
-                setSettings(true);
+              style={[styles.dockIcon, playing && styles.selected]}
+            >
+              <MaterialCommunityIcons
+                name={playing ? "pause" : "play"}
+                size={28}
+                color={playing ? palette.gold.ink : palette.finish.highlight}
+              />
+            </Pressable>
+            {[-1, 1].map((direction) => (
+              <React.Fragment key={direction}>
+                {direction === 1 && (
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`${tempo} BPM, ${t("PlayPattern")}`}
+                    onPress={() => {
+                      if (!tabRecording) tablature.pause();
+                      setPlaying(false);
+                      setTempoInput(String(tempo));
+                      setSettings(true);
+                    }}
+                    style={styles.tempoPill}
+                  >
+                    <Text
+                      numberOfLines={1}
+                      adjustsFontSizeToFit
+                      style={styles.tempoLabel}
+                    >
+                      {tempo} BPM · {beats}/4
+                    </Text>
+                  </Pressable>
+                )}
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel={t(
+                    direction < 0 ? "PlaySlower" : "PlayFaster"
+                  )}
+                  disabled={
+                    tabOwnsAudio || (direction < 0 ? tempo <= 40 : tempo >= 200)
+                  }
+                  onPress={() =>
+                    setTempo((value) =>
+                      Math.max(40, Math.min(200, value + direction * 5))
+                    )
+                  }
+                  style={styles.tempoStep}
+                >
+                  <MaterialCommunityIcons
+                    name={direction < 0 ? "minus" : "plus"}
+                    size={20}
+                    color={palette.finish.highlight}
+                  />
+                </Pressable>
+              </React.Fragment>
+            ))}
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t("Metronome")}
+              accessibilityState={{
+                selected: metronome,
+                disabled: tabOwnsAudio
               }}
-            />
-            <Action
-              icon="music-note"
-              label={t("FreePlay")}
+              disabled={tabOwnsAudio}
               onPress={() => {
-                if (!tabRecording) tablature.pause();
-                setPlaying(false);
-                setFree(true);
-                setFretsSheet(true);
-              }}
-            />
-          </View>
-        </View>
-        <View style={[styles.quickTools, landscape && styles.landscapeTools]}>
-          {[
-            {
-              icon: "metronome",
-              label: t("Metronome"),
-              selected: metronome,
-              disabled: tabOwnsAudio,
-              onPress: () => {
                 clock.current.linkedMetronome = !metronome;
                 setMetronome(!metronome);
-              }
-            },
-            {
-              icon: "guitar-pick-outline",
-              label: t("Fingering"),
-              disabled: free || !chord,
-              onPress: () => openFingerings(chord)
-            }
-          ].map((button) => (
-            <View key={button.icon} style={styles.quickTool}>
-              <Action {...button} />
-              <Text style={styles.toolCaption}>{button.label}</Text>
-            </View>
-          ))}
+              }}
+              style={[styles.dockIcon, metronome && styles.selected]}
+            >
+              <MaterialCommunityIcons
+                name="metronome"
+                size={24}
+                color={metronome ? palette.gold.ink : palette.finish.highlight}
+              />
+            </Pressable>
+          </View>
         </View>
+        {tabToolsOpen && (
+          <TablaturePanel
+            standalone
+            visible={!tabSession.dialog}
+            onClose={() => setTabToolsOpen(false)}
+            transport={tablature}
+            title={tabSession.song?.title}
+            dirty={tabSession.dirty}
+            expanded={false}
+            onToggle={tabSession.toggle}
+            disabled={!tabSession.draftReady}
+            onOpen={tabSession.open}
+            onSave={tabSession.save}
+            onRecord={() => {
+              setTabToolsOpen(false);
+              tabSession.record();
+            }}
+            onPractice={() => {
+              if (!tabSession.draftReady || tabRecording) return;
+              setTabToolsOpen(false);
+              stopBacking();
+              setPracticeOpen(true);
+            }}
+          />
+        )}
         {picker && (
           <Sheet title={t("AddChord")} onClose={() => setPicker(false)}>
             {chordChoices}
@@ -1052,20 +1206,49 @@ export default function PlayGuitar() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.colors.black },
-  sideLayout: { flexDirection: "row" },
-  sideTabs: { flexGrow: 0, flexShrink: 0 },
+  root: { flex: 1, backgroundColor: palette.gold.ink },
+  stage: { flex: 1, overflow: "hidden" },
+  topBar: {
+    minHeight: 44,
+    paddingHorizontal: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: palette.glass.surfaceEdge
+  },
+  topControl: {
+    minHeight: 40,
+    paddingHorizontal: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    borderRadius: 12
+  },
+  topControlActive: { backgroundColor: palette.glass.cell },
+  topLabel: {
+    color: palette.finish.highlight,
+    fontSize: 13,
+    fontWeight: "600",
+    flexShrink: 1
+  },
+  unsavedDot: {
+    width: 5,
+    height: 5,
+    borderRadius: 3,
+    backgroundColor: palette.glass.accent
+  },
   draftStatus: {
-    marginHorizontal: 18,
-    marginTop: 3,
-    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
     gap: 6
   },
-  draftMessage: { flexShrink: 1, fontSize: 11, color: palette.glass.muted },
-  stage: { flex: 1, overflow: "hidden" },
+  draftMessage: { flexShrink: 1, fontSize: 12, color: palette.glass.muted },
+  artwork: { position: "absolute" },
   tabFret: {
     position: "absolute",
     top: 72,
@@ -1077,14 +1260,125 @@ const styles = StyleSheet.create({
     justifyContent: "center"
   },
   tabFretText: { color: palette.gold.ink, fontSize: 16, fontWeight: "700" },
-  artwork: { position: "absolute" },
-  chord: {
+  chordBadge: {
     position: "absolute",
+    alignSelf: "center",
+    minHeight: 76,
+    borderRadius: 22,
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: palette.guitarDial.rim,
+    overflow: "hidden",
+    shadowColor: palette.colors.black,
+    shadowOpacity: 0.5,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5
+  },
+  currentChord: {
+    flex: 1,
+    minHeight: 72,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-around",
+    gap: 10,
+    paddingHorizontal: 6
+  },
+  landscapeChordBadge: { left: 12 },
+  currentChordName: {
+    color: palette.finish.highlight,
+    fontSize: 38,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+    flexShrink: 1
+  },
+  freeChordName: { fontSize: 20, textAlign: "center" },
+  chordArrow: {
+    width: 36,
+    minHeight: 72,
     alignItems: "center",
     justifyContent: "center"
   },
-  chordName: { fontSize: 46, color: palette.glass.accent, fontWeight: "600" },
-  freeName: { fontSize: 24, textAlign: "center" },
+  playDock: { position: "absolute", bottom: 8, left: 10, right: 10, gap: 6 },
+  landscapeDock: { left: "auto", width: 330 },
+  railFinish: { ...StyleSheet.absoluteFillObject, borderRadius: 26 },
+  chordRail: {
+    minHeight: 56,
+    padding: 6,
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 26,
+    borderWidth: 1,
+    borderColor: palette.guitarDial.rim,
+    gap: 6,
+    overflow: "hidden"
+  },
+  chords: { gap: 6, alignItems: "center" },
+  chip: {
+    minWidth: 58,
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: palette.glass.edge,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.colors.blackOpacity
+  },
+  selected: {
+    backgroundColor: palette.gold.center,
+    borderColor: palette.gold.top
+  },
+  selectedInk: { color: palette.gold.ink },
+  chipText: {
+    color: palette.finish.highlight,
+    fontSize: 19,
+    fontFamily: Platform.OS === "ios" ? "Georgia" : "serif"
+  },
+  transportRail: {
+    minHeight: 62,
+    padding: 6,
+    borderRadius: 30,
+    borderWidth: 1,
+    borderColor: palette.guitarDial.rim,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 4,
+    overflow: "hidden"
+  },
+  dockIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1,
+    borderColor: palette.glass.edge,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: palette.colors.blackOpacity
+  },
+  tempoStep: {
+    width: 32,
+    minHeight: 44,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  tempoPill: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 40,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: palette.glass.edge,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  tempoLabel: {
+    color: palette.finish.highlight,
+    fontSize: 14,
+    fontVariant: ["tabular-nums"]
+  },
   tempoInput: {
     width: 100,
     color: palette.glass.ink,
@@ -1095,35 +1389,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 10
   },
-  panel: {
-    position: "absolute",
-    bottom: 8,
-    left: 8,
-    right: 8,
-    gap: 8,
-    padding: 10,
-    borderRadius: 18,
-    backgroundColor: palette.glass.header,
-    borderWidth: 1,
-    borderColor: palette.glass.edge
-  },
-  landscapePanel: { left: undefined, width: 270 },
-  chords: { gap: 8, alignItems: "center" },
-  chip: {
-    minWidth: 48,
-    minHeight: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: palette.glass.edge,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: palette.glass.surface
-  },
-  selected: {
-    borderColor: palette.glass.accent,
-    backgroundColor: palette.glass.play
-  },
-  chipText: { color: palette.glass.ink, fontSize: 18, fontWeight: "600" },
   controls: {
     flexDirection: "row",
     alignItems: "center",
@@ -1145,17 +1410,6 @@ const styles = StyleSheet.create({
     borderColor: palette.glass.accent,
     backgroundColor: palette.glass.activeCard
   },
-  quickTools: { position: "absolute", top: 80, right: 8, gap: 10 },
-  quickTool: { width: 64, alignItems: "center", gap: 3 },
-  toolCaption: {
-    color: palette.glass.ink,
-    backgroundColor: palette.glass.header,
-    borderRadius: 5,
-    paddingHorizontal: 3,
-    textAlign: "center",
-    fontSize: 10
-  },
-  landscapeTools: { top: 8, flexDirection: "row" },
   patternSlot: {
     width: "22%",
     flexGrow: 1,

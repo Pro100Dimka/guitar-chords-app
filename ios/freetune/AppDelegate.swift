@@ -6,6 +6,11 @@ import ReactAppDependencyProvider
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
   var window: UIWindow?
+  var tablatureLandscape = false
+
+  func application(_ application: UIApplication, supportedInterfaceOrientationsFor window: UIWindow?) -> UIInterfaceOrientationMask {
+    tablatureLandscape ? .landscapeRight : .allButUpsideDown
+  }
 
   var reactNativeDelegate: ReactNativeDelegate?
   var reactNativeFactory: RCTReactNativeFactory?
@@ -31,6 +36,34 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     return true
   }
+}
+
+@objc(ScreenOrientation)
+class ScreenOrientation: NSObject, RCTInvalidating {
+  private var previousOrientation: UIInterfaceOrientationMask = .portrait
+  private var locked = false
+  @objc static func requiresMainQueueSetup() -> Bool { true }
+
+  @objc func setLandscape(_ enabled: Bool) {
+    DispatchQueue.main.async {
+      if !enabled && !self.locked { return }
+      guard let delegate = UIApplication.shared.delegate as? AppDelegate,
+            let window = delegate.window,
+            let scene = window.windowScene else { return }
+      if enabled && !self.locked {
+        self.previousOrientation = scene.interfaceOrientation.isLandscape ? .landscape : .portrait
+      }
+      self.locked = enabled
+      delegate.tablatureLandscape = enabled
+      if #available(iOS 16.0, *) {
+        window.rootViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        window.rootViewController?.presentedViewController?.setNeedsUpdateOfSupportedInterfaceOrientations()
+        scene.requestGeometryUpdate(.iOS(interfaceOrientations: enabled ? .landscapeRight : self.previousOrientation))
+      }
+    }
+  }
+
+  @objc func invalidate() { setLandscape(false) }
 }
 
 class ReactNativeDelegate: RCTDefaultReactNativeFactoryDelegate {

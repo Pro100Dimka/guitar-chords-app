@@ -2,6 +2,10 @@
 #import <React/RCTBridgeModule.h>
 #import <React/RCTEventEmitter.h>
 
+@interface RCT_EXTERN_MODULE(ScreenOrientation, NSObject)
+RCT_EXTERN_METHOD(setLandscape:(BOOL)enabled)
+@end
+
 @interface RCT_EXTERN_MODULE(MicrophoneStream, RCTEventEmitter)
 
 RCT_EXTERN_METHOD(setKeepAwake:(BOOL)enabled)

@@ -113,12 +113,7 @@ export function TablaturePractice({
       visible={active}
       animationType="fade"
       presentationStyle="fullScreen"
-      supportedOrientations={[
-        "portrait",
-        "landscape",
-        "landscape-left",
-        "landscape-right"
-      ]}
+      supportedOrientations={["landscape-right"]}
       onRequestClose={() => (settingsOpen ? setSettingsOpen(false) : onClose())}
     >
       <SafeAreaView
@@ -658,6 +653,7 @@ function PracticeButton({
       onPress={onPress}
       style={[
         styles.button,
+        !!icon && !iconOnly && styles.transportButton,
         iconOnly && styles.iconButton,
         primary && styles.primaryButton,
         rail && styles.railButton,
@@ -674,7 +670,9 @@ function PracticeButton({
       )}
       {!iconOnly && (
         <Text
-          numberOfLines={2}
+          numberOfLines={icon ? 1 : 2}
+          adjustsFontSizeToFit={!!icon}
+          minimumFontScale={0.7}
           style={[
             styles.buttonText,
             !icon && styles.optionText,
@@ -821,8 +819,15 @@ const styles = StyleSheet.create({
     gap: 2
   },
   iconButton: { width: 44, minHeight: 44, padding: 6 },
+  transportButton: { flex: 1, minWidth: 0, paddingHorizontal: 3 },
   primaryButton: { backgroundColor: palette.glass.accent, minWidth: 64 },
-  railButton: { width: 50, minWidth: 50, minHeight: 56, paddingHorizontal: 3 },
+  railButton: {
+    flex: 0,
+    width: 50,
+    minWidth: 50,
+    minHeight: 56,
+    paddingHorizontal: 3
+  },
   selectedButton: {
     backgroundColor: palette.glass.accent,
     borderColor: palette.glass.accent

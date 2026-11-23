@@ -13,6 +13,8 @@ import {
   ImageBackground,
   Linking,
   Modal,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -69,7 +71,8 @@ export function Action({
   accessibilityLabel,
   icon,
   primary = false,
-  compact = false
+  compact = false,
+  showLabel = false
 }: {
   label: string;
   onPress: () => void;
@@ -80,6 +83,7 @@ export function Action({
   icon?: string | React.ReactElement;
   primary?: boolean;
   compact?: boolean;
+  showLabel?: boolean;
 }) {
   return (
     <Pressable
@@ -96,6 +100,9 @@ export function Action({
         (selected || primary) && styles.goldAction,
         primary && styles.primaryAction,
         !!icon && styles.iconAction,
+        !!icon && compact && styles.compactIconAction,
+        !!icon && showLabel && styles.labeledAction,
+        !!icon && showLabel && compact && styles.compactLabeledAction,
         pressed && styles.pressed,
         disabled && styles.dim
       ]}
@@ -107,7 +114,11 @@ export function Action({
             ? palette.finish.goldColors
             : ["rgba(255,255,255,0.06)", "rgba(255,255,255,0)"]
         }
-        style={[styles.actionGradient, !!icon && styles.iconGradient]}
+        style={[
+          styles.actionGradient,
+          !!icon && styles.iconGradient,
+          !!icon && showLabel && styles.labeledGradient
+        ]}
         locations={selected || primary ? palette.finish.locations : [0, 1]}
       />
       {typeof icon === "string" ? (
@@ -130,6 +141,19 @@ export function Action({
           </Text>
         ))
       )}
+      {!!icon && showLabel && (
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.8}
+          style={[
+            styles.actionCaption,
+            (selected || primary) && styles.goldText
+          ]}
+        >
+          {label}
+        </Text>
+      )}
     </Pressable>
   );
 }
@@ -140,7 +164,9 @@ export function Sheet({
   children,
   musical = false,
   compact = false,
-  visible = true
+  visible = true,
+  landscapeOnly = false,
+  maxWidth = 760
 }: {
   title: string;
   onClose: () => void;
@@ -148,6 +174,8 @@ export function Sheet({
   musical?: boolean;
   compact?: boolean;
   visible?: boolean;
+  landscapeOnly?: boolean;
+  maxWidth?: number;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -158,11 +186,16 @@ export function Sheet({
       transparent
       statusBarTranslucent
       navigationBarTranslucent
-      supportedOrientations={["portrait", "landscape"]}
+      supportedOrientations={
+        landscapeOnly ? ["landscape-right"] : ["portrait", "landscape"]
+      }
       animationType="slide"
       onRequestClose={onClose}
     >
-      <View style={[styles.scrim, { paddingTop: insets.top + 8 }]}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={[styles.scrim, { paddingTop: insets.top + 8 }]}
+      >
         <Pressable
           style={styles.backdrop}
           accessibilityLabel={t("Close")}
@@ -173,7 +206,7 @@ export function Sheet({
           style={[
             styles.sheet,
             !compact && styles.fullSheet,
-            { width: Math.min(width - 16, 760) }
+            { width: Math.min(width - 16, maxWidth) }
           ]}
         >
           {musical && (
@@ -197,24 +230,18 @@ export function Sheet({
             <Text accessibilityRole="header" style={styles.sheetTitle}>
               {title}
             </Text>
-            {!compact && (
-              <Action
-                compact
-                icon="close"
-                label={t("Close")}
-                onPress={onClose}
-              />
-            )}
+            <Action compact icon="close" label={t("Close")} onPress={onClose} />
           </View>
           <ScrollView
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             style={compact ? styles.compactScroll : styles.musicScroll}
             contentContainerStyle={styles.sheetContent}
           >
             {children}
           </ScrollView>
         </SafeAreaView>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -1542,6 +1569,26 @@ export const styles = StyleSheet.create({
     borderRadius: 24
   },
   iconGradient: { borderRadius: 24 },
+  compactIconAction: { width: 44, height: 44 },
+  labeledAction: {
+    flex: 1,
+    minWidth: 48,
+    width: undefined,
+    height: undefined,
+    minHeight: 56,
+    borderRadius: 12,
+    paddingHorizontal: 4,
+    paddingVertical: 6,
+    gap: 3
+  },
+  labeledGradient: { borderRadius: 12 },
+  compactLabeledAction: { minHeight: 44, paddingVertical: 2 },
+  actionCaption: {
+    color: palette.glass.ink,
+    fontSize: 11,
+    lineHeight: 15,
+    textAlign: "center"
+  },
   segments: {
     flexDirection: "row",
     padding: 4,
@@ -1623,8 +1670,8 @@ export const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingHorizontal: 20,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
     backgroundColor: palette.glass.control,
     borderBottomWidth: 1,
     borderColor: palette.glass.surfaceEdge
@@ -1739,7 +1786,7 @@ export const styles = StyleSheet.create({
     backgroundColor: palette.paper.background,
     padding: 0
   },
-  sheetContent: { gap: 16, padding: 20, paddingBottom: 28 },
+  sheetContent: { gap: 12, padding: 16, paddingBottom: 24 },
   row: { flexDirection: "row", alignItems: "center", flexWrap: "wrap", gap: 8 },
   title: {
     flexBasis: 0,
