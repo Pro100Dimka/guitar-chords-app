@@ -23,6 +23,7 @@ import {
 } from "../../components/tablature";
 import palette from "../../theme/palette";
 import { Action, Sheet } from "../song/tools";
+import { useTablaturePosition } from "./use-tablature";
 import type { useTablature } from "./use-tablature";
 import {
   changeTabMeter,
@@ -48,7 +49,7 @@ const sameNote = (a: Selection | null, b: Selection) =>
   a?.string === b.string && a.tick === b.tick;
 
 /** One readable bar; empty cells become insertion targets in the editor. */
-export function TablatureBar({
+const TablatureStaff = React.memo(function TablatureStaff({
   tab,
   bar,
   tick,
@@ -450,6 +451,10 @@ export function TablatureBar({
       </ScrollView>
     </View>
   );
+});
+
+export function TablatureBar(props: React.ComponentProps<typeof TablatureStaff>) {
+  return <TablatureStaff {...props} />;
 }
 
 export function TablaturePanel({
@@ -484,7 +489,8 @@ export function TablaturePanel({
   const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
   const dense = height < 700 || width > height;
-  const { tab, tick, status, range } = transport;
+  const { tab, status, range } = transport;
+  const tick = useTablaturePosition(transport);
   const [full, setFull] = useState(standalone);
   const [editorSection, setEditorSection] = useState<
     "score" | "note" | "bars" | "playback" | "loop"
@@ -517,7 +523,8 @@ export function TablaturePanel({
   ] as const;
   const barTicks = tabBarTicks(tab);
   const beatTicks = tabBeatTicks(tab);
-  const bars = tablatureLength(tab) / barTicks;
+  const length = useMemo(() => tablatureLength(tab), [tab]);
+  const bars = length / barTicks;
   const bar = Math.max(0, Math.min(page, bars - 1));
   const recording = status === "recording";
   const countingIn = status === "countingIn";
@@ -528,9 +535,13 @@ export function TablaturePanel({
   const moving = status === "playing" || recording;
   const wasMoving = useRef(false);
   const sounding = status === "playing" || status === "preparing" || countingIn;
-  const selected = tab.notes.find((note) => sameNote(selection, note));
-  const selectedRest = (tab.rests ?? []).find(
-    (rest) => rest.tick === restSelection
+  const selected = useMemo(
+    () => tab.notes.find((note) => sameNote(selection, note)),
+    [tab.notes, selection]
+  );
+  const selectedRest = useMemo(
+    () => (tab.rests ?? []).find((rest) => rest.tick === restSelection),
+    [tab.rests, restSelection]
   );
   const hasEvents = tab.notes.length > 0 || !!tab.rests?.length;
   const cursor = selection ?? {

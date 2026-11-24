@@ -1091,3 +1091,47 @@ test("saving a snapshot while newer edits arrive preserves them and completes ev
   expect((await panel()).props.title).toBe("Saved snapshot");
   expect(screen!.root.findAllByType(TablatureLibrary)).toHaveLength(0);
 });
+
+test("a cold string prepares asynchronously and coalesces repeated touches", async () => {
+  let finish!: () => void;
+  jest.mocked(warmGuitar).mockImplementation((_notes, _a, _signal, string) =>
+    new Promise<void>((resolve) => {
+      if (string === 2) finish = resolve;
+    })
+  );
+  await render();
+  await pluck(2);
+  await pluck(2);
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  expect(jest.mocked(warmGuitar).mock.calls.filter((call) => call[3] === 2)).toHaveLength(1);
+  await act(async () => finish());
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  expect(performanceAudio.guitarString).toHaveBeenCalledWith("440:52:string2", 2);
+});
+
+test.each(["blur", "record", "unmount"] as const)(
+  "a cold string cannot sound after %s supersedes its touch",
+  async (transition) => {
+    let finish!: () => void;
+    jest.mocked(warmGuitar).mockImplementation((_notes, _a, _signal, string) =>
+      new Promise<void>((resolve) => {
+        if (string === 2) finish = resolve;
+      })
+    );
+    await render();
+    await pluck(2);
+    await act(async () => {
+      if (transition === "blur") {
+        mockFocused = false;
+        screen!.update(<PlayGuitar />);
+      } else if (transition === "record") {
+        transport().startRecording();
+      } else {
+        screen!.unmount();
+        screen = undefined;
+      }
+    });
+    await act(async () => finish());
+    expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  }
+);

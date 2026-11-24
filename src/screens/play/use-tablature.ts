@@ -84,7 +84,17 @@ export class TablatureTransport {
     completedLoops: 0,
     countIn: null
   };
+  // Control consumers do not need to rebuild the guitar for every clock tick.
+  private controls = this.state;
   private listeners = new Set<() => void>();
+  private boundedTab: Tablature | undefined;
+  private tabEnd = 0;
+  private preparedWindow: {
+    cursor: number;
+    start: number;
+    end: number;
+    loop: boolean;
+  } | undefined;
   private active = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private controller: AbortController | undefined;
@@ -108,6 +118,8 @@ export class TablatureTransport {
   constructor(private onNotes: (notes: TabNote[]) => void) {}
 
   getSnapshot = () => this.state;
+  getControlsSnapshot = () => this.controls;
+  getPosition = () => this.state.tick;
   subscribe = (listener: () => void) => {
     this.listeners.add(listener);
     return () => this.listeners.delete(listener);
@@ -122,12 +134,17 @@ export class TablatureTransport {
         : this.state.practice.trainer.enabled
           ? this.trainerBpm
           : this.state.tab.tempo * this.state.speed;
+    if (Object.keys(patch).some((key) => key !== "tick"))
+      this.controls = this.state;
     this.listeners.forEach((listener) => listener());
   }
   private bounds(): TabRange {
-    return (
-      this.state.range ?? { start: 0, end: tablatureLength(this.state.tab) }
-    );
+    if (this.state.range) return this.state.range;
+    if (this.boundedTab !== this.state.tab) {
+      this.boundedTab = this.state.tab;
+      this.tabEnd = tablatureLength(this.state.tab);
+    }
+    return { start: 0, end: this.tabEnd };
   }
   private rate() {
     return (this.state.practiceBpm * TAB_TICKS_PER_BEAT) / 60000;
@@ -144,6 +161,7 @@ export class TablatureTransport {
     this.controller?.abort();
     this.controller = undefined;
     this.warming = undefined;
+    this.preparedWindow = undefined;
     this.countInClock = undefined;
     performanceAudio.stopMetronomeBeats();
     this.clearGates();
@@ -450,6 +468,24 @@ export class TablatureTransport {
   }
   private prepare(signal: AbortSignal, generation: number) {
     if (this.warming) return this.warming;
+    const bounds = this.bounds();
+    const requested = {
+      cursor: this.cursor,
+      start: bounds.start,
+      end: bounds.end,
+      loop: this.state.loop
+    };
+    const previous = this.preparedWindow;
+    if (
+      previous &&
+      previous.cursor === requested.cursor &&
+      previous.start === requested.start &&
+      previous.end === requested.end &&
+      previous.loop === requested.loop
+    )
+      return Promise.resolve();
+    // With no new attacks, expiring held notes only free cache entries. They
+    // cannot require a new sample. Refill once the score cursor advances.
     const desired = this.window();
     this.ready.forEach((key) => {
       if (!desired.has(key)) this.ready.delete(key);
@@ -467,6 +503,8 @@ export class TablatureTransport {
         if (signal.aborted || generation !== this.generation) return;
         this.ready.add(key);
       }
+      if (!signal.aborted && generation === this.generation)
+        this.preparedWindow = requested;
     })();
     this.warming = work;
     void work
@@ -945,9 +983,30 @@ export class TablatureTransport {
   };
 }
 
+interface PositionSource {
+  subscribe: (listener: () => void) => () => void;
+  getSnapshot: () => number;
+}
+
+const noPositionSubscription = () => () => {};
+
+/** Only mounted score surfaces subscribe to the high-frequency playhead. */
+export function useTablaturePosition(transport: {
+  tick: number;
+  positionSource?: PositionSource;
+}) {
+  const read = transport.positionSource?.getSnapshot ?? (() => transport.tick);
+  return useSyncExternalStore(
+    transport.positionSource?.subscribe ?? noPositionSubscription,
+    read,
+    read
+  );
+}
+
 export function useTablature(
   active: boolean,
-  onNotes: (notes: TabNote[]) => void
+  onNotes: (notes: TabNote[]) => void,
+  observePosition = true
 ) {
   const listener = useRef(onNotes);
   listener.current = onNotes;
@@ -956,15 +1015,22 @@ export function useTablature(
   );
   const snapshot = useSyncExternalStore(
     transport.subscribe,
-    transport.getSnapshot,
-    transport.getSnapshot
+    observePosition ? transport.getSnapshot : transport.getControlsSnapshot,
+    observePosition ? transport.getSnapshot : transport.getControlsSnapshot
   );
   useEffect(() => {
     transport.setActive(active);
     return () => transport.setActive(false);
   }, [active, transport]);
+  const [positionSource] = useState<{ positionSource?: PositionSource }>(() => ({
+    positionSource: {
+      subscribe: transport.subscribe,
+      getSnapshot: transport.getPosition
+    }
+  }));
   return {
     ...snapshot,
+    ...positionSource,
     setTab: transport.setTab,
     replaceTab: transport.replaceTab,
     undo: transport.undo,

@@ -38,7 +38,7 @@ import {
   recordedChordFrets,
   selectedChordShape
 } from "../../components/acoustic-player";
-import { prepareGuitar, warmGuitar } from "../../components/guitar-audio";
+import { warmGuitar } from "../../components/guitar-audio";
 import { performanceAudio } from "../../components/performance-audio";
 import type { INote } from "../../@interfaces";
 import palette from "../../theme/palette";
@@ -88,15 +88,27 @@ export default function PlayGuitar() {
     {}
   );
   const chord = progression[selected] ?? "";
-  const frets = free
-    ? freeFrets
-    : (selectedChordShape(chord, shapes[chord])?.frets ?? freeFrets);
-  const fingering = fingeringChord
-    ? selectedChordShape(fingeringChord, shapes[fingeringChord])
-    : undefined;
-  const options = fingeringChord
-    ? chordShapeOptions(fingeringChord, fingering?.index)
-    : [];
+  const frets = useMemo(
+    () =>
+      free
+        ? freeFrets
+        : (selectedChordShape(chord, shapes[chord])?.frets ?? freeFrets),
+    [free, freeFrets, chord, shapes]
+  );
+  const fingering = useMemo(
+    () =>
+      fingeringChord
+        ? selectedChordShape(fingeringChord, shapes[fingeringChord])
+        : undefined,
+    [fingeringChord, shapes]
+  );
+  const options = useMemo(
+    () =>
+      fingeringChord
+        ? chordShapeOptions(fingeringChord, fingering?.index)
+        : [],
+    [fingeringChord, fingering?.index]
+  );
   const shapePages = Math.max(1, Math.ceil(options.length / 4));
   const openFingerings = (name: string) => {
     if (!tabRecording) tablature.pause();
@@ -119,13 +131,20 @@ export default function PlayGuitar() {
     setSelected(index);
     setFree(false);
   };
-  const pitches = frets.map((fret, index) =>
-    fret === null ? null : guitarMidi[index] + fret
+  const pitches = useMemo(
+    () =>
+      frets.map((fret, index) =>
+        fret === null ? null : guitarMidi[index] + fret
+      ),
+    [frets]
   );
   const pitchKey = pitches.join(",");
   const currentPitches = useRef(pitches);
   const previousPitches = useRef(pitches);
   const prepared = useRef(new Set<string>());
+  const pendingPlucks = useRef(
+    new Map<number, { controller: AbortController; context: object }>()
+  );
   const clock = useRef({
     origin: 0,
     step: -1,
@@ -137,7 +156,10 @@ export default function PlayGuitar() {
     linkedMetronome: false
   });
   currentPitches.current = pitches;
-  const frame = guitarLayout(layout.width, layout.height);
+  const frame = useMemo(
+    () => guitarLayout(layout.width, layout.height),
+    [layout.width, layout.height]
+  );
   const landscape = screenSize.width > screenSize.height;
   const badgeTop = landscape
     ? 78
@@ -161,7 +183,7 @@ export default function PlayGuitar() {
     },
     [plucks]
   );
-  const tablature = useTablature(active, showTabNotes);
+  const tablature = useTablature(active, showTabNotes, false);
   const { capture: captureTabNotes, pause: pauseTabPlayback } = tablature;
   const tabRecording =
     tablature.status === "recording" ||
@@ -222,6 +244,14 @@ export default function PlayGuitar() {
     },
     []
   );
+
+  useLayoutEffect(() => {
+    const requests = pendingPlucks.current;
+    return () => {
+      requests.forEach((request) => request.controller.abort());
+      requests.clear();
+    };
+  }, [active, pitchKey, practiceOpen, audioInterruption]);
 
   useEffect(() => {
     if (tabOwnsAudio) stopBacking();
@@ -309,7 +339,9 @@ export default function PlayGuitar() {
             prepared.current.add(`440:${midi}:string${index}`);
         }
       }
-    })();
+    })().catch(() => {
+      // Prewarming is optional; a later touch can retry a failed sample.
+    });
     return () => controller.abort();
   }, [active, pitchKey, tabPlayback]);
   useEffect(() => {
@@ -391,101 +423,131 @@ export default function PlayGuitar() {
         const midi = currentPitches.current[index];
         if (midi === null || midi === undefined) return;
         const key = `440:${midi}:string${index}`;
-        if (!prepared.current.has(key)) {
-          prepareGuitar([midi], 440, index);
-          prepared.current.add(key);
+        if (prepared.current.has(key)) {
+          performanceAudio.guitarString(key, index);
+          return;
         }
-        performanceAudio.guitarString(key, index);
+        // First-touch synthesis must yield just like prewarming. Keep only one
+        // pending attack per string instead of playing a delayed burst of taps.
+        const pending = pendingPlucks.current.get(index);
+        if (pending?.context === touchContext) return;
+        pending?.controller.abort();
+        const controller = new AbortController();
+        pendingPlucks.current.set(index, {
+          controller,
+          context: touchContext
+        });
+        void warmGuitar([midi], 440, controller.signal, index)
+          .then(() => {
+            if (
+              controller.signal.aborted ||
+              currentPitches.current[index] !== midi ||
+              (liveTouchContext.current !== touchContext &&
+                strumTouchContext.current !== touchContext)
+            )
+              return;
+            prepared.current.add(key);
+            performanceAudio.guitarString(key, index);
+          })
+          .catch(() => {})
+          .finally(() => {
+            if (pendingPlucks.current.get(index)?.controller === controller)
+              pendingPlucks.current.delete(index);
+          });
       });
     },
     [captureTabNotes, pauseTabPlayback, tabPlayback, touchContext]
   );
-  const gesture = Gesture.Manual()
-    .onTouchesDown((event, manager) => {
-      if (!Object.keys(touches.value).length) {
-        manager.begin();
-        manager.activate();
-      }
-      const tracked = { ...touches.value };
-      const hit: number[] = [];
-      const spacing = frame.stringWidth / 5;
-      for (const touch of event.changedTouches) {
-        const index = Math.round((touch.x - frame.stringLeft) / spacing);
-        tracked[touch.id] = { x: touch.x, first: index };
-        if (
-          active &&
-          touch.y >= 65 &&
-          touch.y <= frame.stringBottom &&
-          index >= 0 &&
-          index < 6 &&
-          frets[index] !== null
-        )
-          hit.push(index);
-      }
-      touches.value = tracked;
-      if (hit.length) {
-        const counts = [...plucks.value];
-        hit.forEach((index) => {
-          counts[index] = (counts[index] ?? 0) + 1;
-        });
-        plucks.value = counts;
-        runOnJS(playStrings)(hit);
-      }
-    })
-    .onTouchesMove((event) => {
-      const tracked = { ...touches.value };
-      const hit: number[] = [];
-      const spacing = frame.stringWidth / 5;
-      for (const touch of event.changedTouches) {
-        const previous = tracked[touch.id];
-        if (!previous) continue;
-        const crossed: number[] = [];
-        if (active && touch.y >= 65 && touch.y <= frame.stringBottom) {
-          for (let index = 0; index < 6; index++) {
-            const x = frame.stringLeft + spacing * index;
-            if (
-              index !== previous.first &&
-              frets[index] !== null &&
-              (touch.x > previous.x
-                ? x > previous.x && x <= touch.x
-                : x < previous.x && x >= touch.x)
-            )
-              crossed.push(index);
+  const gesture = useMemo(
+    () =>
+      Gesture.Manual()
+        .onTouchesDown((event, manager) => {
+          if (!Object.keys(touches.value).length) {
+            manager.begin();
+            manager.activate();
           }
-        }
-        if (touch.x < previous.x) crossed.reverse();
-        hit.push(...crossed);
-        tracked[touch.id] = {
-          x: touch.x,
-          first:
-            Math.abs(touch.x - frame.stringLeft - previous.first * spacing) >
-            spacing / 2
-              ? -1
-              : previous.first
-        };
-      }
-      touches.value = tracked;
-      if (hit.length) {
-        const counts = [...plucks.value];
-        hit.forEach((index) => {
-          counts[index] = (counts[index] ?? 0) + 1;
-        });
-        plucks.value = counts;
-        runOnJS(playStrings)(hit);
-      }
-    })
-    .onTouchesUp((event, manager) => {
-      const tracked = { ...touches.value };
-      event.changedTouches.forEach((touch) => {
-        delete tracked[touch.id];
-      });
-      touches.value = tracked;
-      if (!Object.keys(tracked).length) manager.end();
-    })
-    .onTouchesCancelled((_event, manager) => manager.end())
-    .onFinalize(() => {
-      touches.value = {};
-    });
+          const tracked = { ...touches.value };
+          const hit: number[] = [];
+          const spacing = frame.stringWidth / 5;
+          for (const touch of event.changedTouches) {
+            const index = Math.round((touch.x - frame.stringLeft) / spacing);
+            tracked[touch.id] = { x: touch.x, first: index };
+            if (
+              active &&
+              touch.y >= 65 &&
+              touch.y <= frame.stringBottom &&
+              index >= 0 &&
+              index < 6 &&
+              frets[index] !== null
+            )
+              hit.push(index);
+          }
+          touches.value = tracked;
+          if (hit.length) {
+            const counts = [...plucks.value];
+            hit.forEach((index) => {
+              counts[index] = (counts[index] ?? 0) + 1;
+            });
+            plucks.value = counts;
+            runOnJS(playStrings)(hit);
+          }
+        })
+        .onTouchesMove((event) => {
+          const tracked = { ...touches.value };
+          const hit: number[] = [];
+          const spacing = frame.stringWidth / 5;
+          for (const touch of event.changedTouches) {
+            const previous = tracked[touch.id];
+            if (!previous) continue;
+            const crossed: number[] = [];
+            if (active && touch.y >= 65 && touch.y <= frame.stringBottom) {
+              for (let index = 0; index < 6; index++) {
+                const x = frame.stringLeft + spacing * index;
+                if (
+                  index !== previous.first &&
+                  frets[index] !== null &&
+                  (touch.x > previous.x
+                    ? x > previous.x && x <= touch.x
+                    : x < previous.x && x >= touch.x)
+                )
+                  crossed.push(index);
+              }
+            }
+            if (touch.x < previous.x) crossed.reverse();
+            hit.push(...crossed);
+            tracked[touch.id] = {
+              x: touch.x,
+              first:
+                Math.abs(touch.x - frame.stringLeft - previous.first * spacing) >
+                spacing / 2
+                  ? -1
+                  : previous.first
+            };
+          }
+          touches.value = tracked;
+          if (hit.length) {
+            const counts = [...plucks.value];
+            hit.forEach((index) => {
+              counts[index] = (counts[index] ?? 0) + 1;
+            });
+            plucks.value = counts;
+            runOnJS(playStrings)(hit);
+          }
+        })
+        .onTouchesUp((event, manager) => {
+          const tracked = { ...touches.value };
+          event.changedTouches.forEach((touch) => {
+            delete tracked[touch.id];
+          });
+          touches.value = tracked;
+          if (!Object.keys(tracked).length) manager.end();
+        })
+        .onTouchesCancelled((_event, manager) => manager.end())
+        .onFinalize(() => {
+          touches.value = {};
+        }),
+    [active, frame, frets, playStrings, plucks, touches]
+  );
   const chordChoices =
     picker || patternStep !== null ? (
       <View style={styles.grid}>

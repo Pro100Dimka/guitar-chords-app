@@ -365,3 +365,41 @@ test("empty constructors validate defaults and text refuses invalid input", () =
     ""
   );
 });
+
+test("rest collision sweep respects attacks, release boundaries and long earlier voices", () => {
+  const rests = [{ tick: 48, duration: 24 }, { tick: 144, duration: 24 }];
+  const notes = [
+    { string: 0, fret: 0, tick: 0, duration: 48 },
+    { string: 5, fret: 7, tick: 24, duration: 12 },
+    { string: 2, fret: 2, tick: 72, duration: 72 },
+    { string: 4, fret: 3, tick: 168, duration: 24 }
+  ];
+  expect(normalizeTablature({ ...emptyTablature(), notes, rests })).toBeDefined();
+  for (const note of [
+    { ...notes[0], duration: 49 },
+    { ...notes[2], tick: 71 },
+    { ...notes[3], tick: 167 },
+    { string: 1, fret: 0, tick: 0, duration: 200 }
+  ]) {
+    expect(normalizeTablature({
+      ...emptyTablature(),
+      notes: [...notes.filter((entry) => entry.string !== note.string), note],
+      rests
+    })).toBeUndefined();
+  }
+});
+
+test("preview retains a rest spanning several bars without repeating note attacks", () => {
+  const preview = tablatureText({
+    ...emptyTablature(),
+    barCount: 4,
+    notes: [
+      { string: 0, fret: 3, tick: 0, duration: 24 },
+      { string: 5, fret: 7, tick: 288, duration: 24 }
+    ],
+    rests: [{ tick: 24, duration: 264 }]
+  });
+  expect(preview).toContain("E3@1=1/4; R@2=3/4");
+  expect(preview.match(/R~@1=1/g)).toHaveLength(2);
+  expect(preview.match(/e7@1=1\/4/g)).toHaveLength(1);
+});

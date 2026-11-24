@@ -2,7 +2,8 @@ import React from "react";
 import Renderer, { act } from "react-test-renderer";
 import {
   TablatureTransport,
-  useTablature
+  useTablature,
+  useTablaturePosition
 } from "../src/screens/play/use-tablature";
 import { performanceAudio } from "../src/components/performance-audio";
 import { warmGuitar } from "../src/components/guitar-audio";
@@ -1426,4 +1427,74 @@ test("an expired chord voice is skipped while its still-sustaining simultaneous 
   expect(onNotes).toHaveBeenLastCalledWith([
     { string: 5, fret: 7, tick: 6, duration: 18 }
   ]);
+});
+
+test("clock-only updates refresh the playhead without rebuilding guitar controls", async () => {
+  let hook!: ReturnType<typeof useTablature>;
+  let position = 0;
+  let controlRenders = 0;
+  function Position({ value }: { value: ReturnType<typeof useTablature> }) {
+    position = useTablaturePosition(value);
+    return null;
+  }
+  function Controls() {
+    controlRenders++;
+    hook = useTablature(true, onNotes, false);
+    return <Position value={hook} />;
+  }
+  let screen!: Renderer.ReactTestRenderer;
+  await act(async () => {
+    screen = Renderer.create(<Controls />);
+  });
+  try {
+    await act(async () => {
+      hook.setTab(score([
+        { string: 0, fret: 0, tick: 0, duration: 24 },
+        { string: 0, fret: 3, tick: 96, duration: 24 }
+      ]));
+      await hook.play();
+    });
+    const before = controlRenders;
+    await act(async () => {
+      await jest.advanceTimersByTimeAsync(500);
+    });
+    expect(position).toBeGreaterThan(0);
+    expect(controlRenders).toBe(before);
+    await act(async () => hook.pause());
+    expect(hook.status).toBe("idle");
+    expect(hook.tick).toBe(position);
+    expect(controlRenders).toBeGreaterThan(before);
+  } finally {
+    await act(async () => screen.unmount());
+  }
+});
+
+test("waiting between attacks does not rescan a maximum-size score each frame", async () => {
+  transport.setTab(score([
+    { string: 0, fret: 0, tick: 0, duration: 1 },
+    ...Array.from({ length: TAB_MAX_NOTES - 1 }, (_, index) => ({
+      string: 0,
+      fret: 0,
+      tick: 4000 + index * 4,
+      duration: 1
+    }))
+  ]));
+  let reads = 0;
+  for (const note of transport.getSnapshot().tab.notes) {
+    const tick = note.tick;
+    Object.defineProperty(note, "tick", {
+      get: () => {
+        reads++;
+        return tick;
+      }
+    });
+  }
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(25);
+  reads = 0;
+  await jest.advanceTimersByTimeAsync(500);
+  expect(transport.getSnapshot().status).toBe("playing");
+  expect(reads).toBeLessThan(200);
+  expect(warmGuitar).toHaveBeenCalledTimes(1);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
 });
