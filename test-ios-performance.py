@@ -103,7 +103,7 @@ final class AudioEngine {
 }
 final class AVAudioSession {
     enum InterruptionType: UInt { case ended = 0, began = 1 }
-    enum Category { case playback }
+    enum Category { case playback, playAndRecord }
     enum Mode { case `default` }
     enum Option: Hashable { case mixWithOthers }
     struct SetActiveOptions: OptionSet {

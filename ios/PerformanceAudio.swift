@@ -463,7 +463,9 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         do {
             let session = AVAudioSession.sharedInstance()
             if !wasActive || session.category != .playback {
-                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                if session.category != .playAndRecord {
+                    try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                }
                 try session.setActive(true)
             }
             stringSessionActive = true
@@ -489,7 +491,9 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         if !stringSessionActive {
             let session = AVAudioSession.sharedInstance()
             do {
-                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                if session.category != .playAndRecord {
+                    try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                }
                 try session.setActive(true)
                 stringSessionActive = true
             } catch { return }
