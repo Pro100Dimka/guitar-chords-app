@@ -31,6 +31,12 @@ Symlinks are not followed. Invalid/missing metadata also discards the restored
 DerivedData and builds normally.
 The helper's regression tests run before every iOS app build.
 
+Skia 2.5.1 conditionally adds tvOS framework declarations when its prepared tvOS
+directory exists. During the iOS deployment installation, the workflow temporarily
+moves that cached directory aside so evaluation matches the fresh npm state and
+the committed lockfile. An exit handler restores it before input validation; it
+also preserves installation failures and keeps a backup if restoration fails.
+
 Xcode indexing is disabled in CI; application compilation, linking and the device
 package integrity checks remain enabled. The Rust fingerprint phase still runs
 Cargo's dependency checks, but leaves its final static library untouched when
@@ -42,6 +48,14 @@ for `armeabi-v7a`, `arm64-v8a` and `x86_64`. The native task builds only the
 library; host tests and the recognition probe remain separate checks. The pinned
 official cargo-ndk binary is verified by SHA256 instead of compiling that tool
 from source on every runner.
+
+Live audio downloads, decoding and Shazam requests run in the independent
+`shazam-real-audio-proof` workflow. Its known positive Gloria assertion remains
+mandatory; the additional public-domain recordings remain optional probes.
+The Android compiler job does not wait for those network operations.
+PRs restore Gradle's shared state without uploading a new multi-gigabyte remote
+cache on every commit. Successful `main` builds publish the shared Gradle cache;
+normal local Gradle task caching remains enabled in every build.
 
 ## Measure the complete job
 

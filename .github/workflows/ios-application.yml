@@ -103,6 +103,33 @@ jobs:
         env:
           REFRESH_LOCK: ${{ inputs.refresh_lock }}
         run: |
+          set -euo pipefail
+          # Skia 2.5.1 conditionally declares tvOS frameworks when libs/tvos exists.
+          # Match fresh npm evaluation for this iOS lockfile, then restore all files.
+          skia_tvos="$GITHUB_WORKSPACE/node_modules/@shopify/react-native-skia/libs/tvos"
+          skia_tvos_backup=''
+          restore_skia_tvos() {
+            local install_status=$?
+            trap - EXIT
+            if [ -n "$skia_tvos_backup" ]; then
+              if [ -d "$skia_tvos_backup/tvos" ] && [ ! -e "$skia_tvos" ] && [ ! -L "$skia_tvos" ]; then
+                if ! mv "$skia_tvos_backup/tvos" "$skia_tvos"; then
+                  echo "Could not restore Skia tvOS files; preserved at $skia_tvos_backup" >&2
+                  if [ "$install_status" -eq 0 ]; then install_status=1; fi
+                  exit "$install_status"
+                fi
+              fi
+              if ! rm -rf "$skia_tvos_backup"; then
+                if [ "$install_status" -eq 0 ]; then install_status=1; fi
+              fi
+            fi
+            exit "$install_status"
+          }
+          trap restore_skia_tvos EXIT
+          if [ -d "$skia_tvos" ]; then
+            skia_tvos_backup=$(mktemp -d "$RUNNER_TEMP/freetune-skia-tvos.XXXXXX")
+            mv "$skia_tvos" "$skia_tvos_backup/tvos"
+          fi
           if [ "$REFRESH_LOCK" = 'true' ]; then
             bundle exec pod install --project-directory=ios
           else
