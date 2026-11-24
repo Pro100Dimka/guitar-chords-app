@@ -101,7 +101,7 @@ export const usePreferences = create<PreferencesStore>((set, get) => ({
     scheduleSave();
   },
   removeSong: (id) => {
-    if (!Object.hasOwn(get().songs, id)) return;
+    if (get().songs[id] === undefined) return;
     set((state) => {
       const songs = { ...state.songs };
       delete songs[id];

@@ -256,6 +256,16 @@ const SongDetail: React.FC = () => {
     setPlaying(false);
     setTools("reading");
   };
+  const display = useMemo(
+    () =>
+      createSongEditorState(
+        transposeSong(
+          song?.content ?? "",
+          preferences.transpose - preferences.capo
+        )
+      ),
+    [song?.content, preferences.transpose, preferences.capo]
+  );
   const content = useMemo(() => {
     const renderChord = (displayed: string, key: number) => {
       return (
@@ -307,12 +317,6 @@ const SongDetail: React.FC = () => {
         </Text>
       );
     };
-    const display = createSongEditorState(
-      transposeSong(
-        song?.content ?? "",
-        preferences.transpose - preferences.capo
-      )
-    );
     let offset = 0,
       groupIndex = 0;
     const rows = display.text.split(/\r?\n/).map((line, index) => {
@@ -375,13 +379,7 @@ const SongDetail: React.FC = () => {
       renderBlock,
       virtualized
     };
-  }, [
-    song?.content,
-    preferences.transpose,
-    preferences.capo,
-    preferences.fontSize,
-    t
-  ]);
+  }, [display, preferences.fontSize, t]);
   const lastBlock = useRef(0);
   lastBlock.current = content.blocks.length - 1;
   const viewableItemsChanged = useRef(

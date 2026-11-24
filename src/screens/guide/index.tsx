@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   Image,
   Keyboard,
@@ -135,19 +135,24 @@ export default function Guide() {
   const [query, setQuery] = useState("");
   const [section, setSection] = useState("all");
   const words = normalize(query).trim().split(/\s+/).filter(Boolean);
-  const filtered = articles.filter((article) => {
+  const searchText = useMemo(
+    () =>
+      articles.map((article) => {
+        const steps = t(`GuideArticles.${article.id}.steps`, {
+          returnObjects: true
+        });
+        return normalize(
+          ["title", "summary", "tip", "keywords"]
+            .map((field) => t(`GuideArticles.${article.id}.${field}`))
+            .concat(Array.isArray(steps) ? steps : [])
+            .join(" ")
+        );
+      }),
+    [t]
+  );
+  const filtered = articles.filter((article, index) => {
     if (section !== "all" && article.section !== section) return false;
-    if (!words.length) return true;
-    const steps = t(`GuideArticles.${article.id}.steps`, {
-      returnObjects: true
-    });
-    const text = normalize(
-      ["title", "summary", "tip", "keywords"]
-        .map((field) => t(`GuideArticles.${article.id}.${field}`))
-        .concat(Array.isArray(steps) ? steps : [])
-        .join(" ")
-    );
-    return words.every((word) => text.includes(word));
+    return words.every((word) => searchText[index].includes(word));
   });
   const open = (id: string) => {
     Keyboard.dismiss();
