@@ -162,6 +162,71 @@ export function Action({
   );
 }
 
+export function TempoControl({
+  value,
+  onChange,
+  label,
+  accessibilityLabel = label,
+  disabled = false
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  label: string;
+  accessibilityLabel?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <View style={styles.tempoControl}>
+      <Action
+        glass
+        compact
+        icon="chevron-left"
+        label="−"
+        accessibilityLabel={`${accessibilityLabel}: −`}
+        disabled={disabled || value <= 40}
+        onPress={() => {
+          if (!disabled && value > 40) onChange(Math.max(40, value - 5));
+        }}
+      />
+      <View
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={`${accessibilityLabel}: ${value} BPM`}
+        style={styles.tempoReadout}
+      >
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          style={styles.tempoLabel}
+        >
+          {label}
+        </Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          style={styles.tempoValue}
+        >
+          {value}
+          <Text style={styles.tempoUnit}> BPM</Text>
+        </Text>
+      </View>
+      <Action
+        glass
+        compact
+        icon="chevron-right"
+        label="+"
+        accessibilityLabel={`${accessibilityLabel}: +`}
+        disabled={disabled || value >= 200}
+        onPress={() => {
+          if (!disabled && value < 200) onChange(Math.min(200, value + 5));
+        }}
+      />
+    </View>
+  );
+}
+
 export function Sheet({
   title,
   onClose,
@@ -880,22 +945,11 @@ function TransitionPractice({
       ) : (
         <Action label={t("ChooseSongRhythm")} onPress={onChooseRhythm} />
       )}
-      <View style={styles.row}>
-        <Text style={styles.label}>{t("Tempo")}</Text>
-        <Action
-          glass
-          label="−"
-          disabled={value.tempo <= 40}
-          onPress={() => onChange({ tempo: Math.max(40, value.tempo - 5) })}
-        />
-        <Text style={styles.value}>{value.tempo}</Text>
-        <Action
-          glass
-          label="+"
-          disabled={value.tempo >= 200}
-          onPress={() => onChange({ tempo: Math.min(200, value.tempo + 5) })}
-        />
-      </View>
+      <TempoControl
+        label={t("Tempo")}
+        value={value.tempo}
+        onChange={(tempo) => onChange({ tempo })}
+      />
       <Text style={styles.description}>{t("PracticeStartChord")}</Text>
       <View style={styles.row}>
         {chords.map((chord) => (
@@ -1640,22 +1694,11 @@ function PatternEditor({
           arrangements={arrangements}
         />
       )}
-      <View style={styles.row}>
-        <Text style={styles.label}>{t("Tempo")}</Text>
-        <Action
-          glass
-          label="−"
-          disabled={value.tempo <= 40}
-          onPress={() => onChange({ tempo: Math.max(40, value.tempo - 5) })}
-        />
-        <Text style={styles.value}>{value.tempo}</Text>
-        <Action
-          glass
-          label="+"
-          disabled={value.tempo >= 200}
-          onPress={() => onChange({ tempo: Math.min(200, value.tempo + 5) })}
-        />
-      </View>
+      <TempoControl
+        label={t("Tempo")}
+        value={value.tempo}
+        onChange={(tempo) => onChange({ tempo })}
+      />
 
       <Action
         glass
@@ -1715,6 +1758,29 @@ function PatternEditor({
 }
 
 export const styles = StyleSheet.create({
+  tempoControl: {
+    width: 148,
+    minHeight: 44,
+    flexShrink: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4
+  },
+  tempoReadout: { flex: 1, minWidth: 0, alignItems: "center" },
+  tempoLabel: {
+    color: palette.glass.muted,
+    fontSize: 10,
+    lineHeight: 12,
+    textAlign: "center"
+  },
+  tempoValue: {
+    fontSize: 17,
+    lineHeight: 21,
+    fontWeight: "600",
+    fontVariant: ["tabular-nums"],
+    textAlign: "center"
+  },
+  tempoUnit: { color: palette.glass.muted, fontSize: 9 },
   sectionChoices: { flexWrap: "nowrap", paddingBottom: 8 },
   iconAction: {
     width: 48,

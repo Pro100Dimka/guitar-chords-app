@@ -1,0 +1,114 @@
+import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
+import { AppState } from "react-native";
+import { warmGuitar } from "../../components/guitar-audio";
+import { performanceAudio } from "../../components/performance-audio";
+import { TAB_TUNING, TabNote } from "../../components/tablature";
+
+/** Audition successful note edits without changing the score or transport. */
+export function useTablaturePreview(enabled: boolean) {
+  const context = useMemo(() => ({ enabled }), [enabled]);
+  const liveContext = useRef<typeof context | null>(null);
+  const foreground = useRef(
+    AppState.currentState !== "background" &&
+      AppState.currentState !== "inactive"
+  );
+  const pending = useRef<AbortController | null>(null);
+  const soundingString = useRef<number | null>(null);
+
+  const abortPending = useCallback(() => {
+    pending.current?.abort();
+    pending.current = null;
+  }, []);
+  const relinquish = useCallback(() => {
+    abortPending();
+    // Shared string voices may already belong to playback by the time React
+    // runs cleanup. Only an explicit cancellation before handoff may stop one.
+    soundingString.current = null;
+  }, [abortPending]);
+
+  useLayoutEffect(() => {
+    liveContext.current = context;
+    return () => {
+      liveContext.current = null;
+      relinquish();
+    };
+  }, [context, relinquish]);
+  useLayoutEffect(() => {
+    const appState = AppState.addEventListener("change", (state) => {
+      foreground.current = state === "active";
+      if (!foreground.current) relinquish();
+    });
+    const audio = performanceAudio.listen((event) => {
+      if (
+        event.state === "playbackInterrupted" ||
+        event.state === "interrupted"
+      )
+        relinquish();
+    });
+    return () => {
+      appState.remove();
+      audio.remove();
+    };
+  }, [relinquish]);
+
+  const cancelPreview = useCallback(() => {
+    if (liveContext.current !== context) return;
+    abortPending();
+    const string = soundingString.current;
+    soundingString.current = null;
+    if (string !== null) performanceAudio.stopGuitarString(string);
+  }, [abortPending, context]);
+
+  const preview = useCallback(
+    (note: TabNote) => {
+      const { string, fret } = note;
+      if (
+        liveContext.current !== context ||
+        !context.enabled ||
+        !foreground.current ||
+        !Number.isInteger(string) ||
+        string < 0 ||
+        string >= TAB_TUNING.length ||
+        !Number.isInteger(fret) ||
+        fret < 0 ||
+        fret > 24
+      )
+        return;
+
+      abortPending();
+      const request = new AbortController();
+      pending.current = request;
+      const midi = TAB_TUNING[string] + fret;
+      const key = `440:${midi}:string${string}`;
+      const current = () =>
+        !request.signal.aborted &&
+        pending.current === request &&
+        liveContext.current === context &&
+        foreground.current;
+      void (async () => {
+        // A native cache probe avoids synthesizing or resending a prepared WAV.
+        // Never assume JS cache residency means the bounded native cache is warm.
+        const ready =
+          performanceAudio.preparedFingeringSupported &&
+          (await performanceAudio.prepareFingering(key, ""));
+        if (!current()) return;
+        if (!ready) await warmGuitar([midi], 440, request.signal, string);
+        if (!current()) return;
+        const previous = soundingString.current;
+        if (previous !== null && previous !== string)
+          performanceAudio.stopGuitarString(previous);
+        performanceAudio.guitarString(key, string);
+        soundingString.current = string;
+      })()
+        .catch(() => {
+          // A failed audition must not reject the edit or prevent the next tap.
+        })
+        .finally(() => {
+          if (pending.current === request) pending.current = null;
+        });
+    },
+    [abortPending, context]
+  );
+
+  return { preview, cancelPreview };
+}
