@@ -1039,3 +1039,20 @@ test.each([false, true])(
     }
   }
 );
+
+test("editing song metadata does not parse the unchanged lyrics preview", async () => {
+  await change();
+  const parser = jest.spyOn(
+    require("../src/screens/song/chords"),
+    "createSongEditorState"
+  );
+  await act(async () => {
+    await values.setFieldValue("title", "Renamed song");
+  });
+  expect(parser).not.toHaveBeenCalled();
+  await act(async () => {
+    await values.setFieldValue("content", "Dm\nUpdated words");
+  });
+  expect(parser).toHaveBeenCalled();
+  expect(JSON.stringify(screen.toJSON())).toContain("Updated words");
+});

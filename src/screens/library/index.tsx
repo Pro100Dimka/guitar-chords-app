@@ -6,6 +6,7 @@ import {
   ActivityIndicator,
   Image,
   FlatList,
+  type ListRenderItemInfo,
   ScrollView,
   Platform,
   Pressable,
@@ -35,6 +36,12 @@ const Library: React.FC = () => {
   const [filtering, setFiltering] = useState(false);
   const [selectedSong, setSelectedSong] = useState<ISong | null>(null);
   const [songs, setSongs] = useState<ISong[]>([]);
+  const renderSong = useCallback(
+    ({ item }: ListRenderItemInfo<ISong>) => (
+      <LibraryItem song={item} onLongPress={setSelectedSong} />
+    ),
+    []
+  );
   const [loading, setLoading] = useState(true); // для первой загрузки
   const [loadingMore, setLoadingMore] = useState(false); // для подгрузки
   const loadedQuery = useRef("");
@@ -308,14 +315,9 @@ const Library: React.FC = () => {
       {songs.length > 0 && (
         <FlatList
           data={songs}
-          keyExtractor={(item, i) => `${item.id}-${i}`}
+          keyExtractor={(item) => String(item.id)}
           style={styles.list}
-          renderItem={({ item }) => (
-            <LibraryItem
-              song={item}
-              onLongPress={() => setSelectedSong(item)}
-            />
-          )}
+          renderItem={renderSong}
           onEndReached={() => {
             if (!loadError && !pagination.current.pending)
               loadSongs(pagination.current.page);

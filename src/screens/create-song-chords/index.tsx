@@ -8,7 +8,14 @@ import {
   NavigationAction
 } from "@react-navigation/native";
 import { Formik, FormikHelpers, useFormikContext } from "formik";
-import React, { memo, useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { useTranslation } from "react-i18next";
 import {
   Alert,
@@ -133,6 +140,24 @@ export function SongEditorGuard({
   );
   return null;
 }
+
+const LyricsPreview = memo(
+  ({ content, draft }: { content: string; draft?: string }) => {
+    const { t } = useTranslation();
+    const text = useMemo(
+      () => draft ?? createSongEditorState(content).text,
+      [content, draft]
+    );
+    return (
+      <Text
+        numberOfLines={6}
+        style={[styles.lyricsText, !content && styles.lyricsPlaceholder]}
+      >
+        {text || t("PasteSongHint")}
+      </Text>
+    );
+  }
+);
 
 const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
   ({ song, setIsEdit, exitAllowed }: ICreateChordSongProps) => {
@@ -487,18 +512,10 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     }}
                     style={styles.lyricsPreview}
                   >
-                    <Text
-                      numberOfLines={6}
-                      style={[
-                        styles.lyricsText,
-                        !formik.values.content && styles.lyricsPlaceholder
-                      ]}
-                    >
-                      {(editingLyrics
-                        ? lyricsDraft
-                        : createSongEditorState(formik.values.content).text) ||
-                        t("PasteSongHint")}
-                    </Text>
+                    <LyricsPreview
+                      content={formik.values.content}
+                      draft={editingLyrics ? lyricsDraft : undefined}
+                    />
                   </Pressable>
                   {!!formik.touched.content && !!formik.errors.content && (
                     <Text style={styles.fieldError}>

@@ -13,7 +13,14 @@ const initialSchema = Object.entries(models).map(
 );
 
 // Append migrations in version order. Existing migrations must remain unchanged.
-const migrations = [initialSchema];
+const migrations = [
+  initialSchema,
+  [
+    "CREATE INDEX IF NOT EXISTS songs_title_order ON songs(title COLLATE NOCASE, id)",
+    "CREATE INDEX IF NOT EXISTS songs_title_match ON songs(title)",
+    "CREATE INDEX IF NOT EXISTS bands_name_match ON bands(name)"
+  ]
+];
 
 const initTables = (db: WebsqlDatabase) => {
   return new Promise<void>((resolve, reject) => {

@@ -1284,3 +1284,25 @@ test("closing the backup sheet stays blocked during the restore transaction", as
     jest.restoreAllMocks();
   }
 });
+
+test("unchanged preferences do not notify screens or rewrite stored songs", async () => {
+  const state = usePreferences.getState();
+  state.updateSong(17, { tempo: 92, position: 125 });
+  await flushPreferences();
+  jest.mocked(db.transaction).mockClear();
+  const snapshot = usePreferences.getState();
+  const notify = jest.fn();
+  const unsubscribe = usePreferences.subscribe(notify);
+  try {
+    snapshot.update({ tab: snapshot.tab, tuning: snapshot.tuning });
+    snapshot.updateSong(17, { tempo: 92, position: 125 });
+    snapshot.removeSong(99999);
+    jest.runOnlyPendingTimers();
+    await flushPreferences();
+    expect(usePreferences.getState()).toBe(snapshot);
+    expect(notify).not.toHaveBeenCalled();
+    expect(db.transaction).not.toHaveBeenCalled();
+  } finally {
+    unsubscribe();
+  }
+});

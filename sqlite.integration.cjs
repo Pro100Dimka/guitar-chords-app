@@ -111,7 +111,23 @@ async function main() {
   await migrate(db);
   assert.equal((await read({ tableName: "bands" })).length, 1);
   await migrate(db);
+  assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 2);
+  // Adopt an existing version-one library atomically, including failed upgrades.
+  sqlite.exec("DROP INDEX songs_title_order; DROP INDEX songs_title_match; DROP INDEX bands_name_match; PRAGMA user_version = 1");
+  failure = "CREATE INDEX IF NOT EXISTS songs_title_order ON songs(title COLLATE NOCASE, id)";
+  await assert.rejects(migrate(db), /Injected failure/);
   assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 1);
+  assert.equal((await read({tableName:"bands"})).length, 1);
+  failure = undefined;
+  await migrate(db);
+  assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 2);
+  const listPlan = sqlite.prepare("EXPLAIN QUERY PLAN SELECT b.search_text_lower band, s.title, b.name as band_name, s.id FROM songs s LEFT JOIN bands b ON s.band_id = b.id ORDER BY s.title COLLATE NOCASE, s.id LIMIT 10 OFFSET 20").all().map(row=>row.detail).join("\n");
+  assert.match(listPlan, /songs_title_order/);
+  assert.doesNotMatch(listPlan, /TEMP B-TREE/);
+  const restorePlan = sqlite.prepare("EXPLAIN QUERY PLAN SELECT songs.id FROM songs LEFT JOIN bands ON bands.id = songs.band_id WHERE title = ? AND content = ? AND COALESCE(bands.name, '') = ? AND COALESCE(youtube_music, '') = ? AND COALESCE(youtobe_lesson, '') = ? ORDER BY songs.id").all("Title","Words","Band","","").map(row=>row.detail).join("\n");
+  assert.match(restorePlan, /songs_title_match/);
+  assert.match(sqlite.prepare("EXPLAIN QUERY PLAN SELECT id FROM bands WHERE name = ? LIMIT 1").all("Band").map(row=>row.detail).join("\n"), /bands_name_match/);
+  console.log("SQLite migration and query plans passed: paged library avoids sorting; restore and artist lookup use indexes.");
   for (const stage of ["BEGIN;", "END;"]) {
     failure = stage;
     await assert.rejects(create({ tableName: "bands", data: { name: "Must not persist" } }), /Injected failure/);

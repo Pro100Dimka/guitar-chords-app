@@ -76,7 +76,7 @@ let saving: Promise<void> | undefined;
 let revision = 0;
 let savedRevision = 0;
 let savedSongs: Record<string, SongPreferences> = {};
-export const usePreferences = create<PreferencesStore>((set) => ({
+export const usePreferences = create<PreferencesStore>((set, get) => ({
   instrument: "guitar",
   tuning: "standard",
   customTuning: standardTuning,
@@ -90,10 +90,18 @@ export const usePreferences = create<PreferencesStore>((set) => ({
   songs: {},
   saveError: false,
   update: (patch) => {
+    const state = get();
+    if (
+      Object.entries(patch).every(([key, value]) =>
+        Object.is(state[key as keyof Preferences], value)
+      )
+    )
+      return;
     set(patch);
     scheduleSave();
   },
   removeSong: (id) => {
+    if (!Object.hasOwn(get().songs, id)) return;
     set((state) => {
       const songs = { ...state.songs };
       delete songs[id];
@@ -102,6 +110,14 @@ export const usePreferences = create<PreferencesStore>((set) => ({
     scheduleSave();
   },
   updateSong: (id, patch) => {
+    const previous = get().songs[id];
+    if (
+      previous &&
+      Object.entries(patch).every(([key, value]) =>
+        Object.is(previous[key as keyof SongPreferences], value)
+      )
+    )
+      return;
     set((state) => ({
       songs: {
         ...state.songs,

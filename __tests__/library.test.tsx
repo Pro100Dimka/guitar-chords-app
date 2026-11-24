@@ -103,7 +103,7 @@ test("deletion completion refreshes the current search instead of its captured f
   });
   const list = screen.root.findByType(FlatList);
   const row = list.props.renderItem({ item: songs[0] });
-  await act(async () => row.props.onLongPress());
+  await act(async () => row.props.onLongPress(songs[0]));
   await act(async () =>
     screen.root
       .findAllByType(Action)

@@ -478,7 +478,11 @@ const SongDetail: React.FC = () => {
       )}
     </>
   );
-  const previewChord = chord || songChords(song?.content ?? "")[0];
+  const firstChord = useMemo(
+    () => songChords(song?.content ?? "")[0],
+    [song?.content]
+  );
+  const previewChord = chord || firstChord;
   return (
     <ImageBackground
       source={guitarBgSong}
