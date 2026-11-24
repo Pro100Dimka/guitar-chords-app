@@ -11,6 +11,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: shazam-real-audio-proof-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   proof:
     runs-on: ubuntu-latest
@@ -18,7 +23,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Restore native fingerprint dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: android/song-fingerprint
+          key: shazam-host
+          cache-bin: false
+      - name: Ensure audio decoder is available
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
       - name: Decode known recognition fixture
         run: |
           curl --fail --location --retry 2 'https://raw.githubusercontent.com/shazamio/ShazamIO/c2a4b6ee9dfa9e36cd6b24d10a57ad9e66a66dd1/examples/data/Gloria.ogg' -o /tmp/gloria.ogg
