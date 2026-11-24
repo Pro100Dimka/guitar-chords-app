@@ -823,6 +823,30 @@ export function TablaturePanel({
   };
   const firstBar = range ? Math.floor(range.start / barTicks) + 1 : 1;
   const lastBar = range ? Math.ceil(range.end / barTicks) : bars;
+  const playback = (
+    <Action
+      glass
+      compact={standalone}
+      primary={hasEvents && !sounding}
+      icon={sounding ? "pause" : "play"}
+      label={t(
+        countingIn
+          ? "TabCancelCountIn"
+          : status === "preparing"
+            ? "TabCancelPreparing"
+            : sounding
+              ? "Pause"
+              : "TabPlay"
+      )}
+      selected={sounding}
+      disabled={disabled || recording || (!hasEvents && !sounding)}
+      onPress={() => {
+        cancelPreview();
+        if (sounding) transport.pause();
+        else void transport.play();
+      }}
+    />
+  );
   const actions = (
     <View style={styles.actions}>
       <Action
@@ -892,29 +916,7 @@ export function TablaturePanel({
           setPage(firstBar - 1);
         }}
       />
-      <Action
-        glass
-        compact={standalone}
-        showLabel
-        primary={hasEvents && !sounding}
-        icon={sounding ? "pause" : "play"}
-        label={t(
-          countingIn
-            ? "TabCancelCountIn"
-            : status === "preparing"
-              ? "TabCancelPreparing"
-              : sounding
-                ? "Pause"
-                : "TabPlay"
-        )}
-        selected={sounding}
-        disabled={disabled || recording || (!hasEvents && !sounding)}
-        onPress={() => {
-          cancelPreview();
-          if (sounding) transport.pause();
-          else void transport.play();
-        }}
-      />
+      {!full && playback}
     </View>
   );
   const pager = (
@@ -1082,6 +1084,13 @@ export function TablaturePanel({
         >
           <SafeAreaView style={styles.editorScreen}>
             <View style={styles.editorHeader}>
+              <Action
+                glass
+                compact
+                icon="arrow-left"
+                label={t("Close")}
+                onPress={closeEditor}
+              />
               <View style={styles.editorIdentity}>
                 <Text numberOfLines={1} style={styles.editorTitle}>
                   {title || t("TabTitle")}
@@ -1092,81 +1101,6 @@ export function TablaturePanel({
                 </Text>
               </View>
               <View style={styles.headerActions}>{actions}</View>
-              <Action
-                glass
-                compact
-                icon="close"
-                label={t("Close")}
-                onPress={closeEditor}
-              />
-            </View>
-            <View style={styles.workspaceToolbar}>
-              {sections.map((section) => (
-                <Pressable
-                  key={section.key}
-                  accessibilityRole="button"
-                  accessibilityLabel={t(section.label)}
-                  onPress={() => {
-                    fretInput.current = null;
-                    setEditorSection(section.key);
-                  }}
-                  style={styles.sectionSelector}
-                >
-                  <MaterialCommunityIcons
-                    name={section.icon}
-                    size={18}
-                    color={palette.glass.accent}
-                  />
-                  {width >= 760 && (
-                    <>
-                      <Text style={styles.sectionTabText}>
-                        {t(section.label)}
-                      </Text>
-                      <MaterialCommunityIcons
-                        name="chevron-down"
-                        size={16}
-                        color={palette.glass.muted}
-                      />
-                    </>
-                  )}
-                </Pressable>
-              ))}
-              <TempoControl
-                label={t("TabTempoShort")}
-                accessibilityLabel={t("TabQuarterTempo")}
-                value={tab.tempo}
-                disabled={readOnly}
-                onChange={(tempo) => apply({ tab: { ...tab, tempo } })}
-              />
-              <View style={styles.history}>
-                <Action
-                  glass
-                  compact
-                  icon="undo"
-                  label={t("TabUndo")}
-                  disabled={readOnly || !transport.canUndo}
-                  onPress={() => {
-                    cancelPreview();
-                    fretInput.current = null;
-                    transport.undo();
-                    setEditError(null);
-                  }}
-                />
-                <Action
-                  glass
-                  compact
-                  icon="redo"
-                  label={t("TabRedo")}
-                  disabled={readOnly || !transport.canRedo}
-                  onPress={() => {
-                    cancelPreview();
-                    fretInput.current = null;
-                    transport.redo();
-                    setEditError(null);
-                  }}
-                />
-                {pager}
-              </View>
             </View>
             <View style={styles.entryWorkspace}>
               <ScrollView
@@ -1217,11 +1151,151 @@ export function TablaturePanel({
                 }
               />
             </View>
+            <View style={styles.workspaceToolbar}>
+              {sections.map((section) => (
+                <Pressable
+                  key={section.key}
+                  accessibilityRole="button"
+                  accessibilityLabel={t(section.label)}
+                  onPress={() => {
+                    fretInput.current = null;
+                    setEditorSection(section.key);
+                  }}
+                  style={styles.sectionSelector}
+                >
+                  <MaterialCommunityIcons
+                    name={section.icon}
+                    size={18}
+                    color={palette.glass.accent}
+                  />
+                  {width >= 760 && (
+                    <>
+                      <Text style={styles.sectionTabText}>
+                        {t(section.label)}
+                      </Text>
+                      <MaterialCommunityIcons
+                        name="chevron-down"
+                        size={16}
+                        color={palette.glass.muted}
+                      />
+                    </>
+                  )}
+                </Pressable>
+              ))}
+              <View style={styles.history}>
+                <Action
+                  glass
+                  compact
+                  icon="undo"
+                  label={t("TabUndo")}
+                  disabled={readOnly || !transport.canUndo}
+                  onPress={() => {
+                    cancelPreview();
+                    fretInput.current = null;
+                    transport.undo();
+                    setEditError(null);
+                  }}
+                />
+                <Action
+                  glass
+                  compact
+                  icon="redo"
+                  label={t("TabRedo")}
+                  disabled={readOnly || !transport.canRedo}
+                  onPress={() => {
+                    cancelPreview();
+                    fretInput.current = null;
+                    transport.redo();
+                    setEditError(null);
+                  }}
+                />
+              </View>
+              <View style={styles.quickEdits}>
+                <Action
+                  glass
+                  compact
+                  icon="trash-can-outline"
+                  label={t("TabDeleteNote")}
+                  disabled={readOnly || (!selected && !selectedRest)}
+                  onPress={removeSelection}
+                />
+                {[
+                  { icon: "chevron-up", label: "TabStringUp", delta: 1 },
+                  { icon: "chevron-down", label: "TabStringDown", delta: -1 }
+                ].map(({ icon, label, delta }) => (
+                  <Action
+                    key={label}
+                    glass
+                    compact
+                    icon={icon}
+                    label={t("TabString") + (delta > 0 ? " ↑" : " ↓")}
+                    disabled={
+                      readOnly ||
+                      !!selectedRest ||
+                      cursor.string + delta < 0 ||
+                      cursor.string + delta > 5
+                    }
+                    onPress={() => {
+                      if (selected)
+                        changeNote({ string: cursor.string + delta });
+                      else
+                        selectCell({
+                          ...cursor,
+                          string: cursor.string + delta
+                        });
+                    }}
+                  />
+                ))}
+              </View>
+            </View>
+            <View style={styles.transportBar}>
+              <View style={styles.footerGroup}>{pager}</View>
+              <View style={styles.playbackGroup}>
+                <Action
+                  glass
+                  compact
+                  icon="skip-backward"
+                  label={t("TabRewind")}
+                  disabled={disabled || recording || recordPending}
+                  onPress={() => {
+                    cancelPreview();
+                    transport.rewind();
+                    setPage(firstBar - 1);
+                  }}
+                />
+                {playback}
+                <Action
+                  glass
+                  compact
+                  icon="skip-forward"
+                  label={t("TabNextPosition")}
+                  disabled={
+                    readOnly ||
+                    position + insertDuration >= TAB_MAX_BARS * barTicks
+                  }
+                  onPress={nextPosition}
+                />
+              </View>
+              <View style={styles.footerGroup}>
+                <TempoControl
+                  label={t("TabTempoShort")}
+                  accessibilityLabel={t("TabQuarterTempo")}
+                  value={tab.tempo}
+                  disabled={readOnly}
+                  onChange={(tempo) => apply({ tab: { ...tab, tempo } })}
+                />
+              </View>
+            </View>
             {editorSection !== "score" && (
               <Sheet
                 compact
                 landscapeOnly
-                maxWidth={editorSection === "note" ? 500 : 600}
+                subtitle={
+                  editorSection === "note"
+                    ? `${selectedRest ? t("TabEditRest") : `${t("TabString")}: ${6 - cursor.string} · ${t("TabFret")}: ${selected?.fret ?? insertFret}`} · ${t("TabNotePosition", { bar: Math.floor(position / barTicks) + 1, beat: Number((1 + (position % barTicks) / beatTicks).toFixed(2)) })}`
+                    : undefined
+                }
+                maxWidth={editorSection === "note" ? 1100 : 600}
                 title={t(
                   sections.find((section) => section.key === editorSection)!
                     .label
@@ -1230,18 +1304,6 @@ export function TablaturePanel({
               >
                 {editorSection === "note" && (
                   <View style={[styles.editor, styles.noteEditor]}>
-                    <Text style={styles.caption}>
-                      {selectedRest
-                        ? t("TabEditRest")
-                        : `${t("TabString")}: ${6 - cursor.string} · ${t("TabFret")}: ${selected?.fret ?? insertFret}`}{" "}
-                      ·{" "}
-                      {t("TabNotePosition", {
-                        bar: Math.floor(position / barTicks) + 1,
-                        beat: Number(
-                          (1 + (position % barTicks) / beatTicks).toFixed(2)
-                        )
-                      })}
-                    </Text>
                     <View style={styles.noteDurationRow}>
                       {durationChoices.map((denominator) => (
                         <Action
@@ -1273,6 +1335,7 @@ export function TablaturePanel({
                           <Action
                             glass
                             compact
+                            showLabel
                             icon="trash-can-outline"
                             label={t(
                               selected ? "TabDeleteNote" : "TabDeleteRest"
@@ -1286,6 +1349,7 @@ export function TablaturePanel({
                               glass
                               primary
                               compact
+                              showLabel
                               icon="music-note-plus"
                               label={t("TabAddNote")}
                               disabled={readOnly}
@@ -1304,6 +1368,7 @@ export function TablaturePanel({
                             <Action
                               glass
                               compact
+                              showLabel
                               icon={durationIcons[
                                 parts?.denominator ?? 4
                               ].replace("music-note-", "music-rest-")}
@@ -1324,10 +1389,13 @@ export function TablaturePanel({
                           </>
                         )}
                       </View>
-                      <View style={styles.noteActionGroup}>
+                      <View
+                        style={[styles.noteActionGroup, styles.noteModifiers]}
+                      >
                         <Action
                           glass
                           compact
+                          showLabel
                           icon="music-note-quarter-dotted"
                           label={t("TabDotted")}
                           selected={parts?.modifier === "dotted"}
@@ -1346,6 +1414,7 @@ export function TablaturePanel({
                         <Action
                           glass
                           compact
+                          showLabel
                           icon={
                             <TripletIcon
                               selected={parts?.modifier === "triplet"}
@@ -1368,6 +1437,7 @@ export function TablaturePanel({
                         <Action
                           glass
                           compact
+                          showLabel
                           icon={noteDetails ? "chevron-up" : "tune-vertical"}
                           label={t("TabMoreOptions")}
                           selected={noteDetails}
@@ -1713,20 +1783,45 @@ const styles = StyleSheet.create({
   },
   editorIdentity: { flex: 1, gap: 2 },
   editorTitle: { fontSize: 19, fontWeight: "600" },
-  headerActions: { flex: 2, maxWidth: 380 },
+  headerActions: { flex: 2, maxWidth: 320 },
+  transportBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderTopWidth: 1,
+    borderTopColor: palette.glass.edge
+  },
+  footerGroup: { flex: 1, maxWidth: 220 },
+  playbackGroup: {
+    flex: 1,
+    maxWidth: 240,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12
+  },
   workspaceToolbar: {
     flexDirection: "row",
     flexWrap: "wrap",
     alignItems: "center",
     gap: 6,
     paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingVertical: 8,
+    marginHorizontal: 8,
+    marginBottom: 6,
+    borderRadius: 16,
+    backgroundColor: palette.glass.card,
     borderBottomWidth: 1,
-    borderBottomColor: palette.glass.surfaceEdge
+    borderBottomColor: palette.glass.surfaceEdge,
+    borderTopWidth: 1,
+    borderTopColor: palette.glass.surfaceEdge,
+    justifyContent: "space-between"
   },
   workspace: { flex: 1 },
-  noteEditor: { padding: 0, gap: 8, borderWidth: 0 },
-  noteDurationRow: { flexDirection: "row", gap: 6 },
+  noteEditor: { padding: 4, gap: 16, borderWidth: 0 },
+  noteDurationRow: { flexDirection: "row", gap: 12 },
   noteToolbar: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -1734,7 +1829,14 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12
   },
-  noteActionGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
+  noteModifiers: { flex: 3 },
+  noteActionGroup: {
+    flex: 2,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-evenly",
+    gap: 12
+  },
   noteDetails: {
     gap: 12,
     marginTop: 4,
@@ -1884,9 +1986,18 @@ const styles = StyleSheet.create({
     gap: 4
   },
   pageCaption: { flexShrink: 1, textAlign: "center" },
-  history: {
+  quickEdits: {
     flex: 1,
-    minWidth: 208,
+    flexDirection: "row",
+    justifyContent: "flex-end",
+    alignItems: "center",
+    gap: 8,
+    borderLeftWidth: 1,
+    borderLeftColor: palette.glass.edge,
+    paddingLeft: 12
+  },
+  history: {
+    marginLeft: 12,
     flexDirection: "row",
     alignItems: "center",
     gap: 6
