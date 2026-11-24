@@ -1145,12 +1145,14 @@ function RhythmPlayer({
   }, [preview, active]);
   useEffect(() => {
     if (!active || !ready || instrument?.spec !== instrumentSpec) return;
+    const player = web.current;
+    if (!player) return;
     const controller = new AbortController();
     const token = ++transferToken.current;
     void transferAcousticInstrument(
       instrument.chunks,
       token,
-      (script) => web.current?.injectJavaScript(script),
+      (script) => player.injectJavaScript(script),
       controller.signal
     ).catch((error) => {
       if (!controller.signal.aborted) {
@@ -1160,9 +1162,7 @@ function RhythmPlayer({
     });
     return () => {
       controller.abort();
-      web.current?.injectJavaScript(
-        `window.cancelInstrument?.(${token});true;`
-      );
+      player.injectJavaScript(`window.cancelInstrument?.(${token});true;`);
     };
   }, [active, ready, instrument, instrumentSpec]);
   useEffect(() => {

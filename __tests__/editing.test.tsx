@@ -704,6 +704,8 @@ test("each rhythm can be selected once through its full pattern and applied", as
     strumPreset: rhythms[7].id
   });
   await act(async () => jest.runAllTimersAsync());
+  // Publishing prepared chunks commits before the transfer effect schedules its timers.
+  await act(async () => jest.runAllTimersAsync());
   const html = screen!.root.findByType(WebView).props.source.html;
   const source = html.match(/<script>([\s\S]*?)<\/script>/)[1];
   const sources: any[] = [];
