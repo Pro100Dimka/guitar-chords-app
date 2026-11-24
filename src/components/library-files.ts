@@ -360,7 +360,7 @@ function backupPreferences(value: unknown): SongPreferences {
     throw new Error("BackupInvalid");
   return preferences;
 }
-export function parseLibraryBackup(text: string): BackupSong[] {
+function backupData(text: string) {
   let data: unknown;
   try {
     data = JSON.parse(text);
@@ -376,8 +376,34 @@ export function parseLibraryBackup(text: string): BackupSong[] {
     data.songs.length > 2000
   )
     throw new Error("BackupInvalid");
-  const version = data.version;
-  return data.songs.map((song: unknown) => backupSong(song, version));
+  return { version: data.version, songs: data.songs as unknown[] };
+}
+
+export function parseLibraryBackup(text: string): BackupSong[] {
+  const { version, songs } = backupData(text);
+  return songs.map((song) => backupSong(song, version));
+}
+
+export async function parseLibraryBackupAsync(
+  text: string,
+  signal?: AbortSignal
+): Promise<BackupSong[]> {
+  const read = fileRead(signal);
+  try {
+    read.start();
+    await read.pause();
+    const { version, songs } = backupData(text);
+    const result: BackupSong[] = [];
+    const checkpoint = cooperativeWork(() => read.pause());
+    for (const song of songs) {
+      result.push(backupSong(song, version));
+      const pause = checkpoint();
+      if (pause) await pause;
+    }
+    return result;
+  } finally {
+    read.finish();
+  }
 }
 
 function backupSong(
@@ -519,8 +545,9 @@ export async function exportLibrary() {
       : 2,
     createdAt: new Date().toISOString()
   };
-  const overhead = JSON.stringify({ ...header, songs: [] }).length;
-  const parts: BackupSong[][] = [[]];
+  const prefix = JSON.stringify(header).slice(0, -1) + ',"songs":[';
+  const overhead = prefix.length + 2;
+  const parts: string[][] = [[]];
   let bytes = overhead;
   for (const song of songs) {
     const entry = backupSong(
@@ -532,7 +559,8 @@ export async function exportLibrary() {
       header.version,
       exported[song.id]
     );
-    const size = await utf8Length(JSON.stringify(entry), checkpoint);
+    const encoded = JSON.stringify(entry);
+    const size = await utf8Length(encoded, checkpoint);
     if (size + overhead > maxBytes) throw new Error("FileTooLarge");
     let part = parts[parts.length - 1];
     if (part.length && (bytes + size + 1 > maxBytes || part.length === 2000)) {
@@ -541,12 +569,12 @@ export async function exportLibrary() {
       bytes = overhead;
     }
     bytes += size + (part.length ? 1 : 0);
-    part.push(entry);
+    part.push(encoded);
     const pause = checkpoint();
     if (pause) await pause;
   }
   for (const [index, songs] of parts.entries()) {
-    const text = JSON.stringify({ ...header, songs });
+    const text = prefix + songs.join(",") + "]}";
     const suffix =
       parts.length > 1 ? `-part-${index + 1}-of-${parts.length}` : "";
     const name = `FreeTune-library-${header.createdAt.slice(0, 10)}${suffix}.json`;
