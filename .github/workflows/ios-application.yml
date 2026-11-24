@@ -79,11 +79,16 @@ jobs:
             ~/.cargo/registry
             ~/.cargo/git
           key: ios-cargo-downloads-${{ runner.arch }}-${{ hashFiles('android/song-fingerprint/Cargo.lock') }}
+      - run: npm ci
+      # Skia's pod prepare copies 64 framework files outside Pods. A cached
+      # installation skips that preparation, so restore both after npm ci.
       - name: Cache exact native dependencies
         if: ${{ !inputs.refresh_lock }}
         uses: actions/cache@v4
         with:
-          path: ios/Pods
+          path: |
+            ios/Pods
+            node_modules/@shopify/react-native-skia/libs
           key: ios-pods-${{ steps.native-context.outputs.key }}
       - name: Restore compatible Xcode and Rust build products
         if: ${{ !inputs.refresh_lock }}
@@ -94,7 +99,6 @@ jobs:
           key: ios-build-${{ steps.native-context.outputs.key }}-${{ github.sha }}
           restore-keys: |
             ios-build-${{ steps.native-context.outputs.key }}-
-      - run: npm ci
       - name: Install native dependencies
         env:
           REFRESH_LOCK: ${{ inputs.refresh_lock }}

@@ -8,7 +8,9 @@ have separate cache namespaces. Both still invoke the complete Xcode build.
 
 The reusable state is:
 
-- Locked CocoaPods dependencies and Cargo downloads.
+- Locked CocoaPods dependencies, Skia's prepared Apple frameworks and Cargo
+  downloads. Restore the complete Pods/Skia pair after `npm ci`: Skia's pod
+  preparation writes into `node_modules`, which a fresh npm install recreates.
 - Xcode DerivedData, including the Rust target directory used by the app.
 - Android Gradle dependencies, transformed artifacts and task cache, plus
   Cargo dependencies for the three Android architectures.

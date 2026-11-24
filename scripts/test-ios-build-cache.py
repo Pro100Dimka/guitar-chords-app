@@ -2,6 +2,7 @@
 """Exercise the build-input timestamp cache through its public command line."""
 
 import copy
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -347,4 +348,29 @@ class BuildInputCacheTests(unittest.TestCase):
                 self.assert_rejected_without_touching(paths)
 
 if __name__ == "__main__":
+    # CI-only diagnostics use the already-restored manifest before the restore
+    # step can deliberately discard incompatible products. No files are changed.
+    if os.environ.get("IOS_DERIVED_DATA") and os.environ.get("GITHUB_WORKSPACE"):
+        cached_manifest = Path(os.environ["IOS_DERIVED_DATA"]) / "input-mtimes.json"
+        if cached_manifest.is_file():
+            try:
+                spec = importlib.util.spec_from_file_location("ios_build_cache", HELPER)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                workspace = Path(os.environ["GITHUB_WORKSPACE"]).resolve()
+                regular, links = module.input_inventory(workspace)
+                cached = json.loads(cached_manifest.read_text())
+                removed = sorted(set(cached["files"]) - regular.keys())
+                added = sorted(regular.keys() - set(cached["files"]))
+                old_links = cached.get("symlinks", {})
+                link_changes = sorted(path for path in old_links.keys() | links.keys()
+                                      if old_links.get(path) != links.get(path))
+                print("CACHE_INPUT_INVENTORY " + json.dumps({
+                    "removed_count": len(removed), "removed": removed[:40],
+                    "added_count": len(added), "added": added[:40],
+                    "changed_link_count": len(link_changes),
+                    "changed_links": link_changes[:40],
+                }), flush=True)
+            except (OSError, ValueError, KeyError, TypeError) as error:
+                print(f"CACHE_INPUT_INVENTORY unavailable: {error}", flush=True)
     unittest.main(verbosity=2)
