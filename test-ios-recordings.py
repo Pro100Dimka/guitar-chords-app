@@ -15,6 +15,16 @@ def main():
     root = Path(__file__).resolve().parent
     method = runpy.run_path(str(root / "test-ios-pitch.py"))["method"]
     source = (root / "ios/PerformanceAudio.swift").read_text(encoding="utf-8")
+    # The race fixture replaces AVAudioFile below. Also typecheck the unchanged
+    # recovery code against the real iOS framework and the application's Swift
+    # language mode so wrapper types cannot hide an app compilation failure.
+    framework_probe = """import Foundation
+import AVFoundation
+final class RecordingFrameworkProbe {
+    let directory = URL(fileURLWithPath: NSTemporaryDirectory())
+    let recordingFilesLock = NSLock()
+    var activeRecordingFiles = Set<String>()
+""" + "\n".join(method(source, name) for name in ["withRecordingFilesLock<T>", "reconcileRecordings"]) + "\n}\n"
     production = "\n".join(method(source, name) for name in ["withRecordingFilesLock<T>", "reserveActiveRecordingURL", "releaseRecordingURL", "reserveRecordingURL", "localFile", "reconcileRecordings", "removeRecordingFiles"])
     production = production.replace("AVAudioFile(forReading: partial)", "RecoveryAudioFile(forReading: partial)")
     objc_method = runpy.run_path(str(root / "test-ios-performance.py"))["method"]
@@ -279,6 +289,10 @@ func recordingCheck(_ condition: @autoclosure () -> Bool, _ message: @autoclosur
         main_file.write_text(swift, encoding="utf-8")
         binary = temporary / "recording-check"
         environment = {**os.environ, "CLANG_MODULE_CACHE_PATH": str(temporary / "modules")}
+        probe_file = temporary / "framework-probe.swift"
+        probe_file.write_text(framework_probe, encoding="utf-8")
+        simulator_sdk = subprocess.check_output(["xcrun", "--sdk", "iphonesimulator", "--show-sdk-path"], text=True).strip()
+        subprocess.run([compiler, "-typecheck", "-sdk", simulator_sdk, "-target", "arm64-apple-ios15.1-simulator", "-swift-version", "5", "-module-cache-path", str(temporary / "modules"), str(probe_file)], check=True, env=environment)
         subprocess.run([compiler, "-O", "-module-cache-path", str(temporary / "modules"), str(main_file), "-o", str(binary)], check=True, env=environment)
         subprocess.run([str(binary), str(temporary / "recordings")], check=True, env=environment)
 

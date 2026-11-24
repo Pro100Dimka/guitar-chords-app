@@ -199,7 +199,11 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
             guard recover else { continue }
             // Opening an orphan AAC can block. Keep it off main and outside
             // the short lock that protects new reservations and finalization.
-            let valid = (try? AVAudioFile(forReading: partial)).map { $0.length > 0 } ?? false
+            let valid: Bool
+            do {
+                let audio = try AVAudioFile(forReading: partial)
+                valid = audio.length > 0
+            } catch { valid = false }
             try withRecordingFilesLock {
                 guard !activeRecordingFiles.contains(path), files.fileExists(atPath: partial.path) else { return }
                 if files.fileExists(atPath: target.path), (try URL(fileURLWithPath: target.path).resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0 {
