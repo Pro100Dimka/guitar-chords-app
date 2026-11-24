@@ -89,12 +89,14 @@ export class TablatureTransport {
   private listeners = new Set<() => void>();
   private boundedTab: Tablature | undefined;
   private tabEnd = 0;
-  private preparedWindow: {
-    cursor: number;
-    start: number;
-    end: number;
-    loop: boolean;
-  } | undefined;
+  private preparedWindow:
+    | {
+        cursor: number;
+        start: number;
+        end: number;
+        loop: boolean;
+      }
+    | undefined;
   private active = false;
   private timer: ReturnType<typeof setTimeout> | undefined;
   private controller: AbortController | undefined;
@@ -1022,12 +1024,14 @@ export function useTablature(
     transport.setActive(active);
     return () => transport.setActive(false);
   }, [active, transport]);
-  const [positionSource] = useState<{ positionSource?: PositionSource }>(() => ({
-    positionSource: {
-      subscribe: transport.subscribe,
-      getSnapshot: transport.getPosition
-    }
-  }));
+  const [positionSource] = useState<{ positionSource?: PositionSource }>(
+    () => ({
+      positionSource: {
+        subscribe: transport.subscribe,
+        getSnapshot: transport.getPosition
+      }
+    })
+  );
   return {
     ...snapshot,
     ...positionSource,

@@ -104,9 +104,7 @@ export default function PlayGuitar() {
   );
   const options = useMemo(
     () =>
-      fingeringChord
-        ? chordShapeOptions(fingeringChord, fingering?.index)
-        : [],
+      fingeringChord ? chordShapeOptions(fingeringChord, fingering?.index) : [],
     [fingeringChord, fingering?.index]
   );
   const shapePages = Math.max(1, Math.ceil(options.length / 4));
@@ -518,7 +516,9 @@ export default function PlayGuitar() {
             tracked[touch.id] = {
               x: touch.x,
               first:
-                Math.abs(touch.x - frame.stringLeft - previous.first * spacing) >
+                Math.abs(
+                  touch.x - frame.stringLeft - previous.first * spacing
+                ) >
                 spacing / 2
                   ? -1
                   : previous.first

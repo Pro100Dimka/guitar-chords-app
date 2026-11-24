@@ -289,5 +289,34 @@ fun main() {
         module.finishFades()
         check(module.tracks.all { it.released })
     }
+    // The transport warms twelve distinct notes in order. Its earliest note
+    // must remain a ready voice rather than being evicted by later lookahead.
+    run {
+        val module = PerformanceAudio(InstrumentContext())
+        val wave = java.util.Base64.getEncoder().encodeToString(ByteArray(48))
+        repeat(12) { index ->
+            var ready = false
+            module.prepareFingering("window-$index", wave, object : com.facebook.react.bridge.Promise {
+                override fun resolve(value: Any) { ready = value == true }
+            })
+            module.samplerWorker.drain()
+            check(ready)
+        }
+        check(module.preparedGuitars.size == 12)
+        check(module.preparedGuitars.containsKey("window-0"))
+        val created = module.tracks.size
+        module.onCreateGuitar = { check(!Thread.holdsLock(module)) { "Lookahead's first note fell back to a cold allocation" } }
+        module.playGuitarString("window-0", 0)
+        check(module.tracks.size == created && module.guitarStrings[0]?.playing == true)
+        module.samplerWorker.drain()
+        module.prepareFingering("window-12", wave, object : com.facebook.react.bridge.Promise {
+            override fun resolve(value: Any) { check(value == true) }
+        })
+        module.samplerWorker.drain()
+        check(module.preparedGuitars.size == 12)
+        module.invalidate()
+        module.finishFades()
+        check(module.tracks.all { it.released })
+    }
     println("Production Android instrument checks passed: stale lifecycle callbacks, click cache/ownership, rapid string retriggers and queued invalidate cleanup (deterministic audio/worker boundaries).")
 }

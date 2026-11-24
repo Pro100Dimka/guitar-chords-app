@@ -26,6 +26,9 @@ import java.util.concurrent.ConcurrentHashMap
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
+// Keep the full twelve-key TabTransport lookahead ready before its first attack.
+private const val PREPARED_GUITARS_LIMIT = 12
+
 class PerformanceAudio(private val context: ReactApplicationContext) :
     ReactContextBaseJavaModule(context), LifecycleEventListener {
     private var recorder: PolishedRecorder? = null
@@ -326,7 +329,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             }
             guitarPcm.remove(key); guitarPcm[key] = bytes
             if (!preparedGuitars.containsKey(key)) preparedGuitars[key] = guitarTrack(bytes)
-            while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
+            while (preparedGuitars.size > PREPARED_GUITARS_LIMIT) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
             while (guitarPcm.size > 32 || guitarPcm.values.sumOf { it.size.toLong() } > 32L * 1024 * 1024) {
                 val oldest = guitarPcm.keys.first()
                 guitarPcm.remove(oldest)
@@ -364,7 +367,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                             preparedGuitars[key] = prepared!!
                             prepared = null
                         }
-                        while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
+                        while (preparedGuitars.size > PREPARED_GUITARS_LIMIT) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
                         while (guitarPcm.size > 32 || guitarPcm.values.sumOf { it.size.toLong() } > 32L * 1024 * 1024) {
                             val oldest = guitarPcm.keys.first()
                             guitarPcm.remove(oldest)
@@ -406,7 +409,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                     if (invalidated || guitarPcm[key] !== bytes || preparedGuitars.containsKey(key)) prepared.release()
                     else {
                         preparedGuitars[key] = prepared
-                        while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
+                        while (preparedGuitars.size > PREPARED_GUITARS_LIMIT) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
                     }
                 }
             }

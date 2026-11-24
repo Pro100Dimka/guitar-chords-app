@@ -453,7 +453,9 @@ const TablatureStaff = React.memo(function TablatureStaff({
   );
 });
 
-export function TablatureBar(props: React.ComponentProps<typeof TablatureStaff>) {
+export function TablatureBar(
+  props: React.ComponentProps<typeof TablatureStaff>
+) {
   return <TablatureStaff {...props} />;
 }
 

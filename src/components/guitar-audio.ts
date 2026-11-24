@@ -1,10 +1,14 @@
 import { fromByteArray, toByteArray } from "base64-js";
 import { performanceAudio } from "./performance-audio";
 
+const clock = globalThis as typeof globalThis & {
+  performance: { now: () => number };
+};
 type GuitarSample = { frequency: number; data: Float32Array };
-function* decode(
-  sample: { frequency: number; pcm: string }
-): Generator<void, GuitarSample> {
+function* decode(sample: {
+  frequency: number;
+  pcm: string;
+}): Generator<void, GuitarSample> {
   const padding = sample.pcm.endsWith("==")
     ? 2
     : sample.pcm.endsWith("=")
@@ -136,7 +140,7 @@ async function prepareNativeGuitar(key: string, wave: string) {
   if (!(await performanceAudio.prepareFingering(key, wave)))
     throw new Error("Guitar preparation failed");
 }
-export async function warmGuitar(
+async function warmGuitarWave(
   notes: number[],
   reference: number,
   signal: AbortSignal,
@@ -156,14 +160,14 @@ export async function warmGuitar(
       const active = () => [...signals].some((consumer) => !consumer.aborted);
       try {
         while (active()) {
-          const deadline = performance.now() + 4;
+          const deadline = clock.performance.now() + 4;
           do {
             const step = render.next();
             if (step.done) {
               await prepareNativeGuitar(key, step.value);
               return step.value;
             }
-          } while (active() && performance.now() < deadline);
+          } while (active() && clock.performance.now() < deadline);
           await new Promise<void>((resolve) => setTimeout(resolve, 0));
         }
       } finally {
@@ -182,6 +186,14 @@ export async function warmGuitar(
     task.signals.delete(signal);
   }
 }
+export async function warmGuitar(
+  notes: number[],
+  reference: number,
+  signal: AbortSignal,
+  stringIndex?: number
+): Promise<void> {
+  await warmGuitarWave(notes, reference, signal, stringIndex);
+}
 export async function playGuitar(
   notes: number[],
   reference = 440,
@@ -191,7 +203,7 @@ export async function playGuitar(
   const key = `${reference}:${notes.join(",")}`;
   try {
     let wave = previews.get(key);
-    if (!wave) wave = await warmGuitar(notes, reference, signal);
+    if (!wave) wave = await warmGuitarWave(notes, reference, signal);
     else if (performanceAudio.preparedFingeringSupported)
       await prepareNativeGuitar(key, wave);
     else performanceAudio.prepareGuitar(key, wave);

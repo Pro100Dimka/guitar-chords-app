@@ -117,9 +117,12 @@ function SearchableSelect<T extends Record<string, unknown>>({
     current.pending = true;
     setLoading(true);
     setData([]);
-    const timeout = setTimeout(() => {
-      void loadItems(0);
-    }, query.trim() ? 250 : 0);
+    const timeout = setTimeout(
+      () => {
+        void loadItems(0);
+      },
+      query.trim() ? 250 : 0
+    );
     return () => {
       clearTimeout(timeout);
       current.requestId++;
