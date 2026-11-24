@@ -169,8 +169,15 @@ while listed == nil && listError == nil && Date() < deletionDeadline {
     RunLoop.current.run(until: Date().addingTimeInterval(0.01))
 }
 precondition(removedDuringList && listError == nil && listed != nil)
-precondition(!listed!.contains { $0["path"] as? String == path(5).path })
-precondition(listed!.contains { $0["path"] as? String == path(3).path })
+// macOS temporary URLs may use /var while enumeration returns /private/var.
+// Compare file identity, including for the deleted row's negative assertion.
+let listedPaths = Set(listed!.compactMap { row -> String? in
+    guard let path = row["path"] as? String else { return nil }
+    return URL(fileURLWithPath: path).resolvingSymlinksInPath().path
+})
+precondition(!listedPaths.contains(path(5).resolvingSymlinksInPath().path), "Deleted recording remained in \(listedPaths)")
+precondition(files.fileExists(atPath: path(3).path), "Unrelated recording was removed")
+precondition(listedPaths.contains(path(3).resolvingSymlinksInPath().path), "Existing recording missing from \(listedPaths)")
 store.filesWorker.sync {}
 onRecordingMetadata = nil
 print("Production Swift asynchronous listing passed: background recovery, unlocked decoding, active reservation protection and main-queue result delivery.")
