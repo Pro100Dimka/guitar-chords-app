@@ -1,4 +1,7 @@
 name: ios-application
+concurrency:
+  group: ios-application-${{ github.ref }}-${{ inputs.device_ipa && 'device' || 'simulator' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 on:
   push:
     branches: [main]
@@ -18,13 +21,16 @@ permissions:
   contents: read
 jobs:
   ios-application:
-    runs-on: macos-15-intel
+    # Standard Apple Silicon runner; public repositories use this free tier.
+    runs-on: macos-15
     timeout-minutes: 45
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
         with:
-          targets: aarch64-apple-ios,aarch64-apple-ios-sim,x86_64-apple-ios
+          targets: ${{ inputs.device_ipa && 'aarch64-apple-ios' || 'aarch64-apple-ios-sim' }}
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
@@ -34,16 +40,112 @@ jobs:
           ruby-version: '3.3.13'
           bundler: '2.5.23'
           bundler-cache: true
+      - name: Identify compatible native build caches
+        id: native-context
+        env:
+          DEVICE_IPA: ${{ inputs.device_ipa }}
+          NATIVE_INPUT_HASH: ${{ hashFiles('package.json', 'package-lock.json', 'Gemfile', 'Gemfile.lock', 'ios/Podfile', 'ios/Podfile.lock', 'ios/.xcode.env*', 'ios/freetune.xcodeproj/project.pbxproj', 'ios/freetune.xcodeproj/xcshareddata/**', 'ios/freetune.xcworkspace/contents.xcworkspacedata', 'react-native.config.*', 'patches/**', 'ios/build-fingerprint.sh', 'scripts/ios-build-cache.py', 'android/song-fingerprint/Cargo.toml', 'android/song-fingerprint/Cargo.lock', '.github/workflows/ios-application.yml') }}
+        run: |
+          set -euo pipefail
+          if [ "$DEVICE_IPA" = 'true' ]; then
+            mode=iphoneos-Release
+            sdk=iphoneos
+          else
+            mode=iphonesimulator-Debug
+            sdk=iphonesimulator
+          fi
+          derived="$RUNNER_TEMP/freetune-ios-$mode"
+          echo "IOS_DERIVED_DATA=$derived" >> "$GITHUB_ENV"
+          {
+            sw_vers -productVersion
+            sw_vers -buildVersion
+            uname -m
+            xcodebuild -version
+            xcrun --sdk "$sdk" --show-sdk-version
+            xcrun --sdk "$sdk" --show-sdk-build-version
+            rustc -vV
+            node --version
+            ruby --version
+            printf '%s\n' "$GITHUB_WORKSPACE" "$derived" "$mode"
+            printf '%s\n' 'ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO'
+          } > "$RUNNER_TEMP/ios-cache-context.txt"
+          cat "$RUNNER_TEMP/ios-cache-context.txt"
+          identity=$(shasum -a 256 "$RUNNER_TEMP/ios-cache-context.txt" | awk '{print $1}')
+          echo "key=v1-$RUNNER_ARCH-$mode-$identity-$NATIVE_INPUT_HASH" >> "$GITHUB_OUTPUT"
+      - name: Cache locked Cargo downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ios-cargo-downloads-${{ runner.arch }}-${{ hashFiles('android/song-fingerprint/Cargo.lock') }}
       - run: npm ci
+      # Skia's pod prepare copies 64 framework files outside Pods. A cached
+      # installation skips that preparation, so restore both after npm ci.
+      - name: Cache exact native dependencies
+        if: ${{ !inputs.refresh_lock }}
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            node_modules/@shopify/react-native-skia/libs
+          key: ios-pods-${{ steps.native-context.outputs.key }}
+      - name: Restore compatible Xcode and Rust build products
+        if: ${{ !inputs.refresh_lock }}
+        id: native-build-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: ${{ env.IOS_DERIVED_DATA }}
+          key: ios-build-${{ steps.native-context.outputs.key }}-${{ github.sha }}
+          restore-keys: |
+            ios-build-${{ steps.native-context.outputs.key }}-
       - name: Install native dependencies
         env:
           REFRESH_LOCK: ${{ inputs.refresh_lock }}
         run: |
+          set -euo pipefail
+          # Skia 2.5.1 conditionally declares tvOS frameworks when libs/tvos exists.
+          # Match fresh npm evaluation for this iOS lockfile, then restore all files.
+          skia_tvos="$GITHUB_WORKSPACE/node_modules/@shopify/react-native-skia/libs/tvos"
+          skia_tvos_backup=''
+          restore_skia_tvos() {
+            local install_status=$?
+            trap - EXIT
+            if [ -n "$skia_tvos_backup" ]; then
+              if [ -d "$skia_tvos_backup/tvos" ] && [ ! -e "$skia_tvos" ] && [ ! -L "$skia_tvos" ]; then
+                if ! mv "$skia_tvos_backup/tvos" "$skia_tvos"; then
+                  echo "Could not restore Skia tvOS files; preserved at $skia_tvos_backup" >&2
+                  if [ "$install_status" -eq 0 ]; then install_status=1; fi
+                  exit "$install_status"
+                fi
+              fi
+              if ! rm -rf "$skia_tvos_backup"; then
+                if [ "$install_status" -eq 0 ]; then install_status=1; fi
+              fi
+            fi
+            exit "$install_status"
+          }
+          trap restore_skia_tvos EXIT
+          if [ -d "$skia_tvos" ]; then
+            skia_tvos_backup=$(mktemp -d "$RUNNER_TEMP/freetune-skia-tvos.XXXXXX")
+            mv "$skia_tvos" "$skia_tvos_backup/tvos"
+          fi
           if [ "$REFRESH_LOCK" = 'true' ]; then
             bundle exec pod install --project-directory=ios
           else
             bundle exec pod install --project-directory=ios --deployment
             git diff --exit-code -- ios/Podfile.lock Gemfile.lock
+          fi
+      - name: Verify incremental cache safety rules
+        run: python3 scripts/test-ios-build-cache.py
+      - name: Restore timestamps only for identical native inputs
+        if: ${{ !inputs.refresh_lock }}
+        run: |
+          if ! python3 scripts/ios-build-cache.py restore \
+            --workspace "$GITHUB_WORKSPACE" \
+            --manifest "$IOS_DERIVED_DATA/input-mtimes.json"; then
+            echo 'No valid input snapshot; discarding this DerivedData cache and building fresh.'
+            rm -rf "$IOS_DERIVED_DATA"
           fi
       - name: Build complete iOS simulator application
         if: ${{ !inputs.device_ipa }}
@@ -52,13 +154,14 @@ jobs:
           xcodebuild -workspace ios/freetune.xcworkspace -scheme freetune \
             -configuration Debug -sdk iphonesimulator \
             -destination 'generic/platform=iOS Simulator' \
-            -derivedDataPath "$RUNNER_TEMP/freetune-ios-build" \
-            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath "$IOS_DERIVED_DATA" -showBuildTimingSummary \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO \
             build > "$RUNNER_TEMP/ios-application-build.log" 2>&1 || {
+              grep -n -E '(fatal )?error:|BUILD FAILED|Command .*failed' "$RUNNER_TEMP/ios-application-build.log" | tail -n 40 || true
               tail -n 120 "$RUNNER_TEMP/ios-application-build.log"
               exit 1
             }
-          tail -n 12 "$RUNNER_TEMP/ios-application-build.log"
+          tail -n 60 "$RUNNER_TEMP/ios-application-build.log"
       - name: Build unsigned iPhone Release package
         if: ${{ inputs.device_ipa }}
         run: |
@@ -66,13 +169,14 @@ jobs:
           xcodebuild -workspace ios/freetune.xcworkspace -scheme freetune \
             -configuration Release -sdk iphoneos \
             -destination 'generic/platform=iOS' \
-            -derivedDataPath "$RUNNER_TEMP/freetune-ios-device" \
-            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO \
+            -derivedDataPath "$IOS_DERIVED_DATA" -showBuildTimingSummary \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO \
             build > "$RUNNER_TEMP/ios-application-build.log" 2>&1 || {
+              grep -n -E '(fatal )?error:|BUILD FAILED|Command .*failed' "$RUNNER_TEMP/ios-application-build.log" | tail -n 40 || true
               tail -n 120 "$RUNNER_TEMP/ios-application-build.log"
               exit 1
             }
-          app="$RUNNER_TEMP/freetune-ios-device/Build/Products/Release-iphoneos/freetune.app"
+          app="$IOS_DERIVED_DATA/Build/Products/Release-iphoneos/freetune.app"
           test -d "$app"
           test -s "$app/main.jsbundle"
           test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleSupportedPlatforms:0' "$app/Info.plist")" = iPhoneOS
@@ -86,7 +190,26 @@ jobs:
           ditto -c -k --keepParent Payload "$RUNNER_TEMP/FreeTune-unsigned-device.ipa"
           unzip -t "$RUNNER_TEMP/FreeTune-unsigned-device.ipa" | tail -n 1
           shasum -a 256 "$RUNNER_TEMP/FreeTune-unsigned-device.ipa"
-          tail -n 12 "$RUNNER_TEMP/ios-application-build.log"
+          tail -n 60 "$RUNNER_TEMP/ios-application-build.log"
+      - name: Record native input identity and cache footprint
+        if: ${{ success() && !inputs.refresh_lock }}
+        id: input-snapshot
+        run: |
+          if python3 scripts/ios-build-cache.py save \
+            --workspace "$GITHUB_WORKSPACE" \
+            --manifest "$IOS_DERIVED_DATA/input-mtimes.json"; then
+            echo 'ready=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            echo 'Native input snapshot is unsupported or invalid; skipping build-product cache publication.'
+          fi
+          du -sh "$IOS_DERIVED_DATA" ios/Pods "$HOME/.cargo/registry" | tee "$RUNNER_TEMP/ios-cache-sizes.txt"
+      - name: Save verified Xcode and Rust build products
+        if: ${{ success() && !inputs.refresh_lock && steps.input-snapshot.outputs.ready == 'true' && steps.native-build-cache.outputs.cache-hit != 'true' }}
+        uses: actions/cache/save@v4
+        with:
+          path: ${{ env.IOS_DERIVED_DATA }}
+          key: ${{ steps.native-build-cache.outputs.cache-primary-key }}
       - uses: actions/upload-artifact@v4
         if: ${{ success() && inputs.device_ipa }}
         with:
@@ -103,4 +226,6 @@ jobs:
             ios/Podfile.lock
             Gemfile.lock
             ${{ runner.temp }}/ios-application-build.log
+            ${{ runner.temp }}/ios-cache-context.txt
+            ${{ runner.temp }}/ios-cache-sizes.txt
           retention-days: 7

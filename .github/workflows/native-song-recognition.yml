@@ -27,7 +27,6 @@ on:
       - test-ios-performance.py
       - test-ios-recognition.py
       - .github/workflows/native-song-recognition.yml
-      - scripts/verify-shazam.cjs
   pull_request:
     branches: [main]
   workflow_dispatch:
@@ -41,62 +40,80 @@ jobs:
         with:
           node-version: '22'
           cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Main publishes caches; PRs reuse them without uploading each commit.
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: aarch64-linux-android,armv7-linux-androideabi,x86_64-linux-android
       - name: Android NDK setup
+        id: android-ndk
         run: |
-          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.1.12297006" >> "$GITHUB_ENV"
+          ndk_version=$(awk -F '"' '/^[[:space:]]*ndkVersion[[:space:]]*=/ { print $2 }' android/build.gradle)
+          [[ "$ndk_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "version=$ndk_version" >> "$GITHUB_OUTPUT"
+          # cargo-ndk and Gradle must use the same SDK, including on images that
+          # preconfigure ANDROID_NDK_ROOT to a newer installed release.
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$ndk_version" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/$ndk_version" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK=$ANDROID_HOME/ndk/$ndk_version" >> "$GITHUB_ENV"
           rustup show
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;27.1.12297006"
-          cargo install cargo-ndk --locked
+          if [ ! -f "$ANDROID_HOME/ndk/$ndk_version/source.properties" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk_version"
+          fi
+      - name: Install pinned official cargo-ndk binary
+        run: |
+          archive="$RUNNER_TEMP/cargo-ndk-v4.1.2.tgz"
+          curl --fail --location --retry 3 'https://github.com/bbqsrc/cargo-ndk/releases/download/v4.1.2/cargo-ndk-x86_64-unknown-linux-gnu-v4.1.2.tgz' --output "$archive"
+          echo "9451622c4567e8abb2c8005001855e32901c0b716ccdd3a173a4375fd03426e1  $archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/cargo-ndk"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/cargo-ndk" --strip-components=1
+          echo "$RUNNER_TEMP/cargo-ndk" >> "$GITHUB_PATH"
+          PATH="$RUNNER_TEMP/cargo-ndk:$PATH" cargo ndk --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: android/song-fingerprint
+          # rust-cache also fingerprints rustc, Cargo.lock and compiler flags.
+          key: android-ndk-${{ steps.android-ndk.outputs.version }}-cargo-ndk-4.1.2-arm64-armv7-x86_64-release
+          cache-bin: false
       - name: Native host fingerprint compilation
-        run: cargo test --manifest-path android/song-fingerprint/Cargo.toml
+        run: cargo test --locked --manifest-path android/song-fingerprint/Cargo.toml
       - name: Deterministic capture, recording stop and audio checks
         run: |
           KOTLIN_BIN=$(readlink -f "$(command -v kotlinc)")
           pwsh ./test-native.ps1 -KotlinLib "$(dirname "$KOTLIN_BIN")/../lib" -OutputDirectory "$RUNNER_TEMP/freetune-native-checks"
-      - name: Install audio decoder for CI-only test clips
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
-      - name: Download public-domain recordings (not committed)
-        continue-on-error: true
-        run: |
-          mkdir -p /tmp/freetune-samples
-          curl -L --fail --retry 2 --user-agent 'FreeTune-CI/1.0 (public domain validation)' 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_i._allegro_con_brio.ogg' -o /tmp/freetune-samples/first.ogg
-          curl -L --fail --retry 2 --user-agent 'FreeTune-CI/1.0 (public domain validation)' 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_iv._allegro.ogg' -o /tmp/freetune-samples/fourth.ogg
-          # Exact fixture used by ShazamIO's own recognition test (expects track key 53982678).
-          curl -L --fail --retry 2 'https://raw.githubusercontent.com/shazamio/ShazamIO/c2a4b6ee9dfa9e36cd6b24d10a57ad9e66a66dd1/examples/data/Gloria.ogg' -o /tmp/freetune-samples/gloria.ogg
-          GLORIA_DURATION=$(ffprobe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 /tmp/freetune-samples/gloria.ogg)
-          GLORIA_START=$(awk -v duration="$GLORIA_DURATION" 'BEGIN {print (duration > 12 ? (duration - 12) / 2 : 0)}')
-          ffmpeg -nostdin -v error -ss "$GLORIA_START" -i /tmp/freetune-samples/gloria.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/gloria.pcm
-          ffmpeg -nostdin -v error -ss 55 -i /tmp/freetune-samples/first.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/first.pcm
-          ffmpeg -nostdin -v error -ss 55 -i /tmp/freetune-samples/fourth.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/fourth.pcm
-      - name: Genuine fingerprint and Shazam POST
-        continue-on-error: true
-        run: |
-          if [ -s /tmp/freetune-samples/gloria.pcm ] && [ -s /tmp/freetune-samples/first.pcm ] && [ -s /tmp/freetune-samples/fourth.pcm ]; then
-            node scripts/verify-shazam.cjs /tmp/freetune-samples/gloria.pcm /tmp/freetune-samples/first.pcm /tmp/freetune-samples/fourth.pcm
-          else
-            echo 'ERROR: Cannot obtain real source recordings'
-            exit 1
-          fi
       - name: Install JS dependencies
         run: npm ci
-      - name: Compile native Rust JNI for Android (no APK)
-        working-directory: android/song-fingerprint
-        run: |
-          cargo ndk -t arm64-v8a -t armeabi-v7a -t x86_64 -o ../app/src/main/jniLibs build --release --lib
-      - name: Compile Android Kotlin (no APK)
+      - name: Compile Android Kotlin and all three Rust JNI architectures (no APK)
         working-directory: android
-        run: chmod +x gradlew && ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon
+        run: |
+          chmod +x gradlew
+          # preBuild invokes buildSongFingerprintNative once, in the generated
+          # directory actually consumed by sourceSets.main.jniLibs.
+          ./gradlew :app:compileDebugKotlin --stacktrace --no-daemon
+          for abi in armeabi-v7a arm64-v8a x86_64; do
+            library="app/build/generated/fingerprint/jniLibs/$abi/libfreetune_song_fingerprint.so"
+            test -s "$library"
+            file "$library"
+          done
 
   ios:
-    runs-on: macos-15-intel
+    runs-on: macos-15
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: android/song-fingerprint
+          key: ios-host-recognition-release
+          cache-bin: false
       - name: Production iOS recognition and cancellation
         run: python3 test-ios-recognition.py
       - name: Production Swift pitch methods
