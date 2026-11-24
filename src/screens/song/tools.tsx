@@ -236,7 +236,8 @@ export function Sheet({
   visible = true,
   landscapeOnly = false,
   maxWidth = 760,
-  scrollable = true
+  scrollable = true,
+  subtitle
 }: {
   title: string;
   onClose: () => void;
@@ -247,6 +248,7 @@ export function Sheet({
   landscapeOnly?: boolean;
   maxWidth?: number;
   scrollable?: boolean;
+  subtitle?: string;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -301,6 +303,11 @@ export function Sheet({
             <Text accessibilityRole="header" style={styles.sheetTitle}>
               {title}
             </Text>
+            {!!subtitle && (
+              <Text numberOfLines={1} style={styles.sheetSubtitle}>
+                {subtitle}
+              </Text>
+            )}
             <Action compact icon="close" label={t("Close")} onPress={onClose} />
           </View>
           {scrollable ? (
@@ -1896,6 +1903,12 @@ export const styles = StyleSheet.create({
     backgroundColor: palette.glass.control,
     borderBottomWidth: 1,
     borderColor: palette.glass.surfaceEdge
+  },
+  sheetSubtitle: {
+    flex: 2,
+    fontSize: 12,
+    color: palette.glass.muted,
+    marginHorizontal: 16
   },
   sheetTitle: {
     flex: 1,
