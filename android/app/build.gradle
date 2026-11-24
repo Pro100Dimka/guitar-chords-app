@@ -115,7 +115,7 @@ tasks.register("buildSongFingerprintNative", Exec) {
     inputs.property("rustToolchain", providers.environmentVariable("RUSTUP_TOOLCHAIN").orElse("default"))
     outputs.files(architectures.collect { new File(fingerprintOutput.get().asFile, "${it}/libfreetune_song_fingerprint.so") })
     commandLine(["cargo", "ndk"] + architectures.collectMany { ["-t", it] } +
-        ["-o", fingerprintOutput.get().asFile.absolutePath, "build", "--release", "--locked"])
+        ["-o", fingerprintOutput.get().asFile.absolutePath, "build", "--release", "--locked", "--lib"])
 }
 tasks.named("preBuild").configure { dependsOn("buildSongFingerprintNative") }
 

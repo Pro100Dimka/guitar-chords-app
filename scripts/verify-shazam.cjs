@@ -25,6 +25,7 @@ async function recognize(path) {
     "cargo",
     [
       "run",
+      "--locked",
       "--quiet",
       "--manifest-path",
       "android/song-fingerprint/Cargo.toml",

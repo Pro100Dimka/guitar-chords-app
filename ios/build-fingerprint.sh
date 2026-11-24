@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 export PATH="${HOME}/.cargo/bin:${PATH}"
-export CARGO_TARGET_DIR="${BUILD_DIR}/fingerprint"
+export CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-${BUILD_DIR}/fingerprint}"
 libraries=()
 for arch in ${ARCHS}; do
   case "${PLATFORM_NAME}:${arch}" in
@@ -14,4 +14,12 @@ for arch in ${ARCHS}; do
   libraries+=("${CARGO_TARGET_DIR}/${target}/release/libfreetune_song_fingerprint.a")
 done
 mkdir -p "${BUILT_PRODUCTS_DIR}/fingerprint"
-xcrun lipo -create "${libraries[@]}" -output "${BUILT_PRODUCTS_DIR}/fingerprint/libfreetune_song_fingerprint.a"
+fingerprint_output="${BUILT_PRODUCTS_DIR}/fingerprint/libfreetune_song_fingerprint.a"
+fingerprint_temporary=$(mktemp "${BUILT_PRODUCTS_DIR}/fingerprint/.fingerprint.XXXXXX")
+trap 'rm -f "$fingerprint_temporary"' EXIT
+xcrun lipo -create "${libraries[@]}" -output "$fingerprint_temporary"
+# Cargo still checks every source/dependency and target on every invocation.
+# An unchanged archive must not make Xcode relink the entire app on a cache hit.
+if ! cmp -s "$fingerprint_temporary" "$fingerprint_output"; then
+  mv "$fingerprint_temporary" "$fingerprint_output"
+fi

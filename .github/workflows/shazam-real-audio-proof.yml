@@ -11,6 +11,11 @@ on:
   pull_request:
     branches: [main]
   workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: shazam-real-audio-proof-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   proof:
     runs-on: ubuntu-latest
@@ -18,7 +23,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - name: Restore native fingerprint dependencies
+        uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: android/song-fingerprint
+          key: shazam-host
+          cache-bin: false
+      - name: Ensure audio decoder is available
+        run: |
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y -qq ffmpeg
+          fi
       - name: Decode known recognition fixture
         run: |
           curl --fail --location --retry 2 'https://raw.githubusercontent.com/shazamio/ShazamIO/c2a4b6ee9dfa9e36cd6b24d10a57ad9e66a66dd1/examples/data/Gloria.ogg' -o /tmp/gloria.ogg
@@ -27,3 +43,22 @@ jobs:
           ffmpeg -nostdin -v error -ss "$START" -i /tmp/gloria.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/gloria.pcm
       - name: Send genuine native fingerprint to Shazam and assert track
         run: node scripts/verify-shazam.cjs /tmp/gloria.pcm
+      - name: Download additional public-domain recordings (not committed)
+        continue-on-error: true
+        run: |
+          mkdir -p /tmp/freetune-samples
+          curl -L --fail --retry 2 --user-agent 'FreeTune-CI/1.0 (public domain validation)' 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_i._allegro_con_brio.ogg' -o /tmp/freetune-samples/first.ogg
+          curl -L --fail --retry 2 --user-agent 'FreeTune-CI/1.0 (public domain validation)' 'https://commons.wikimedia.org/wiki/Special:Redirect/file/Ludwig_van_Beethoven_-_symphony_no._5_in_c_minor%2C_op._67_-_iv._allegro.ogg' -o /tmp/freetune-samples/fourth.ogg
+          ffmpeg -nostdin -v error -ss 55 -i /tmp/freetune-samples/first.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/first.pcm
+          ffmpeg -nostdin -v error -ss 55 -i /tmp/freetune-samples/fourth.ogg -t 12 -ar 16000 -ac 1 -f s16le /tmp/freetune-samples/fourth.pcm
+      - name: Probe additional public-domain recordings
+        continue-on-error: true
+        run: |
+          # The known positive Gloria fixture already passed the required check.
+          # Keep these exploratory probes optional without sending Gloria twice.
+          if [ -s /tmp/freetune-samples/first.pcm ] && [ -s /tmp/freetune-samples/fourth.pcm ]; then
+            node scripts/verify-shazam.cjs /tmp/freetune-samples/first.pcm /tmp/freetune-samples/fourth.pcm
+          else
+            echo 'ERROR: Cannot obtain real source recordings'
+            exit 1
+          fi
