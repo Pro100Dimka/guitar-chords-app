@@ -254,6 +254,18 @@ if case .success = finish(short, interrupted: true) { fatalError("Empty take was
 precondition(!files.fileExists(atPath: short.url.path) && !files.fileExists(atPath: short.output.path) && !files.fileExists(atPath: short.marker.path))
 print("Production streaming recording passed: real stereo AAC, finite audible samples, stereo room effect, natural tail, interrupted finalization and short-take cleanup.")
 '''
+    # Optimized Swift preconditions trap without retaining their message. Keep
+    # production code optimized, but print the exact regression before exit.
+    swift = swift.replace("precondition(", "recordingCheck(").replace("preconditionFailure(", "recordingCheckFailure(")
+    swift += r'''
+func recordingCheckFailure(_ message: @autoclosure () -> String = "", line: UInt = #line) -> Never {
+    FileHandle.standardError.write(Data("Recording check failed at line \(line): \(message())\n".utf8))
+    exit(1)
+}
+func recordingCheck(_ condition: @autoclosure () -> Bool, _ message: @autoclosure () -> String = "", line: UInt = #line) {
+    if !condition() { recordingCheckFailure(message(), line: line) }
+}
+'''
     with tempfile.TemporaryDirectory(prefix="guitar-recordings-", dir=os.environ.get("TMPDIR")) as directory:
         temporary = Path(directory)
         main_file = temporary / "main.swift"
