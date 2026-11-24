@@ -21,40 +21,69 @@ export function calibratedNote(pitch: number, reference: number): INote | null {
   };
 }
 
+const maxVisualizationSamples = 2048;
+let spectrumPlan:
+  | {
+      length: number;
+      rate: number;
+      window: Float64Array;
+      coefficients: Float64Array;
+      samples: Float64Array;
+    }
+  | undefined;
+
+const cleanSample = (sample: number) =>
+  Number.isFinite(sample) ? Math.max(-1, Math.min(1, sample)) : 0;
+
 export function signalLevels(
   samples: number[],
   rate: number,
   spectrum: boolean
 ) {
   if (!samples.length || !Number.isFinite(rate) || rate <= 0) return [];
-  let peak = 0.02;
-  const clean = samples.map((sample) => {
-    const value = Number.isFinite(sample)
-      ? Math.max(-1, Math.min(1, sample))
-      : 0;
-    peak = Math.max(peak, Math.abs(value));
-    return value;
-  });
+  // Only the latest visual frame is needed. Native pitch detection uses the
+  // original audio; a delayed or oversized event must not block its display.
+  const length = Math.min(samples.length, maxVisualizationSamples);
+  const offset = samples.length - length;
   if (!spectrum) {
+    let peak = 0.02;
+    for (let i = offset; i < samples.length; i++)
+      peak = Math.max(peak, Math.abs(cleanSample(samples[i])));
     return Array.from({ length: 128 }, (_, i) =>
       Math.max(
         -1,
-        Math.min(1, clean[Math.floor((i * clean.length) / 128)] / peak)
+        Math.min(
+          1,
+          cleanSample(samples[offset + Math.floor((i * length) / 128)]) / peak
+        )
       )
     );
   }
-  if (clean.length === 1) return Array(32).fill(0) as number[];
-  const windowed = clean.map(
-    (sample, i) =>
-      sample * (0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (samples.length - 1)))
-  );
+  if (length === 1) return Array(32).fill(0) as number[];
+  if (spectrumPlan?.length !== length || spectrumPlan.rate !== rate) {
+    spectrumPlan = {
+      length,
+      rate,
+      window: Float64Array.from(
+        { length },
+        (_, i) => 0.5 - 0.5 * Math.cos((2 * Math.PI * i) / (length - 1))
+      ),
+      coefficients: Float64Array.from({ length: 32 }, (_, i) => {
+        const frequency = 55 * (Math.min(5000, rate * 0.45) / 55) ** (i / 31);
+        return 2 * Math.cos((2 * Math.PI * frequency) / rate);
+      }),
+      samples: new Float64Array(length)
+    };
+  }
+  const plan = spectrumPlan;
+  for (let i = 0; i < length; i++)
+    plan.samples[i] = cleanSample(samples[offset + i]) * plan.window[i];
   return Array.from({ length: 32 }, (_, i) => {
-    const frequency = 55 * (Math.min(5000, rate * 0.45) / 55) ** (i / 31);
-    const coefficient = 2 * Math.cos((2 * Math.PI * frequency) / rate);
+    const coefficient = plan.coefficients[i];
     let previous = 0;
     let before = 0;
-    for (const sample of windowed) {
-      const next = sample + coefficient * previous - before;
+    for (let j = 0; j < length; j++) {
+      const next = plan.samples[j] + coefficient * previous - before;
       before = previous;
       previous = next;
     }
@@ -62,7 +91,7 @@ export function signalLevels(
       0,
       previous ** 2 + before ** 2 - coefficient * previous * before
     );
-    const amplitude = (4 * Math.sqrt(power)) / samples.length;
+    const amplitude = (4 * Math.sqrt(power)) / length;
     return Math.max(
       0,
       Math.min(1, (20 * Math.log10(Math.max(0.00001, amplitude)) + 70) / 70)

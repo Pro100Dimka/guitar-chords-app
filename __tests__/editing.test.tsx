@@ -2007,3 +2007,92 @@ test.each([false, true])(
     ).toHaveLength(0);
   }
 );
+
+test("a closed fingering sheet does not prepare an audio bank or mount a WebView", async () => {
+  jest.useFakeTimers();
+  const previous = AppState.currentState;
+  AppState.currentState = "active";
+  jest.replaceProperty(performanceAudio, "preparedFingeringSupported", true);
+  const bank = jest.spyOn(acousticPlayer, "acousticBank");
+  const onChange = jest.fn();
+  const onClose = jest.fn();
+  try {
+    await act(async () => {
+      screen = Renderer.create(
+        <ChordSheet chord="Am" visible={false} onChange={onChange} onClose={onClose} />
+      );
+    });
+    await act(async () => jest.advanceTimersByTime(100));
+    expect(bank).not.toHaveBeenCalled();
+    expect(performanceAudio.prepareFingering).not.toHaveBeenCalled();
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
+    await act(async () =>
+      screen!.update(
+        <ChordSheet chord="Am" onChange={onChange} onClose={onClose} />
+      )
+    );
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(1);
+    await act(async () =>
+      screen!.update(
+        <ChordSheet chord="Am" visible={false} onChange={onChange} onClose={onClose} />
+      )
+    );
+    await act(async () => jest.advanceTimersByTime(100));
+    expect(bank).not.toHaveBeenCalled();
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
+  } finally {
+    AppState.currentState = previous;
+  }
+});
+
+test("backgrounded rhythm controls defer bank preparation until the app is active", async () => {
+  jest.useFakeTimers();
+  const previous = AppState.currentState;
+  AppState.currentState = "background";
+  const bank = jest.spyOn(acousticPlayer, "acousticBank");
+  try {
+    await act(async () => {
+      screen = Renderer.create(
+        <ChordSheet chord="Am" onChange={() => {}} onClose={() => {}} />
+      );
+    });
+    await act(async () => jest.advanceTimersByTime(100));
+    expect(bank).not.toHaveBeenCalled();
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
+    await act(async () => {
+      AppState.currentState = "active";
+      jest.mocked(AppState.addEventListener).mock.calls.forEach(([, listener]) =>
+        listener("active")
+      );
+    });
+    await act(async () => jest.advanceTimersByTime(32));
+    expect(bank).toHaveBeenCalledTimes(1);
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(1);
+  } finally {
+    AppState.currentState = previous;
+  }
+});
+
+test("a large recording library mounts a bounded visible list and retains all takes", async () => {
+  const takes = Array.from({ length: 500 }, (_, index) => ({
+    path: `/performances/song-1-${index}.m4a`,
+    date: index,
+    bytes: 1000
+  }));
+  jest.mocked(performanceAudio.list).mockResolvedValue(takes);
+  await act(async () => {
+    screen = Renderer.create(
+      <SongRecorder songId={1} active open browseOnly onStart={() => {}} />
+    );
+  });
+  const list = screen!.root.findByType(FlatList);
+  expect(list.props.data).toEqual(takes);
+  const visible = screen!.root
+    .findAllByType(Action)
+    .filter((node) => node.props.accessibilityLabel === "ListenTake");
+  expect(visible.length).toBeGreaterThan(0);
+  expect(visible.length).toBeLessThanOrEqual(12);
+  expect(
+    screen!.root.findByType(require("../src/screens/song/tools").Sheet).props.scrollable
+  ).toBe(false);
+});

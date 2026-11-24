@@ -166,7 +166,8 @@ export function Sheet({
   compact = false,
   visible = true,
   landscapeOnly = false,
-  maxWidth = 760
+  maxWidth = 760,
+  scrollable = true
 }: {
   title: string;
   onClose: () => void;
@@ -176,6 +177,7 @@ export function Sheet({
   visible?: boolean;
   landscapeOnly?: boolean;
   maxWidth?: number;
+  scrollable?: boolean;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -232,14 +234,20 @@ export function Sheet({
             </Text>
             <Action compact icon="close" label={t("Close")} onPress={onClose} />
           </View>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            style={compact ? styles.compactScroll : styles.musicScroll}
-            contentContainerStyle={styles.sheetContent}
-          >
-            {children}
-          </ScrollView>
+          {scrollable ? (
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              style={compact ? styles.compactScroll : styles.musicScroll}
+              contentContainerStyle={styles.sheetContent}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={compact ? styles.compactScroll : styles.musicScroll}>
+              {children}
+            </View>
+          )}
         </SafeAreaView>
       </KeyboardAvoidingView>
     </Modal>
@@ -376,6 +384,8 @@ export function ChordSheet({
   const preparedPreviews = useRef(new Map<string, string>());
   const pendingPreview = useRef<string | null>(null);
   const previewOwner = useRef(true);
+  const previewVisible = useRef(opened);
+  previewVisible.current = opened;
   useEffect(() => {
     previewOwner.current = true;
     const subscription = AppState.addEventListener("change", (state) => {
@@ -392,7 +402,7 @@ export function ChordSheet({
     };
   }, []);
   const playWhenReady = useCallback((key: string, prepared: boolean) => {
-    if (!prepared || !previewOwner.current) return;
+    if (!prepared || !previewOwner.current || !previewVisible.current) return;
     if (!preparedPreviews.current.has(key))
       preparedPreviews.current.set(key, "");
     if (pendingPreview.current === key) {
@@ -403,15 +413,23 @@ export function ChordSheet({
   useEffect(() => {
     preparedPreviews.current.clear();
     pendingPreview.current = null;
-    if (!nativePreview) return;
+    if (!opened || !nativePreview) return;
+    let canceled = false;
     const keys: string[] = JSON.parse(previewKeysKey);
     keys.forEach((key) => {
       void performanceAudio
         .prepareFingering(key, "")
-        .then((prepared) => playWhenReady(key, prepared))
-        .catch(() => preparedPreviews.current.delete(key));
+        .then((prepared) => {
+          if (!canceled) playWhenReady(key, prepared);
+        })
+        .catch(() => {
+          if (!canceled) preparedPreviews.current.delete(key);
+        });
     });
-  }, [previewKeysKey, nativePreview, playWhenReady]);
+    return () => {
+      canceled = true;
+    };
+  }, [previewKeysKey, nativePreview, opened, playWhenReady]);
   useEffect(() => {
     if (!opened) {
       pendingPreview.current = null;
@@ -434,36 +452,38 @@ export function ChordSheet({
   }, [chord, opened, selectedPage]);
   return (
     <>
-      <RhythmPlayer
-        autoplay
-        autoStart={
-          !nativePreview &&
-          opened &&
-          previousChord.current === chord &&
-          audition.request > 0 &&
-          visible.some((option) => option.index === audition.index)
-        }
-        stroke={audition.request}
-        chords={[chord]}
-        capo={capo}
-        fingerings={visible.map((option) => option.frets)}
-        previewKeys={nativePreview ? previewKeys : undefined}
-        onPreviewReady={(key, wave) => {
-          if (!previewKeys.includes(key)) return;
-          preparedPreviews.current.set(key, wave);
-          void performanceAudio
-            .prepareFingering(key, wave)
-            .then((prepared) => playWhenReady(key, prepared))
-            .catch(() => preparedPreviews.current.delete(key));
-        }}
-        activeFingering={Math.max(
-          0,
-          visible.findIndex((option) => option.index === audition.index)
-        )}
-        pattern="D-------"
-        meter={4}
-        tempo={68}
-      />
+      {opened && (
+        <RhythmPlayer
+          autoplay
+          autoStart={
+            !nativePreview &&
+            opened &&
+            previousChord.current === chord &&
+            audition.request > 0 &&
+            visible.some((option) => option.index === audition.index)
+          }
+          stroke={audition.request}
+          chords={[chord]}
+          capo={capo}
+          fingerings={visible.map((option) => option.frets)}
+          previewKeys={nativePreview ? previewKeys : undefined}
+          onPreviewReady={(key, wave) => {
+            if (!previewVisible.current || !previewKeys.includes(key)) return;
+            preparedPreviews.current.set(key, wave);
+            void performanceAudio
+              .prepareFingering(key, wave)
+              .then((prepared) => playWhenReady(key, prepared))
+              .catch(() => preparedPreviews.current.delete(key));
+          }}
+          activeFingering={Math.max(
+            0,
+            visible.findIndex((option) => option.index === audition.index)
+          )}
+          pattern="D-------"
+          meter={4}
+          tempo={68}
+        />
+      )}
       <Sheet
         title={chord}
         onClose={() => {
@@ -933,9 +953,10 @@ function RhythmPlayer({
   const web = useRef<WebView>(null);
   const ready = useRef(false);
   useEffect(() => {
+    if (!active) return;
     const frame = requestAnimationFrame(() => setCanPrepare(true));
     return () => cancelAnimationFrame(frame);
-  }, []);
+  }, [active]);
   useEffect(() => {
     const listener = AppState.addEventListener("change", (state) =>
       setActive(state === "active")
