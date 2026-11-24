@@ -18,6 +18,10 @@ import com.facebook.react.common.LifecycleState
 import com.facebook.react.modules.core.DeviceEventManagerModule
 import java.io.File
 import java.util.concurrent.Executors
+import java.util.concurrent.ThreadPoolExecutor
+import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.ConcurrentHashMap
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -33,10 +37,12 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     private val guitarStrings = mutableMapOf<Int, AudioTrack>()
     private val guitarPcm = linkedMapOf<String, ByteArray>()
     private val preparedGuitars = linkedMapOf<String, AudioTrack>()
+    private val preparingGuitars = mutableSetOf<String>()
     private var take: File? = null
     private var lastTake: String? = null
     private val processing = ConcurrentHashMap.newKeySet<String>()
     private val worker = Executors.newSingleThreadExecutor()
+    private val samplerWorker = ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, ArrayBlockingQueue(32))
     private var instrumentPlaybackActive = context.lifecycleState == LifecycleState.RESUMED
     private var invalidated = false
     private val directory get() = File(context.filesDir, "performances").apply { mkdirs() }
@@ -334,8 +340,44 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         playPreparedGuitar(key)
     }
     @ReactMethod @Synchronized fun prepareFingering(key: String, wave: String, promise: Promise) {
-        if (wave.isNotEmpty() || guitarPcm.containsKey(key)) prepareGuitar(key, wave)
-        promise.resolve(preparedGuitars.containsKey(key))
+        if (invalidated || key.length > 256 || wave.length > 8_000_000) { promise.resolve(false); return }
+        if (preparedGuitars.containsKey(key)) {
+            guitarPcm.remove(key)?.let { guitarPcm[key] = it }
+            promise.resolve(true); return
+        }
+        if (wave.isEmpty() && !guitarPcm.containsKey(key)) { promise.resolve(false); return }
+        try { samplerWorker.execute {
+            var prepared: AudioTrack? = null
+            var ready = false
+            try {
+                val bytes = synchronized(this) {
+                    if (invalidated) { promise.resolve(false); return@execute }
+                    if (preparedGuitars.containsKey(key)) { promise.resolve(true); return@execute }
+                    guitarPcm[key]
+                } ?: android.util.Base64.decode(wave, android.util.Base64.DEFAULT)
+                require(bytes.size > 44)
+                prepared = guitarTrack(bytes)
+                synchronized(this) {
+                    if (!invalidated) {
+                        guitarPcm.remove(key); guitarPcm[key] = bytes
+                        if (!preparedGuitars.containsKey(key)) {
+                            preparedGuitars[key] = prepared!!
+                            prepared = null
+                        }
+                        while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
+                        while (guitarPcm.size > 32 || guitarPcm.values.sumOf { it.size.toLong() } > 32L * 1024 * 1024) {
+                            val oldest = guitarPcm.keys.first()
+                            guitarPcm.remove(oldest)
+                            preparedGuitars.remove(oldest)?.release()
+                        }
+                        ready = preparedGuitars.containsKey(key)
+                    }
+                }
+            } catch (_: Exception) {
+                // Failed/invalidated preparation never publishes a partial voice.
+            } finally { prepared?.release() }
+            promise.resolve(ready)
+        } } catch (_: RejectedExecutionException) { promise.resolve(false) }
     }
     @ReactMethod @Synchronized fun playGuitarString(key: String, index: Int) {
         if (!instrumentPlaybackActive || recorder != null || index !in 0..5) return
@@ -347,14 +389,28 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             guitarStrings[index] = voice
             voice.play()
         } catch (_: Exception) { guitarStrings.remove(index); voice.release(); return }
-        worker.execute {
-            synchronized(this@PerformanceAudio) {
-                if (guitarPcm.containsKey(key) && !preparedGuitars.containsKey(key)) runCatching {
-                    preparedGuitars[key] = guitarTrack(bytes)
-                    while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
+        replenishGuitar(key, bytes)
+    }
+    @Synchronized private fun replenishGuitar(key: String, bytes: ByteArray) {
+        if (invalidated || !preparingGuitars.add(key)) return
+        try { samplerWorker.execute {
+            val needed = synchronized(this) {
+                !invalidated && guitarPcm[key] === bytes && !preparedGuitars.containsKey(key)
+            }
+            // AudioTrack allocation and its PCM write can block. Never hold the
+            // module/lifecycle lock while creating a replacement voice.
+            val prepared = if (needed) runCatching { guitarTrack(bytes) }.getOrNull() else null
+            synchronized(this) {
+                preparingGuitars.remove(key)
+                if (prepared != null) {
+                    if (invalidated || guitarPcm[key] !== bytes || preparedGuitars.containsKey(key)) prepared.release()
+                    else {
+                        preparedGuitars[key] = prepared
+                        while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
+                    }
                 }
             }
-        }
+        } } catch (_: RejectedExecutionException) { preparingGuitars.remove(key) }
     }
     @ReactMethod @Synchronized fun stopGuitarString(index: Int) {
         fadeGuitar(guitarStrings.remove(index), 0.22f)
@@ -389,10 +445,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             guitar = prepared
             prepared.play()
         } catch (_: Exception) { guitar?.release(); guitar = null; return }
-        runCatching {
-            preparedGuitars[key] = guitarTrack(bytes)
-            while (preparedGuitars.size > 8) preparedGuitars.remove(preparedGuitars.keys.first())?.release()
-        }
+        replenishGuitar(key, bytes)
     }
     @Synchronized override fun onHostResume() { instrumentPlaybackActive = !invalidated && context.lifecycleState == LifecycleState.RESUMED }
     @Synchronized override fun onHostPause() {
@@ -402,10 +455,10 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     }
     @Synchronized private fun clearGuitars() {
         preparedGuitars.values.forEach { it.release() }
-        preparedGuitars.clear(); guitarPcm.clear()
+        preparedGuitars.clear(); guitarPcm.clear(); preparingGuitars.clear()
     }
     @Synchronized override fun onHostDestroy() { instrumentPlaybackActive = false; finishTake(); stopPlayback() }
-    @Synchronized override fun invalidate() { invalidated = true; instrumentPlaybackActive = false; finishTake(); stopPlayback(); clearGuitars(); worker.shutdown(); context.removeLifecycleEventListener(this); super.invalidate() }
+    @Synchronized override fun invalidate() { invalidated = true; instrumentPlaybackActive = false; finishTake(); stopPlayback(); clearGuitars(); worker.shutdown(); samplerWorker.shutdown(); context.removeLifecycleEventListener(this); super.invalidate() }
     @ReactMethod fun addListener(name: String) {}
     @ReactMethod fun removeListeners(count: Int) {}
 }

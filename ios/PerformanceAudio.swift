@@ -358,7 +358,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         }
     }
     @objc func prepareGuitar(_ key: String, wave: String) {
-        guard key.count <= 256, wave.count <= 8000000 else { return }
+        guard key.count <= 256, wave.utf8.count <= 8000000 else { return }
         if let player = preparedStrings[key] {
             cacheGuitar(key, player: player, alternate: preparedAlternates[key], bytes: preparedSizes[key] ?? 0)
             return
@@ -367,7 +367,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         cacheGuitar(key, player: audio, bytes: data.count)
     }
     @objc func prepareFingering(_ key: String, wave: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
-        guard key.count <= 256, wave.count <= 8000000 else { resolve(false); return }
+        guard key.count <= 256, wave.utf8.count <= 8000000 else { resolve(false); return }
         if let player = preparedStrings[key], let alternate = preparedAlternates[key] {
             cacheGuitar(key, player: player, alternate: alternate, bytes: preparedSizes[key] ?? 0)
             resolve(true); return
@@ -451,7 +451,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
     }
     @objc func playGuitar(_ wave: String) {
         let key = "inline-preview"
-        guard wave.count <= 8000000 else { return }
+        guard wave.utf8.count <= 8000000 else { return }
         preparedStrings.removeValue(forKey: key)
         preparedAlternates.removeValue(forKey: key)
         preparedSizes.removeValue(forKey: key)

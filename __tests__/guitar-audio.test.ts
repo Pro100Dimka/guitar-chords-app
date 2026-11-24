@@ -158,3 +158,146 @@ test.each(
     for (const value of cents) expect(Math.abs(value)).toBeLessThanOrEqual(5);
   }
 );
+
+describe("responsive cold guitar preparation", () => {
+  beforeEach(() => {
+    jest.useFakeTimers();
+    jest.mocked(performanceAudio.prepareGuitar).mockClear();
+    jest.mocked(performanceAudio.guitar).mockClear();
+  });
+  afterEach(() => {
+    jest.restoreAllMocks();
+    jest.useRealTimers();
+  });
+
+  test("a cold preview yields before decoding and cancellation prevents delayed audio", async () => {
+    const controller = new AbortController();
+    const pending = playGuitar([41], 439, controller.signal);
+    expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+    expect(performanceAudio.guitar).not.toHaveBeenCalled();
+    controller.abort();
+    await jest.runAllTimersAsync();
+    await pending;
+    expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+    expect(performanceAudio.guitar).not.toHaveBeenCalled();
+
+    const retry = playGuitar([41], 439);
+    expect(performanceAudio.guitar).not.toHaveBeenCalled();
+    await jest.runAllTimersAsync();
+    await retry;
+    expect(performanceAudio.prepareGuitar).toHaveBeenCalledTimes(1);
+    expect(performanceAudio.guitar).toHaveBeenCalledWith(
+      jest.mocked(performanceAudio.prepareGuitar).mock.calls[0][1],
+      "439:41"
+    );
+  });
+
+  test("concurrent warmers share synthesis while retaining independent cancellation", async () => {
+    const first = new AbortController();
+    const second = new AbortController();
+    const a = warmGuitar([46], 433, first.signal, 1);
+    const b = warmGuitar([46], 433, second.signal, 1);
+    first.abort();
+    await jest.runAllTimersAsync();
+    expect(await a).toBeUndefined();
+    expect(await b).toEqual(expect.any(String));
+    expect(performanceAudio.prepareGuitar).toHaveBeenCalledTimes(1);
+    expect(performanceAudio.prepareGuitar).toHaveBeenCalledWith(
+      "433:46:string1",
+      await b
+    );
+  });
+
+  test("unfinished decoding yields again when the work budget is consumed", async () => {
+    let clock = 0;
+    jest.spyOn(performance, "now").mockImplementation(() => (clock += 5));
+    const controller = new AbortController();
+    const pending = warmGuitar([47], 436, controller.signal, 2);
+    await jest.advanceTimersByTimeAsync(0);
+    expect(jest.getTimerCount()).toBeGreaterThan(0);
+    expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+    controller.abort();
+    await jest.runAllTimersAsync();
+    await pending;
+    expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+  });
+});
+
+describe("awaited native guitar preparation", () => {
+  beforeEach(() => {
+    performanceAudio.preparedFingeringSupported = true;
+    jest.mocked(performanceAudio.prepareFingering).mockReset();
+    jest.mocked(performanceAudio.prepareGuitar).mockClear();
+    jest.mocked(performanceAudio.guitar).mockClear();
+  });
+  afterEach(() => {
+    performanceAudio.preparedFingeringSupported = false;
+    jest.mocked(performanceAudio.prepareFingering).mockResolvedValue(true);
+    jest.useRealTimers();
+  });
+
+  test("cached taps probe the native key without re-sending PCM or decoding on the main queue", async () => {
+    prepareGuitar([40]);
+    jest.mocked(performanceAudio.prepareGuitar).mockClear();
+    jest.mocked(performanceAudio.prepareFingering).mockResolvedValue(true);
+    await playGuitar([40]);
+    expect(performanceAudio.prepareFingering).toHaveBeenCalledTimes(1);
+    expect(performanceAudio.prepareFingering).toHaveBeenCalledWith("440:40", "");
+    expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+    expect(performanceAudio.guitar).toHaveBeenCalledWith(
+      expect.any(String),
+      "440:40"
+    );
+  });
+
+  test("an evicted native voice is restored before playback and cancelled restores stay silent", async () => {
+    const wave = prepareGuitar([45]);
+    jest.mocked(performanceAudio.prepareGuitar).mockClear();
+    let finish!: (ready: boolean) => void;
+    jest.mocked(performanceAudio.prepareFingering)
+      .mockResolvedValueOnce(false)
+      .mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    const controller = new AbortController();
+    const pending = playGuitar([45], 440, controller.signal);
+    await Promise.resolve();
+    expect(performanceAudio.prepareFingering).toHaveBeenLastCalledWith("440:45", wave);
+    expect(performanceAudio.guitar).not.toHaveBeenCalled();
+    controller.abort();
+    finish(true);
+    await pending;
+    expect(performanceAudio.guitar).not.toHaveBeenCalled();
+
+    jest.mocked(performanceAudio.prepareFingering)
+      .mockResolvedValueOnce(false)
+      .mockResolvedValueOnce(true);
+    await playGuitar([45]);
+    expect(performanceAudio.guitar).toHaveBeenCalledTimes(1);
+    expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+  });
+
+  test("warmup waits for the native worker before reporting a string as ready", async () => {
+    jest.useFakeTimers();
+    let finish!: (ready: boolean) => void;
+    jest.mocked(performanceAudio.prepareFingering)
+      .mockResolvedValueOnce(false)
+      .mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    let ready = false;
+    const pending = warmGuitar([53], 444, new AbortController().signal, 3).then((wave) => {
+      ready = true;
+      return wave;
+    });
+    await jest.runAllTimersAsync();
+    expect(ready).toBe(false);
+    expect(performanceAudio.prepareGuitar).not.toHaveBeenCalled();
+    finish(true);
+    expect(await pending).toEqual(expect.any(String));
+    expect(ready).toBe(true);
+  });
+
+  test("a refused native preparation does not play a missing voice or reject a fire-and-forget preview", async () => {
+    prepareGuitar([50]);
+    jest.mocked(performanceAudio.prepareFingering).mockResolvedValue(false);
+    await expect(playGuitar([50])).resolves.toBeUndefined();
+    expect(performanceAudio.guitar).not.toHaveBeenCalled();
+  });
+});

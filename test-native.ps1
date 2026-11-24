@@ -48,8 +48,8 @@ try {
         return $Source.Substring($begin, $end - $begin).Replace('@ReactMethod ', '')
     }
     $instrumentProbe = Join-Path $OutputDirectory 'InstrumentPlaybackProbe.kt'
-    $instrumentMethods = @('onHostResume', 'onHostPause', 'onHostDestroy', 'invalidate', 'clearGuitars', 'stopPlayback', 'playMetronomeBeat', 'stopMetronomeBeats', 'playGuitarString', 'stopGuitarString') | ForEach-Object { Get-InstrumentMethod $recorder $_ }
-    Set-Content -LiteralPath $instrumentProbe -Encoding utf8 -Value ("import java.nio.ByteBuffer`nimport java.nio.ByteOrder`nimport InstrumentTrack as AudioTrack`nclass PerformanceAudio(context: InstrumentContext) : InstrumentModule(context) {`n" + ($instrumentMethods -join "`n") + "`n}")
+    $instrumentMethods = @('onHostResume', 'onHostPause', 'onHostDestroy', 'invalidate', 'clearGuitars', 'stopPlayback', 'playMetronomeBeat', 'stopMetronomeBeats', 'playGuitarString', 'stopGuitarString', 'playPreparedGuitar', 'replenishGuitar', 'prepareFingering') | ForEach-Object { Get-InstrumentMethod $recorder $_ }
+    Set-Content -LiteralPath $instrumentProbe -Encoding utf8 -Value ("import java.nio.ByteBuffer`nimport java.nio.ByteOrder`nimport com.facebook.react.bridge.Promise`nimport java.util.concurrent.RejectedExecutionException`nimport InstrumentTrack as AudioTrack`nclass PerformanceAudio(context: InstrumentContext) : InstrumentModule(context) {`n" + ($instrumentMethods -join "`n") + "`n}")
     $recognition = Get-Content -LiteralPath "$PSScriptRoot/android/app/src/main/java/com/freetune/SongRecognitionModule.kt" -Raw
     $sessionStart = $recognition.IndexOf('internal class RecognitionSession')
     if ($sessionStart -lt 0) { throw 'Recognition session class not found' }
