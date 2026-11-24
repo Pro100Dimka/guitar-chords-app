@@ -16,6 +16,7 @@ import {
 import { Dirs, FileSystem } from "react-native-file-access";
 import ImageResizer from "@bam.tech/react-native-image-resizer";
 import { toByteArray } from "base64-js";
+import { cooperativeWork } from "./cooperative-work";
 import { db } from "./database";
 import { getAllItems } from "./database/crud";
 import {
@@ -58,6 +59,18 @@ function fileRead(signal?: AbortSignal) {
         }),
         interrupted
       ]);
+    },
+    async pause(): Promise<void> {
+      let pending: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await this.wait(
+          new Promise<void>((resolve) => {
+            pending = setTimeout(resolve, 0);
+          })
+        );
+      } finally {
+        if (pending !== undefined) clearTimeout(pending);
+      }
     },
     start() {
       timer = setTimeout(() => stop(new Error("FileReadError")), 30000);
@@ -170,6 +183,47 @@ export async function readRemoteSongCover(url: string, signal: AbortSignal) {
   }
 }
 
+async function validateFileEncoding(
+  encoded: string,
+  read: ReturnType<typeof fileRead>
+) {
+  if (encoded.length > Math.ceil(maxBytes / 3) * 4)
+    throw new Error("FileTooLarge");
+  let length = 0;
+  let remaining = 0;
+  let min = 0x80;
+  let max = 0xbf;
+  // A chunk ends on a base64 quartet, but may split a UTF-8 code point.
+  for (let start = 0; start < encoded.length; start += 65536) {
+    if (start) await read.pause();
+    const bytes = toByteArray(encoded.slice(start, start + 65536));
+    length += bytes.length;
+    if (length > maxBytes) throw new Error("FileTooLarge");
+    for (const byte of bytes) {
+      if (remaining) {
+        if (byte < min || byte > max) throw new Error("FileEncodingError");
+        remaining--;
+        min = 0x80;
+        max = 0xbf;
+        continue;
+      }
+      if (byte < 0x80) continue;
+      remaining =
+        byte >= 0xc2 && byte <= 0xdf
+          ? 1
+          : byte >= 0xe0 && byte <= 0xef
+            ? 2
+            : byte >= 0xf0 && byte <= 0xf4
+              ? 3
+              : 0;
+      if (!remaining) throw new Error("FileEncodingError");
+      min = byte === 0xe0 ? 0xa0 : byte === 0xf0 ? 0x90 : 0x80;
+      max = byte === 0xed ? 0x9f : byte === 0xf4 ? 0x8f : 0xbf;
+    }
+  }
+  if (remaining) throw new Error("FileEncodingError");
+}
+
 export async function readLibraryFile(
   kind: "song" | "backup",
   signal?: AbortSignal
@@ -211,40 +265,10 @@ export async function readLibraryFile(
     localUri = copy.localUri;
     const stat = await read.wait(FileSystem.stat(localUri));
     if (stat.size > maxBytes) throw new Error("FileTooLarge");
-    const bytes = toByteArray(
-      await read.wait(FileSystem.readFile(localUri, "base64"))
+    await validateFileEncoding(
+      await read.wait(FileSystem.readFile(localUri, "base64")),
+      read
     );
-    if (bytes.length > maxBytes) throw new Error("FileTooLarge");
-    for (let i = 0; i < bytes.length; ) {
-      const lead = bytes[i++];
-      if (lead < 0x80) continue;
-      const count =
-        lead >= 0xc2 && lead <= 0xdf
-          ? 1
-          : lead >= 0xe0 && lead <= 0xef
-            ? 2
-            : lead >= 0xf0 && lead <= 0xf4
-              ? 3
-              : 0;
-      if (!count || i + count > bytes.length)
-        throw new Error("FileEncodingError");
-      for (let offset = 0; offset < count; offset++) {
-        const byte = bytes[i++];
-        const min =
-          offset === 0 && lead === 0xe0
-            ? 0xa0
-            : offset === 0 && lead === 0xf0
-              ? 0x90
-              : 0x80;
-        const max =
-          offset === 0 && lead === 0xed
-            ? 0x9f
-            : offset === 0 && lead === 0xf4
-              ? 0x8f
-              : 0xbf;
-        if (byte < min || byte > max) throw new Error("FileEncodingError");
-      }
-    }
     const text = (await read.wait(FileSystem.readFile(localUri, "utf8")))
       .replace(/^\uFEFF/, "")
       .replace(/\r\n?/g, "\n");
@@ -352,34 +376,69 @@ export function parseLibraryBackup(text: string): BackupSong[] {
     data.songs.length > 2000
   )
     throw new Error("BackupInvalid");
-  return data.songs.map((song: unknown) => {
-    if (!record(song)) throw new Error("BackupInvalid");
-    const strings: Record<string, string> = {};
-    for (const [key, limit] of Object.entries(songFieldLimits)) {
-      const value = song[key];
-      if (
-        typeof value !== "string" ||
-        value.length > (data.version === 1 ? maxBytes : limit)
-      )
-        throw new Error("BackupInvalid");
-      strings[key] = value;
-    }
+  const version = data.version;
+  return data.songs.map((song: unknown) => backupSong(song, version));
+}
+
+function backupSong(
+  song: unknown,
+  version: number,
+  preferences?: SongPreferences
+): BackupSong {
+  if (!record(song)) throw new Error("BackupInvalid");
+  const strings: Record<string, string> = {};
+  for (const [key, limit] of Object.entries(songFieldLimits)) {
+    const value = song[key];
     if (
-      Object.values(strings).reduce((size, value) => size + value.length, 0) >
-      400000
+      typeof value !== "string" ||
+      value.length > (version === 1 ? maxBytes : limit)
     )
       throw new Error("BackupInvalid");
-    if (!strings.title.trim() || !strings.content.trim())
-      throw new Error("BackupInvalid");
-    return {
-      title: strings.title,
-      content: strings.content,
-      band_name: strings.band_name,
-      youtube_music: strings.youtube_music,
-      youtobe_lesson: strings.youtobe_lesson,
-      preferences: backupPreferences(song.preferences)
-    };
-  });
+    strings[key] = value;
+  }
+  if (
+    Object.values(strings).reduce((size, value) => size + value.length, 0) >
+    400000
+  )
+    throw new Error("BackupInvalid");
+  if (!strings.title.trim() || !strings.content.trim())
+    throw new Error("BackupInvalid");
+  return {
+    title: strings.title,
+    content: strings.content,
+    band_name: strings.band_name,
+    youtube_music: strings.youtube_music,
+    youtobe_lesson: strings.youtobe_lesson,
+    preferences: preferences ?? backupPreferences(song.preferences)
+  };
+}
+
+async function utf8Length(
+  text: string,
+  checkpoint: ReturnType<typeof cooperativeWork>
+) {
+  let bytes = 0;
+  let nextCheck = 16384;
+  for (let index = 0; index < text.length; index++) {
+    const code = text.charCodeAt(index);
+    if (code < 0x80) bytes++;
+    else if (code < 0x800) bytes += 2;
+    else if (
+      code >= 0xd800 &&
+      code <= 0xdbff &&
+      text.charCodeAt(index + 1) >= 0xdc00 &&
+      text.charCodeAt(index + 1) <= 0xdfff
+    ) {
+      bytes += 4;
+      index++;
+    } else bytes += 3;
+    if (index >= nextCheck) {
+      nextCheck = index + 16384;
+      const pause = checkpoint();
+      if (pause) await pause;
+    }
+  }
+  return bytes;
 }
 
 export async function exportLibrary() {
@@ -389,19 +448,38 @@ export async function exportLibrary() {
       "songs.id, songs.title, songs.content, songs.youtube_music, songs.youtobe_lesson, COALESCE(bands.name, '') AS band_name",
     joins: ["LEFT JOIN bands ON songs.band_id = bands.id"]
   });
+  const checkpoint = cooperativeWork();
+  const normalized = new Map<SongPreferences | undefined, SongPreferences>();
+  const normalize = (value: SongPreferences | undefined) => {
+    let saved = normalized.get(value);
+    if (!saved) {
+      saved = backupPreferences(value);
+      normalized.set(value, saved);
+    }
+    return saved;
+  };
+  for (const song of songs) {
+    normalize(usePreferences.getState().songs[song.id]);
+    const pause = checkpoint();
+    if (pause) await pause;
+  }
+  // Capture the export snapshot after yielding. A preference edited during
+  // preparation must not be overwritten with the earlier validation snapshot.
   const state = usePreferences.getState();
-  for (const song of songs) backupPreferences(state.songs[song.id]);
-  const identities = Object.fromEntries(
-    songs
-      .filter((song) => !state.songs[song.id]?.backupId)
-      .map((song) => [
-        song.id,
-        {
-          ...backupPreferences(state.songs[song.id]),
-          backupId: `${Date.now().toString(36)}-${song.id}-${Math.random().toString(36).slice(2)}`
-        }
-      ])
-  );
+  const identities: Record<string, SongPreferences> = {};
+  const exported: Record<string, SongPreferences> = {};
+  for (const song of songs) {
+    const preferences = normalize(state.songs[song.id]);
+    exported[song.id] = preferences;
+    if (!state.songs[song.id]?.backupId) {
+      const identified = {
+        ...preferences,
+        backupId: `${Date.now().toString(36)}-${song.id}-${Math.random().toString(36).slice(2)}`
+      };
+      identities[song.id] = identified;
+      exported[song.id] = identified;
+    }
+  }
   const preferences = { ...state.songs, ...identities };
   if (Object.keys(identities).length) {
     const resume = suspendPreferenceSaving();
@@ -445,18 +523,16 @@ export async function exportLibrary() {
   const parts: BackupSong[][] = [[]];
   let bytes = overhead;
   for (const song of songs) {
-    const entry = {
-      title: song.title,
-      content: song.content,
-      band_name: song.band_name,
-      youtube_music: song.youtube_music ?? "",
-      youtobe_lesson: song.youtobe_lesson ?? "",
-      preferences: backupPreferences(preferences[song.id])
-    };
-    const size = encodeURIComponent(JSON.stringify(entry)).replace(
-      /%[\dA-F]{2}/g,
-      "_"
-    ).length;
+    const entry = backupSong(
+      {
+        ...song,
+        youtube_music: song.youtube_music ?? "",
+        youtobe_lesson: song.youtobe_lesson ?? ""
+      },
+      header.version,
+      exported[song.id]
+    );
+    const size = await utf8Length(JSON.stringify(entry), checkpoint);
     if (size + overhead > maxBytes) throw new Error("FileTooLarge");
     let part = parts[parts.length - 1];
     if (part.length && (bytes + size + 1 > maxBytes || part.length === 2000)) {
@@ -466,10 +542,11 @@ export async function exportLibrary() {
     }
     bytes += size + (part.length ? 1 : 0);
     part.push(entry);
+    const pause = checkpoint();
+    if (pause) await pause;
   }
   for (const [index, songs] of parts.entries()) {
     const text = JSON.stringify({ ...header, songs });
-    parseLibraryBackup(text);
     const suffix =
       parts.length > 1 ? `-part-${index + 1}-of-${parts.length}` : "";
     const name = `FreeTune-library-${header.createdAt.slice(0, 10)}${suffix}.json`;

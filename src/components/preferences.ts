@@ -1,3 +1,4 @@
+import { cooperativeWork } from "./cooperative-work";
 import { guitarTunings, standardTuning } from "../screens/tuner/tunings";
 import { create } from "zustand";
 import type { SQLTransaction } from "react-native-sqlite-2";
@@ -325,6 +326,7 @@ export function normalizeRhythm(value: unknown): SongRhythm {
   };
 }
 export async function loadPreferences() {
+  const checkpoint = cooperativeWork();
   const [size] = await getAllItems<{ length: number }>({
     tableName: "settings",
     fields: "length(value) AS length",
@@ -352,10 +354,12 @@ export async function loadPreferences() {
   }
   const songs: Record<string, SongPreferences> = {};
   if (record(data.songs))
-    Object.entries(data.songs).forEach(([id, song]) => {
-      if (!record(song) || !/^\d+$/.test(id)) return;
-      songs[id] = normalizeSongPreferences(song);
-    });
+    for (const [id, song] of Object.entries(data.songs)) {
+      if (record(song) && /^\d+$/.test(id))
+        songs[id] = normalizeSongPreferences(song);
+      const pause = checkpoint();
+      if (pause) await pause;
+    }
   const rows = await getAllItems<{ key: string; value: string }>({
     tableName: "settings",
     filters: "key LIKE ?",
@@ -363,6 +367,8 @@ export async function loadPreferences() {
   });
   const pieces = new Map<string, Map<number, string>>();
   for (const row of rows) {
+    const pause = checkpoint();
+    if (pause) await pause;
     const match = /^song:(\d+):(\d+)$/.exec(row.key);
     if (!match) continue;
     const parts = pieces.get(match[1]) ?? new Map<number, string>();
@@ -381,6 +387,8 @@ export async function loadPreferences() {
       usePreferences.setState({ saveError: true });
       throw new Error("PreferenceReadFailed");
     }
+    const pause = checkpoint();
+    if (pause) await pause;
   }
   const state: Preferences = {
     songs,
