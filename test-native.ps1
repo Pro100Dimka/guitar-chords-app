@@ -31,7 +31,7 @@ try {
     $deleteEnd = $recorder.IndexOf('    @ReactMethod @Synchronized fun playSuccess(', $deleteIndex)
     if (@($filesStart, $filesEnd, $deleteStart, $deleteEnd) | Where-Object { $_ -lt 0 }) { throw 'Production recording file methods not found' }
     $filesProbe = Join-Path $OutputDirectory 'RecordingStoreProbe.kt'
-    Set-Content -LiteralPath $filesProbe -Encoding utf8 -Value ("package com.freetune`nimport android.media.*`nimport com.facebook.react.bridge.*`nimport java.io.File`nimport java.nio.ByteBuffer`nclass RecordingStoreProbe(val directory: File) {`nval processing=mutableSetOf<String>()`nvar take: File?=null`nvar recorder: Any?=null`nfun stopPlayback() {}`n" + $recorder.Substring($filesStart, $filesEnd-$filesStart) + $recorder.Substring($deleteStart, $deleteEnd-$deleteStart) + "`n}")
+    Set-Content -LiteralPath $filesProbe -Encoding utf8 -Value ("package com.freetune`nimport android.media.*`nimport com.facebook.react.bridge.*`nimport java.io.File`nimport java.nio.ByteBuffer`nclass RecordingStoreProbe(val directory: File) {`nval processing=mutableSetOf<String>()`nval filesWorker=java.util.concurrent.Executors.newSingleThreadExecutor()`nval recordingFilesLock=Any()`nval activeRecordingFiles=mutableSetOf<String>()`nvar take: File?=null`nvar recorder: Any?=null`nfun stopPlayback() {}`n" + $recorder.Substring($filesStart, $filesEnd-$filesStart) + $recorder.Substring($deleteStart, $deleteEnd-$deleteStart) + "`n}")
     function Get-InstrumentMethod([string]$Source, [string]$Name) {
         $index = $Source.IndexOf("fun $Name(")
         if ($index -lt 0) { throw "Production instrument method missing: $Name" }

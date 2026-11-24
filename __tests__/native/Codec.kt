@@ -16,8 +16,9 @@ class MediaFormat {
     }
 }
 class MediaExtractor {
+    companion object { var onOpen: (() -> Unit)? = null }
     private var complete = false
-    fun setDataSource(path: String) { complete = java.io.File(path).inputStream().use { String(it.readNBytes(8)) == "complete" } }
+    fun setDataSource(path: String) { onOpen?.invoke(); complete = java.io.File(path).inputStream().use { String(it.readNBytes(8)) == "complete" } }
     val trackCount get() = if (complete) 1 else 0
     val sampleTime get() = if (complete) 0L else -1L
     fun getTrackFormat(index: Int) = MediaFormat()

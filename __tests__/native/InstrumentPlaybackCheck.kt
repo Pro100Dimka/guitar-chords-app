@@ -57,6 +57,7 @@ open class InstrumentModule(val context: InstrumentContext) {
     var onCreateGuitar: (() -> Unit)? = null
     val tracks = mutableListOf<InstrumentTrack>()
     val worker = InstrumentWorker()
+    val filesWorker = InstrumentWorker()
     val samplerWorker = InstrumentWorker()
     var instrumentPlaybackActive = context.lifecycleState == LifecycleState.RESUMED
     var invalidated = false

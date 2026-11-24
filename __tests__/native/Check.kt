@@ -125,6 +125,23 @@ fun checkAccuracy(module: MicrophoneStreamModule, recordingsDirectory: File) {
         val quietPitch = estimate(quiet, rate)
         if (quietPitch <= 0 || abs(1200 * log2(quietPitch / 82.4069)) > 3) failures.add("Quiet tone with DC offset failed at $rate: $quietPitch")
     }
+    var windowCases = 0
+    for (rate in listOf(22050, 44100, 48000)) for (size in listOf(256, 511, 1024, 2048, 4096)) {
+        val frequency = rate * 12.0 / size
+        for (level in listOf(0.0044, 0.02, 0.4)) for (offset in listOf(-0.3, 0.0, 0.3)) {
+            reset.invoke(module)
+            val samples = ShortArray(size) { i ->
+                ((offset + level * sin(2 * PI * frequency * i / rate)) * 32767).toInt().toShort()
+            }
+            val pitch = estimate(samples, rate)
+            check(pitch > 0 && abs(1200 * log2(pitch / frequency)) < 3) {
+                "Window energy regression: rate=$rate size=$size level=$level offset=$offset pitch=$pitch"
+            }
+            windowCases++
+        }
+        check(estimate(ShortArray(size) { 8192 }, rate) == 0.0) { "DC-only window accepted at size=$size" }
+    }
+    println("Window energy matrix: $windowCases variable-sized, quiet and DC-offset signals passed.")
     reset.invoke(module)
     repeat(5) { smoother.invoke(module, 82.4069f) }
     smoother.invoke(module, 329.6276f)

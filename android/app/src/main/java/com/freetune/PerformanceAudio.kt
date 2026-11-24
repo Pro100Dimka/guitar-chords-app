@@ -45,6 +45,9 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     private var lastTake: String? = null
     private val processing = ConcurrentHashMap.newKeySet<String>()
     private val worker = Executors.newSingleThreadExecutor()
+    private val filesWorker = Executors.newSingleThreadExecutor()
+    private val recordingFilesLock = Any()
+    private val activeRecordingFiles = mutableSetOf<String>()
     private val samplerWorker = ThreadPoolExecutor(1, 1, 0, TimeUnit.MILLISECONDS, ArrayBlockingQueue(32))
     private var instrumentPlaybackActive = context.lifecycleState == LifecycleState.RESUMED
     private var invalidated = false
@@ -60,7 +63,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     }
     init {
         context.addLifecycleEventListener(this)
-        worker.execute { try { reconcileRecordings() } catch (_: Exception) { emit("error") } }
+        filesWorker.execute { try { reconcileRecordings() } catch (_: Exception) { emit("error") } }
     }
     override fun getName() = "PerformanceAudio"
     private fun emit(state: String, uri: String? = null) {
@@ -73,7 +76,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
     }
     @ReactMethod @Synchronized
     fun startTake(songId: String, promise: Promise) {
-        if (!songId.matches(Regex("[1-9][0-9]*")) || recorder != null || processing.isNotEmpty()) { promise.reject("RECORDING_BUSY", "Recording unavailable"); return }
+        if (invalidated || !songId.matches(Regex("[1-9][0-9]*")) || recorder != null || processing.isNotEmpty()) { promise.reject("RECORDING_BUSY", "Recording unavailable"); return }
         stopPlayback()
         var ownedFile: File? = null
         var capture: PolishedRecorder? = null
@@ -81,7 +84,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             focus()
             val recording = PolishedRecorder()
             capture = recording
-            val file = reserveRecordingFile(directory, songId)
+            val file = reserveActiveRecordingFile(songId)
             ownedFile = file
             take = file
             recorder = recording
@@ -110,6 +113,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                 } finally {
                     recording.release()
                     output.delete()
+                    synchronized(recordingFilesLock) { activeRecordingFiles.remove(file.absolutePath) }
                     synchronized(this) {
                         if (recorder === recording) {
                             recorder = null
@@ -126,7 +130,9 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             capture?.release()
             recorder = null
             take = null
-            ownedFile?.delete()
+            synchronized(recordingFilesLock) {
+                ownedFile?.let { it.delete(); activeRecordingFiles.remove(it.absolutePath) }
+            }
             audioManager.abandonAudioFocus(focusListener)
             promise.reject("RECORDING_FAILED", error)
         }
@@ -151,15 +157,22 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         require(file.parentFile == directory.canonicalFile && file.name.matches(Regex("song-[0-9]+-[0-9]+\\.m4a")))
         return file
     }
-    @Synchronized private fun reconcileRecordings() {
-        val active = (processing + listOfNotNull(take?.absolutePath)).map { File(it).canonicalPath }.toSet()
-        directory.listFiles()?.filter { it.name.matches(Regex("song-[0-9]+-[0-9]+\\.processing\\.m4a")) }?.forEach { partial ->
-            val target = File(directory, partial.name.removeSuffix(".processing.m4a") + ".m4a")
-            if (target.canonicalPath in active) return@forEach
-            if (target.length() > 0) {
-                check(partial.delete())
-                return@forEach
+    private fun reserveActiveRecordingFile(songId: String): File = synchronized(recordingFilesLock) {
+        reserveRecordingFile(directory, songId).also { activeRecordingFiles.add(it.absolutePath) }
+    }
+    private fun reconcileRecordings() {
+        val folder = directory
+        val entries = folder.listFiles() ?: return
+        entries.filter { it.name.matches(Regex("song-[0-9]+-[0-9]+\\.processing\\.m4a")) }.forEach { partial ->
+            val target = File(folder, partial.name.removeSuffix(".processing.m4a") + ".m4a")
+            val recover = synchronized(recordingFilesLock) {
+                if (target.absolutePath in activeRecordingFiles) false
+                else if (target.length() > 0) { check(partial.delete()); false }
+                else true
             }
+            if (!recover) return@forEach
+            // Decoder/file scans never hold the playback/lifecycle monitor or
+            // the short reservation lock needed to start a new recording.
             val extractor = MediaExtractor()
             val valid = try {
                 extractor.setDataSource(partial.absolutePath)
@@ -171,33 +184,49 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
                     extractor.sampleTime >= 0 && extractor.readSampleData(ByteBuffer.allocate(16384), 0) > 0
                 }
             } catch (_: Exception) { false } finally { extractor.release() }
-            if (valid) {
-                check(!target.exists() || target.delete())
-                check(partial.renameTo(target))
-                runCatching { File(directory, target.nameWithoutExtension + ".interrupted").createNewFile() }
-            } else check(partial.delete())
+            synchronized(recordingFilesLock) {
+                if (target.absolutePath in activeRecordingFiles || !partial.exists()) return@synchronized
+                if (target.length() > 0) check(partial.delete())
+                else if (valid) {
+                    check(!target.exists() || target.delete())
+                    check(partial.renameTo(target))
+                    runCatching { File(folder, target.nameWithoutExtension + ".interrupted").createNewFile() }
+                } else check(partial.delete())
+            }
         }
-        directory.listFiles()?.filter {
-            it.name.matches(Regex("song-[0-9]+-[0-9]+\\.m4a")) && it.length() == 0L && it.canonicalPath !in active
-        }?.forEach { check(it.delete()) }
-        directory.listFiles()?.filter {
-            it.name.matches(Regex("song-[0-9]+-[0-9]+\\.interrupted")) &&
-                !File(directory, it.nameWithoutExtension + ".m4a").exists() &&
-                !File(directory, it.nameWithoutExtension + ".processing.m4a").exists()
-        }?.forEach { check(it.delete()) }
+        entries.filter { it.name.matches(Regex("song-[0-9]+-[0-9]+\\.m4a")) }.forEach { file ->
+            synchronized(recordingFilesLock) {
+                if (file.absolutePath !in activeRecordingFiles && file.exists() && file.length() == 0L) check(file.delete())
+            }
+        }
+        entries.filter { it.name.matches(Regex("song-[0-9]+-[0-9]+\\.interrupted")) }.forEach { marker ->
+            synchronized(recordingFilesLock) {
+                if (!File(folder, marker.nameWithoutExtension + ".m4a").exists() &&
+                    !File(folder, marker.nameWithoutExtension + ".processing.m4a").exists() && marker.exists()) check(marker.delete())
+            }
+        }
     }
-    @ReactMethod @Synchronized fun listTakes(songId: String, promise: Promise) {
+    @ReactMethod fun listTakes(songId: String, promise: Promise) {
         try {
-        reconcileRecordings()
-        val rows = Arguments.createArray()
-        directory.listFiles()?.filter { it.name.startsWith("song-${songId}-") && it.name.matches(Regex("song-[0-9]+-[0-9]+\\.m4a")) && it != take }?.sortedByDescending { it.lastModified() }?.forEach { file ->
-            rows.pushMap(Arguments.createMap().apply {
-                putString("path", file.absolutePath); putDouble("date", file.lastModified().toDouble()); putDouble("bytes", file.length().toDouble())
-                putBoolean("processing", processing.contains(file.absolutePath))
-                putBoolean("interrupted", File(directory, file.nameWithoutExtension + ".interrupted").exists())
-            })
-        }
-        promise.resolve(rows)
+            filesWorker.execute {
+                try {
+                    reconcileRecordings()
+                    val folder = directory
+                    val files = folder.listFiles()?.filter { it.name.startsWith("song-${songId}-") && it.name.matches(Regex("song-[0-9]+-[0-9]+\\.m4a")) }
+                        ?.map { file -> Triple(file, file.lastModified(), file.length()) }
+                        ?.sortedByDescending { it.second }
+                    val currentTake = synchronized(this) { take }
+                    val rows = Arguments.createArray()
+                    files?.filter { it.first != currentTake }?.forEach { (file, date, bytes) ->
+                        rows.pushMap(Arguments.createMap().apply {
+                            putString("path", file.absolutePath); putDouble("date", date.toDouble()); putDouble("bytes", bytes.toDouble())
+                            putBoolean("processing", processing.contains(file.absolutePath))
+                            putBoolean("interrupted", File(folder, file.nameWithoutExtension + ".interrupted").exists())
+                        })
+                    }
+                    promise.resolve(rows)
+                } catch (error: Exception) { promise.reject("RECORDING_READ_FAILED", error) }
+            }
         } catch (error: Exception) { promise.reject("RECORDING_READ_FAILED", error) }
     }
     @ReactMethod @Synchronized fun playTake(path: String, promise: Promise) {
@@ -234,10 +263,13 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             val file = localFile(path)
             require(recorder == null && processing.none { File(it).canonicalFile == file })
             stopPlayback()
-            val partial = File(file.parentFile, file.nameWithoutExtension + ".processing.m4a")
-            require(!partial.exists() || partial.delete())
-            require(file.delete())
-            File(file.parentFile, file.nameWithoutExtension + ".interrupted").delete()
+            synchronized(recordingFilesLock) {
+                require(file.absolutePath !in activeRecordingFiles)
+                val partial = File(file.parentFile, file.nameWithoutExtension + ".processing.m4a")
+                require(!partial.exists() || partial.delete())
+                require(file.delete())
+                File(file.parentFile, file.nameWithoutExtension + ".interrupted").delete()
+            }
             promise.resolve(true)
         }
         catch (error: Exception) { promise.reject("DELETE_FAILED", error) }
@@ -461,7 +493,7 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         preparedGuitars.clear(); guitarPcm.clear(); preparingGuitars.clear()
     }
     @Synchronized override fun onHostDestroy() { instrumentPlaybackActive = false; finishTake(); stopPlayback() }
-    @Synchronized override fun invalidate() { invalidated = true; instrumentPlaybackActive = false; finishTake(); stopPlayback(); clearGuitars(); worker.shutdown(); samplerWorker.shutdown(); context.removeLifecycleEventListener(this); super.invalidate() }
+    @Synchronized override fun invalidate() { invalidated = true; instrumentPlaybackActive = false; finishTake(); stopPlayback(); clearGuitars(); worker.shutdown(); filesWorker.shutdown(); samplerWorker.shutdown(); context.removeLifecycleEventListener(this); super.invalidate() }
     @ReactMethod fun addListener(name: String) {}
     @ReactMethod fun removeListeners(count: Int) {}
 }

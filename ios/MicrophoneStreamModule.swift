@@ -129,7 +129,7 @@ class MicrophoneStream: RCTEventEmitter {
             let floatData = Array(
                 UnsafeBufferPointer(start: channelData, count: Int(buffer.frameLength)))
 
-            let rms = sqrt(floatData.map { $0 * $0 }.reduce(0, +) / Float(floatData.count))
+            let rms = sqrt(floatData.reduce(0) { $0 + $1 * $1 } / Float(floatData.count))
             if rms < 0.003 {
                 self.resetPitch()
                 self.sendEvent(
@@ -305,7 +305,11 @@ class MicrophoneStream: RCTEventEmitter {
         guard !buffer.isEmpty, sampleRate > 0, sampleRate.isFinite else { return 0 }
         let mean = buffer.reduce(0.0) { $0 + Double($1) } / Double(buffer.count)
         let norm = buffer.map { Double($0) - mean }
-        let rms = sqrt(norm.reduce(0.0) { $0 + $1 * $1 } / Double(norm.count))
+        // Window energies are shared by every lag; only the dot product needs
+        // to traverse the samples again for each candidate period.
+        var energyPrefix = [Double](repeating: 0, count: norm.count + 1)
+        for i in norm.indices { energyPrefix[i + 1] = energyPrefix[i] + norm[i] * norm[i] }
+        let rms = sqrt(energyPrefix[norm.count] / Double(norm.count))
         guard rms >= 0.003 else { return 0 }
         let sustaining = previousRms > 0 && rms <= previousRms * 1.2
         previousRms = rms
@@ -318,11 +322,9 @@ class MicrophoneStream: RCTEventEmitter {
             for lag in (minLag - 1)...(maxLag + 1) {
                 let count = vDSP_Length(norm.count - lag)
                 var correlation = 0.0
-                var leftEnergy = 0.0
-                var rightEnergy = 0.0
                 vDSP_dotprD(start, 1, start + lag, 1, &correlation, count)
-                vDSP_svesqD(start, 1, &leftEnergy, count)
-                vDSP_svesqD(start + lag, 1, &rightEnergy, count)
+                let leftEnergy = energyPrefix[norm.count - lag]
+                let rightEnergy = energyPrefix[norm.count] - energyPrefix[lag]
                 let energy = sqrt(leftEnergy * rightEnergy)
                 correlations[lag] = energy > 0 ? correlation / energy : 0
             }

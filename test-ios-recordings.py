@@ -15,16 +15,39 @@ def main():
     root = Path(__file__).resolve().parent
     method = runpy.run_path(str(root / "test-ios-pitch.py"))["method"]
     source = (root / "ios/PerformanceAudio.swift").read_text(encoding="utf-8")
-    production = "\n".join(method(source, name) for name in ["reserveRecordingURL", "localFile", "reconcileRecordings", "removeRecordingFiles"])
+    production = "\n".join(method(source, name) for name in ["withRecordingFilesLock<T>", "reserveActiveRecordingURL", "releaseRecordingURL", "reserveRecordingURL", "localFile", "reconcileRecordings", "removeRecordingFiles"])
+    production = production.replace("AVAudioFile(forReading: partial)", "RecoveryAudioFile(forReading: partial)")
+    objc_method = runpy.run_path(str(root / "test-ios-performance.py"))["method"]
+    production += "\n" + objc_method(source, "listTakes")
+    production = production.replace("url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])", "recordingMetadata(url)")
     streaming = source[source.index("private final class StreamingTake {"):]
     streaming = streaming.replace("private ", "").replace("AVAudioEngine", "CaptureEngine")
     swift = """import Foundation
 import AVFoundation
+typealias RCTPromiseResolveBlock = (Any?) -> Void
+typealias RCTPromiseRejectBlock = (String?, String?, Error?) -> Void
+var onRecordingMetadata: ((URL) -> Void)?
+func recordingMetadata(_ url: URL) throws -> URLResourceValues {
+    onRecordingMetadata?(url)
+    return try URL(fileURLWithPath: url.path).resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+}
+final class RecoveryAudioFile {
+    static var onOpen: (() -> Void)?
+    let audio: AVAudioFile
+    var length: AVAudioFramePosition { audio.length }
+    init(forReading url: URL) throws {
+        Self.onOpen?()
+        audio = try AVAudioFile(forReading: url)
+    }
+}
 class Recorder { var url: URL; init(_ url: URL) { self.url = url } }
 class Store {
     let directory: URL
     var processing = Set<String>()
     var recorder: Recorder?
+    let filesWorker = DispatchQueue(label: "recording.files.test")
+    let recordingFilesLock = NSLock()
+    var activeRecordingFiles = Set<String>()
     init(_ url: URL) { directory = url }
 """ + production + "\n}\n" + r'''
 let directory = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
@@ -85,6 +108,7 @@ precondition(!files.fileExists(atPath: path(3, partial: true).path))
 try Data().write(to: path(4))
 try Data("active".utf8).write(to: path(4, partial: true))
 store.processing.insert(path(4).path)
+store.activeRecordingFiles.insert(path(4).resolvingSymlinksInPath().path)
 try store.reconcileRecordings()
 precondition(files.fileExists(atPath: path(4).path) && files.fileExists(atPath: path(4, partial: true).path))
 do { try store.removeRecordingFiles(path(4)); preconditionFailure("Deleted active processing") } catch {}
@@ -93,9 +117,63 @@ store.recorder = Recorder(path(4))
 try store.reconcileRecordings()
 precondition(files.fileExists(atPath: path(4).path) && files.fileExists(atPath: path(4, partial: true).path))
 store.recorder = nil
+store.activeRecordingFiles.removeAll()
 try store.removeRecordingFiles(store.localFile(path(4).path))
 precondition(!files.fileExists(atPath: path(4).path) && !files.fileExists(atPath: path(4, partial: true).path))
 try store.removeRecordingFiles(path(4))
+// A paused recovery decoder must not block the caller or reserve/delete lock.
+// A new zero-byte reservation remains owned before recorder is assigned.
+try Data().write(to: path(5))
+try audio(path(5, partial: true))
+let entered = DispatchSemaphore(value: 0)
+let resume = DispatchSemaphore(value: 0)
+RecoveryAudioFile.onOpen = {
+    precondition(!Thread.isMainThread, "Recording recovery blocked the main thread")
+    precondition(store.recordingFilesLock.try(), "Decoder held the recording reservation lock")
+    store.recordingFilesLock.unlock()
+    entered.signal()
+    precondition(resume.wait(timeout: .now() + 5) == .success, "Recovery was not released")
+}
+var listed: [[String: Any]]?
+var listError: Error?
+store.listTakes("1", resolver: { precondition(Thread.isMainThread); listed = $0 as? [[String: Any]] }, rejecter: { _, _, error in listError = error })
+precondition(entered.wait(timeout: .now() + 5) == .success)
+precondition(listed == nil, "Recording listing did not yield to its caller")
+let awaitingCapture = try store.reserveActiveRecordingURL("1")
+precondition(files.fileExists(atPath: awaitingCapture.path))
+resume.signal()
+let listDeadline = Date().addingTimeInterval(5)
+while listed == nil && listError == nil && Date() < listDeadline {
+    RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+}
+precondition(listError == nil && listed != nil, "Asynchronous recording list did not finish")
+store.filesWorker.sync {}
+RecoveryAudioFile.onOpen = nil
+try store.reconcileRecordings()
+precondition(files.fileExists(atPath: awaitingCapture.path), "Recovery deleted a reserved take before capture began")
+do { try store.removeRecordingFiles(awaitingCapture); preconditionFailure("Deleted an owned reservation") } catch {}
+store.releaseRecordingURL(awaitingCapture)
+try store.removeRecordingFiles(awaitingCapture)
+// An entry deleted after enumeration must not make the whole list fail.
+listed = nil
+var removedDuringList = false
+onRecordingMetadata = { url in
+    if url.lastPathComponent == path(5).lastPathComponent {
+        try! files.removeItem(at: url)
+        removedDuringList = true
+    }
+}
+store.listTakes("1", resolver: { listed = $0 as? [[String: Any]] }, rejecter: { _, _, error in listError = error })
+let deletionDeadline = Date().addingTimeInterval(5)
+while listed == nil && listError == nil && Date() < deletionDeadline {
+    RunLoop.current.run(until: Date().addingTimeInterval(0.01))
+}
+precondition(removedDuringList && listError == nil && listed != nil)
+precondition(!listed!.contains { $0["path"] as? String == path(5).path })
+precondition(listed!.contains { $0["path"] as? String == path(3).path })
+store.filesWorker.sync {}
+onRecordingMetadata = nil
+print("Production Swift asynchronous listing passed: background recovery, unlocked decoding, active reservation protection and main-queue result delivery.")
 print("Production Swift recording methods passed: invalid cleanup, real AAC recovery, original preservation, active processing/capture protection, family deletion and idempotent retry.")
 print("No microphone hardware or full iOS app was exercised.")
 '''
