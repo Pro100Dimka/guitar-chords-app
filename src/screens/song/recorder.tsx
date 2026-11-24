@@ -46,6 +46,13 @@ export default function SongRecorder({
   const recordingRef = useRef(false);
   const activeRef = useRef(active);
   activeRef.current = active;
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
+  const foreground = useRef(
+    AppState.currentState !== "background" &&
+      AppState.currentState !== "inactive"
+  );
+  const listDirty = useRef(false);
   const mounted = useRef(true);
   const operation = useRef(false);
   const opening = useRef<AbortController | null>(null);
@@ -56,6 +63,7 @@ export default function SongRecorder({
     setTakes([]);
   }, [songId]);
   const load = useCallback(async () => {
+    listDirty.current = false;
     const request = ++listRequest.current;
     const files = await performanceAudio.list(songId);
     if (mounted.current && request === listRequest.current) setTakes(files);
@@ -66,6 +74,10 @@ export default function SongRecorder({
     void load().catch(() => Alert.alert(t("RecordingError")));
     onOpened?.();
   }, [open, active, load, onOpened, t]);
+  useEffect(() => {
+    if (visible && active && foreground.current && listDirty.current)
+      void load().catch(() => Alert.alert(t("RecordingError")));
+  }, [visible, active, load, t]);
   const run = async (action: () => Promise<void>) => {
     if (operation.current) return;
     operation.current = true;
@@ -102,7 +114,9 @@ export default function SongRecorder({
           "interrupted"
         ].includes(event.state)
       ) {
-        void load().catch(() => Alert.alert(t("RecordingError")));
+        listDirty.current = true;
+        if (activeRef.current && visibleRef.current && foreground.current)
+          void load().catch(() => Alert.alert(t("RecordingError")));
         if (event.state === "error")
           Alert.alert(t("RecordingError"), t("RecordingErrorHint"));
         if (event.state === "interrupted")
@@ -112,11 +126,14 @@ export default function SongRecorder({
       }
     });
     const background = AppState.addEventListener("change", (state) => {
+      foreground.current = state === "active";
       if (state !== "active") {
         opening.current?.abort();
         performanceAudio.stopPlayback();
         if (recordingRef.current)
           void performanceAudio.stop().catch(() => undefined);
+      } else if (activeRef.current && visibleRef.current && listDirty.current) {
+        void load().catch(() => Alert.alert(t("RecordingError")));
       }
     });
     return () => {

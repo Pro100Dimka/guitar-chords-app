@@ -23,7 +23,7 @@ import { guitarLayout } from "./guitar-layout";
 import NoteIndicator from "./note-indicator";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-worklets";
-import { INote, IString, ITunerConfig } from "@/@interfaces";
+import { INote, ITunerConfig } from "@/@interfaces";
 import {
   Dimensions,
   View,
@@ -123,7 +123,6 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     setReading(next);
   }, []);
   const readingUpdatedAt = useRef(0);
-  const [stringNotes, setStringNotes] = useState<IString[] | null>(null);
   const config = {
     ...defConfig,
     selectedInstrument: instrument,
@@ -240,6 +239,13 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       octave: Math.floor(selected[index] / 12) - 1
     }));
   }, [config.selectedInstrument, config.instruments, tuning, customTuning]);
+  const stringNotes = useMemo(
+    () =>
+      config.autoDetect || !strings?.length
+        ? strings
+        : [strings[selectedString] ?? strings[0]],
+    [strings, config.autoDetect, selectedString]
+  );
   useEffect(() => {
     if (!active || !painted) return;
     const controller = new AbortController();
@@ -277,11 +283,6 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     tunerReference
   ]);
   useEffect(() => {
-    setStringNotes(
-      config.autoDetect || !strings?.length
-        ? strings
-        : [strings[selectedString] ?? strings[0]]
-    );
     tuningState.current = {
       key: "",
       since: 0,

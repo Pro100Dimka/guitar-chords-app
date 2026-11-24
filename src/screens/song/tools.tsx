@@ -356,7 +356,10 @@ export function ChordSheet({
 }) {
   const { t } = useTranslation();
 
-  const selectedIndex = selectedChordShape(chord, value)?.index;
+  const selectedIndex = useMemo(
+    () => selectedChordShape(chord, value)?.index,
+    [chord, value]
+  );
   const options = useMemo(
     () => chordShapeOptions(chord, selectedIndex),
     [chord, selectedIndex]
@@ -513,11 +516,23 @@ export function ChordSheet({
                   const key = previewKeys[visibleIndex];
                   pendingPreview.current = key;
                   void performanceAudio
-                    .prepareFingering(
-                      key,
-                      preparedPreviews.current.get(key) ?? ""
-                    )
-                    .then((prepared) => playWhenReady(key, prepared))
+                    .prepareFingering(key, "")
+                    .then(async (prepared) => {
+                      if (!prepared) {
+                        const wave = preparedPreviews.current.get(key);
+                        if (
+                          wave &&
+                          previewOwner.current &&
+                          previewVisible.current &&
+                          pendingPreview.current === key
+                        )
+                          prepared = await performanceAudio.prepareFingering(
+                            key,
+                            wave
+                          );
+                      }
+                      playWhenReady(key, prepared);
+                    })
                     .catch(() => preparedPreviews.current.delete(key));
                 }
                 setAudition((previous) => ({
@@ -733,8 +748,11 @@ function EasierChords({
     SongPreferences,
     "capo" | "shapes"
   > | null>(null);
-  const chords = songChords(content);
-  const options = easierPositions(chords, value.transpose, value.capo);
+  const chords = useMemo(() => songChords(content), [content]);
+  const options = useMemo(
+    () => easierPositions(chords, value.transpose, value.capo),
+    [chords, value.transpose, value.capo]
+  );
   return (
     <>
       <Text style={styles.label}>{t("CurrentCapo", { capo: value.capo })}</Text>
@@ -791,19 +809,59 @@ function TransitionPractice({
   onChooseRhythm: () => void;
 }) {
   const { t } = useTranslation();
-  const entries = songSections(content).flatMap((section) =>
-    songChordSequence(section.content).map((chord) => ({
-      chord: transposeChord(chord, value.transpose - value.capo),
-      section: section.id
-    }))
+  const source = useMemo(
+    () =>
+      songSections(content).flatMap((section) =>
+        songChordSequence(section.content).map((chord) => ({
+          chord,
+          section: section.id
+        }))
+      ),
+    [content]
   );
-  const sequence = entries.map((entry) => entry.chord);
-  const chords = [...new Set(sequence)];
+  const entries = useMemo(
+    () =>
+      source.map((entry) => ({
+        ...entry,
+        chord: transposeChord(entry.chord, value.transpose - value.capo)
+      })),
+    [source, value.transpose, value.capo]
+  );
+  const sequence = useMemo(
+    () => entries.map((entry) => entry.chord),
+    [entries]
+  );
+  const chords = useMemo(() => [...new Set(sequence)], [sequence]);
   const [start, setStart] = useState(0);
+  const ordered = useMemo(
+    () => [...sequence.slice(start), ...sequence.slice(0, start)],
+    [sequence, start]
+  );
+  const orderedEntries = useMemo(
+    () => [...entries.slice(start), ...entries.slice(0, start)],
+    [entries, start]
+  );
+  const baseRhythm = useMemo(
+    () =>
+      normalizeRhythm({
+        strum: value.strum,
+        strumMeter: value.strumMeter,
+        strumDivision: value.strumDivision,
+        strumPreset: value.strumPreset
+      }),
+    [value.strum, value.strumMeter, value.strumDivision, value.strumPreset]
+  );
+  const arrangements = useMemo(
+    () =>
+      Object.keys(value.rhythmSections ?? {}).length
+        ? orderedEntries.map(
+            (entry) => value.rhythmSections[entry.section] ?? baseRhythm
+          )
+        : undefined,
+    [orderedEntries, value.rhythmSections, baseRhythm]
+  );
   if (!sequence.length)
     return <Text style={styles.description}>{t("NoSongChords")}</Text>;
-  const ordered = [...sequence.slice(start), ...sequence.slice(0, start)];
-  const orderedEntries = [...entries.slice(start), ...entries.slice(0, start)];
   return (
     <>
       {value.strum ||
@@ -814,15 +872,7 @@ function TransitionPractice({
           division={value.strumDivision}
           tempo={value.tempo}
           practice={ordered}
-          arrangements={
-            Object.keys(value.rhythmSections ?? {}).length
-              ? orderedEntries.map(
-                  (entry) =>
-                    value.rhythmSections[entry.section] ??
-                    normalizeRhythm(value)
-                )
-              : undefined
-          }
+          arrangements={arrangements}
           chords={ordered}
           capo={value.capo}
           shapes={value.shapes}
@@ -970,43 +1020,57 @@ function RhythmPlayer({
   const slots =
     Math.ceil(pattern.length / (meter * division)) * meter * division;
   const padded = pattern.padEnd(slots, "-");
-  const progression = chords.length ? chords : ["C"];
-  const progressionKey = progression.join(" ");
-  const shapesKey = JSON.stringify(shapes);
+  const progressionKey = (chords.length ? chords : ["C"]).join(" ");
+  const progression = useMemo(
+    () => progressionKey.split(" "),
+    [progressionKey]
+  );
+  const distinctChords = useMemo(
+    () => [...new Set(progression)],
+    [progression]
+  );
+  const shapesKey = JSON.stringify(
+    fingerings
+      ? {}
+      : Object.fromEntries(
+          distinctChords.map((chord) => [chord, shapes[chord]])
+        )
+  );
   const fingeringsKey = JSON.stringify(fingerings ?? null);
   const previewKeysKey = JSON.stringify(previewKeys ?? []);
   const frequencies = useMemo(() => {
     const selected: Record<string, number> = JSON.parse(shapesKey);
-    const positions: (Frets | undefined)[] =
-      JSON.parse(fingeringsKey) ??
-      progressionKey
-        .split(" ")
-        .map((chord) => selectedChordShape(chord, selected[chord])?.frets);
-    return positions.map((frets) => {
-      return (
-        frets?.flatMap((fret, string) =>
-          fret === null
-            ? []
-            : [
-                {
-                  frequency:
-                    440 * 2 ** ((guitarMidi[string] + fret + capo - 69) / 12),
-                  string
-                }
-              ]
-        ) ?? []
-      );
-    });
-  }, [progressionKey, shapesKey, fingeringsKey, capo]);
+    const notesFor = (frets: Frets | undefined) =>
+      frets?.flatMap((fret, string) =>
+        fret === null
+          ? []
+          : [
+              {
+                frequency:
+                  440 * 2 ** ((guitarMidi[string] + fret + capo - 69) / 12),
+                string
+              }
+            ]
+      ) ?? [];
+    const positions: Frets[] | null = JSON.parse(fingeringsKey);
+    if (positions) return positions.map(notesFor);
+    const byChord = new Map(
+      distinctChords.map((chord) => [
+        chord,
+        notesFor(selectedChordShape(chord, selected[chord])?.frets)
+      ])
+    );
+    return progression.map((chord) => byChord.get(chord)!);
+  }, [progression, distinctChords, shapesKey, fingeringsKey, capo]);
   const fingeringPreview = stroke !== undefined;
   const instrumentSpec = useMemo<AcousticInstrument>(
     () => ({
-      chords: progressionKey.split(" "),
+      chords: progression,
       frequencies,
       previewKeys: JSON.parse(previewKeysKey),
       preview: fingeringPreview
     }),
-    [frequencies, progressionKey, previewKeysKey, fingeringPreview]
+    [frequencies, progression, previewKeysKey, fingeringPreview]
   );
   useEffect(() => {
     setInstrument(null);
@@ -1247,23 +1311,51 @@ function RhythmEditor({
       })),
     [content]
   );
-  const sections = [
-    ...new Map(
-      blocks
-        .filter((section) => section.id)
-        .map((section) => [section.id, section])
-    ).values()
-  ].slice(0, 128);
+  const sections = useMemo(
+    () =>
+      [
+        ...new Map(
+          blocks
+            .filter((section) => section.id)
+            .map((section) => [section.id, section])
+        ).values()
+      ].slice(0, 128),
+    [blocks]
+  );
   const selected = sections.find((section) => section.id === scope);
   const override = selected ? value.rhythmSections?.[selected.id] : undefined;
   const current = { ...value, ...override };
-  const arrangements = Object.keys(value.rhythmSections ?? {}).length
-    ? blocks.flatMap((section) =>
-        section.chords.map(
-          () => value.rhythmSections[section.id] ?? normalizeRhythm(value)
-        )
-      )
-    : undefined;
+  const baseRhythm = useMemo(
+    () =>
+      normalizeRhythm({
+        strum: value.strum,
+        strumMeter: value.strumMeter,
+        strumDivision: value.strumDivision,
+        strumPreset: value.strumPreset
+      }),
+    [value.strum, value.strumMeter, value.strumDivision, value.strumPreset]
+  );
+  const arrangements = useMemo(
+    () =>
+      Object.keys(value.rhythmSections ?? {}).length
+        ? blocks.flatMap((section) =>
+            section.chords.map(
+              () => value.rhythmSections[section.id] ?? baseRhythm
+            )
+          )
+        : undefined,
+    [blocks, value.rhythmSections, baseRhythm]
+  );
+  const selectedContent = useMemo(
+    () =>
+      selected
+        ? blocks
+            .filter((block) => block.id === selected.id)
+            .map((block) => block.content)
+            .join("\n")
+        : content,
+    [selected, blocks, content]
+  );
   const change = (patch: Partial<SongPreferences>) => {
     if (patch.tempo !== undefined) {
       onChange({ tempo: patch.tempo });
@@ -1323,14 +1415,7 @@ function RhythmEditor({
       )}
       <PatternEditor
         key={selected?.id ?? ""}
-        content={
-          selected
-            ? blocks
-                .filter((block) => block.id === selected.id)
-                .map((block) => block.content)
-                .join("\n")
-            : content
-        }
+        content={selectedContent}
         value={current}
         onChange={change}
         arrangements={selected ? undefined : arrangements}
@@ -1351,8 +1436,13 @@ function PatternEditor({
   onChange: (patch: Partial<SongPreferences>) => void;
 }) {
   const { t } = useTranslation();
-  const chords = songChordSequence(content).map((chord) =>
-    transposeChord(chord, value.transpose - value.capo)
+  const sequence = useMemo(() => songChordSequence(content), [content]);
+  const chords = useMemo(
+    () =>
+      sequence.map((chord) =>
+        transposeChord(chord, value.transpose - value.capo)
+      ),
+    [sequence, value.transpose, value.capo]
   );
   const [kind, setKind] = useState<"strum" | "picking">(
     /[1-6]/.test(value.strum) ? "picking" : "strum"
@@ -1382,9 +1472,14 @@ function PatternEditor({
       ))}
     </View>
   );
-  const unavailable = chords.filter(
-    (chord) => !selectedChordShape(chord, value.shapes[chord])
-  );
+  const unavailable = useMemo(() => {
+    const missing = new Set(
+      [...new Set(chords)].filter(
+        (chord) => !selectedChordShape(chord, value.shapes[chord])
+      )
+    );
+    return chords.filter((chord) => missing.has(chord));
+  }, [chords, value.shapes]);
   const previewRhythm = allRhythms.find((item) => item.id === audition);
   const preset = allRhythms.find(
     (item) =>
