@@ -6,6 +6,7 @@ import {
   TablaturePanel
 } from "../src/screens/play/tablature-panel";
 import {
+  TAB_MAX_NOTES,
   Tablature,
   emptyTablature,
   normalizeTablature
@@ -95,11 +96,16 @@ const press = async (screen: Renderer.ReactTestRenderer, label: string) => {
   if (!button(screen, label)) {
     if (button(screen, "TabFullView"))
       await act(async () => button(screen, "TabFullView").props.onPress());
-    const section = [
-      { pattern: /^Tab(Speed|QuarterTempo)/, label: "TabTempoShort" },
-      { pattern: /^Tab(Range|Loop|WholePiece)/, label: "TabLoopShort" },
-      { pattern: /^Tab(InsertBar|AppendBar|DuplicateBar|DeleteBar|CopyBar|PasteBar|Meter)/, label: "TabBars" }
-    ].find((entry) => entry.pattern.test(label))?.label ?? "TabScore";
+    const section =
+      [
+        { pattern: /^Tab(Speed|QuarterTempo)/, label: "TabTempoShort" },
+        { pattern: /^Tab(Range|Loop|WholePiece)/, label: "TabLoopShort" },
+        {
+          pattern:
+            /^Tab(InsertBar|AppendBar|DuplicateBar|DeleteBar|CopyBar|PasteBar|Meter)/,
+          label: "TabBars"
+        }
+      ].find((entry) => entry.pattern.test(label))?.label ?? "TabScore";
     await act(async () => button(screen, section).props.onPress());
     if (!button(screen, label) && button(screen, "TabMoreOptions"))
       await act(async () => button(screen, "TabMoreOptions").props.onPress());
@@ -429,12 +435,18 @@ test("staff taps and the keypad compose chords and two-digit frets with the last
   await press(screen!, "TabFret: 1");
   await press(screen!, "TabFret: 2");
   expect(updates.at(-1)!.notes).toContainEqual({
-    string: 4, fret: 12, tick: 12, duration: 12
+    string: 4,
+    fret: 12,
+    tick: 12,
+    duration: 12
   });
   await pressNote(2, 5);
   await press(screen!, "TabFret: 3");
   expect(updates.at(-1)!.notes).toContainEqual({
-    string: 4, fret: 3, tick: 0, duration: 12
+    string: 4,
+    fret: 3,
+    tick: 0,
+    duration: 12
   });
   expect(updates.at(-1)!.notes).toHaveLength(3);
 });
@@ -535,11 +547,7 @@ test("playing locks hidden note edits but preserves pause and playback preferenc
   });
   await press(screen!, "TabScore");
   await press(screen!, "TabMoreOptions");
-  for (const label of [
-    "TabFret: +",
-    "TabDeleteNote",
-    "TabUndo"
-  ])
+  for (const label of ["TabFret: +", "TabDeleteNote", "TabUndo"])
     expect(button(screen!, label).props.disabled).toBe(true);
   expect(button(screen!, "Pause").props.disabled).not.toBe(true);
   expect(button(screen!, "TabRewind").props.disabled).not.toBe(true);
@@ -902,3 +910,49 @@ test.each([false, true])(
     expect(rowHeight()).toBe(normal * 2);
   }
 );
+
+test("moving the insertion cursor and grid does not reread offscreen score notes", async () => {
+  const tab = normalizeTablature({
+    ...emptyTablature(),
+    notes: Array.from({ length: TAB_MAX_NOTES }, (_, index) => ({
+      string: 0,
+      fret: 0,
+      tick: index * 6,
+      duration: 6
+    }))
+  })!;
+  let reads = 0;
+  for (const note of tab.notes.slice(100)) {
+    const tick = note.tick;
+    Object.defineProperty(note, "tick", {
+      get: () => {
+        reads++;
+        return tick;
+      }
+    });
+  }
+  const onCell = jest.fn();
+  await act(async () => {
+    screen = Renderer.create(
+      <TablatureBar tab={tab} bar={0} tick={0} onCell={onCell} grid={6} />
+    );
+  });
+  reads = 0;
+  await act(async () => {
+    screen!.update(
+      <TablatureBar
+        tab={tab}
+        bar={0}
+        tick={0}
+        onCell={onCell}
+        grid={12}
+        selected={{ string: 5, tick: 3 }}
+      />
+    );
+  });
+  expect(
+    button(screen!, 'TabEmptyCell:{"string":1,"bar":1,"beat":1.13}').props
+      .accessibilityState.selected
+  ).toBe(true);
+  expect(reads).toBe(0);
+});

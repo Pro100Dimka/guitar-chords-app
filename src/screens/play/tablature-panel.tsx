@@ -94,21 +94,8 @@ const TablatureStaff = React.memo(function TablatureStaff({
   const editable = !!onCell && !readOnly;
   const NoteTarget = readOnly ? View : Pressable;
   const selectedTick = selected?.tick ?? selectedRest;
-  const { columns, notes, rests } = useMemo(() => {
-    const times = new Set(
-      Array.from(
-        { length: Math.ceil(barTicks / (editable ? grid : beatTicks)) },
-        (_, position) => start + position * (editable ? grid : beatTicks)
-      )
-    );
-    // Insertion advances by note duration, which need not match the grid.
-    if (
-      editable &&
-      selectedTick !== null &&
-      selectedTick >= start &&
-      selectedTick < start + barTicks
-    )
-      times.add(selectedTick);
+  const { eventTimes, notes, rests } = useMemo(() => {
+    const times = new Set<number>();
     const entries = new Map<string, { note: TabNote; end: number }>();
     const nextByString = new Map<number, number>();
     for (const note of [...tab.notes].sort((a, b) => b.tick - a.tick)) {
@@ -131,11 +118,30 @@ const TablatureStaff = React.memo(function TablatureStaff({
       pauses.set(position, rest);
     }
     return {
-      columns: [...times].sort((a, b) => a - b),
+      eventTimes: times,
       notes: entries,
       rests: pauses
     };
-  }, [tab, start, barTicks, beatTicks, editable, grid, selectedTick]);
+  }, [tab.notes, tab.rests, start, barTicks]);
+  const columns = useMemo(() => {
+    const step = editable ? grid : beatTicks;
+    const times = new Set(
+      Array.from(
+        { length: Math.ceil(barTicks / step) },
+        (_, position) => start + position * step
+      )
+    );
+    eventTimes.forEach((tick) => times.add(tick));
+    // Insertion advances by note duration, which need not match the grid.
+    if (
+      editable &&
+      selectedTick !== null &&
+      selectedTick >= start &&
+      selectedTick < start + barTicks
+    )
+      times.add(selectedTick);
+    return [...times].sort((a, b) => a - b);
+  }, [eventTimes, start, barTicks, beatTicks, editable, grid, selectedTick]);
   const labelWidth = readOnly
     ? Math.max(24, 20 * readingScale)
     : 24 * textScale;

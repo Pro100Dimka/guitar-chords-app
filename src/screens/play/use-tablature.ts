@@ -54,6 +54,16 @@ const keyFor = (note: TabNote) =>
 const WINDOW_KEYS = 12;
 const HISTORY_LIMIT = 50;
 const MAX_LATENESS_MS = 100;
+const atOrAfter = (indices: number[], position: number) => {
+  let low = 0;
+  let high = indices.length;
+  while (low < high) {
+    const middle = (low + high) >>> 1;
+    if (indices[middle] < position) low = middle + 1;
+    else high = middle;
+  }
+  return low;
+};
 type NoteGate = {
   timer: ReturnType<typeof setTimeout>;
   note: TabNote;
@@ -89,6 +99,9 @@ export class TablatureTransport {
   private listeners = new Set<() => void>();
   private boundedTab: Tablature | undefined;
   private tabEnd = 0;
+  private indexedTab: Tablature | undefined;
+  private notesByString = new Map<number, number[]>();
+  private notesByKey = new Map<string, number[]>();
   private preparedWindow:
     | {
         cursor: number;
@@ -415,17 +428,47 @@ export class TablatureTransport {
     if (resume) void this.play();
   };
 
-  private heldNotes(position: number, attacksFrom = position): TabNote[] {
-    const latest = new Map<number, TabNote>();
-    for (const note of this.state.tab.notes) {
-      if (note.tick > position) break;
-      latest.set(note.string, note);
+  private indexNotes() {
+    if (this.indexedTab === this.state.tab) return;
+    this.indexedTab = this.state.tab;
+    this.notesByString.clear();
+    this.notesByKey.clear();
+    this.state.tab.notes.forEach((note, index) => {
+      const string = this.notesByString.get(note.string) ?? [];
+      if (!string.length) this.notesByString.set(note.string, string);
+      string.push(index);
+      const key = keyFor(note);
+      const occurrences = this.notesByKey.get(key) ?? [];
+      if (!occurrences.length) this.notesByKey.set(key, occurrences);
+      occurrences.push(index);
+    });
+  }
+  private noteOffset(tick: number) {
+    const { notes } = this.state.tab;
+    let low = 0;
+    let high = notes.length;
+    while (low < high) {
+      const middle = (low + high) >>> 1;
+      if (notes[middle].tick < tick) low = middle + 1;
+      else high = middle;
     }
-    return [...latest.values()].filter(
-      (note) =>
+    return low;
+  }
+  private heldNotes(position: number, attacksFrom = position): TabNote[] {
+    this.indexNotes();
+    const end = this.noteOffset(Math.floor(position) + 1);
+    const held: TabNote[] = [];
+    for (const indices of this.notesByString.values()) {
+      const index = indices[atOrAfter(indices, end) - 1];
+      if (index === undefined) continue;
+      const note = this.state.tab.notes[index];
+      if (
         note.tick + tabNoteDuration(note) > position &&
         (note.tick < attacksFrom || note.tick <= this.consumedTick)
-    );
+      )
+        held.push(note);
+    }
+    return held;
   }
   private restoreHeld(position: number, attacksFrom = position): boolean {
     const notes = this.heldNotes(position, attacksFrom);
@@ -452,10 +495,20 @@ export class TablatureTransport {
       desired.set(keyFor(note), note)
     );
     const add = (start: number) => {
-      for (let i = start; i < notes.length && desired.size < WINDOW_KEYS; i++) {
-        const note = notes[i];
-        if (note.tick >= bounds.end) break;
-        if (note.tick >= bounds.start) desired.set(keyFor(note), note);
+      // A repeated riff may never contain twelve distinct samples. Query the
+      // next occurrence of each key instead of traversing its entire tail.
+      const offset = Math.max(start, this.noteOffset(bounds.start));
+      const upcoming: Array<{ key: string; index: number }> = [];
+      for (const [key, indices] of this.notesByKey) {
+        if (desired.has(key)) continue;
+        const index = indices[atOrAfter(indices, offset)];
+        if (index !== undefined && notes[index].tick < bounds.end)
+          upcoming.push({ key, index });
+      }
+      upcoming.sort((a, b) => a.index - b.index);
+      for (const { key, index } of upcoming) {
+        if (desired.size >= WINDOW_KEYS) break;
+        desired.set(key, notes[index]);
       }
     };
     add(this.cursor);
@@ -626,10 +679,7 @@ export class TablatureTransport {
     const controller = new AbortController();
     this.controller = controller;
     this.position = position;
-    this.cursor = this.state.tab.notes.findIndex(
-      (note) => note.tick >= position && note.tick > this.consumedTick
-    );
-    if (this.cursor < 0) this.cursor = this.state.tab.notes.length;
+    this.cursor = this.noteOffset(Math.max(position, this.consumedTick + 1));
     this.ready.clear();
     this.update({
       status: "preparing",
@@ -758,10 +808,7 @@ export class TablatureTransport {
             Math.floor(completedLoops / trainer.repeats) * trainer.stepBpm
         );
       this.update({ completedLoops });
-      this.cursor = this.state.tab.notes.findIndex(
-        (note) => note.tick >= bounds.start
-      );
-      if (this.cursor < 0) this.cursor = this.state.tab.notes.length;
+      this.cursor = this.noteOffset(bounds.start);
       this.consumedTick = bounds.start - 1;
       this.lastBeat =
         Math.ceil(bounds.start / tabBeatTicks(this.state.tab)) - 1;

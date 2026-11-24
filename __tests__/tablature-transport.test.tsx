@@ -1448,10 +1448,12 @@ test("clock-only updates refresh the playhead without rebuilding guitar controls
   });
   try {
     await act(async () => {
-      hook.setTab(score([
-        { string: 0, fret: 0, tick: 0, duration: 24 },
-        { string: 0, fret: 3, tick: 96, duration: 24 }
-      ]));
+      hook.setTab(
+        score([
+          { string: 0, fret: 0, tick: 0, duration: 24 },
+          { string: 0, fret: 3, tick: 96, duration: 24 }
+        ])
+      );
       await hook.play();
     });
     const before = controlRenders;
@@ -1470,15 +1472,17 @@ test("clock-only updates refresh the playhead without rebuilding guitar controls
 });
 
 test("waiting between attacks does not rescan a maximum-size score each frame", async () => {
-  transport.setTab(score([
-    { string: 0, fret: 0, tick: 0, duration: 1 },
-    ...Array.from({ length: TAB_MAX_NOTES - 1 }, (_, index) => ({
-      string: 0,
-      fret: 0,
-      tick: 4000 + index * 4,
-      duration: 1
-    }))
-  ]));
+  transport.setTab(
+    score([
+      { string: 0, fret: 0, tick: 0, duration: 1 },
+      ...Array.from({ length: TAB_MAX_NOTES - 1 }, (_, index) => ({
+        string: 0,
+        fret: 0,
+        tick: 4000 + index * 4,
+        duration: 1
+      }))
+    ])
+  );
   let reads = 0;
   for (const note of transport.getSnapshot().tab.notes) {
     const tick = note.tick;
@@ -1497,4 +1501,34 @@ test("waiting between attacks does not rescan a maximum-size score each frame", 
   expect(reads).toBeLessThan(200);
   expect(warmGuitar).toHaveBeenCalledTimes(1);
   expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+});
+
+test("advancing attacks searches sample occurrences without scanning the remaining score", async () => {
+  transport.setTab({
+    ...emptyTablature(200),
+    notes: Array.from({ length: TAB_MAX_NOTES }, (_, index) => ({
+      string: 0,
+      fret: 0,
+      tick: index * 6,
+      duration: 6
+    }))
+  });
+  let reads = 0;
+  for (const note of transport.getSnapshot().tab.notes) {
+    const tick = note.tick;
+    Object.defineProperty(note, "tick", {
+      get: () => {
+        reads++;
+        return tick;
+      }
+    });
+  }
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(25);
+  reads = 0;
+  await jest.advanceTimersByTimeAsync(1000);
+  expect(transport.getSnapshot().status).toBe("playing");
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(14);
+  expect(warmGuitar).toHaveBeenCalledTimes(1);
+  expect(reads).toBeLessThan(1500);
 });
