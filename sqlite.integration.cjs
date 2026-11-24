@@ -15,8 +15,10 @@ const exportedBackups = [];
 const audio = { stop:async()=>{},stopPlayback(){},list:async(id)=>[...recordingFiles.values()].filter(take=>take.path.includes(`song-${id}-`)),remove:async(path)=>recordingFiles.delete(path) };
 const sqlite = new DatabaseSync(":memory:");
 let failure;
+let observedQueries;
 const adapter = {
   exec(queries, readOnly, callback) {
+    if (observedQueries) observedQueries.push(...queries);
     if (queries.some(({ sql }) => sql === failure)) {
       callback(new Error(`Injected failure: ${failure}`));
       return;
@@ -128,6 +130,37 @@ async function main() {
   assert.match(restorePlan, /songs_title_match/);
   assert.match(sqlite.prepare("EXPLAIN QUERY PLAN SELECT id FROM bands WHERE name = ? LIMIT 1").all("Band").map(row=>row.detail).join("\n"), /bands_name_match/);
   console.log("SQLite migration and query plans passed: paged library avoids sorting; restore and artist lookup use indexes.");
+  const recent = load("src/screens/library/recent-songs.ts");
+  sqlite.exec("BEGIN");
+  const insertRecent = sqlite.prepare("INSERT INTO songs(id,title,content,search_text_lower) VALUES (?,?,?,?)");
+  for (let id=1;id<=10000;id++) insertRecent.run(id,`Song ${id}`,"Am\nWords",id%173===0?"needle":"other");
+  sqlite.exec("COMMIT");
+  const recentIds = [10001,10002,...Array.from({length:10000},(_,index)=>(index*7919)%10000+1)];
+  observedQueries=[];
+  const firstRecent = await recent.recentSongPage(recentIds,"",{offset:0,buffered:[]},10,()=>true);
+  const secondRecent = await recent.recentSongPage(recentIds,"",firstRecent.cursor,10,()=>true);
+  assert.deepEqual(Array.from([...firstRecent.songs,...secondRecent.songs],song=>song.id),recentIds.filter(id=>id<=10000).slice(0,20));
+  const recentReads = observedQueries.filter(({sql})=>sql.startsWith("SELECT"));
+  assert.equal(recentReads.length,1,"Later recent pages reuse the bounded result buffer");
+  assert.ok(recentReads[0].sql.length<2000,"Recent queries stay bounded for a 10,000-song collection");
+  assert.doesNotMatch(recentReads[0].sql,/CASE|ORDER BY/);
+  const recentPlan=sqlite.prepare("EXPLAIN QUERY PLAN "+recentReads[0].sql).all(...recentReads[0].args).map(row=>row.detail).join("\n");
+  assert.match(recentPlan,/SEARCH s USING INTEGER PRIMARY KEY/);
+  assert.doesNotMatch(recentPlan,/TEMP B-TREE/);
+  observedQueries=[];
+  const filteredRecent=[];
+  let recentCursor={offset:0,buffered:[]};
+  for (;;) {
+    const page=await recent.recentSongPage(recentIds,"needle",recentCursor,10,()=>true);
+    filteredRecent.push(...page.songs.map(song=>song.id));
+    recentCursor=page.cursor;
+    if(page.songs.length<10) break;
+  }
+  assert.deepEqual(filteredRecent,recentIds.filter(id=>id<=10000&&id%173===0),"Sparse recent search preserves ordering across all pages and missing IDs");
+  assert.equal(observedQueries.filter(({sql})=>sql.startsWith("SELECT")).length,Math.ceil(recentIds.length/100),"Filtered pagination scans every candidate only once");
+  observedQueries=undefined;
+  sqlite.exec("DELETE FROM songs");
+  console.log("Recent library pagination passed actual SQLite: 10,000 ordered IDs, bounded primary-key reads, sparse filters, missing songs and buffered later pages.");
   for (const stage of ["BEGIN;", "END;"]) {
     failure = stage;
     await assert.rejects(create({ tableName: "bands", data: { name: "Must not persist" } }), /Injected failure/);

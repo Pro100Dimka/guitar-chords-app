@@ -71,6 +71,16 @@ test.each(["Favorites", "RecentSongs"])(
       expect(
         jest.mocked(getAllItems).mock.calls.at(-1)![0].parameters?.length ?? 0
       ).toBeLessThan(999);
+      if (collection === "RecentSongs") {
+        const queries = jest
+          .mocked(getAllItems)
+          .mock.calls.map(([query]) => query)
+          .filter((query) => query.ids);
+        expect(queries.every((query) => query.ids!.length <= 100)).toBe(true);
+        expect(queries.every((query) => query.orderBy === undefined)).toBe(
+          true
+        );
+      }
     } finally {
       usePreferences.setState({ songs: previous });
     }
@@ -94,6 +104,43 @@ test("iPhone offers microphone and audio-file recognition in the add menu", asyn
       (node) => node.props.accessibilityLabel === "AutofillRecognizeFile"
     ).length
   ).toBeGreaterThan(0);
+});
+
+test("legacy recent preference aliases retain the first position without duplicate rows", async () => {
+  const previous = usePreferences.getState().songs;
+  usePreferences.setState({
+    songs: {
+      1: { ...defaultSongPreferences, opened: 5 },
+      "01": { ...defaultSongPreferences, opened: 9 },
+      2: { ...defaultSongPreferences, opened: 7 }
+    }
+  });
+  jest
+    .mocked(getAllItems)
+    .mockImplementation(async (query) =>
+      [...new Set(query.ids ?? [])]
+        .sort((a, b) => b - a)
+        .map((id) => ({ id, title: `Song ${id}` }))
+    );
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Library />);
+    });
+    await act(async () => screen.root.findByType(SearchBar).props.onFilter());
+    await act(async () =>
+      screen.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === "RecentSongs")!
+        .props.onPress()
+    );
+    expect(
+      screen.root
+        .findByType(FlatList)
+        .props.data.map(({ id }: { id: number }) => id)
+    ).toEqual([1, 2]);
+  } finally {
+    usePreferences.setState({ songs: previous });
+  }
 });
 
 test("deletion completion refreshes the current search instead of its captured filter", async () => {

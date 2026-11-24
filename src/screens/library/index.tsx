@@ -25,6 +25,11 @@ import { usePreferences } from "@/components/preferences";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Sheet, Action } from "../song/tools";
 import { NavigationProp } from "@/router";
+import {
+  libraryQuery,
+  recentSongPage,
+  type RecentSongsCursor
+} from "./recent-songs";
 
 const PAGE_LIMIT = 10;
 
@@ -45,6 +50,7 @@ const Library: React.FC = () => {
   const [loading, setLoading] = useState(true); // для первой загрузки
   const [loadingMore, setLoadingMore] = useState(false); // для подгрузки
   const loadedQuery = useRef("");
+  const recentCursor = useRef<RecentSongsCursor>({ offset: 0, buffered: [] });
   const [loadError, setLoadError] = useState(false);
   const pagination = useRef({
     page: 0,
@@ -68,6 +74,10 @@ const Library: React.FC = () => {
       .filter((id) => Number.isSafeInteger(id) && id > 0)
       .join(",");
   }, [saved, collection]);
+  const selectedIds = useMemo(
+    () => [...new Set(selection.split(",").filter(Boolean).map(Number))],
+    [selection]
+  );
   const loadSongs = useCallback(
     async (pageNumber: number = 0) => {
       if (
@@ -87,30 +97,29 @@ const Library: React.FC = () => {
         setLoading(true);
       } else setLoadingMore(true);
       try {
-        const data = await getAllItems<ISong>({
-          tableName: "songs s",
-          joins: ["LEFT JOIN bands b ON s.band_id = b.id"],
-          page: pageNumber,
-          limit: PAGE_LIMIT,
-          ids:
-            collection === "AllSongs"
-              ? undefined
-              : selection.split(",").filter(Boolean).map(Number),
-          filters: filters
-            ? "LOWER(COALESCE(b.search_text_lower, '') || ' ' || s.search_text_lower) LIKE ? ESCAPE '!' COLLATE NOCASE"
-            : "",
-          orderBy:
-            collection === "RecentSongs" && selection
-              ? `CASE s.id ${selection
-                  .split(",")
-                  .map((id, index) => `WHEN ${id} THEN ${index}`)
-                  .join(" ")} END`
-              : "s.title COLLATE NOCASE, s.id",
-          parameters: filters
-            ? [`%${filters.toLowerCase().replace(/[!%_]/g, "!$&")}%`]
-            : [],
-          fields: "b.search_text_lower band, s.title, b.name as band_name, s.id"
-        });
+        let data: ISong[];
+        if (collection === "RecentSongs") {
+          const page = await recentSongPage(
+            selectedIds,
+            filters,
+            pageNumber === 0
+              ? { offset: 0, buffered: [] }
+              : recentCursor.current,
+            PAGE_LIMIT,
+            () => requestId === pagination.current.requestId
+          );
+          if (!page || requestId !== pagination.current.requestId) return;
+          data = page.songs;
+          recentCursor.current = page.cursor;
+        } else {
+          data = await getAllItems<ISong>({
+            ...libraryQuery(filters),
+            page: pageNumber,
+            limit: PAGE_LIMIT,
+            ids: collection === "AllSongs" ? undefined : selectedIds,
+            orderBy: "s.title COLLATE NOCASE, s.id"
+          });
+        }
 
         if (requestId !== pagination.current.requestId) return;
         if (pageNumber === 0) setSongs(data);
@@ -128,7 +137,7 @@ const Library: React.FC = () => {
         }
       }
     },
-    [filters, collection, selection]
+    [filters, collection, selection, selectedIds]
   );
   const latestLoadSongs = useRef(loadSongs);
   latestLoadSongs.current = loadSongs;
