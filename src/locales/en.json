@@ -1,4 +1,9 @@
 {
+  "TabShowKeypad": "Show fret keypad",
+  "TabHideKeypad": "Hide fret keypad",
+  "GuitarZoom": "Guitar size",
+  "GuitarZoomHint": "Adjust the guitar and string spacing to fit your hand.",
+  "GuitarZoomReset": "Reset to 100%",
   "TabNextPosition": "Next position",
   "TabLoopShort": "Loop",
   "TabTempoShort": "Tempo",

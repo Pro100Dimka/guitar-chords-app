@@ -94,7 +94,7 @@ const App: FC = () => {
           if (!active) return;
           animation = Animated.timing(launchOpacity, {
             toValue: 0,
-            duration: reduce ? 0 : 650,
+            duration: reduce ? 0 : 150,
             useNativeDriver: true
           });
           animation.start(({ finished }) => {

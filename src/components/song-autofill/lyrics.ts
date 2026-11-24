@@ -1,6 +1,10 @@
-import { songChords, transposeSong } from "../../screens/song/chords";
+import {
+  hasSongChordsAsync,
+  transposeSongAsync
+} from "../../screens/song/chords";
 import { Parser, DomHandler, DomUtils } from "htmlparser2";
 import { sourceArrangement } from "../../screens/song/rhythms";
+export { hasSongChordsAsync };
 
 export interface LyricsOption {
   id: number;
@@ -202,6 +206,135 @@ function chartRhythm(
 }
 
 const sourceCooldowns = new Map<string, number>();
+
+function sourceTurn(signal?: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal?.aborted) {
+      reject(new Error("Cancelled"));
+      return;
+    }
+    const abort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+      reject(new Error("Cancelled"));
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", abort);
+      resolve();
+    }, 0);
+    signal?.addEventListener("abort", abort, { once: true });
+  });
+}
+
+function sourceWork(signal?: AbortSignal) {
+  let deadline = Date.now() + 4;
+  let units = 0;
+  return () => {
+    if (signal?.aborted) throw new Error("Cancelled");
+    if (++units < 512 && Date.now() < deadline) return;
+    return sourceTurn(signal).then(() => {
+      deadline = Date.now() + 4;
+      units = 0;
+    });
+  };
+}
+
+// The page is already parsed and its entities decoded. Walk those nodes
+// directly instead of serializing the entire chart and parsing it again.
+async function sourceBody(
+  body: Parameters<typeof DomUtils.getChildren>[0],
+  inlineChords: boolean,
+  signal?: AbortSignal
+) {
+  const checkpoint = sourceWork(signal);
+  const parts: string[] = [];
+  let last = "";
+  let inChord = false;
+  const append = (value: string) => {
+    if (!value) return;
+    parts.push(value);
+    last = value[value.length - 1];
+  };
+  const close = (name: string) => {
+    if (!inlineChords) return;
+    if (["p", "div", "li"].includes(name)) append("\n");
+    if (name === "code" && inChord) {
+      append("]");
+      inChord = false;
+    }
+  };
+  const stack = [{ children: DomUtils.getChildren(body), index: 0, name: "" }];
+  while (stack.length) {
+    const current = stack[stack.length - 1];
+    if (current.index === current.children.length) {
+      close(current.name);
+      stack.pop();
+    } else {
+      const node = current.children[current.index++];
+      if (DomUtils.isTag(node)) {
+        if (
+          node.name === "br" ||
+          (!inlineChords &&
+            (node.attribs.class ?? "").split(/\s+/).includes("js-tab-row") &&
+            last &&
+            last !== "\n")
+        )
+          append("\n");
+        if (
+          inlineChords &&
+          node.name === "code" &&
+          node.attribs["data-chord"]
+        ) {
+          inChord = true;
+          append("[");
+        }
+        stack.push({ children: node.children, index: 0, name: node.name });
+      } else if (DomUtils.isText(node)) {
+        if (!inlineChords) append(node.data);
+        else {
+          let indent = false;
+          for (let offset = 0; offset < node.data.length; ) {
+            let end = Math.min(offset + 16384, node.data.length);
+            if (node.data[end - 1] === "\r" && node.data[end] === "\n") end--;
+            let chunk = node.data.slice(offset, end);
+            if (indent) chunk = chunk.replace(/^[ \t]+/, "");
+            indent = (indent && !chunk) || /\n[ \t]*$/.test(chunk);
+            append(chunk.replace(/\r?\n[ \t]*/g, "").replace(/\u00a0/g, " "));
+            offset = end;
+            const pause = checkpoint();
+            if (pause) await pause;
+          }
+        }
+      }
+    }
+    const pause = checkpoint();
+    if (pause) await pause;
+  }
+  if (signal?.aborted) throw new Error("Cancelled");
+  return parts.join("");
+}
+
+async function normalizeSourceText(text: string, signal?: AbortSignal) {
+  const checkpoint = sourceWork(signal);
+  const parts: string[] = [];
+  let carriageReturn = "";
+  for (let offset = 0; offset < text.length; offset += 16384) {
+    let chunk =
+      carriageReturn +
+      text
+        .slice(offset, offset + 16384)
+        .replace(/\u200b/g, "")
+        .replace(/\u00a0/g, " ");
+    carriageReturn = chunk.endsWith("\r") ? "\r" : "";
+    if (carriageReturn) chunk = chunk.slice(0, -1);
+    parts.push(chunk.replace(/\r\n?/g, "\n"));
+    const pause = checkpoint();
+    if (pause) await pause;
+  }
+  if (carriageReturn) parts.push("\n");
+  return parts.join("").trim();
+}
+
 async function parseSource(html: string, signal?: AbortSignal) {
   const handler = new DomHandler();
   const parser = new Parser(handler);
@@ -210,7 +343,7 @@ async function parseSource(html: string, signal?: AbortSignal) {
     if (signal?.aborted) throw new Error("Cancelled");
     parser.write(html.slice(offset, offset + 8192));
     if (Date.now() >= deadline) {
-      await new Promise<void>((resolve) => setTimeout(resolve, 0));
+      await sourceTurn(signal);
       deadline = Date.now() + 2;
     }
   }
@@ -469,31 +602,15 @@ async function lookupPisennyk(
     page.children
   );
   if (!body) return [];
-  let content = "";
-  let inChord = false;
-  const parser = new Parser({
-    onopentag(name, attributes) {
-      if (name === "br") content += "\n";
-      if (name === "code" && attributes["data-chord"]) {
-        inChord = true;
-        content += "[";
-      }
-    },
-    ontext(text) {
-      content += text.replace(/\r?\n[ \t]*/g, "").replace(/\u00a0/g, " ");
-    },
-    onclosetag(name) {
-      if (["p", "div", "li"].includes(name)) content += "\n";
-      if (name === "code" && inChord) {
-        content += "]";
-        inChord = false;
-      }
-    }
-  });
-  parser.end(DomUtils.getInnerHTML(body));
-  content = content
-    .split("\n")
-    .map((line) => line.trimEnd())
+  const extracted = await sourceBody(body, true, signal);
+  const checkpoint = sourceWork(signal);
+  const lines: string[] = [];
+  for (const line of extracted.split("\n")) {
+    lines.push(line.trimEnd());
+    const pause = checkpoint();
+    if (pause) await pause;
+  }
+  let content = lines
     .join("\n")
     .replace(/\n{4,}/g, "\n\n\n")
     .trim();
@@ -550,17 +667,22 @@ async function lookupPisennyk(
       .join("\n")
       .trim();
   if (!content || content.length > 200000) return [];
+  const transposed = await transposeSongAsync(content, capo ?? 0, signal);
+  await sourceTurn(signal);
+  const rhythm = chartRhythm(content, metadata);
+  const hasChords = await hasSongChordsAsync(content, signal);
+  if (signal?.aborted) throw new Error("Cancelled");
   return [
     {
       ...identity,
-      content: transposeSong(content, capo ?? 0),
+      content: transposed,
       capo,
-      rhythm: chartRhythm(content, metadata),
+      rhythm,
       album: "",
       duration: null,
       source: "Пісенник",
       url,
-      hasChords: songChords(content).length > 0
+      hasChords
     }
   ];
 }
@@ -784,22 +906,7 @@ async function lookupChordPage(
         ? blocks[0]
         : undefined);
   if (!body) return [];
-  let text = "";
-  const parser = new Parser({
-    onopentag(name, attributes) {
-      if (
-        name === "br" ||
-        ((attributes.class ?? "").split(/\s+/).includes("js-tab-row") &&
-          text &&
-          !text.endsWith("\n"))
-      )
-        text += "\n";
-    },
-    ontext(value) {
-      text += value;
-    }
-  });
-  parser.end(DomUtils.getInnerHTML(body));
+  const text = await sourceBody(body, false, signal);
   const capoElement =
     DomUtils.findOne(
       (element) =>
@@ -827,15 +934,23 @@ async function lookupChordPage(
     document.children
   );
   const tuning = tuningElement?.attribs["data-tuning"];
-  const content = transposeSong(
-    text
-      .replace(/\u200b/g, "")
-      .replace(/\u00a0/g, " ")
-      .replace(/\r\n?/g, "\n")
-      .trim(),
-    capo
+  const content = await transposeSongAsync(
+    await normalizeSourceText(text, signal),
+    capo,
+    signal
   );
   if (!content || content.length > 200000) return [];
+  await sourceTurn(signal);
+  const rhythm = chartRhythm(
+    text,
+    DomUtils.findOne(
+      (element) =>
+        (element.attribs.class ?? "").split(/\s+/).includes("song-metadata"),
+      document.children
+    )
+  );
+  const hasChords = await hasSongChordsAsync(content, signal);
+  if (signal?.aborted) throw new Error("Cancelled");
   return [
     {
       id: 0,
@@ -844,21 +959,12 @@ async function lookupChordPage(
       content,
       capo,
       tuning,
-      rhythm: chartRhythm(
-        text,
-        DomUtils.findOne(
-          (element) =>
-            (element.attribs.class ?? "")
-              .split(/\s+/)
-              .includes("song-metadata"),
-          document.children
-        )
-      ),
+      rhythm,
       album: "",
       duration: null,
       source,
       url,
-      hasChords: songChords(content).length > 0
+      hasChords
     }
   ];
 }

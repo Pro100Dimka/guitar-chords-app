@@ -385,4 +385,4 @@ const CurrentNote: FC<{
     </Group>
   );
 };
-export default CurrentNote;
+export default React.memo(CurrentNote);

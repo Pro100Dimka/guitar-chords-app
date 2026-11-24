@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   AppState,
+  FlatList,
   Linking,
   Image,
   Pressable,
@@ -45,6 +46,13 @@ export default function SongRecorder({
   const recordingRef = useRef(false);
   const activeRef = useRef(active);
   activeRef.current = active;
+  const visibleRef = useRef(visible);
+  visibleRef.current = visible;
+  const foreground = useRef(
+    AppState.currentState !== "background" &&
+      AppState.currentState !== "inactive"
+  );
+  const listDirty = useRef(false);
   const mounted = useRef(true);
   const operation = useRef(false);
   const opening = useRef<AbortController | null>(null);
@@ -55,6 +63,7 @@ export default function SongRecorder({
     setTakes([]);
   }, [songId]);
   const load = useCallback(async () => {
+    listDirty.current = false;
     const request = ++listRequest.current;
     const files = await performanceAudio.list(songId);
     if (mounted.current && request === listRequest.current) setTakes(files);
@@ -65,6 +74,10 @@ export default function SongRecorder({
     void load().catch(() => Alert.alert(t("RecordingError")));
     onOpened?.();
   }, [open, active, load, onOpened, t]);
+  useEffect(() => {
+    if (visible && active && foreground.current && listDirty.current)
+      void load().catch(() => Alert.alert(t("RecordingError")));
+  }, [visible, active, load, t]);
   const run = async (action: () => Promise<void>) => {
     if (operation.current) return;
     operation.current = true;
@@ -101,7 +114,9 @@ export default function SongRecorder({
           "interrupted"
         ].includes(event.state)
       ) {
-        void load().catch(() => Alert.alert(t("RecordingError")));
+        listDirty.current = true;
+        if (activeRef.current && visibleRef.current && foreground.current)
+          void load().catch(() => Alert.alert(t("RecordingError")));
         if (event.state === "error")
           Alert.alert(t("RecordingError"), t("RecordingErrorHint"));
         if (event.state === "interrupted")
@@ -111,11 +126,14 @@ export default function SongRecorder({
       }
     });
     const background = AppState.addEventListener("change", (state) => {
+      foreground.current = state === "active";
       if (state !== "active") {
         opening.current?.abort();
         performanceAudio.stopPlayback();
         if (recordingRef.current)
           void performanceAudio.stop().catch(() => undefined);
+      } else if (activeRef.current && visibleRef.current && listDirty.current) {
+        void load().catch(() => Alert.alert(t("RecordingError")));
       }
     });
     return () => {
@@ -254,6 +272,7 @@ export default function SongRecorder({
       {visible && active && (
         <Sheet
           musical
+          scrollable={false}
           title={t(takes.length ? "MyRecordings" : "RecordPerformance")}
           onClose={() => {
             if (!busy) {
@@ -262,103 +281,111 @@ export default function SongRecorder({
             }
           }}
         >
-          {!browseOnly && !takes.length && recordControl}
-          {takes.map((take) => (
-            <View key={take.path} style={styles.card}>
-              <Text style={styles.title}>
-                {new Date(take.date).toLocaleString(
-                  i18n.language === "ua" ? "uk" : i18n.language
-                )}
-              </Text>
-              {take.interrupted && (
-                <Text style={styles.hint}>{t("RecordingInterrupted")}</Text>
-              )}
-              {take.processing && (
-                <Text style={styles.hint}>{t("RecordingProcessing")}</Text>
-              )}
-              <View style={styles.row}>
-                <Action
-                  glass
-                  label={playing === take.path ? "■" : "▶"}
-                  icon={playing === take.path ? "stop" : "play"}
-                  accessibilityLabel={t(
-                    playing === take.path ? "StopPlayback" : "ListenTake"
+          <FlatList
+            data={takes}
+            keyExtractor={(take) => take.path}
+            initialNumToRender={6}
+            maxToRenderPerBatch={6}
+            windowSize={5}
+            contentContainerStyle={styles.takes}
+            ListFooterComponent={browseOnly ? null : recordControl}
+            renderItem={({ item: take }) => (
+              <View key={take.path} style={styles.card}>
+                <Text style={styles.title}>
+                  {new Date(take.date).toLocaleString(
+                    i18n.language === "ua" ? "uk" : i18n.language
                   )}
-                  selected={playing === take.path}
-                  disabled={busy || take.processing}
-                  onPress={() =>
-                    void run(async () => {
-                      if (playing === take.path)
-                        performanceAudio.stopPlayback();
-                      else {
-                        const request = new AbortController();
-                        opening.current = request;
-                        await performanceAudio.play(take.path);
-                        if (
-                          request.signal.aborted ||
-                          !mounted.current ||
-                          !activeRef.current ||
-                          AppState.currentState !== "active"
-                        ) {
+                </Text>
+                {take.interrupted && (
+                  <Text style={styles.hint}>{t("RecordingInterrupted")}</Text>
+                )}
+                {take.processing && (
+                  <Text style={styles.hint}>{t("RecordingProcessing")}</Text>
+                )}
+                <View style={styles.row}>
+                  <Action
+                    glass
+                    label={playing === take.path ? "■" : "▶"}
+                    icon={playing === take.path ? "stop" : "play"}
+                    accessibilityLabel={t(
+                      playing === take.path ? "StopPlayback" : "ListenTake"
+                    )}
+                    selected={playing === take.path}
+                    disabled={busy || take.processing}
+                    onPress={() =>
+                      void run(async () => {
+                        if (playing === take.path)
                           performanceAudio.stopPlayback();
-                          return;
+                        else {
+                          const request = new AbortController();
+                          opening.current = request;
+                          await performanceAudio.play(take.path);
+                          if (
+                            request.signal.aborted ||
+                            !mounted.current ||
+                            !activeRef.current ||
+                            AppState.currentState !== "active"
+                          ) {
+                            performanceAudio.stopPlayback();
+                            return;
+                          }
+                          setPlaying(take.path);
                         }
-                        setPlaying(take.path);
-                      }
-                    })
-                  }
-                />
-                <Action
-                  glass
-                  label="↗"
-                  icon="export-variant"
-                  accessibilityLabel={t("SaveRecordingFile")}
-                  disabled={busy || take.processing}
-                  onPress={() =>
-                    void run(async () => {
-                      performanceAudio.stopPlayback();
-                      const result = await saveDocuments({
-                        sourceUris: [encodeURI(`file://${take.path}`)],
-                        mimeType: "audio/mp4",
-                        fileName: take.path.split(/[\\/]/).pop(),
-                        copy: true
-                      });
-                      if (result.some((file) => file.error))
-                        throw new Error("Save failed");
-                    })
-                  }
-                />
-                <Action
-                  glass
-                  label="×"
-                  icon="trash-can-outline"
-                  accessibilityLabel={t("DeleteTake")}
-                  disabled={busy || take.processing}
-                  onPress={() =>
-                    Alert.alert(t("DeleteTake"), t("DeleteTakeHint"), [
-                      { text: t("Cancel"), style: "cancel" },
-                      {
-                        text: t("DeleteTake"),
-                        style: "destructive",
-                        onPress: () =>
-                          void run(async () => {
-                            await performanceAudio.remove(take.path);
-                            await load();
-                          })
-                      }
-                    ])
-                  }
-                />
+                      })
+                    }
+                  />
+                  <Action
+                    glass
+                    label="↗"
+                    icon="export-variant"
+                    accessibilityLabel={t("SaveRecordingFile")}
+                    disabled={busy || take.processing}
+                    onPress={() =>
+                      void run(async () => {
+                        performanceAudio.stopPlayback();
+                        const result = await saveDocuments({
+                          sourceUris: [encodeURI(`file://${take.path}`)],
+                          mimeType: "audio/mp4",
+                          fileName: take.path.split(/[\\/]/).pop(),
+                          copy: true
+                        });
+                        if (result.some((file) => file.error))
+                          throw new Error("Save failed");
+                      })
+                    }
+                  />
+                  <Action
+                    glass
+                    label="×"
+                    icon="trash-can-outline"
+                    accessibilityLabel={t("DeleteTake")}
+                    disabled={busy || take.processing}
+                    onPress={() =>
+                      Alert.alert(t("DeleteTake"), t("DeleteTakeHint"), [
+                        { text: t("Cancel"), style: "cancel" },
+                        {
+                          text: t("DeleteTake"),
+                          style: "destructive",
+                          onPress: () =>
+                            void run(async () => {
+                              await performanceAudio.remove(take.path);
+                              await load();
+                            })
+                        }
+                      ])
+                    }
+                  />
+                </View>
               </View>
-            </View>
-          ))}
-          {!browseOnly && !!takes.length && recordControl}
+            )}
+          />
         </Sheet>
       )}
     </View>
   );
 }
 const styles = StyleSheet.create({
+  takes: { gap: 12, padding: 16, paddingBottom: 24 },
   elapsed: {
     color: palette.glass.ink,
     fontSize: 12,

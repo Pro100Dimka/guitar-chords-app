@@ -170,7 +170,7 @@ test("guitar strings expose accessible selection and throttled pitch readings", 
   usePreferences.setState({ instrument: "guitar", autoDetect: true });
   const play = jest
     .spyOn(guitarAudio, "playGuitar")
-    .mockImplementation(() => {});
+    .mockResolvedValue(undefined);
   try {
     await act(async () => {
       screen = Renderer.create(<Tuner active />);
@@ -258,7 +258,7 @@ test("calibration updates live readings and reference playback without restartin
   });
   const play = jest
     .spyOn(guitarAudio, "playGuitar")
-    .mockImplementation(() => {});
+    .mockResolvedValue(undefined);
   try {
     await act(async () => {
       screen = Renderer.create(<Tuner active />);
@@ -299,7 +299,7 @@ test("calibration updates live readings and reference playback without restartin
     expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(1);
     expect(MicrophoneStream.stopRecording).not.toHaveBeenCalled();
     await act(async () => screen.root.findByType(Buttons).props.onReference());
-    expect(play).toHaveBeenCalledWith([69], 442);
+    expect(play).toHaveBeenCalledWith([69], 442, expect.anything());
     expect(wheel.props.note.value).toBeNull();
     await act(async () => screen.update(<Tuner active={false} />));
     expect(screen.root.findByType(Buttons).props.referencePlaying).toBe(false);
@@ -459,6 +459,33 @@ test("manual mode releases guitar targets when switching to chromatic and restor
   );
 });
 
+test("initial capture receives the selected tuning without an empty intermediate target update", async () => {
+  const previous = usePreferences.getState();
+  usePreferences.setState({
+    instrument: "guitar",
+    autoDetect: true,
+    tuning: "standard"
+  });
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Tuner active />);
+    });
+    expect(MicrophoneStream.setTargetNotes).toHaveBeenCalledTimes(1);
+    expect(MicrophoneStream.setTargetNotes).toHaveBeenCalledWith([
+      expect.objectContaining({ name: "E", octave: 2 })
+    ]);
+    await act(async () =>
+      usePreferences.getState().update({ tuning: "dropD" })
+    );
+    expect(MicrophoneStream.setTargetNotes).toHaveBeenCalledTimes(2);
+    expect(MicrophoneStream.setTargetNotes).toHaveBeenLastCalledWith([
+      expect.objectContaining({ name: "D", octave: 2 })
+    ]);
+  } finally {
+    await act(async () => usePreferences.setState(previous));
+  }
+});
+
 test("returning from settings refreshes microphone access without requesting it again", async () => {
   jest
     .mocked(checkMicPermission)
@@ -543,7 +570,7 @@ test("changing octave stops the reference and the next tap plays again", async (
   usePreferences.setState({ instrument: "chromatic", chromaticOctave: 4 });
   const play = jest
     .spyOn(guitarAudio, "playGuitar")
-    .mockImplementation(() => {});
+    .mockResolvedValue(undefined);
   try {
     await act(async () => {
       screen = Renderer.create(<Tuner active />);
@@ -555,7 +582,11 @@ test("changing octave stops the reference and the next tap plays again", async (
     );
     expect(screen.root.findByType(Buttons).props.referencePlaying).toBe(false);
     await act(async () => screen.root.findByType(Buttons).props.onReference());
-    expect(play).toHaveBeenLastCalledWith([81], previous.tunerReference);
+    expect(play).toHaveBeenLastCalledWith(
+      [81],
+      previous.tunerReference,
+      expect.anything()
+    );
     expect(play).toHaveBeenCalledTimes(2);
   } finally {
     await act(async () => screen.unmount());
@@ -588,7 +619,7 @@ test("selecting a new string clears the previous measurement during reference pl
         return {};
       }
     }));
-  jest.spyOn(guitarAudio, "playGuitar").mockImplementation(() => {});
+  jest.spyOn(guitarAudio, "playGuitar").mockResolvedValue(undefined);
   try {
     await act(async () => {
       screen = Renderer.create(<Tuner active />);
@@ -641,3 +672,79 @@ test("selecting a new string clears the previous measurement during reference pl
     usePreferences.setState(previous);
   }
 });
+
+test("unchanged accessible pitch readings do not commit another tuner render", async () => {
+  jest.useFakeTimers();
+  const previous = usePreferences.getState();
+  usePreferences.setState({ instrument: "guitar", autoDetect: true });
+  const rendered = jest.fn();
+  try {
+    await act(async () => {
+      screen = Renderer.create(
+        <React.Profiler id="tuner" onRender={rendered}>
+          <Tuner active />
+        </React.Profiler>
+      );
+    });
+    const listener = jest
+      .mocked(MicrophoneStream.addListener)
+      .mock.calls.at(-1)![0];
+    const input = {
+      note: "E",
+      octave: 2,
+      pitch: 82.4069,
+      refFreq: 82.4069,
+      direction: "=" as const,
+      rms: 0.1,
+      diff: 0
+    };
+    await act(async () => listener(input));
+    rendered.mockClear();
+    await act(async () => {
+      jest.advanceTimersByTime(1000);
+      listener({ ...input, pitch: 82.407 });
+    });
+    expect(rendered).not.toHaveBeenCalled();
+  } finally {
+    await act(async () => screen.unmount());
+    usePreferences.setState(previous);
+  }
+});
+
+test.each(["guitar", "chromatic"] as const)(
+  "pending %s reference preparation is canceled on the next tap and screen exit",
+  async (instrument) => {
+    const previous = usePreferences.getState();
+    usePreferences.setState({ instrument, autoDetect: true });
+    const play = jest
+      .spyOn(guitarAudio, "playGuitar")
+      .mockResolvedValue(undefined);
+    try {
+      await act(async () => {
+        screen = Renderer.create(<Tuner active />);
+      });
+      const press = () =>
+        instrument === "chromatic"
+          ? screen.root.findByType(Buttons).props.onReference()
+          : screen.root
+              .findAll((node) => node.props.accessibilityRole === "radio", {
+                deep: false
+              })[0]
+              .props.onPress();
+      await act(async () => press());
+      const first = play.mock.calls[0][2]!;
+      expect(first.aborted).toBe(false);
+      await act(async () => press());
+      expect(first.aborted).toBe(true);
+      if (instrument === "chromatic") await act(async () => press());
+      const second = play.mock.calls.at(-1)![2]!;
+      expect(second.aborted).toBe(false);
+      await act(async () => screen.update(<Tuner active={false} />));
+      expect(second.aborted).toBe(true);
+    } finally {
+      await act(async () => screen.unmount());
+      usePreferences.setState(previous);
+      play.mockRestore();
+    }
+  }
+);

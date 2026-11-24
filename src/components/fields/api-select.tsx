@@ -117,15 +117,18 @@ function SearchableSelect<T extends Record<string, unknown>>({
     current.pending = true;
     setLoading(true);
     setData([]);
-    const timeout = setTimeout(() => {
-      void loadItems(0);
-    }, 400);
+    const timeout = setTimeout(
+      () => {
+        void loadItems(0);
+      },
+      query.trim() ? 250 : 0
+    );
     return () => {
       clearTimeout(timeout);
       current.requestId++;
       current.pending = false;
     };
-  }, [modalVisible, loadItems]);
+  }, [modalVisible, loadItems, query]);
 
   const closeModal = () => {
     pagination.current.requestId++;
@@ -230,7 +233,7 @@ function SearchableSelect<T extends Record<string, unknown>>({
                 </TouchableOpacity>
               )}
               onEndReached={() => {
-                if (!pagination.current.pending)
+                if (!requestError && !pagination.current.pending)
                   void loadItems(pagination.current.page);
               }}
               onEndReachedThreshold={0.5}

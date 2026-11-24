@@ -1,5 +1,5 @@
 import { useNavigation } from "@react-navigation/native";
-import React from "react";
+import React, { memo } from "react";
 import { Image, Pressable, StyleSheet, View } from "react-native";
 import Text from "../../components/styled-text";
 import palette from "../../theme/palette";
@@ -8,10 +8,10 @@ import { ISong } from "@/@interfaces";
 import { usePreferences } from "@/components/preferences";
 import { useTranslation } from "react-i18next";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
-const LibraryItem: React.FC<{ song: ISong; onLongPress?: () => void }> = ({
-  song,
-  onLongPress
-}) => {
+const LibraryItem: React.FC<{
+  song: ISong;
+  onLongPress?: (song: ISong) => void;
+}> = ({ song, onLongPress }) => {
   const navigation = useNavigation<NavigationProp>();
   const { t } = useTranslation();
   const favorite = usePreferences((state) => state.songs[song.id]?.favorite);
@@ -28,7 +28,7 @@ const LibraryItem: React.FC<{ song: ISong; onLongPress?: () => void }> = ({
       accessibilityRole="button"
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={() => navigation.navigate("Song", { id: song.id.toString() })}
-      onLongPress={onLongPress}
+      onLongPress={() => onLongPress?.(song)}
       delayLongPress={350}
     >
       <Image
@@ -105,4 +105,4 @@ const styles = StyleSheet.create({
     fontWeight: "600"
   }
 });
-export default LibraryItem;
+export default memo(LibraryItem);

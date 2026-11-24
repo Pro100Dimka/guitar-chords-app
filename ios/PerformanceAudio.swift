@@ -22,6 +22,9 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
     private var lastTake: URL?
     private var processing = Set<String>()
     private let worker = DispatchQueue(label: "guitar.prepare", qos: .userInitiated)
+    private let filesWorker = DispatchQueue(label: "recording.files", qos: .utility)
+    private let recordingFilesLock = NSLock()
+    private var activeRecordingFiles = Set<String>()
     private var observers: [NSObjectProtocol] = []
     private var observing = false
     private var instrumentInterrupted = false
@@ -31,7 +34,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
     }
     override init() {
         super.init()
-        try? reconcileRecordings()
+        filesWorker.async { [weak self] in try? self?.reconcileRecordings() }
         observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didEnterBackgroundNotification, object: nil, queue: .main) { [weak self] _ in
             self?.finishTake()
             self?.stopPlayback()
@@ -87,7 +90,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         var ownedURL: URL?
         var capture: StreamingTake?
         do {
-            let url = try reserveRecordingURL(songId)
+            let url = try reserveActiveRecordingURL(songId)
             ownedURL = url
             let session = AVAudioSession.sharedInstance()
             try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
@@ -106,7 +109,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         } catch {
             recorder = nil
             capture?.cancelStartup()
-            if let url = ownedURL { try? removeRecordingFiles(url) }
+            if let url = ownedURL { releaseRecordingURL(url); try? removeRecordingFiles(url) }
             try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
             reject("RECORDING_FAILED", "Could not start recording", error)
         }
@@ -120,6 +123,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         emit("processing", uri: url.path)
         capture.finish(interrupted: instrumentInterrupted || UIApplication.shared.applicationState != .active) { [weak self] result in
             guard let self = self else { return }
+            self.releaseRecordingURL(url)
             self.processing.remove(url.path)
             switch result {
             case .success(let interrupted):
@@ -133,6 +137,21 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         return lastTake?.path
     }
     @objc func stopTake(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) { resolve(finishTake()) }
+    private func withRecordingFilesLock<T>(_ body: () throws -> T) rethrows -> T {
+        recordingFilesLock.lock()
+        defer { recordingFilesLock.unlock() }
+        return try body()
+    }
+    private func reserveActiveRecordingURL(_ songId: String) throws -> URL {
+        try withRecordingFilesLock {
+            let url = try reserveRecordingURL(songId)
+            activeRecordingFiles.insert(url.resolvingSymlinksInPath().path)
+            return url
+        }
+    }
+    private func releaseRecordingURL(_ url: URL) {
+        _ = withRecordingFilesLock { activeRecordingFiles.remove(url.resolvingSymlinksInPath().path) }
+    }
     private func reserveRecordingURL(_ songId: String, timestamp: Int64 = Int64(Date().timeIntervalSince1970 * 1000)) throws -> URL {
         let files = FileManager.default
         try files.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -163,41 +182,68 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
     private func reconcileRecordings() throws {
         let files = FileManager.default
         try files.createDirectory(at: directory, withIntermediateDirectories: true)
-        var active = Set(processing.map { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path })
-        if let url = recorder?.url { active.insert(url.resolvingSymlinksInPath().path) }
-        for partial in try files.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey]) {
+        let entries = try files.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey])
+        for partial in entries {
             guard partial.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.processing\\.m4a$", options: .regularExpression) != nil else { continue }
             let name = partial.lastPathComponent.replacingOccurrences(of: ".processing.m4a", with: ".m4a")
             let target = directory.appendingPathComponent(name)
-            guard !active.contains(target.resolvingSymlinksInPath().path) else { continue }
-            if files.fileExists(atPath: target.path), (try target.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0 {
-                try files.removeItem(at: partial)
-            } else if let audio = try? AVAudioFile(forReading: partial), audio.length > 0 {
-                if files.fileExists(atPath: target.path) { try files.removeItem(at: target) }
-                try files.moveItem(at: partial, to: target)
-                let marker = target.deletingPathExtension().appendingPathExtension("interrupted")
-                if !files.fileExists(atPath: marker.path) { try Data().write(to: marker, options: .withoutOverwriting) }
-            } else { try files.removeItem(at: partial) }
-        }
-        for url in try files.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.fileSizeKey]) {
-            if url.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.m4a$", options: .regularExpression) != nil,
-               !active.contains(url.resolvingSymlinksInPath().path),
-               (try url.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) == 0 {
-                try files.removeItem(at: url)
+            let path = target.resolvingSymlinksInPath().path
+            let recover = try withRecordingFilesLock { () throws -> Bool in
+                guard !activeRecordingFiles.contains(path) else { return false }
+                if files.fileExists(atPath: target.path), (try URL(fileURLWithPath: target.path).resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0 {
+                    try files.removeItem(at: partial)
+                    return false
+                }
+                return true
+            }
+            guard recover else { continue }
+            // Opening an orphan AAC can block. Keep it off main and outside
+            // the short lock that protects new reservations and finalization.
+            let valid: Bool
+            do {
+                let audio = try AVAudioFile(forReading: partial)
+                valid = audio.length > 0
+            } catch { valid = false }
+            try withRecordingFilesLock {
+                guard !activeRecordingFiles.contains(path), files.fileExists(atPath: partial.path) else { return }
+                if files.fileExists(atPath: target.path), (try URL(fileURLWithPath: target.path).resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) > 0 {
+                    try files.removeItem(at: partial)
+                } else if valid {
+                    if files.fileExists(atPath: target.path) { try files.removeItem(at: target) }
+                    try files.moveItem(at: partial, to: target)
+                    let marker = target.deletingPathExtension().appendingPathExtension("interrupted")
+                    if !files.fileExists(atPath: marker.path) { try Data().write(to: marker, options: .withoutOverwriting) }
+                } else { try files.removeItem(at: partial) }
             }
         }
-        for marker in try files.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
+        for url in entries {
+            guard url.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.m4a$", options: .regularExpression) != nil else { continue }
+            try withRecordingFilesLock {
+                guard !activeRecordingFiles.contains(url.resolvingSymlinksInPath().path), files.fileExists(atPath: url.path) else { return }
+                // Directory URLs can cache pre-recovery metadata. Read a fresh
+                // URL after a completed partial has replaced its empty target.
+                let current = URL(fileURLWithPath: url.path)
+                if (try current.resourceValues(forKeys: [.fileSizeKey]).fileSize ?? 0) == 0 {
+                    try files.removeItem(at: current)
+                }
+            }
+        }
+        for marker in entries {
             guard marker.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.interrupted$", options: .regularExpression) != nil else { continue }
             let target = marker.deletingPathExtension().appendingPathExtension("m4a")
             let partial = marker.deletingPathExtension().appendingPathExtension("processing.m4a")
-            if !active.contains(target.resolvingSymlinksInPath().path), !files.fileExists(atPath: target.path), !files.fileExists(atPath: partial.path) {
-                try files.removeItem(at: marker)
+            try withRecordingFilesLock {
+                if !activeRecordingFiles.contains(target.resolvingSymlinksInPath().path), !files.fileExists(atPath: target.path), !files.fileExists(atPath: partial.path), files.fileExists(atPath: marker.path) {
+                    try files.removeItem(at: marker)
+                }
             }
         }
     }
     private func removeRecordingFiles(_ url: URL) throws {
+        recordingFilesLock.lock()
+        defer { recordingFilesLock.unlock() }
         let path = url.resolvingSymlinksInPath().path
-        guard !processing.contains(where: { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path == path }),
+        guard !activeRecordingFiles.contains(path), !processing.contains(where: { URL(fileURLWithPath: $0).resolvingSymlinksInPath().path == path }),
               recorder?.url.resolvingSymlinksInPath().path != path else {
             throw NSError(domain: "PerformanceAudio", code: 2)
         }
@@ -207,16 +253,31 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
             try FileManager.default.removeItem(at: file)
         }
     }
-    @objc func listTakes(_ songId: String, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
-        do {
-            try reconcileRecordings()
-            let files = try FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey])
-            let rows: [[String: Any]] = try files.filter { $0.lastPathComponent.hasPrefix("song-\(songId)-") && $0.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.m4a$", options: .regularExpression) != nil && $0 != recorder?.url }.map { url in
-                let values = try url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
-                return ["path": url.path, "date": (values.contentModificationDate ?? .distantPast).timeIntervalSince1970 * 1000, "bytes": values.fileSize ?? 0, "processing": processing.contains(url.path), "interrupted": FileManager.default.fileExists(atPath: url.deletingPathExtension().appendingPathExtension("interrupted").path)]
+    @objc func listTakes(_ songId: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+        filesWorker.async {
+            do {
+                try self.reconcileRecordings()
+                let files = try FileManager.default.contentsOfDirectory(at: self.directory, includingPropertiesForKeys: [.contentModificationDateKey, .fileSizeKey])
+                let rows: [[String: Any]] = try files.filter { $0.lastPathComponent.hasPrefix("song-\(songId)-") && $0.lastPathComponent.range(of: "^song-[0-9]+-[0-9]+\\.m4a$", options: .regularExpression) != nil }.compactMap { url -> [String: Any]? in
+                    do {
+                        let values = try url.resourceValues(forKeys: [.contentModificationDateKey, .fileSizeKey])
+                        return ["path": url.path, "date": (values.contentModificationDate ?? .distantPast).timeIntervalSince1970 * 1000, "bytes": values.fileSize ?? 0, "interrupted": FileManager.default.fileExists(atPath: url.deletingPathExtension().appendingPathExtension("interrupted").path)]
+                    } catch let error as CocoaError where error.code == .fileReadNoSuchFile || error.code == .fileNoSuchFile {
+                        // A deletion may finish after the directory snapshot.
+                        return nil
+                    }
+                }.sorted { ($0["date"] as? Double ?? 0) > ($1["date"] as? Double ?? 0) }
+                DispatchQueue.main.async {
+                    resolve(rows.filter { $0["path"] as? String != self.recorder?.url.path }.map { row in
+                        var current = row
+                        current["processing"] = self.processing.contains(row["path"] as? String ?? "")
+                        return current
+                    })
+                }
+            } catch {
+                DispatchQueue.main.async { reject("FILES_FAILED", "Could not load recordings", error) }
             }
-            resolve(rows.sorted { ($0["date"] as? Double ?? 0) > ($1["date"] as? Double ?? 0) })
-        } catch { reject("FILES_FAILED", "Could not load recordings", error) }
+        }
     }
     @objc func playTake(_ path: String, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
         guard recorder == nil, !processing.contains(path) else { reject("RECORDING_BUSY", "Recording in progress", nil); return }
@@ -358,7 +419,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         }
     }
     @objc func prepareGuitar(_ key: String, wave: String) {
-        guard key.count <= 256, wave.count <= 8000000 else { return }
+        guard key.count <= 256, wave.utf8.count <= 8000000 else { return }
         if let player = preparedStrings[key] {
             cacheGuitar(key, player: player, alternate: preparedAlternates[key], bytes: preparedSizes[key] ?? 0)
             return
@@ -367,7 +428,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         cacheGuitar(key, player: audio, bytes: data.count)
     }
     @objc func prepareFingering(_ key: String, wave: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
-        guard key.count <= 256, wave.count <= 8000000 else { resolve(false); return }
+        guard key.count <= 256, wave.utf8.count <= 8000000 else { resolve(false); return }
         if let player = preparedStrings[key], let alternate = preparedAlternates[key] {
             cacheGuitar(key, player: player, alternate: alternate, bytes: preparedSizes[key] ?? 0)
             resolve(true); return
@@ -451,7 +512,7 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
     }
     @objc func playGuitar(_ wave: String) {
         let key = "inline-preview"
-        guard wave.count <= 8000000 else { return }
+        guard wave.utf8.count <= 8000000 else { return }
         preparedStrings.removeValue(forKey: key)
         preparedAlternates.removeValue(forKey: key)
         preparedSizes.removeValue(forKey: key)

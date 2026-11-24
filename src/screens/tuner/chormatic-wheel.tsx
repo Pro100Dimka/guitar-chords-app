@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   BlurMask,
   Circle,
@@ -54,7 +54,7 @@ export function chromaticLayout(width: number, height: number) {
   };
 }
 
-export default function ChromaticWheel({
+function ChromaticWheel({
   note,
   fill,
   rms,
@@ -77,7 +77,7 @@ export default function ChromaticWheel({
   useEffect(() => {
     if (font && faceReady) onReady?.();
   }, [font, faceReady, onReady]);
-  const layout = chromaticLayout(width, height);
+  const layout = useMemo(() => chromaticLayout(width, height), [width, height]);
   const cx = layout.hole.x + layout.hole.width / 2;
   const cy = layout.hole.y + layout.hole.height / 2;
   const radius = layout.hole.width / 2;
@@ -212,6 +212,8 @@ export default function ChromaticWheel({
     </Group>
   );
 }
+
+export default React.memo(ChromaticWheel);
 
 function PitchName({
   note,

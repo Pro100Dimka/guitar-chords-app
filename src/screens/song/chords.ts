@@ -1,3 +1,27 @@
+type ParserWork<T> = Generator<void, T>;
+function finishParser<T>(work: ParserWork<T>): T {
+  let step = work.next();
+  while (!step.done) step = work.next();
+  return step.value;
+}
+function* lettersOf(text: string): ParserWork<string[]> {
+  if (text.length < 4096) return [...text];
+  const letters: string[] = [];
+  for (const letter of text) {
+    letters.push(letter);
+    if (letters.length % 4096 === 0) yield;
+  }
+  return letters;
+}
+function* letterCount(text: string): ParserWork<number> {
+  if (text.length < 4096) return [...text].length;
+  let length = 0;
+  for (const _ of text) {
+    if (++length % 4096 === 0) yield;
+  }
+  return length;
+}
+
 const sharpNotes = [
   "C",
   "C#",
@@ -40,7 +64,7 @@ export const chordNotationPattern =
   /^(?=.{1,64}$)([A-G])([#b]?)((?:(?:maj|Maj|min|dim|aug|sus|add|omit|no|m|M|Δ|ø|°|\+|-|[\d#b])|\((?:maj\d+|M\d+|[\d#b,+-]+)\))*(?:\/\d+)*)(?:\/([A-G])([#b]?))?$/;
 export function transposeChord(chord: string, semitones: number) {
   chord = normalizeChord(chord);
-  if (!chordNotationPattern.test(chord) || semitones === 0) return chord;
+  if (semitones === 0 || !chordNotationPattern.test(chord)) return chord;
   const parsed = chord.match(chordNotationPattern)!;
   const notes = [parsed[2], parsed[5]].includes("b") ? flatNotes : sharpNotes;
   return chord.replace(
@@ -356,64 +380,83 @@ export function normalizeChord(chord: string) {
   );
 }
 export function chordLineParts(line: string, semitones = 0) {
-  return line
-    .split(/(\s+|[|:]+)/)
-    .filter(Boolean)
-    .map((part) => transposeChord(part, semitones));
+  return finishParser(chordLinePartsWork(line, semitones));
+}
+function* chordLinePartsWork(
+  line: string,
+  semitones = 0
+): ParserWork<string[]> {
+  const parts: string[] = [];
+  let units = 0;
+  for (const part of line.split(/(\s+|[|:]+)/)) {
+    if (part) parts.push(transposeChord(part, semitones));
+    if (++units % 64 === 0) yield;
+  }
+  return parts;
 }
 function expandTabs(content: string) {
+  return finishParser(expandTabsWork(content));
+}
+function* expandTabsWork(content: string): ParserWork<string> {
   if (!content.includes("\t")) return content;
   let column = 0;
-  const expanded = content.replace(
-    /\[[^\[\]\n]+\]|[^\t\n\[]+|\t|\n|./gu,
-    (part) => {
-      if (part === "\n") {
-        column = 0;
-        return part;
-      }
-      if (part === "\t") {
-        const width = 8 - (column % 8);
-        column += width;
-        return " ".repeat(width);
-      }
+  let units = 0;
+  const parts: string[] = [];
+  for (const match of content.matchAll(/\[[^\[\]\n]+\]|[^\t\n\[]+|\t|\n|./gu)) {
+    const part = match[0];
+    if (part === "\n") {
+      column = 0;
+      parts.push(part);
+    } else if (part === "\t") {
+      const width = 8 - (column % 8);
+      column += width;
+      parts.push(" ".repeat(width));
+    } else {
       if (
         !part.startsWith("[") ||
         !chordNotationPattern.test(normalizeChord(part.slice(1, -1)))
       )
-        column += [...part].length;
-      return part;
+        column += yield* letterCount(part);
+      parts.push(part);
     }
-  );
+    if (++units % 64 === 0) yield;
+  }
+  const expanded = parts.join("");
   return expanded.length > 200000 ? content : expanded;
 }
-function reflowChordPairs(content: string, semitones: number) {
+function* reflowChordPairsWork(
+  content: string,
+  semitones: number
+): ParserWork<string> {
   const lines = content.split("\n");
   const output: string[] = [];
   for (let i = 0; i < lines.length; i++) {
+    yield;
     const line = lines[i],
       lyrics = lines[i + 1];
-    if (!isChordLine(line)) {
+    if (!(yield* isChordLineWork(line))) {
       output.push(line);
       continue;
     }
-    const anchors = chordRowAnchors(line);
+    const anchors = yield* chordRowAnchorsWork(line);
     if (
       !anchors ||
       !lyrics?.trim() ||
       isSectionBoundary(lyrics) ||
-      isChordLine(lyrics) ||
+      (yield* isChordLineWork(lyrics)) ||
       line.includes("\t") ||
       lyrics.includes("\t")
     ) {
-      output.push(chordLineParts(line, semitones).join(""));
+      output.push((yield* chordLinePartsWork(line, semitones)).join(""));
       continue;
     }
-    const words = [...lyrics];
+    const words = yield* lettersOf(lyrics);
     let chords = line.slice(0, anchors[0].index);
     let text =
       words.slice(0, anchors[0].index).join("") +
       " ".repeat(Math.max(0, anchors[0].index - words.length));
     for (let j = 0; j < anchors.length; j++) {
+      if (j % 64 === 0) yield;
       const current = anchors[j],
         next = anchors[j + 1];
       const chord = transposeChord(current[0], semitones);
@@ -429,9 +472,10 @@ function reflowChordPairs(content: string, semitones: number) {
       );
       const gap = originalGap.trim() ? originalGap.replace(/ +/g, " ") : " ";
       const phrase = part.replace(/\s+$/, " ");
-      const width = Math.max([...phrase].length, chord.length + gap.length);
+      const phraseLength = yield* letterCount(phrase);
+      const width = Math.max(phraseLength, chord.length + gap.length);
       chords += (chord + gap).padEnd(width);
-      text += phrase + " ".repeat(width - [...phrase].length);
+      text += phrase + " ".repeat(width - phraseLength);
     }
     output.push(chords.trimEnd(), text.trimEnd());
     i++;
@@ -462,32 +506,53 @@ function isSectionBoundary(line: string) {
   );
 }
 function chordTokens(line: string) {
-  return chordLineParts(line.replace(sectionPattern, " ")).filter(
-    (token) =>
-      !/^(?:\s+|[|:]+|[-()[\]]+|\(?[xх×]\d+\)?|\(?\d+[xх×]\)?)$/i.test(token)
-  );
+  return finishParser(chordTokensWork(line));
 }
-function sectionChordRows(content: string) {
-  return content.split(/\r?\n/).flatMap((line) => {
+function* chordTokensWork(line: string): ParserWork<string[]> {
+  const tokens: string[] = [];
+  let units = 0;
+  for (const token of yield* chordLinePartsWork(
+    line.replace(sectionPattern, " ")
+  )) {
+    if (!/^(?:\s+|[|:]+|[-()[\]]+|\(?[xх×]\d+\)?|\(?\d+[xх×]\)?)$/i.test(token))
+      tokens.push(token);
+    if (++units % 64 === 0) yield;
+  }
+  return tokens;
+}
+function* sectionChordRowsWork(content: string): ParserWork<string[]> {
+  const rows: string[] = [];
+  for (const line of content.split(/\r?\n/)) {
     const sections = line.match(sectionPattern);
-    return sections && isChordLine(line)
-      ? [...sections, line.replace(sectionPattern, "").trimStart()]
-      : [line];
-  });
+    if (sections && (yield* isChordLineWork(line)))
+      rows.push(...sections, line.replace(sectionPattern, "").trimStart());
+    else rows.push(line);
+    yield;
+  }
+  return rows;
 }
 
 function chordRowAnchors(line: string, chordsOnly = false) {
-  if (
-    !isChordLine(line) ||
-    (chordsOnly &&
-      chordLineParts(line).some(
-        (part) => part.trim() && !chordNotationPattern.test(part)
-      ))
-  )
-    return undefined;
-  return [...line.matchAll(/[^\s|:]+/g)].filter((match) =>
-    chordNotationPattern.test(normalizeChord(match[0]))
-  );
+  return finishParser(chordRowAnchorsWork(line, chordsOnly));
+}
+function* chordRowAnchorsWork(
+  line: string,
+  chordsOnly = false
+): ParserWork<RegExpExecArray[] | undefined> {
+  if (!(yield* isChordLineWork(line))) return undefined;
+  let units = 0;
+  if (chordsOnly)
+    for (const part of yield* chordLinePartsWork(line)) {
+      if (part.trim() && !chordNotationPattern.test(part)) return undefined;
+      if (++units % 64 === 0) yield;
+    }
+  const anchors: RegExpExecArray[] = [];
+  for (const match of line.matchAll(/[^\s|:]+/g)) {
+    if (chordNotationPattern.test(normalizeChord(match[0])))
+      anchors.push(match);
+    if (++units % 64 === 0) yield;
+  }
+  return anchors;
 }
 
 type AnchoredLine = {
@@ -495,16 +560,23 @@ type AnchoredLine = {
   anchors: { chord: string; column: number }[];
 };
 function inlineChordLine(line: string): AnchoredLine | undefined {
+  return finishParser(inlineChordLineWork(line));
+}
+function* inlineChordLineWork(
+  line: string
+): ParserWork<AnchoredLine | undefined> {
   let lyrics = "",
     previous = 0,
     column = 0;
   const anchors: AnchoredLine["anchors"] = [];
+  let units = 0;
   for (const match of line.matchAll(/\[([^\[\]]+)\]/g)) {
+    if (++units % 64 === 0) yield;
     const chord = normalizeChord(match[1]);
     if (!chordNotationPattern.test(chord)) continue;
     const part = line.slice(previous, match.index);
     lyrics += part;
-    column += [...part].length;
+    column += yield* letterCount(part);
     anchors.push({ chord, column });
     previous = match.index + match[0].length;
   }
@@ -512,21 +584,37 @@ function inlineChordLine(line: string): AnchoredLine | undefined {
     ? { lyrics: lyrics + line.slice(previous), anchors }
     : undefined;
 }
-function hasInternalChord({ lyrics, anchors }: AnchoredLine) {
-  const letters = [...lyrics];
-  return anchors.some(
-    ({ column }) =>
+function* hasInternalChordWork({
+  lyrics,
+  anchors
+}: AnchoredLine): ParserWork<boolean> {
+  const letters = yield* lettersOf(lyrics);
+  let units = 0;
+  for (const { column } of anchors) {
+    if (
       column > 0 &&
       column < letters.length &&
       !/\s/.test(letters[column - 1]) &&
       !/\s/.test(letters[column])
-  );
+    )
+      return true;
+    if (++units % 64 === 0) yield;
+  }
+  return false;
 }
 function anchoredContent({ lyrics, anchors }: AnchoredLine, semitones = 0) {
-  const letters = [...lyrics];
+  return finishParser(anchoredContentWork({ lyrics, anchors }, semitones));
+}
+function* anchoredContentWork(
+  { lyrics, anchors }: AnchoredLine,
+  semitones = 0
+): ParserWork<string> {
+  const letters = yield* lettersOf(lyrics);
   let result = "",
-    previous = 0;
+    previous = 0,
+    units = 0;
   for (const { chord, column } of anchors) {
+    if (++units % 64 === 0) yield;
     const position = Math.min(column, letters.length);
     result +=
       letters.slice(previous, position).join("") +
@@ -535,27 +623,48 @@ function anchoredContent({ lyrics, anchors }: AnchoredLine, semitones = 0) {
   }
   return result + letters.slice(previous).join("");
 }
-function anchoredRows(parsed: AnchoredLine) {
+function* anchoredRowsWork(parsed: AnchoredLine): ParserWork<string[]> {
   const { lyrics, anchors } = parsed;
   const rows: string[] = [];
   let cursor = 0,
     previousColumn = -1,
-    size = lyrics.length;
+    size = lyrics.length,
+    units = 0;
   for (const { chord, column } of anchors) {
+    if (++units % 64 === 0) yield;
     if (column !== previousColumn) cursor = 0;
     previousColumn = column;
-    while (cursor < rows.length && rows[cursor].length + 1 > column) cursor++;
+    while (cursor < rows.length && rows[cursor].length + 1 > column) {
+      cursor++;
+      if (cursor % 256 === 0) yield;
+    }
     const previous = rows[cursor] ?? "";
     size += column + chord.length - previous.length;
-    if (size > 200000) return [anchoredContent(parsed)];
+    if (size > 200000) return [yield* anchoredContentWork(parsed)];
     rows[cursor] = previous.padEnd(column) + chord;
     cursor++;
   }
   return [...rows, lyrics];
 }
 
+type SongEditorState = {
+  text: string;
+  groups: { start: number; end: number }[];
+};
+type EditorCache = {
+  folded: Map<string, string | null>;
+  inline: Map<string, string | null>;
+  rows: Map<string, NonNullable<ReturnType<typeof chordRowAnchors>> | null>;
+  normal: Map<
+    string,
+    { displayLength: number; content: string; endsWithChord: boolean }
+  >;
+};
+// Keep only the current document's reusable work, for the editor's lifetime.
+const editorCaches = new WeakMap<SongEditorState, EditorCache>();
+
 // Only rows expanded by the editor may be folded back into inline chord anchors.
-export function createSongEditorState(content: string) {
+export function createSongEditorState(content: string): SongEditorState {
   const normalized = expandTabs(content);
   if (normalized.includes("\t")) return { text: content, groups: [] };
   let text = "";
@@ -582,13 +691,20 @@ export function songContentFromEditor(
 ) {
   let prefix = 0,
     suffix = 0;
-  while (
-    prefix < Math.min(state.text.length, edited.length) &&
-    state.text[prefix] === edited[prefix]
+  const sharedLength = Math.min(state.text.length, edited.length);
+  // Appending or backspacing at the end is common in the editor. The native
+  // prefix check avoids a JavaScript iteration for every unchanged character.
+  if (
+    state.text.length <= edited.length
+      ? edited.startsWith(state.text)
+      : state.text.startsWith(edited)
   )
-    prefix++;
+    prefix = sharedLength;
+  else
+    while (prefix < sharedLength && state.text[prefix] === edited[prefix])
+      prefix++;
   while (
-    suffix < Math.min(state.text.length, edited.length) - prefix &&
+    suffix < sharedLength - prefix &&
     state.text[state.text.length - suffix - 1] ===
       edited[edited.length - suffix - 1]
   )
@@ -600,49 +716,86 @@ export function songContentFromEditor(
   const rowDelta =
     inserted.split("\n").length -
     state.text.slice(prefix, oldEnd).split("\n").length;
-  state.groups = state.groups.flatMap(({ start, end }) => {
+  const groups: SongEditorState["groups"] = [];
+  for (const group of state.groups) {
+    const { start, end } = group;
     if (oldEnd <= start && (prefix < start || inserted.includes("\n")))
-      return [{ start: start + delta, end: end + delta }];
-    if (prefix >= end) return [{ start, end }];
-    if (prefix >= start && oldEnd <= end && rowDelta === 0)
-      return [{ start, end: end + delta }];
-    return [];
-  });
+      groups.push({ start: start + delta, end: end + delta });
+    else if (prefix >= end) groups.push(group);
+    else if (prefix >= start && oldEnd <= end && rowDelta === 0)
+      groups.push({ start, end: end + delta });
+  }
+  state.groups = groups;
   state.text = edited;
+  const nextCache: EditorCache | undefined =
+    edited.length <= 200000
+      ? {
+          folded: new Map(),
+          inline: new Map(),
+          rows: new Map(),
+          normal: new Map()
+        }
+      : undefined;
+  const cache = nextCache ? editorCaches.get(state) : undefined;
+  const rowAnchors = new Map<string, AnchoredLine["anchors"] | null>();
   const parts: string[] = [];
   let previousEnd = 0;
   for (const { start, end } of state.groups) {
     if ((start > 0 && edited[start - 1] !== "\n") || edited[end - 1] !== "\n")
       continue;
-    const rows = edited.slice(start, end).split("\n").slice(0, -1);
-    const tokens = rows.map((row) =>
-      row.trim() ? chordRowAnchors(row, true) : []
-    );
-    if (tokens.some((row) => !row)) continue;
     const newline = edited.indexOf("\n", end);
     const lyricEnd = newline < 0 ? edited.length : newline;
-    const lyrics = edited.slice(end, lyricEnd);
-    const inline = inlineChordLine(lyrics);
-    const anchors = tokens.flatMap((row) =>
-      row!.map((match) => ({
-        chord: normalizeChord(match[0]),
-        column: match.index
-      }))
-    );
-    anchors.push(...(inline?.anchors ?? []));
-    anchors.sort((a, b) => a.column - b.column);
-    parts.push(
-      edited.slice(previousEnd, start),
-      anchoredContent({ lyrics: inline?.lyrics ?? lyrics, anchors })
-    );
+    const group = edited.slice(start, lyricEnd);
+    let folded = cache?.folded.get(group);
+    if (folded === undefined) {
+      const rows = edited.slice(start, end).split("\n").slice(0, -1);
+      const tokens = rows.map((row) => {
+        let anchors = rowAnchors.get(row);
+        if (anchors === undefined) {
+          const parsed = row.trim() ? chordRowAnchors(row, true) : [];
+          anchors =
+            parsed?.map((match) => ({
+              chord: normalizeChord(match[0]),
+              column: match.index
+            })) ?? null;
+          rowAnchors.set(row, anchors);
+        }
+        return anchors;
+      });
+      if (tokens.some((row) => !row)) folded = null;
+      else {
+        const lyrics = edited.slice(end, lyricEnd);
+        const inline = inlineChordLine(lyrics);
+        const anchors = tokens.flatMap((row) => row!);
+        anchors.push(...(inline?.anchors ?? []));
+        anchors.sort((a, b) => a.column - b.column);
+        folded = anchoredContent({
+          lyrics: inline?.lyrics ?? lyrics,
+          anchors
+        });
+        // These anchors are already normalized. Plain lyrics cannot introduce
+        // another bracket chord or a tab expansion during the final pass.
+        if (anchors.length && !/[\[\]\t]/.test(inline?.lyrics ?? lyrics))
+          nextCache?.inline.set(folded, folded);
+      }
+    }
+    nextCache?.folded.set(group, folded);
+    if (folded === null) continue;
+    parts.push(edited.slice(previousEnd, start), folded);
     previousEnd = lyricEnd;
   }
   parts.push(edited.slice(previousEnd));
-  return transposeSong(parts.join(""), 0);
+  const content = transposeContent(parts.join(""), 0, cache, nextCache);
+  if (nextCache) editorCaches.set(state, nextCache);
+  else editorCaches.delete(state);
+  return content;
 }
 
 export function chordsAboveLyrics(content: string) {
-  const normalized = expandTabs(content);
+  return finishParser(chordsAboveLyricsWork(content));
+}
+function* chordsAboveLyricsWork(content: string): ParserWork<string> {
+  const normalized = yield* expandTabsWork(content);
   if (normalized.includes("\t")) return content;
   content = normalized;
   const result: string[] = [],
@@ -652,32 +805,38 @@ export function chordsAboveLyrics(content: string) {
     size += text.length + (result.length ? 1 : 0);
     result.push(text);
   };
-  const flush = () => {
-    if (normal.length) append(reflowChordPairs(normal.join("\n"), 0));
+  const flush = function* (): ParserWork<void> {
+    if (normal.length)
+      append(yield* reflowChordPairsWork(normal.join("\n"), 0));
     normal.length = 0;
   };
-  for (const line of sectionChordRows(content)) {
+  for (const line of yield* sectionChordRowsWork(content)) {
+    yield;
     if (size > 200000) return content;
-    const parsed = inlineChordLine(line);
-    const chordLine = isChordLine(line);
+    const parsed = yield* inlineChordLineWork(line);
+    const chordLine = yield* isChordLineWork(line);
     if (chordLine || !parsed) {
-      normal.push(chordLine ? chordLineParts(line).join("") : line);
+      normal.push(
+        chordLine ? (yield* chordLinePartsWork(line)).join("") : line
+      );
       continue;
     }
-    flush();
-    if (hasInternalChord(parsed)) {
-      append(anchoredRows(parsed).join("\n"));
+    yield* flush();
+    if (yield* hasInternalChordWork(parsed)) {
+      append((yield* anchoredRowsWork(parsed)).join("\n"));
       continue;
     }
     let lyrics = "",
       chords = "",
       column = 0,
-      previous = 0;
+      previous = 0,
+      units = 0;
     for (const match of line.matchAll(/\[([^\[\]]+)\]/g)) {
+      if (++units % 64 === 0) yield;
       const chord = normalizeChord(match[1]);
       if (!chordNotationPattern.test(chord)) continue;
       const segment = line.slice(previous, match.index);
-      column += [...segment].length;
+      column += yield* letterCount(segment);
       const target = Math.max(column, chords.length ? chords.length + 1 : 0);
       if (
         size +
@@ -699,16 +858,22 @@ export function chordsAboveLyrics(content: string) {
     lyrics += line.slice(previous);
     append(lyrics.trim() ? `${chords}\n${lyrics.trimEnd()}` : chords);
   }
-  flush();
+  yield* flush();
   return size > 200000 ? content : result.join("\n");
 }
 
 export function isChordLine(line: string) {
-  const tokens = chordTokens(line);
-  return (
-    tokens.length > 0 &&
-    tokens.every((token) => chordNotationPattern.test(token))
-  );
+  return finishParser(isChordLineWork(line));
+}
+function* isChordLineWork(line: string): ParserWork<boolean> {
+  const tokens = yield* chordTokensWork(line);
+  if (!tokens.length) return false;
+  let units = 0;
+  for (const token of tokens) {
+    if (!chordNotationPattern.test(token)) return false;
+    if (++units % 64 === 0) yield;
+  }
+  return true;
 }
 
 export function songChordSequence(content: string) {
@@ -759,29 +924,120 @@ export function songSections(content: string) {
   return sections;
 }
 
-export function transposeSong(content: string, semitones: number) {
-  const lines = sectionChordRows(expandTabs(content)),
-    result: string[] = [],
+function transposeContent(
+  content: string,
+  semitones: number,
+  cache?: EditorCache,
+  nextCache?: EditorCache
+) {
+  return finishParser(
+    transposeContentWork(content, semitones, cache, nextCache)
+  );
+}
+function* transposeContentWork(
+  content: string,
+  semitones: number,
+  cache?: EditorCache,
+  nextCache?: EditorCache
+): ParserWork<string> {
+  const lines = yield* sectionChordRowsWork(yield* expandTabsWork(content));
+  const result: string[] = [],
     normal: string[] = [];
-  const flush = () => {
+  const rowAnchors = function* (
+    line: string
+  ): ParserWork<NonNullable<ReturnType<typeof chordRowAnchors>> | null> {
+    let tokens = nextCache?.rows.get(line);
+    if (tokens === undefined) tokens = cache?.rows.get(line);
+    if (tokens === undefined)
+      tokens = (yield* chordRowAnchorsWork(line)) ?? null;
+    nextCache?.rows.set(line, tokens);
+    return tokens;
+  };
+  const flush = function* (): ParserWork<void> {
     if (normal.length) {
+      let normalized: string | undefined;
+      if (nextCache && !normal.some((line) => /[\t\r]/.test(line))) {
+        const blocks: string[] = [];
+        let start = 0,
+          displayLength = 0,
+          compatible = true;
+        for (let end = 1; end <= normal.length; end++) {
+          yield;
+          // Normal rows have no inline chords and already have their section
+          // headings expanded. End each block after a lyric or blank row so
+          // the two reflow passes cannot pair chords across its boundary.
+          if (end < normal.length && (yield* rowAnchors(normal[end - 1])))
+            continue;
+          const rows = normal.slice(start, end);
+          const source = rows.join("\n");
+          let block = nextCache.normal.get(source) ?? cache?.normal.get(source);
+          if (!block) {
+            const normalizedRows: string[] = [];
+            for (const line of rows)
+              normalizedRows.push(
+                (yield* rowAnchors(line))
+                  ? (yield* chordLinePartsWork(line)).join("")
+                  : line
+              );
+            const display = yield* reflowChordPairsWork(
+              normalizedRows.join("\n"),
+              0
+            );
+            block = {
+              displayLength: display.length,
+              content:
+                display.length > 200000
+                  ? ""
+                  : yield* reflowChordPairsWork(display, semitones),
+              endsWithChord:
+                display.length <= 200000 &&
+                !!(yield* rowAnchors(
+                  display.slice(display.lastIndexOf("\n") + 1)
+                ))
+            };
+          }
+          nextCache.normal.set(source, block);
+          displayLength += block.displayLength + (blocks.length ? 1 : 0);
+          if (
+            displayLength > 200000 ||
+            (end < normal.length && block.endsWithChord)
+          ) {
+            compatible = false;
+            break;
+          }
+          blocks.push(block.content);
+          start = end;
+        }
+        if (compatible) normalized = blocks.join("\n");
+      }
       result.push(
-        reflowChordPairs(chordsAboveLyrics(normal.join("\n")), semitones)
+        normalized ??
+          (yield* reflowChordPairsWork(
+            yield* chordsAboveLyricsWork(normal.join("\n")),
+            semitones
+          ))
       );
       normal.length = 0;
     }
   };
   for (let i = 0; i < lines.length; i++) {
-    const parsed = inlineChordLine(lines[i]);
-    if (parsed) {
-      flush();
-      result.push(anchoredContent(parsed, semitones));
+    yield;
+    let cached = nextCache?.inline.get(lines[i]);
+    if (cached === undefined) cached = cache?.inline.get(lines[i]);
+    const parsed =
+      cached === undefined ? yield* inlineChordLineWork(lines[i]) : undefined;
+    if ((cached !== undefined && cached !== null) || parsed) {
+      yield* flush();
+      const inline = cached ?? (yield* anchoredContentWork(parsed!, semitones));
+      nextCache?.inline.set(lines[i], inline);
+      result.push(inline);
       continue;
     }
-    const tokens = chordRowAnchors(lines[i]);
+    nextCache?.inline.set(lines[i], null);
+    const tokens = yield* rowAnchors(lines[i]);
     if (tokens) {
       let end = i + 1;
-      while (end < lines.length && chordRowAnchors(lines[end])) end++;
+      while (end < lines.length && (yield* rowAnchors(lines[end]))) end++;
       if (end > i + 1) {
         for (; i < end; i++) normal.push(lines[i]);
         i--;
@@ -791,8 +1047,8 @@ export function transposeSong(content: string, semitones: number) {
       if (
         lyrics?.trim() &&
         !isSectionBoundary(lyrics) &&
-        !isChordLine(lyrics) &&
-        !inlineChordLine(lyrics) &&
+        !(yield* rowAnchors(lyrics)) &&
+        !(yield* inlineChordLineWork(lyrics)) &&
         !lines[i].includes("\t") &&
         !lyrics.includes("\t")
       ) {
@@ -803,9 +1059,12 @@ export function transposeSong(content: string, semitones: number) {
             column: match.index
           }))
         };
-        if (hasInternalChord(pair) && chordRowAnchors(lines[i], true)) {
-          flush();
-          result.push(anchoredContent(pair, semitones));
+        if (
+          (yield* hasInternalChordWork(pair)) &&
+          (yield* chordRowAnchorsWork(lines[i], true))
+        ) {
+          yield* flush();
+          result.push(yield* anchoredContentWork(pair, semitones));
           i++;
           continue;
         }
@@ -813,13 +1072,93 @@ export function transposeSong(content: string, semitones: number) {
     }
     normal.push(lines[i]);
   }
-  flush();
+  yield* flush();
   const transposed = result.join("\n");
   return semitones === 0 &&
     content.length <= 200000 &&
     transposed.length > 200000
     ? content
     : transposed;
+}
+
+export function transposeSong(content: string, semitones: number) {
+  return transposeContent(content, semitones);
+}
+
+const parserAborted = () => {
+  const error = new Error("Song parsing aborted");
+  error.name = "AbortError";
+  return error;
+};
+function parserTurn(signal?: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const finish = () => {
+      signal?.removeEventListener("abort", abort);
+      resolve();
+    };
+    const abort = () => {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", abort);
+      reject(parserAborted());
+    };
+    const timer = setTimeout(finish, 0);
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) abort();
+  });
+}
+
+async function finishParserAsync<T>(
+  work: ParserWork<T>,
+  signal?: AbortSignal,
+  initialYield = true
+): Promise<T> {
+  try {
+    if (initialYield) await parserTurn(signal);
+    let deadline = Date.now() + 4,
+      units = 0;
+    while (true) {
+      if (signal?.aborted) throw parserAborted();
+      const step = work.next();
+      if (step.done) return step.value;
+      if (++units >= 1024 || Date.now() >= deadline) {
+        await parserTurn(signal);
+        deadline = Date.now() + 4;
+        units = 0;
+      }
+    }
+  } finally {
+    // Cancellation discards the unfinished result and releases iterator state.
+    work.return(undefined as T);
+  }
+}
+
+/** Use the same normalization passes while allowing loading UI and cancellation. */
+export function transposeSongAsync(
+  content: string,
+  semitones: number,
+  signal?: AbortSignal
+): Promise<string> {
+  return finishParserAsync(transposeContentWork(content, semitones), signal);
+}
+
+function* hasSongChordsWork(content: string): ParserWork<boolean> {
+  for (const line of content.split("\n")) {
+    yield;
+    if (yield* isChordLineWork(line)) return true;
+    let units = 0;
+    for (const match of line.matchAll(/\[([^\[\]]+)\]/g)) {
+      if (chordNotationPattern.test(normalizeChord(match[1]))) return true;
+      if (++units % 64 === 0) yield;
+    }
+  }
+  return false;
+}
+
+export function hasSongChordsAsync(
+  content: string,
+  signal?: AbortSignal
+): Promise<boolean> {
+  return finishParserAsync(hasSongChordsWork(content), signal, false);
 }
 
 export function songChords(content: string) {

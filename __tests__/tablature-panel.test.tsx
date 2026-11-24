@@ -6,11 +6,21 @@ import {
   TablaturePanel
 } from "../src/screens/play/tablature-panel";
 import {
+  TAB_MAX_NOTES,
   Tablature,
   emptyTablature,
   normalizeTablature
 } from "../src/components/tablature";
 import { defaultTabPractice } from "../src/components/tablature-practice";
+
+const mockPreview = jest.fn();
+const mockCancelPreview = jest.fn();
+jest.mock("../src/screens/play/use-tablature-preview", () => ({
+  useTablaturePreview: () => ({
+    preview: mockPreview,
+    cancelPreview: mockCancelPreview
+  })
+}));
 
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
@@ -33,7 +43,28 @@ jest.mock("../src/screens/song/tools", () => {
         onPress,
         disabled
       }),
-    Sheet: ({ children }: any) => React.createElement(Native.View, {}, children)
+    Sheet: ({ children }: any) =>
+      React.createElement(Native.View, {}, children),
+    TempoControl: ({
+      value,
+      onChange,
+      label,
+      accessibilityLabel,
+      disabled
+    }: any) =>
+      React.createElement(
+        Native.View,
+        {},
+        ...[-1, 1].map((direction) =>
+          React.createElement(Native.Pressable, {
+            key: direction,
+            accessibilityLabel: `${accessibilityLabel ?? label}: ${direction < 0 ? "−" : "+"}`,
+            disabled: disabled || (direction < 0 ? value <= 40 : value >= 200),
+            onPress: () =>
+              onChange(Math.max(40, Math.min(200, value + direction * 5)))
+          })
+        )
+      )
   };
 });
 
@@ -95,14 +126,23 @@ const press = async (screen: Renderer.ReactTestRenderer, label: string) => {
   if (!button(screen, label)) {
     if (button(screen, "TabFullView"))
       await act(async () => button(screen, "TabFullView").props.onPress());
-    const section = [
-      { pattern: /^Tab(Speed|QuarterTempo)/, label: "TabTempoShort" },
-      { pattern: /^Tab(Range|Loop|WholePiece)/, label: "TabLoopShort" },
-      { pattern: /^Tab(InsertBar|AppendBar|DuplicateBar|DeleteBar|CopyBar|PasteBar|Meter)/, label: "TabBars" }
-    ].find((entry) => entry.pattern.test(label))?.label ?? "TabScore";
-    await act(async () => button(screen, section).props.onPress());
-    if (!button(screen, label) && button(screen, "TabMoreOptions"))
-      await act(async () => button(screen, "TabMoreOptions").props.onPress());
+    if (/^TabFret: \d+$/.test(label) && button(screen, "TabShowKeypad"))
+      await act(async () => button(screen, "TabShowKeypad").props.onPress());
+    if (!button(screen, label)) {
+      const section =
+        [
+          { pattern: /^Tab(Speed|QuarterTempo)/, label: "TabLoopShort" },
+          { pattern: /^Tab(Range|Loop|WholePiece)/, label: "TabLoopShort" },
+          {
+            pattern:
+              /^Tab(InsertBar|AppendBar|DuplicateBar|DeleteBar|CopyBar|PasteBar|Meter)/,
+            label: "TabBars"
+          }
+        ].find((entry) => entry.pattern.test(label))?.label ?? "TabScore";
+      await act(async () => button(screen, section).props.onPress());
+      if (!button(screen, label) && button(screen, "TabMoreOptions"))
+        await act(async () => button(screen, "TabMoreOptions").props.onPress());
+    }
   }
   const target = button(screen, label);
   expect(target).toBeDefined();
@@ -111,6 +151,8 @@ const press = async (screen: Renderer.ReactTestRenderer, label: string) => {
 };
 let screen: Renderer.ReactTestRenderer | undefined;
 beforeEach(() => {
+  mockPreview.mockClear();
+  mockCancelPreview.mockClear();
   jest
     .mocked(useWindowDimensions)
     .mockReturnValue({ width: 390, height: 844, scale: 1, fontScale: 1 });
@@ -324,6 +366,13 @@ test("selected note can change fret and string, then be deleted without changing
     tick: 24,
     duration: 24
   });
+  expect(
+    mockPreview.mock.calls.map(([note]) => [note.string, note.fret])
+  ).toEqual([
+    [5, 7],
+    [5, 8],
+    [4, 8]
+  ]);
   await press(screen!, 'TabGridValue:{"value":"1/16"}');
   await press(screen!, "TabNoteLater");
   expect(updates.at(-1)!.notes).toContainEqual({
@@ -334,6 +383,7 @@ test("selected note can change fret and string, then be deleted without changing
   });
   await press(screen!, "TabDeleteNote");
   expect(updates.at(-1)!.notes).toEqual([example.notes[0], example.notes[2]]);
+  expect(mockPreview).toHaveBeenCalledTimes(3);
   expect(base.pause).toHaveBeenCalled();
 });
 
@@ -356,6 +406,7 @@ test("moving onto an occupied string and time preserves both notes", async () =>
   await act(async () => note.props.onPress());
   await press(screen!, "TabString: +");
   expect(transport.setTab).not.toHaveBeenCalled();
+  expect(mockPreview).toHaveBeenCalledTimes(1);
   expect(JSON.stringify(screen!.toJSON())).toContain("TabNoteCollision");
 });
 
@@ -429,14 +480,67 @@ test("staff taps and the keypad compose chords and two-digit frets with the last
   await press(screen!, "TabFret: 1");
   await press(screen!, "TabFret: 2");
   expect(updates.at(-1)!.notes).toContainEqual({
-    string: 4, fret: 12, tick: 12, duration: 12
+    string: 4,
+    fret: 12,
+    tick: 12,
+    duration: 12
   });
   await pressNote(2, 5);
   await press(screen!, "TabFret: 3");
   expect(updates.at(-1)!.notes).toContainEqual({
-    string: 4, fret: 3, tick: 0, duration: 12
+    string: 4,
+    fret: 3,
+    tick: 0,
+    duration: 12
   });
   expect(updates.at(-1)!.notes).toHaveLength(3);
+  expect(mockPreview.mock.calls.map(([note]) => note.fret)).toEqual([
+    7, 5, 1, 12, 5, 3
+  ]);
+});
+
+test("rejected note writes stay silent and leave the document unchanged", async () => {
+  const transport = mockTransport(emptyTablature());
+  transport.setTab = jest.fn().mockReturnValue(false);
+  await act(async () => {
+    screen = Renderer.create(<TablaturePanel {...props(transport)} />);
+  });
+  await press(screen!, "TabFret: 9");
+  expect(transport.setTab).toHaveBeenCalledTimes(1);
+  expect(mockPreview).not.toHaveBeenCalled();
+  expect(JSON.stringify(screen!.toJSON())).toContain("TabInvalidData");
+});
+
+test("playback, recording and collapse cancel note previews before handing off", async () => {
+  const transport = mockTransport();
+  const value = props(transport);
+  await act(async () => {
+    screen = Renderer.create(<TablaturePanel {...value} />);
+  });
+  for (const [label, action] of [
+    ["TabPlay", transport.play],
+    ["TabRecord", value.onRecord],
+    ["TabCollapse", value.onToggle]
+  ] as const) {
+    await pressNote(1, 7);
+    mockCancelPreview.mockClear();
+    await press(screen!, label);
+    expect(mockCancelPreview).toHaveBeenCalledTimes(1);
+    expect(mockCancelPreview.mock.invocationCallOrder[0]).toBeLessThan(
+      (action as jest.Mock).mock.invocationCallOrder[0]
+    );
+  }
+});
+
+test("inline tempo arrows update the score without opening a settings sheet", async () => {
+  const { updates } = await editable(example);
+  const { Sheet } = require("../src/screens/song/tools");
+  const sheets = screen!.root.findAllByType(Sheet).length;
+  await press(screen!, "TabQuarterTempo: +");
+  expect(updates.at(-1)).toMatchObject({ tempo: 85, notes: example.notes });
+  expect(screen!.root.findAllByType(Sheet)).toHaveLength(sheets);
+  await press(screen!, "TabQuarterTempo: −");
+  expect(updates.at(-1)?.tempo).toBe(80);
 });
 
 test("pausing after playback changes bar keeps insertion on the displayed bar", async () => {
@@ -535,20 +639,15 @@ test("playing locks hidden note edits but preserves pause and playback preferenc
   });
   await press(screen!, "TabScore");
   await press(screen!, "TabMoreOptions");
-  for (const label of [
-    "TabFret: +",
-    "TabDeleteNote",
-    "TabUndo"
-  ])
+  for (const label of ["TabFret: +", "TabDeleteNote", "TabUndo"])
     expect(button(screen!, label).props.disabled).toBe(true);
   expect(button(screen!, "Pause").props.disabled).not.toBe(true);
   expect(button(screen!, "TabRewind").props.disabled).not.toBe(true);
-  await press(screen!, "TabTempoShort");
+  await press(screen!, "TabLoopShort");
   expect(button(screen!, "TabQuarterTempo: +").props.disabled).toBe(true);
   expect(
     button(screen!, 'TabSpeedPercent:{"percent":50}').props.disabled
   ).not.toBe(true);
-  await press(screen!, "TabLoopShort");
   expect(button(screen!, "TabLoop").props.disabled).not.toBe(true);
   expect(transport.setTab).not.toHaveBeenCalled();
 });
@@ -571,7 +670,7 @@ test("fixed speed is not marked selected while the progressive trainer controls 
     screen = Renderer.create(<TablaturePanel {...props(transport)} />);
   });
   await press(screen!, "TabFullView");
-  await press(screen!, "TabTempoShort");
+  await press(screen!, "TabLoopShort");
   expect(
     button(screen!, 'TabSpeedPercent:{"percent":100}').props.selected
   ).toBe(false);
@@ -626,6 +725,13 @@ test("an empty editor composes a note and a silent rest without virtual guitar t
   ]);
   await press(screen!, "TabAddRest");
   expect(updates.at(-1)!.rests).toEqual([{ tick: 12, duration: 12 }]);
+  expect(mockPreview).toHaveBeenCalledTimes(1);
+  expect(mockPreview).toHaveBeenCalledWith({
+    string: 5,
+    fret: 2,
+    tick: 0,
+    duration: 12
+  });
   expect(button(screen!, "TabSave").props.disabled).toBe(false);
   expect(button(screen!, "TabPlay").props.disabled).toBe(false);
 });
@@ -671,6 +777,7 @@ test("a conflicting rest does not erase or truncate a sounding note", async () =
   await press(screen!, 'TabEmptyCell:{"string":2,"bar":1,"beat":1}');
   await press(screen!, "TabAddRest");
   expect(updates).toHaveLength(0);
+  expect(mockPreview).not.toHaveBeenCalled();
   expect(JSON.stringify(screen!.toJSON())).toContain("TabRestCollision");
 });
 
@@ -681,6 +788,7 @@ test("four quarters fill one bar without adding an unintended silent loop bar", 
     0, 24, 48, 72
   ]);
   expect(updates.at(-1)!.barCount).toBe(1);
+  await press(screen!, "TabShowKeypad");
   expect(button(screen!, "TabDeleteNote")).toBeDefined();
   await press(screen!, "TabAppendBar");
   await press(screen!, "TabAddNote");
@@ -717,7 +825,6 @@ test("six-eight changes bar boundaries and loop lengths using eighth-note beats"
   });
   await press(screen!, "TabRangeTo: −");
   expect(base.setRange).toHaveBeenCalledWith({ start: 0, end: 144 });
-  await press(screen!, "TabTempoShort");
   expect(button(screen!, "TabQuarterTempo: +")).toBeDefined();
 });
 
@@ -743,7 +850,7 @@ test("history controls call transport undo and redo, and all editing locks while
   for (const [section, labels] of [
     ["TabScore", ["TabUndo", "TabRedo", "TabFret: +", "TabTriplet"]],
     ["TabBars", ["TabDuplicateBar", 'TabMeterValue:{"beats":6,"unit":8}']],
-    ["TabTempoShort", ["TabQuarterTempo: +"]]
+    ["TabLoopShort", ["TabQuarterTempo: +"]]
   ] as const) {
     await press(screen!, section);
     if (section === "TabScore") await press(screen!, "TabMoreOptions");
@@ -902,3 +1009,49 @@ test.each([false, true])(
     expect(rowHeight()).toBe(normal * 2);
   }
 );
+
+test("moving the insertion cursor and grid does not reread offscreen score notes", async () => {
+  const tab = normalizeTablature({
+    ...emptyTablature(),
+    notes: Array.from({ length: TAB_MAX_NOTES }, (_, index) => ({
+      string: 0,
+      fret: 0,
+      tick: index * 6,
+      duration: 6
+    }))
+  })!;
+  let reads = 0;
+  for (const note of tab.notes.slice(100)) {
+    const tick = note.tick;
+    Object.defineProperty(note, "tick", {
+      get: () => {
+        reads++;
+        return tick;
+      }
+    });
+  }
+  const onCell = jest.fn();
+  await act(async () => {
+    screen = Renderer.create(
+      <TablatureBar tab={tab} bar={0} tick={0} onCell={onCell} grid={6} />
+    );
+  });
+  reads = 0;
+  await act(async () => {
+    screen!.update(
+      <TablatureBar
+        tab={tab}
+        bar={0}
+        tick={0}
+        onCell={onCell}
+        grid={12}
+        selected={{ string: 5, tick: 3 }}
+      />
+    );
+  });
+  expect(
+    button(screen!, 'TabEmptyCell:{"string":1,"bar":1,"beat":1.13}').props
+      .accessibilityState.selected
+  ).toBe(true);
+  expect(reads).toBe(0);
+});

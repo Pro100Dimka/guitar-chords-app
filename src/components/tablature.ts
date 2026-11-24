@@ -116,6 +116,7 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     Math.ceil(((notes.at(-1)?.tick ?? -1) + 1) / barTicks) * barTicks
   );
   const nextByString = new Map<number, number>();
+  let restIndex = rests.length - 1;
   for (let index = notes.length - 1; index >= 0; index--) {
     const note = notes[index];
     const next = nextByString.get(note.string) ?? end;
@@ -129,11 +130,14 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     // deleting a later attack can revive an old hidden tail across a rest.
     note.duration = Math.min(note.duration, next - note.tick);
     const soundingEnd = note.tick + note.duration;
+    // Notes are visited backwards and rests do not overlap. Only the rest
+    // covering the attack and the first rest after it can intersect its tail.
+    while (restIndex >= 0 && rests[restIndex].tick > note.tick) restIndex--;
+    const previousRest = rests[restIndex];
+    const nextRest = rests[restIndex + 1];
     if (
-      rests.some(
-        (rest) =>
-          rest.tick < soundingEnd && rest.tick + rest.duration > note.tick
-      )
+      (previousRest && previousRest.tick + previousRest.duration > note.tick) ||
+      (nextRest && nextRest.tick < soundingEnd)
     )
       return undefined;
     nextByString.set(note.string, note.tick);
@@ -170,11 +174,11 @@ export function emptyTablature(
 /** The exclusive end includes release times and intentionally empty bars. */
 export function tablatureLength(tab: Tablature): number {
   const barTicks = tabBarTicks(tab);
-  const lastEnd = [...tab.notes, ...(tab.rests ?? [])].reduce(
-    (last, event) =>
-      Math.max(last, event.tick + (event.duration ?? TAB_TICKS_PER_BEAT)),
-    0
-  );
+  let lastEnd = 0;
+  for (const note of tab.notes)
+    lastEnd = Math.max(lastEnd, note.tick + tabNoteDuration(note));
+  for (const rest of tab.rests ?? [])
+    lastEnd = Math.max(lastEnd, rest.tick + rest.duration);
   return Math.max(
     (tab.barCount ?? 1) * barTicks,
     Math.ceil(lastEnd / barTicks) * barTicks,
@@ -212,15 +216,29 @@ export function tablatureText(value: Tablature): string {
     `TAB · ${tab.tempo} BPM · ${tab.beatsPerBar}/${tab.beatUnit}`,
     ""
   ];
+  let noteOffset = 0;
+  let restOffset = 0;
+  const allRests = tab.rests ?? [];
   for (let bar = 0; bar < bars; bar++) {
     const start = bar * barTicks;
-    const notes = tab.notes.filter(
-      (note) => note.tick >= start && note.tick < start + barTicks
-    );
-    const rests = (tab.rests ?? []).filter(
-      (rest) =>
-        rest.tick < start + barTicks && rest.tick + rest.duration > start
-    );
+    const notes: TabNote[] = [];
+    while (
+      noteOffset < tab.notes.length &&
+      tab.notes[noteOffset].tick < start + barTicks
+    )
+      notes.push(tab.notes[noteOffset++]);
+    while (
+      restOffset < allRests.length &&
+      allRests[restOffset].tick + allRests[restOffset].duration <= start
+    )
+      restOffset++;
+    const rests: TabRest[] = [];
+    for (
+      let index = restOffset;
+      index < allRests.length && allRests[index].tick < start + barTicks;
+      index++
+    )
+      rests.push(allRests[index]);
     const ticks = new Set(
       Array.from(
         { length: tab.beatsPerBar },

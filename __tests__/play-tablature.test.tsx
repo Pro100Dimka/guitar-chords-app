@@ -1,7 +1,16 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert, AppState, TextInput, View } from "react-native";
+import {
+  Alert,
+  AppState,
+  Image,
+  StyleSheet,
+  TextInput,
+  View
+} from "react-native";
 import PlayGuitar from "../src/screens/play";
+import { GuitarZoom } from "../src/screens/play/guitar-zoom";
+import Strings from "../src/screens/tuner/strings";
 import { TablaturePanel } from "../src/screens/play/tablature-panel";
 import { TablatureLibrary } from "../src/screens/play/tablature-library";
 import { TablaturePractice } from "../src/screens/play/tablature-practice";
@@ -132,6 +141,8 @@ jest.mock("../src/components/tablature-draft", () => ({
 }));
 jest.mock("../src/screens/song/tools", () => ({
   Diagram: () => null,
+  TempoControl: (props: any) =>
+    require("react").createElement(require("react-native").View, props),
   Sheet: ({ children, ...props }: any) =>
     require("react").createElement(
       require("react-native").View,
@@ -149,16 +160,21 @@ let screen: Renderer.ReactTestRenderer | undefined;
 const panel = async () => {
   if (!screen!.root.findAllByType(TablaturePanel).length) {
     await act(async () => {
-      screen!.root.findAll((node) =>
-        node.props.accessibilityLabel === "TabTitle" &&
-        typeof node.props.onPress === "function"
-      )[0].props.onPress();
+      screen!.root
+        .findAll(
+          (node) =>
+            node.props.accessibilityLabel === "TabTitle" &&
+            typeof node.props.onPress === "function"
+        )[0]
+        .props.onPress();
     });
   }
   return screen!.root.findByType(TablaturePanel);
 };
 const transport = () => mockTransport;
-async function panelAction(name: "onRecord" | "onSave" | "onOpen" | "onPractice") {
+async function panelAction(
+  name: "onRecord" | "onSave" | "onOpen" | "onPractice"
+) {
   const current = await panel();
   await act(async () => current.props[name]());
 }
@@ -175,12 +191,16 @@ async function render() {
   await act(async () => {
     screen!.root
       .findAllByType(View)
-      .find((node) => typeof node.props.onLayout === "function")!
+      .find((node) => node.props.testID === "play-guitar-stage")!
       .props.onLayout({ nativeEvent: { layout: dimensions } });
   });
 }
 async function pluck(string: number) {
-  const frame = guitarLayout(dimensions.width, dimensions.height);
+  const frame = guitarLayout(
+    dimensions.width,
+    dimensions.height,
+    screen!.root.findByType(Strings).props.zoom
+  );
   const touch = {
     id: 1,
     x: frame.stringLeft + (frame.stringWidth / 5) * string,
@@ -194,7 +214,7 @@ async function pluck(string: number) {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
-  usePreferences.setState({ songs: {}, saveError: false });
+  usePreferences.setState({ songs: {}, saveError: false, playGuitarZoom: 1 });
   jest.mocked(readTablatureDraft).mockResolvedValue(null);
   jest.mocked(writeTablatureDraft).mockResolvedValue(undefined);
   mockFocused = true;
@@ -222,12 +242,91 @@ afterEach(async () => {
   jest.restoreAllMocks();
 });
 
+test("zoom changes artwork, strings and touch coordinates together and persists only a settled edit", async () => {
+  await render();
+  const zoom = () => screen!.root.findByType(GuitarZoom);
+  await act(async () => zoom().props.onInteractionChange(true));
+  await act(async () => zoom().props.onChange(1.4));
+  const frame = guitarLayout(dimensions.width, dimensions.height, 1.4);
+  expect(screen!.root.findByType(Strings).props.zoom).toBe(1.4);
+  expect(
+    StyleSheet.flatten(screen!.root.findByType(Image).props.style)
+  ).toMatchObject(frame.artwork);
+  expect(usePreferences.getState().playGuitarZoom).toBe(1);
+  jest.mocked(performanceAudio.guitarString).mockClear();
+  await pluck(5);
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  await act(async () => {
+    zoom().props.onCommit(1.4);
+    zoom().props.onInteractionChange(false);
+  });
+  expect(usePreferences.getState().playGuitarZoom).toBe(1.4);
+  for (let string = 1; string < 6; string++) await pluck(string);
+  expect(
+    jest.mocked(performanceAudio.guitarString).mock.calls.map((call) => call[1])
+  ).toEqual([1, 2, 3, 4, 5]);
+  await act(async () => screen!.unmount());
+  screen = undefined;
+  await render();
+  expect(zoom().props.value).toBe(1.4);
+  expect(screen!.root.findByType(Strings).props.zoom).toBe(1.4);
+});
+
+test("a queued touch from the previous zoom cannot sound after resizing the guitar", async () => {
+  await render();
+  const queued: Array<() => void> = [];
+  mockQueuedTouches = queued;
+  await pluck(2);
+  expect(queued).toHaveLength(1);
+  await act(async () =>
+    screen!.root.findByType(GuitarZoom).props.onChange(1.25)
+  );
+  mockQueuedTouches = null;
+  jest.mocked(performanceAudio.guitarString).mockClear();
+  await act(async () => queued.forEach((touch) => touch()));
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  await pluck(2);
+  expect(performanceAudio.guitarString).toHaveBeenCalledWith(
+    "440:52:string2",
+    2
+  );
+});
+
+test("fret overlays follow the zoomed string columns", async () => {
+  usePreferences.setState({ playGuitarZoom: 1.35 });
+  await render();
+  await act(async () => {
+    await transport().setTab(saved);
+  });
+  await act(async () => {
+    await transport().play();
+  });
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(30);
+  });
+  const frame = guitarLayout(dimensions.width, dimensions.height, 1.35);
+  const overlay = screen!.root.findAllByType(View).find((node) => {
+    const style = StyleSheet.flatten(node.props.style);
+    return (
+      style?.position === "absolute" && style?.top === 72 && style?.width === 32
+    );
+  });
+  expect(overlay).toBeDefined();
+  expect(StyleSheet.flatten(overlay!.props.style).left).toBeCloseTo(
+    frame.stringLeft + frame.stringWidth / 5 - 16
+  );
+});
+
 test("screen-string touches record chosen frets and timing, save, and reopen the same tab", async () => {
   await render();
   await panelAction("onRecord");
   await act(async () =>
     screen!.root
-      .findAll((node) => node.props.accessibilityLabel === "FreePlay" && typeof node.props.onPress === "function")[0]
+      .findAll(
+        (node) =>
+          node.props.accessibilityLabel === "FreePlay" &&
+          typeof node.props.onPress === "function"
+      )[0]
       .props.onPress()
   );
   const free = () =>
@@ -497,7 +596,6 @@ test("practice opens from Play, keeps the display awake and pauses when closed",
   await render();
   await act(async () => {
     transport().setTab(saved);
-
   });
   await panelAction("onPractice");
   const practice = () => screen!.root.findByType(TablaturePractice);
@@ -643,7 +741,6 @@ test("backgrounding cancels the shared count-in, releases the display and does n
   await act(async () => {
     transport().setTab(saved);
     transport().setPractice({ ...defaultTabPractice(), countInBars: 1 });
-
   });
   await panelAction("onPractice");
   await act(async () => transport().play());
@@ -684,15 +781,22 @@ test("recording count-in permits fingering changes but preserves the old tab whe
   expect(transport().status).toBe("countingIn");
   await act(async () =>
     screen!.root
-      .findAll((node) => node.props.accessibilityLabel === "FreePlay" && typeof node.props.onPress === "function")[0]
+      .findAll(
+        (node) =>
+          node.props.accessibilityLabel === "FreePlay" &&
+          typeof node.props.onPress === "function"
+      )[0]
       .props.onPress()
   );
   await pluck(0);
   expect(transport().status).toBe("countingIn");
   expect(transport().tab).toEqual(saved);
   expect(
-    screen!.root
-      .findAll((node) => node.props.accessibilityLabel === "Metronome" && typeof node.props.onPress === "function")[0].props.disabled
+    screen!.root.findAll(
+      (node) =>
+        node.props.accessibilityLabel === "Metronome" &&
+        typeof node.props.onPress === "function"
+    )[0].props.disabled
   ).toBe(true);
   await act(async () => transport().stopRecording());
   expect(transport().status).toBe("idle");
@@ -793,9 +897,10 @@ test("draft hydration locks tab actions and restores unsaved rhythm with its lib
     })
   );
   await render();
-  const opener = screen!.root.findAll((node) =>
-    node.props.accessibilityLabel === "TabTitle" &&
-    typeof node.props.onPress === "function"
+  const opener = screen!.root.findAll(
+    (node) =>
+      node.props.accessibilityLabel === "TabTitle" &&
+      typeof node.props.onPress === "function"
   )[0];
   expect(opener.props.disabled).toBe(true);
   expect(screen!.root.findAllByType(TablaturePanel)).toHaveLength(0);
@@ -1091,3 +1196,54 @@ test("saving a snapshot while newer edits arrive preserves them and completes ev
   expect((await panel()).props.title).toBe("Saved snapshot");
   expect(screen!.root.findAllByType(TablatureLibrary)).toHaveLength(0);
 });
+
+test("a cold string prepares asynchronously and coalesces repeated touches", async () => {
+  let finish!: () => void;
+  jest.mocked(warmGuitar).mockImplementation(
+    (_notes, _a, _signal, string) =>
+      new Promise<void>((resolve) => {
+        if (string === 2) finish = resolve;
+      })
+  );
+  await render();
+  await pluck(2);
+  await pluck(2);
+  expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  expect(
+    jest.mocked(warmGuitar).mock.calls.filter((call) => call[3] === 2)
+  ).toHaveLength(1);
+  await act(async () => finish());
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  expect(performanceAudio.guitarString).toHaveBeenCalledWith(
+    "440:52:string2",
+    2
+  );
+});
+
+test.each(["blur", "record", "unmount"] as const)(
+  "a cold string cannot sound after %s supersedes its touch",
+  async (transition) => {
+    let finish!: () => void;
+    jest.mocked(warmGuitar).mockImplementation(
+      (_notes, _a, _signal, string) =>
+        new Promise<void>((resolve) => {
+          if (string === 2) finish = resolve;
+        })
+    );
+    await render();
+    await pluck(2);
+    await act(async () => {
+      if (transition === "blur") {
+        mockFocused = false;
+        screen!.update(<PlayGuitar />);
+      } else if (transition === "record") {
+        transport().startRecording();
+      } else {
+        screen!.unmount();
+        screen = undefined;
+      }
+    });
+    await act(async () => finish());
+    expect(performanceAudio.guitarString).not.toHaveBeenCalled();
+  }
+);

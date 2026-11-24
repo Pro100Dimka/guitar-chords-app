@@ -35,7 +35,8 @@ import {
   preferredSongContent,
   LyricsOption,
   lookupSongContent,
-  lookupSongTempo
+  lookupSongTempo,
+  hasSongChordsAsync
 } from "../../components/song-autofill/lyrics";
 import {
   fileCanceled,
@@ -45,7 +46,6 @@ import {
 } from "../../components/library-files";
 import initialValues from "../create-song-chords/formik/initial-values";
 import { applyRecognitionDraft } from "../../components/song-autofill/draft";
-import { songChords } from "../song/chords";
 
 export default function RecognizeSong() {
   const { params } = useRoute<RouteProp<RootStackParamList, "recognizeSong">>();
@@ -243,13 +243,17 @@ export default function RecognizeSong() {
             ).catch(() => undefined)
       ]);
       if (request !== generation.current) return;
+      const playable: LyricsOption[] = [];
+      for (const option of lyrics.options) {
+        if (
+          option.hasChords &&
+          (await hasSongChordsAsync(option.content, abort.signal))
+        )
+          playable.push({ ...option, hasChords: true });
+      }
+      if (request !== generation.current) return;
       const candidates = preferredSongContent(
-        lyrics.options
-          .filter(
-            (option) =>
-              option.hasChords && songChords(option.content).length > 0
-          )
-          .map((option) => ({ ...option, hasChords: true })),
+        playable,
         result.album,
         result.duration
       );

@@ -1,5 +1,5 @@
 import { Group } from "@shopify/react-native-skia";
-import { FC } from "react";
+import { FC, memo } from "react";
 import { SharedValue } from "react-native-reanimated";
 import CurrentNote from "./current-note";
 import { INote, IString } from "@/@interfaces";
@@ -38,4 +38,4 @@ const NoteIndicator: FC<{
     </Group>
   );
 };
-export default NoteIndicator;
+export default memo(NoteIndicator);

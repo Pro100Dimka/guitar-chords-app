@@ -36,10 +36,14 @@ import {
 } from "@/components/preferences";
 import palette from "@/theme/palette";
 import {
-  acousticBank,
   acousticEngine,
   selectedChordShape
 } from "../../components/acoustic-player";
+import {
+  AcousticInstrument,
+  prepareAcousticInstrument,
+  transferAcousticInstrument
+} from "../../components/acoustic-instrument";
 import { performanceAudio } from "../../components/performance-audio";
 import guitarBackground from "../../../assets/images/gold-background.webp";
 import {
@@ -158,6 +162,71 @@ export function Action({
   );
 }
 
+export function TempoControl({
+  value,
+  onChange,
+  label,
+  accessibilityLabel = label,
+  disabled = false
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  label: string;
+  accessibilityLabel?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <View style={styles.tempoControl}>
+      <Action
+        glass
+        compact
+        icon="chevron-left"
+        label="−"
+        accessibilityLabel={`${accessibilityLabel}: −`}
+        disabled={disabled || value <= 40}
+        onPress={() => {
+          if (!disabled && value > 40) onChange(Math.max(40, value - 5));
+        }}
+      />
+      <View
+        accessible
+        accessibilityRole="text"
+        accessibilityLabel={`${accessibilityLabel}: ${value} BPM`}
+        style={styles.tempoReadout}
+      >
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          style={styles.tempoLabel}
+        >
+          {label}
+        </Text>
+        <Text
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+          style={styles.tempoValue}
+        >
+          {value}
+          <Text style={styles.tempoUnit}> BPM</Text>
+        </Text>
+      </View>
+      <Action
+        glass
+        compact
+        icon="chevron-right"
+        label="+"
+        accessibilityLabel={`${accessibilityLabel}: +`}
+        disabled={disabled || value >= 200}
+        onPress={() => {
+          if (!disabled && value < 200) onChange(Math.min(200, value + 5));
+        }}
+      />
+    </View>
+  );
+}
+
 export function Sheet({
   title,
   onClose,
@@ -166,7 +235,8 @@ export function Sheet({
   compact = false,
   visible = true,
   landscapeOnly = false,
-  maxWidth = 760
+  maxWidth = 760,
+  scrollable = true
 }: {
   title: string;
   onClose: () => void;
@@ -176,6 +246,7 @@ export function Sheet({
   visible?: boolean;
   landscapeOnly?: boolean;
   maxWidth?: number;
+  scrollable?: boolean;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -232,14 +303,20 @@ export function Sheet({
             </Text>
             <Action compact icon="close" label={t("Close")} onPress={onClose} />
           </View>
-          <ScrollView
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            style={compact ? styles.compactScroll : styles.musicScroll}
-            contentContainerStyle={styles.sheetContent}
-          >
-            {children}
-          </ScrollView>
+          {scrollable ? (
+            <ScrollView
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="on-drag"
+              style={compact ? styles.compactScroll : styles.musicScroll}
+              contentContainerStyle={styles.sheetContent}
+            >
+              {children}
+            </ScrollView>
+          ) : (
+            <View style={compact ? styles.compactScroll : styles.musicScroll}>
+              {children}
+            </View>
+          )}
         </SafeAreaView>
       </KeyboardAvoidingView>
     </Modal>
@@ -344,7 +421,10 @@ export function ChordSheet({
 }) {
   const { t } = useTranslation();
 
-  const selectedIndex = selectedChordShape(chord, value)?.index;
+  const selectedIndex = useMemo(
+    () => selectedChordShape(chord, value)?.index,
+    [chord, value]
+  );
   const options = useMemo(
     () => chordShapeOptions(chord, selectedIndex),
     [chord, selectedIndex]
@@ -376,6 +456,8 @@ export function ChordSheet({
   const preparedPreviews = useRef(new Map<string, string>());
   const pendingPreview = useRef<string | null>(null);
   const previewOwner = useRef(true);
+  const previewVisible = useRef(opened);
+  previewVisible.current = opened;
   useEffect(() => {
     previewOwner.current = true;
     const subscription = AppState.addEventListener("change", (state) => {
@@ -392,7 +474,7 @@ export function ChordSheet({
     };
   }, []);
   const playWhenReady = useCallback((key: string, prepared: boolean) => {
-    if (!prepared || !previewOwner.current) return;
+    if (!prepared || !previewOwner.current || !previewVisible.current) return;
     if (!preparedPreviews.current.has(key))
       preparedPreviews.current.set(key, "");
     if (pendingPreview.current === key) {
@@ -403,15 +485,23 @@ export function ChordSheet({
   useEffect(() => {
     preparedPreviews.current.clear();
     pendingPreview.current = null;
-    if (!nativePreview) return;
+    if (!opened || !nativePreview) return;
+    let canceled = false;
     const keys: string[] = JSON.parse(previewKeysKey);
     keys.forEach((key) => {
       void performanceAudio
         .prepareFingering(key, "")
-        .then((prepared) => playWhenReady(key, prepared))
-        .catch(() => preparedPreviews.current.delete(key));
+        .then((prepared) => {
+          if (!canceled) playWhenReady(key, prepared);
+        })
+        .catch(() => {
+          if (!canceled) preparedPreviews.current.delete(key);
+        });
     });
-  }, [previewKeysKey, nativePreview, playWhenReady]);
+    return () => {
+      canceled = true;
+    };
+  }, [previewKeysKey, nativePreview, opened, playWhenReady]);
   useEffect(() => {
     if (!opened) {
       pendingPreview.current = null;
@@ -434,36 +524,38 @@ export function ChordSheet({
   }, [chord, opened, selectedPage]);
   return (
     <>
-      <RhythmPlayer
-        autoplay
-        autoStart={
-          !nativePreview &&
-          opened &&
-          previousChord.current === chord &&
-          audition.request > 0 &&
-          visible.some((option) => option.index === audition.index)
-        }
-        stroke={audition.request}
-        chords={[chord]}
-        capo={capo}
-        fingerings={visible.map((option) => option.frets)}
-        previewKeys={nativePreview ? previewKeys : undefined}
-        onPreviewReady={(key, wave) => {
-          if (!previewKeys.includes(key)) return;
-          preparedPreviews.current.set(key, wave);
-          void performanceAudio
-            .prepareFingering(key, wave)
-            .then((prepared) => playWhenReady(key, prepared))
-            .catch(() => preparedPreviews.current.delete(key));
-        }}
-        activeFingering={Math.max(
-          0,
-          visible.findIndex((option) => option.index === audition.index)
-        )}
-        pattern="D-------"
-        meter={4}
-        tempo={68}
-      />
+      {opened && (
+        <RhythmPlayer
+          autoplay
+          autoStart={
+            !nativePreview &&
+            opened &&
+            previousChord.current === chord &&
+            audition.request > 0 &&
+            visible.some((option) => option.index === audition.index)
+          }
+          stroke={audition.request}
+          chords={[chord]}
+          capo={capo}
+          fingerings={visible.map((option) => option.frets)}
+          previewKeys={nativePreview ? previewKeys : undefined}
+          onPreviewReady={(key, wave) => {
+            if (!previewVisible.current || !previewKeys.includes(key)) return;
+            preparedPreviews.current.set(key, wave);
+            void performanceAudio
+              .prepareFingering(key, wave)
+              .then((prepared) => playWhenReady(key, prepared))
+              .catch(() => preparedPreviews.current.delete(key));
+          }}
+          activeFingering={Math.max(
+            0,
+            visible.findIndex((option) => option.index === audition.index)
+          )}
+          pattern="D-------"
+          meter={4}
+          tempo={68}
+        />
+      )}
       <Sheet
         title={chord}
         onClose={() => {
@@ -489,11 +581,23 @@ export function ChordSheet({
                   const key = previewKeys[visibleIndex];
                   pendingPreview.current = key;
                   void performanceAudio
-                    .prepareFingering(
-                      key,
-                      preparedPreviews.current.get(key) ?? ""
-                    )
-                    .then((prepared) => playWhenReady(key, prepared))
+                    .prepareFingering(key, "")
+                    .then(async (prepared) => {
+                      if (!prepared) {
+                        const wave = preparedPreviews.current.get(key);
+                        if (
+                          wave &&
+                          previewOwner.current &&
+                          previewVisible.current &&
+                          pendingPreview.current === key
+                        )
+                          prepared = await performanceAudio.prepareFingering(
+                            key,
+                            wave
+                          );
+                      }
+                      playWhenReady(key, prepared);
+                    })
                     .catch(() => preparedPreviews.current.delete(key));
                 }
                 setAudition((previous) => ({
@@ -709,8 +813,11 @@ function EasierChords({
     SongPreferences,
     "capo" | "shapes"
   > | null>(null);
-  const chords = songChords(content);
-  const options = easierPositions(chords, value.transpose, value.capo);
+  const chords = useMemo(() => songChords(content), [content]);
+  const options = useMemo(
+    () => easierPositions(chords, value.transpose, value.capo),
+    [chords, value.transpose, value.capo]
+  );
   return (
     <>
       <Text style={styles.label}>{t("CurrentCapo", { capo: value.capo })}</Text>
@@ -767,19 +874,59 @@ function TransitionPractice({
   onChooseRhythm: () => void;
 }) {
   const { t } = useTranslation();
-  const entries = songSections(content).flatMap((section) =>
-    songChordSequence(section.content).map((chord) => ({
-      chord: transposeChord(chord, value.transpose - value.capo),
-      section: section.id
-    }))
+  const source = useMemo(
+    () =>
+      songSections(content).flatMap((section) =>
+        songChordSequence(section.content).map((chord) => ({
+          chord,
+          section: section.id
+        }))
+      ),
+    [content]
   );
-  const sequence = entries.map((entry) => entry.chord);
-  const chords = [...new Set(sequence)];
+  const entries = useMemo(
+    () =>
+      source.map((entry) => ({
+        ...entry,
+        chord: transposeChord(entry.chord, value.transpose - value.capo)
+      })),
+    [source, value.transpose, value.capo]
+  );
+  const sequence = useMemo(
+    () => entries.map((entry) => entry.chord),
+    [entries]
+  );
+  const chords = useMemo(() => [...new Set(sequence)], [sequence]);
   const [start, setStart] = useState(0);
+  const ordered = useMemo(
+    () => [...sequence.slice(start), ...sequence.slice(0, start)],
+    [sequence, start]
+  );
+  const orderedEntries = useMemo(
+    () => [...entries.slice(start), ...entries.slice(0, start)],
+    [entries, start]
+  );
+  const baseRhythm = useMemo(
+    () =>
+      normalizeRhythm({
+        strum: value.strum,
+        strumMeter: value.strumMeter,
+        strumDivision: value.strumDivision,
+        strumPreset: value.strumPreset
+      }),
+    [value.strum, value.strumMeter, value.strumDivision, value.strumPreset]
+  );
+  const arrangements = useMemo(
+    () =>
+      Object.keys(value.rhythmSections ?? {}).length
+        ? orderedEntries.map(
+            (entry) => value.rhythmSections[entry.section] ?? baseRhythm
+          )
+        : undefined,
+    [orderedEntries, value.rhythmSections, baseRhythm]
+  );
   if (!sequence.length)
     return <Text style={styles.description}>{t("NoSongChords")}</Text>;
-  const ordered = [...sequence.slice(start), ...sequence.slice(0, start)];
-  const orderedEntries = [...entries.slice(start), ...entries.slice(0, start)];
   return (
     <>
       {value.strum ||
@@ -790,15 +937,7 @@ function TransitionPractice({
           division={value.strumDivision}
           tempo={value.tempo}
           practice={ordered}
-          arrangements={
-            Object.keys(value.rhythmSections ?? {}).length
-              ? orderedEntries.map(
-                  (entry) =>
-                    value.rhythmSections[entry.section] ??
-                    normalizeRhythm(value)
-                )
-              : undefined
-          }
+          arrangements={arrangements}
           chords={ordered}
           capo={value.capo}
           shapes={value.shapes}
@@ -806,22 +945,11 @@ function TransitionPractice({
       ) : (
         <Action label={t("ChooseSongRhythm")} onPress={onChooseRhythm} />
       )}
-      <View style={styles.row}>
-        <Text style={styles.label}>{t("Tempo")}</Text>
-        <Action
-          glass
-          label="−"
-          disabled={value.tempo <= 40}
-          onPress={() => onChange({ tempo: Math.max(40, value.tempo - 5) })}
-        />
-        <Text style={styles.value}>{value.tempo}</Text>
-        <Action
-          glass
-          label="+"
-          disabled={value.tempo >= 200}
-          onPress={() => onChange({ tempo: Math.min(200, value.tempo + 5) })}
-        />
-      </View>
+      <TempoControl
+        label={t("Tempo")}
+        value={value.tempo}
+        onChange={(tempo) => onChange({ tempo })}
+      />
       <Text style={styles.description}>{t("PracticeStartChord")}</Text>
       <View style={styles.row}>
         {chords.map((chord) => (
@@ -929,13 +1057,14 @@ function RhythmPlayer({
 }) {
   const { t } = useTranslation();
   const [active, setActive] = useState(AppState.currentState === "active");
-  const [canPrepare, setCanPrepare] = useState(false);
   const web = useRef<WebView>(null);
-  const ready = useRef(false);
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => setCanPrepare(true));
-    return () => cancelAnimationFrame(frame);
-  }, []);
+  const [ready, setReady] = useState(false);
+  const [preparationError, setPreparationError] = useState(false);
+  const [instrument, setInstrument] = useState<{
+    spec: AcousticInstrument;
+    chunks: string[];
+  } | null>(null);
+  const transferToken = useRef(0);
   useEffect(() => {
     const listener = AppState.addEventListener("change", (state) =>
       setActive(state === "active")
@@ -945,54 +1074,77 @@ function RhythmPlayer({
   const slots =
     Math.ceil(pattern.length / (meter * division)) * meter * division;
   const padded = pattern.padEnd(slots, "-");
-  const progression = chords.length ? chords : ["C"];
-  const progressionKey = progression.join(" ");
-  const shapesKey = JSON.stringify(shapes);
+  const progressionKey = (chords.length ? chords : ["C"]).join(" ");
+  const progression = useMemo(
+    () => progressionKey.split(" "),
+    [progressionKey]
+  );
+  const distinctChords = useMemo(
+    () => [...new Set(progression)],
+    [progression]
+  );
+  const shapesKey = JSON.stringify(
+    fingerings
+      ? {}
+      : Object.fromEntries(
+          distinctChords.map((chord) => [chord, shapes[chord]])
+        )
+  );
   const fingeringsKey = JSON.stringify(fingerings ?? null);
   const previewKeysKey = JSON.stringify(previewKeys ?? []);
   const frequencies = useMemo(() => {
     const selected: Record<string, number> = JSON.parse(shapesKey);
-    const positions: (Frets | undefined)[] =
-      JSON.parse(fingeringsKey) ??
-      progressionKey
-        .split(" ")
-        .map((chord) => selectedChordShape(chord, selected[chord])?.frets);
-    return positions.map((frets) => {
-      return (
-        frets?.flatMap((fret, string) =>
-          fret === null
-            ? []
-            : [
-                {
-                  frequency:
-                    440 * 2 ** ((guitarMidi[string] + fret + capo - 69) / 12),
-                  string
-                }
-              ]
-        ) ?? []
-      );
-    });
-  }, [progressionKey, shapesKey, fingeringsKey, capo]);
+    const notesFor = (frets: Frets | undefined) =>
+      frets?.flatMap((fret, string) =>
+        fret === null
+          ? []
+          : [
+              {
+                frequency:
+                  440 * 2 ** ((guitarMidi[string] + fret + capo - 69) / 12),
+                string
+              }
+            ]
+      ) ?? [];
+    const positions: Frets[] | null = JSON.parse(fingeringsKey);
+    if (positions) return positions.map(notesFor);
+    const byChord = new Map(
+      distinctChords.map((chord) => [
+        chord,
+        notesFor(selectedChordShape(chord, selected[chord])?.frets)
+      ])
+    );
+    return progression.map((chord) => byChord.get(chord)!);
+  }, [progression, distinctChords, shapesKey, fingeringsKey, capo]);
   const fingeringPreview = stroke !== undefined;
-  const bank = useMemo(
-    () =>
-      canPrepare && frequencies.every((notes) => notes.length)
-        ? acousticBank(frequencies.flat(), frequencies, fingeringPreview)
-        : null,
-    [frequencies, canPrepare, fingeringPreview]
+  const instrumentSpec = useMemo<AcousticInstrument>(
+    () => ({
+      chords: progression,
+      frequencies,
+      previewKeys: JSON.parse(previewKeysKey),
+      preview: fingeringPreview
+    }),
+    [frequencies, progression, previewKeysKey, fingeringPreview]
   );
-  const instrument = useMemo(
-    () =>
-      bank
-        ? JSON.stringify({
-            chords: progressionKey.split(" "),
-            frequencies,
-            previewKeys: JSON.parse(previewKeysKey),
-            bank
-          })
-        : "",
-    [bank, frequencies, progressionKey, previewKeysKey]
-  );
+  useEffect(() => {
+    setInstrument(null);
+    setPreparationError(false);
+    web.current?.injectJavaScript("window.invalidateInstrument?.();true;");
+    if (!active || !frequencies.every((notes) => notes.length)) return;
+    const controller = new AbortController();
+    void prepareAcousticInstrument(instrumentSpec, controller.signal)
+      .then((chunks) => {
+        if (chunks && !controller.signal.aborted)
+          setInstrument({ spec: instrumentSpec, chunks });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.warn("Rhythm instrument preparation failed", error);
+          setPreparationError(true);
+        }
+      });
+    return () => controller.abort();
+  }, [active, frequencies, instrumentSpec]);
   const labels = JSON.stringify({
     play: t(practice ? "StartPractice" : "ListenRhythm"),
     stop: t("Pause"),
@@ -1015,7 +1167,7 @@ function RhythmPlayer({
     () => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{background:transparent}body{margin:0;background:transparent;font-family:system-ui;color:${palette.glass.ink}}button{width:100%;height:48px;border:1px solid ${palette.glass.edge};border-radius:14px;background:${palette.glass.play};color:${palette.gold.ink};box-shadow:0 0 12px #ffb00077,inset 0 1px 1px #fff9c9;border-color:#ffe59b;background:linear-gradient(#fff2a6,#ffd65a 16%,#ffbc08 48%,#ffaa00 52%,#ffd34a);font:600 19px system-ui}#count{height:28px;line-height:28px;text-align:center;font-size:13px}${compact ? "button{width:44px;height:44px;border-radius:50%;margin:2px;box-shadow:0 0 2px #ffb00077,inset 0 1px 1px #fff9c9}#count{display:none}" : ""}</style></head><body><button id="play"></button><div id="count"></div><script>
     let context,engine,timer,playing=false,step=0,next=0,start=0,preparing=Promise.resolve(),playToken=0,lastChord=-1,singleStroke=false,activeFingering=0,loading=true,wantsPlay=false,instrumentToken=0;
     let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false,arrangements=[],bar=0,slot=0,patternStep=0,planKey='',scheduled=[];
-    let chords=[],frequencies=[];
+    let chords=[],frequencies=[],incomingToken=0,incomingChunks=[];
     const beatCounts=${JSON.stringify(rhythmCounts)};
     const labels=${labels};
     const button=document.getElementById('play'), count=document.getElementById('count');button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);
@@ -1071,6 +1223,19 @@ function RhythmPlayer({
       }catch(e){stop();window.ReactNativeWebView?.postMessage('stopped');button.textContent=${compact ? JSON.stringify("!") : "labels.error"};button.setAttribute('aria-label',labels.error);}
       finally{if(token===playToken||!playing)button.disabled=false;}
     }
+    window.invalidateInstrument=()=>{
+      const resume=playing||wantsPlay;stop();wantsPlay=resume;loading=true;
+      instrumentToken++;incomingToken=0;incomingChunks=[];
+    };
+    window.beginInstrument=token=>{window.invalidateInstrument();incomingToken=token;};
+    window.appendInstrument=(token,chunk)=>{if(token===incomingToken)incomingChunks.push(chunk);};
+    window.cancelInstrument=token=>{if(token===incomingToken)window.invalidateInstrument();};
+    window.finishInstrument=token=>{
+      if(token!==incomingToken)return;
+      const encoded=incomingChunks.join('');incomingChunks=[];
+      try{window.loadInstrument(JSON.parse(encoded));}
+      catch(error){stop();loading=true;button.textContent=labels.error;window.ReactNativeWebView?.postMessage('stopped');}
+    };
     window.loadInstrument=data=>{
       const resume=playing||wantsPlay,token=++instrumentToken;
       stop();wantsPlay=resume;loading=true;chords=data.chords;frequencies=data.frequencies;
@@ -1094,24 +1259,44 @@ function RhythmPlayer({
     [labels, compact]
   );
   useEffect(() => {
-    ready.current = false;
-  }, [preview]);
+    setReady(false);
+  }, [preview, active]);
   useEffect(() => {
-    if (ready.current && instrument)
-      web.current?.injectJavaScript(
-        `window.loadInstrument(${instrument});true;`
-      );
-  }, [instrument]);
+    if (!active || !ready || instrument?.spec !== instrumentSpec) return;
+    const player = web.current;
+    if (!player) return;
+    const controller = new AbortController();
+    const token = ++transferToken.current;
+    void transferAcousticInstrument(
+      instrument.chunks,
+      token,
+      (script) => player.injectJavaScript(script),
+      controller.signal
+    ).catch((error) => {
+      if (!controller.signal.aborted) {
+        console.warn("Rhythm instrument transfer failed", error);
+        setPreparationError(true);
+      }
+    });
+    return () => {
+      controller.abort();
+      player.injectJavaScript(`window.cancelInstrument?.(${token});true;`);
+    };
+  }, [active, ready, instrument, instrumentSpec]);
   useEffect(() => {
-    if (ready.current)
+    if (ready)
       web.current?.injectJavaScript(
         `window.configurePlayer(${playConfig});true;`
       );
-  }, [playConfig]);
+  }, [ready, playConfig]);
   const source = useMemo(() => ({ html: preview }), [preview]);
   const unavailable = progression.filter(
     (_, index) => !frequencies[index]?.length
   );
+  if (preparationError)
+    return autoplay ? null : (
+      <Text style={styles.description}>{t("RhythmAudioError")}</Text>
+    );
   if (unavailable.length)
     return autoplay ? null : (
       <Text style={styles.description}>
@@ -1123,9 +1308,7 @@ function RhythmPlayer({
       {active && (
         <WebView
           ref={web}
-          onLoadStart={() => {
-            ready.current = false;
-          }}
+          onLoadStart={() => setReady(false)}
           originWhitelist={["about:blank"]}
           source={source}
           style={
@@ -1152,12 +1335,7 @@ function RhythmPlayer({
               } catch {}
               return;
             }
-            if (nativeEvent.data === "ready") {
-              ready.current = true;
-              web.current?.injectJavaScript(
-                `${instrument ? `window.loadInstrument(${instrument});` : ""}window.configurePlayer(${playConfig});true;`
-              );
-            }
+            if (nativeEvent.data === "ready") setReady(true);
             if (nativeEvent.data === "started") onStarted?.();
             if (nativeEvent.data === "stopped") onStopped?.();
           }}
@@ -1187,23 +1365,51 @@ function RhythmEditor({
       })),
     [content]
   );
-  const sections = [
-    ...new Map(
-      blocks
-        .filter((section) => section.id)
-        .map((section) => [section.id, section])
-    ).values()
-  ].slice(0, 128);
+  const sections = useMemo(
+    () =>
+      [
+        ...new Map(
+          blocks
+            .filter((section) => section.id)
+            .map((section) => [section.id, section])
+        ).values()
+      ].slice(0, 128),
+    [blocks]
+  );
   const selected = sections.find((section) => section.id === scope);
   const override = selected ? value.rhythmSections?.[selected.id] : undefined;
   const current = { ...value, ...override };
-  const arrangements = Object.keys(value.rhythmSections ?? {}).length
-    ? blocks.flatMap((section) =>
-        section.chords.map(
-          () => value.rhythmSections[section.id] ?? normalizeRhythm(value)
-        )
-      )
-    : undefined;
+  const baseRhythm = useMemo(
+    () =>
+      normalizeRhythm({
+        strum: value.strum,
+        strumMeter: value.strumMeter,
+        strumDivision: value.strumDivision,
+        strumPreset: value.strumPreset
+      }),
+    [value.strum, value.strumMeter, value.strumDivision, value.strumPreset]
+  );
+  const arrangements = useMemo(
+    () =>
+      Object.keys(value.rhythmSections ?? {}).length
+        ? blocks.flatMap((section) =>
+            section.chords.map(
+              () => value.rhythmSections[section.id] ?? baseRhythm
+            )
+          )
+        : undefined,
+    [blocks, value.rhythmSections, baseRhythm]
+  );
+  const selectedContent = useMemo(
+    () =>
+      selected
+        ? blocks
+            .filter((block) => block.id === selected.id)
+            .map((block) => block.content)
+            .join("\n")
+        : content,
+    [selected, blocks, content]
+  );
   const change = (patch: Partial<SongPreferences>) => {
     if (patch.tempo !== undefined) {
       onChange({ tempo: patch.tempo });
@@ -1263,14 +1469,7 @@ function RhythmEditor({
       )}
       <PatternEditor
         key={selected?.id ?? ""}
-        content={
-          selected
-            ? blocks
-                .filter((block) => block.id === selected.id)
-                .map((block) => block.content)
-                .join("\n")
-            : content
-        }
+        content={selectedContent}
         value={current}
         onChange={change}
         arrangements={selected ? undefined : arrangements}
@@ -1291,8 +1490,13 @@ function PatternEditor({
   onChange: (patch: Partial<SongPreferences>) => void;
 }) {
   const { t } = useTranslation();
-  const chords = songChordSequence(content).map((chord) =>
-    transposeChord(chord, value.transpose - value.capo)
+  const sequence = useMemo(() => songChordSequence(content), [content]);
+  const chords = useMemo(
+    () =>
+      sequence.map((chord) =>
+        transposeChord(chord, value.transpose - value.capo)
+      ),
+    [sequence, value.transpose, value.capo]
   );
   const [kind, setKind] = useState<"strum" | "picking">(
     /[1-6]/.test(value.strum) ? "picking" : "strum"
@@ -1322,9 +1526,14 @@ function PatternEditor({
       ))}
     </View>
   );
-  const unavailable = chords.filter(
-    (chord) => !selectedChordShape(chord, value.shapes[chord])
-  );
+  const unavailable = useMemo(() => {
+    const missing = new Set(
+      [...new Set(chords)].filter(
+        (chord) => !selectedChordShape(chord, value.shapes[chord])
+      )
+    );
+    return chords.filter((chord) => missing.has(chord));
+  }, [chords, value.shapes]);
   const previewRhythm = allRhythms.find((item) => item.id === audition);
   const preset = allRhythms.find(
     (item) =>
@@ -1485,22 +1694,11 @@ function PatternEditor({
           arrangements={arrangements}
         />
       )}
-      <View style={styles.row}>
-        <Text style={styles.label}>{t("Tempo")}</Text>
-        <Action
-          glass
-          label="−"
-          disabled={value.tempo <= 40}
-          onPress={() => onChange({ tempo: Math.max(40, value.tempo - 5) })}
-        />
-        <Text style={styles.value}>{value.tempo}</Text>
-        <Action
-          glass
-          label="+"
-          disabled={value.tempo >= 200}
-          onPress={() => onChange({ tempo: Math.min(200, value.tempo + 5) })}
-        />
-      </View>
+      <TempoControl
+        label={t("Tempo")}
+        value={value.tempo}
+        onChange={(tempo) => onChange({ tempo })}
+      />
 
       <Action
         glass
@@ -1560,6 +1758,29 @@ function PatternEditor({
 }
 
 export const styles = StyleSheet.create({
+  tempoControl: {
+    width: 148,
+    minHeight: 44,
+    flexShrink: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4
+  },
+  tempoReadout: { flex: 1, minWidth: 0, alignItems: "center" },
+  tempoLabel: {
+    color: palette.glass.muted,
+    fontSize: 10,
+    lineHeight: 12,
+    textAlign: "center"
+  },
+  tempoValue: {
+    fontSize: 17,
+    lineHeight: 21,
+    fontWeight: "600",
+    fontVariant: ["tabular-nums"],
+    textAlign: "center"
+  },
+  tempoUnit: { color: palette.glass.muted, fontSize: 9 },
   sectionChoices: { flexWrap: "nowrap", paddingBottom: 8 },
   iconAction: {
     width: 48,

@@ -167,7 +167,11 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         if (buffer.isEmpty() || sampleRate <= 0) return 0f
         val mean = buffer.average() / 32768.0
         val norm = DoubleArray(buffer.size) { buffer[it] / 32768.0 - mean }
-        val rms = Math.sqrt(norm.sumOf { it * it } / norm.size)
+        // Each lag uses overlapping windows of the same signal. Reuse their
+        // energy instead of summing both windows again for every correlation.
+        val energyPrefix = DoubleArray(norm.size + 1)
+        for (i in norm.indices) energyPrefix[i + 1] = energyPrefix[i] + norm[i] * norm[i]
+        val rms = Math.sqrt(energyPrefix[norm.size] / norm.size)
         if (rms < 0.003) return 0f
         val sustaining = previousRms > 0 && rms <= previousRms * 1.2
         previousRms = rms
@@ -179,13 +183,11 @@ class MicrophoneStreamModule(private val reactContext: ReactApplicationContext) 
         val correlations = DoubleArray(maxLag + 2)
         for (lag in (minLag - 1)..(maxLag + 1)) {
             var corr = 0.0
-            var leftEnergy = 0.0
-            var rightEnergy = 0.0
             for (i in 0 until buffer.size - lag) {
                 corr += norm[i] * norm[i + lag]
-                leftEnergy += norm[i] * norm[i]
-                rightEnergy += norm[i + lag] * norm[i + lag]
             }
+            val leftEnergy = energyPrefix[norm.size - lag]
+            val rightEnergy = energyPrefix[norm.size] - energyPrefix[lag]
             val energy = Math.sqrt(leftEnergy * rightEnergy)
             correlations[lag] = if (energy > 0) corr / energy else 0.0
         }

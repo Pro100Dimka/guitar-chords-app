@@ -650,6 +650,62 @@ test("metadata stays unavailable until real chords have been checked", async () 
   );
 });
 
+test.each(["cancel", "unmount"])(
+  "a late asynchronous chord check cannot publish a candidate after %s",
+  async (leave) => {
+    const lyrics = require("../src/components/song-autofill/lyrics");
+    const checked = deferred<boolean>();
+    const verify = jest
+      .spyOn(lyrics, "hasSongChordsAsync")
+      .mockReturnValue(checked.promise);
+    jest.mocked(lookupSongContent).mockResolvedValue([
+      {
+        id: 1,
+        title: "Track",
+        artist: "Artist",
+        album: "",
+        duration: null,
+        content: "Am C\nExample words",
+        source: "Cifra Club",
+        hasChords: true
+      }
+    ]);
+    await act(async () => {
+      screen = Renderer.create(<RecognizeSong />);
+    });
+    await act(async () =>
+      screen!.root
+        .find(
+          (node) =>
+            node.props.accessibilityLabel === "AddSongStart" &&
+            typeof node.props.onPress === "function"
+        )
+        .props.onPress()
+    );
+    expect(verify).toHaveBeenCalledTimes(1);
+    const signal = verify.mock.calls[0][1] as AbortSignal;
+    if (leave === "cancel") {
+      const { Action } = require("../src/screens/song/tools");
+      await act(async () =>
+        screen!.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "Cancel")!
+          .props.onPress()
+      );
+    } else {
+      await act(async () => screen!.unmount());
+      screen = undefined;
+    }
+    expect(signal.aborted).toBe(true);
+    await act(async () => checked.resolve(true));
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    if (screen)
+      expect(JSON.stringify(screen.toJSON())).not.toContain(
+        "AddSongEditResult"
+      );
+  }
+);
+
 test("cancelling an unchecked chart restores the microphone button and ignores late results", async () => {
   const lyrics = deferred<Awaited<ReturnType<typeof lookupSongContent>>>();
   jest.mocked(lookupSongContent).mockReturnValue(lyrics.promise);

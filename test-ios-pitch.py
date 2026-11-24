@@ -72,6 +72,26 @@ for rate in [44100, 48000] {
     let quietPitch = Double(detector.estimatePitch(quiet, sampleRate: Double(rate)))
     precondition(quietPitch > 0 && abs(1200 * log2(quietPitch / 82.4069)) < 3)
 }
+var windowCases = 0
+for rate in [22050, 44100, 48000] {
+    for size in [256, 511, 1024, 2048, 4096] {
+        let frequency = Double(rate) * 12 / Double(size)
+        for level in [0.0044, 0.02, 0.4] {
+            for offset in [-0.3, 0.0, 0.3] {
+                detector.resetPitch()
+                let samples: [Float] = (0..<size).map { i in
+                    Float(offset + level * sin(2 * Double.pi * frequency * Double(i) / Double(rate)))
+                }
+                let pitch = Double(detector.estimatePitch(samples, sampleRate: Double(rate)))
+                precondition(pitch > 0 && abs(1200 * log2(pitch / frequency)) < 3,
+                    "Window energy regression: rate=\(rate), size=\(size), level=\(level), offset=\(offset), pitch=\(pitch)")
+                windowCases += 1
+            }
+        }
+        precondition(detector.estimatePitch([Float](repeating: 0.25, count: size), sampleRate: Double(rate)) == 0)
+    }
+}
+print("Window energy matrix: \(windowCases) variable-sized, quiet and DC-offset signals passed.")
 for _ in 0..<5 { _ = detector.smoothPitch(82.4069) }
 _ = detector.smoothPitch(329.6276)
 let switched = detector.smoothPitch(329.6276)

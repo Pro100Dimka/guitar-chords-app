@@ -23,7 +23,7 @@ import { guitarLayout } from "./guitar-layout";
 import NoteIndicator from "./note-indicator";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import { runOnJS } from "react-native-worklets";
-import { INote, IString, ITunerConfig } from "@/@interfaces";
+import { INote, ITunerConfig } from "@/@interfaces";
 import {
   Dimensions,
   View,
@@ -78,6 +78,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const [referenceInput, setReferenceInput] = useState(String(tunerReference));
   const [referenceNote, setReferenceNote] = useState("A");
   const [referencePlaying, setReferencePlaying] = useState(false);
+  const pendingPreview = useRef<AbortController | null>(null);
   const referenceTimer = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
   );
@@ -104,11 +105,24 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const rms = useSharedValue(0);
   const plucks = useSharedValue<number[]>([]);
   const note = useSharedValue<INote | null>(null);
-  const [accessibleReading, setAccessibleReading] = useState<INote | null>(
-    null
-  );
+  const [accessibleReading, setReading] = useState<INote | null>(null);
+  const readingRef = useRef<INote | null>(null);
+  const setAccessibleReading = useCallback((next: INote | null) => {
+    const previous = readingRef.current;
+    if (
+      previous === next ||
+      (previous &&
+        next &&
+        previous.name === next.name &&
+        previous.octave === next.octave &&
+        previous.direction === next.direction &&
+        previous.pitch.toFixed(1) === next.pitch.toFixed(1))
+    )
+      return;
+    readingRef.current = next;
+    setReading(next);
+  }, []);
   const readingUpdatedAt = useRef(0);
-  const [stringNotes, setStringNotes] = useState<IString[] | null>(null);
   const config = {
     ...defConfig,
     selectedInstrument: instrument,
@@ -208,6 +222,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     MicrophoneStream.setKeepAwake(true, "tuner");
     return () => {
       MicrophoneStream.setKeepAwake(false, "tuner");
+      pendingPreview.current?.abort();
       performanceAudio.stopPlayback();
     };
   }, [active]);
@@ -224,6 +239,13 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       octave: Math.floor(selected[index] / 12) - 1
     }));
   }, [config.selectedInstrument, config.instruments, tuning, customTuning]);
+  const stringNotes = useMemo(
+    () =>
+      config.autoDetect || !strings?.length
+        ? strings
+        : [strings[selectedString] ?? strings[0]],
+    [strings, config.autoDetect, selectedString]
+  );
   useEffect(() => {
     if (!active || !painted) return;
     const controller = new AbortController();
@@ -233,13 +255,18 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
           (string) => (string.octave + 1) * 12 + noteNames.indexOf(string.name)
         );
     const timer = setTimeout(async () => {
-      for (const midi of notes) {
-        if (controller.signal.aborted) break;
-        await warmGuitar(
-          [midi],
-          isChromatic ? tunerReference : 440,
-          controller.signal
-        );
+      try {
+        for (const midi of notes) {
+          if (controller.signal.aborted) break;
+          await warmGuitar(
+            [midi],
+            isChromatic ? tunerReference : 440,
+            controller.signal
+          );
+        }
+      } catch (error) {
+        if (!controller.signal.aborted)
+          console.warn("Tuner reference preparation failed", error);
       }
     }, 80);
     return () => {
@@ -256,11 +283,6 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     tunerReference
   ]);
   useEffect(() => {
-    setStringNotes(
-      config.autoDetect || !strings?.length
-        ? strings
-        : [strings[selectedString] ?? strings[0]]
-    );
     tuningState.current = {
       key: "",
       since: 0,
@@ -447,7 +469,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     fillKey,
     signal,
     isChromatic,
-    chromaticOctave
+    chromaticOctave,
+    setAccessibleReading
   ]);
   const previewUntil = useRef(0);
   const selectString = (index: number) => {
@@ -461,7 +484,14 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     rms.value = 0;
     previewUntil.current = Date.now() + 3100;
     if (cueTimer.current !== undefined) clearTimeout(cueTimer.current);
-    playGuitar([(string.octave + 1) * 12 + noteNames.indexOf(string.name)]);
+    pendingPreview.current?.abort();
+    const preview = new AbortController();
+    pendingPreview.current = preview;
+    playGuitar(
+      [(string.octave + 1) * 12 + noteNames.indexOf(string.name)],
+      440,
+      preview.signal
+    );
     usePreferences.getState().update({ stringIndex: index, autoDetect: false });
   };
   const tapGesture = Gesture.Tap().onBegin((e) => {
@@ -491,12 +521,14 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   useEffect(() => {
     if (!active || !isChromatic) setReferencePlaying(false);
     return () => {
+      pendingPreview.current?.abort();
       if (referenceTimer.current !== undefined)
         clearTimeout(referenceTimer.current);
       performanceAudio.stopPlayback();
     };
   }, [active, isChromatic]);
   const stopReference = useCallback(() => {
+    pendingPreview.current?.abort();
     previewUntil.current = Math.min(previewUntil.current, Date.now() + 180);
     if (referenceTimer.current !== undefined)
       clearTimeout(referenceTimer.current);
@@ -515,7 +547,14 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     const octave = chromaticOctave ?? 4;
     previewUntil.current = Date.now() + 3300;
     note.value = null;
-    playGuitar([(octave + 1) * 12 + noteNames.indexOf(name)], tunerReference);
+    pendingPreview.current?.abort();
+    const preview = new AbortController();
+    pendingPreview.current = preview;
+    playGuitar(
+      [(octave + 1) * 12 + noteNames.indexOf(name)],
+      tunerReference,
+      preview.signal
+    );
     setReferencePlaying(true);
     referenceTimer.current = setTimeout(stopReference, 3100);
   };
@@ -533,7 +572,12 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     <View
       style={styles.container}
       onLayout={({ nativeEvent }) => {
-        setLayout(nativeEvent.layout);
+        const next = nativeEvent.layout;
+        setLayout((previous) =>
+          previous.width === next.width && previous.height === next.height
+            ? previous
+            : next
+        );
         setLayoutReady(
           nativeEvent.layout.width > 0 && nativeEvent.layout.height > 0
         );

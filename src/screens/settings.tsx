@@ -22,7 +22,7 @@ import palette from "../theme/palette";
 import {
   exportLibrary,
   fileCanceled,
-  parseLibraryBackup,
+  parseLibraryBackupAsync,
   readLibraryFile,
   restoreLibrary
 } from "../components/library-files";
@@ -39,8 +39,8 @@ const Settings: React.FC = () => {
     },
     []
   );
-  const [pending, setPending] = useState<ReturnType<
-    typeof parseLibraryBackup
+  const [pending, setPending] = useState<Awaited<
+    ReturnType<typeof parseLibraryBackupAsync>
   > | null>(null);
   const fileAction = async (
     action: (signal?: AbortSignal) => Promise<void>,
@@ -383,8 +383,12 @@ const Settings: React.FC = () => {
                 onPress={() =>
                   void fileAction(async (signal) => {
                     const file = await readLibraryFile("backup", signal);
-                    if (!signal?.aborted)
-                      setPending(parseLibraryBackup(file.text));
+                    if (signal?.aborted) return;
+                    const songs = await parseLibraryBackupAsync(
+                      file.text,
+                      signal
+                    );
+                    if (!signal?.aborted) setPending(songs);
                   }, true)
                 }
               />

@@ -1,4 +1,10 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import {
   FlatList,
   Modal,
@@ -16,6 +22,7 @@ import { tabBarTicks, tablatureLength } from "../../components/tablature";
 import type { TabPracticeSettings } from "../../components/tablature-practice";
 import palette from "../../theme/palette";
 import { TablatureBar } from "./tablature-panel";
+import { useTablaturePosition } from "./use-tablature";
 import type { useTablature } from "./use-tablature";
 
 type Transport = ReturnType<typeof useTablature>;
@@ -44,11 +51,13 @@ export function TablaturePractice({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [size, setSize] = useState(2);
   const [laidOut, setLaidOut] = useState(false);
-  const { tab, tick, status, practice, countIn, range } = transport;
+  const { tab, status, practice, countIn, range } = transport;
+  const tick = useTablaturePosition(transport);
   const scale = sizes[size] * (landscape ? 0.8 : 1) * fontScale;
   const barHeadingHeight = 32 * Math.max(1, fontScale);
   const barTicks = tabBarTicks(tab);
-  const bars = Math.max(1, Math.ceil(tablatureLength(tab) / barTicks));
+  const length = useMemo(() => tablatureLength(tab), [tab]);
+  const bars = Math.max(1, Math.ceil(length / barTicks));
   const currentBar = Math.max(
     0,
     Math.min(bars - 1, Math.floor(tick / barTicks))
@@ -106,7 +115,7 @@ export function TablaturePractice({
     transport.setRange({ start: (first - 1) * barTicks, end: last * barTicks });
     transport.setLoop(true);
   };
-  const stopFollowing = () => setFollowing(false);
+  const stopFollowing = useCallback(() => setFollowing(false), []);
 
   return (
     <Modal
@@ -347,7 +356,7 @@ export function TablaturePractice({
                           <TablatureBar
                             tab={tab}
                             bar={bar}
-                            tick={tick}
+                            tick={selected ? tick : -1}
                             readOnly
                             readingScale={scale}
                             followPlayback={following}

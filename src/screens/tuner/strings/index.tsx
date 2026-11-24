@@ -1,5 +1,5 @@
 // src/screens/tuner/components/strings/index.tsx
-import { FC, useEffect, useState } from "react";
+import { FC, memo, useEffect, useMemo, useState } from "react";
 import {
   Group,
   RoundedRect,
@@ -36,6 +36,7 @@ const Strings: FC<{
   currString: IString | null;
   width: number;
   height: number;
+  zoom?: number;
   onReady?: () => void;
 }> = (props) => {
   const {
@@ -48,6 +49,7 @@ const Strings: FC<{
     currString,
     width,
     height,
+    zoom,
     onReady
   } = props;
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
@@ -68,6 +70,14 @@ const Strings: FC<{
   const stringVolume = useDerivedValue(() => rms.value * microphoneGain.value);
   useEffect(() => () => cancelAnimation(microphoneGain), [microphoneGain]);
   const { centered, fonts } = useParagraphBuilder();
+  const labels = useMemo(
+    () =>
+      stringNotes?.map((string, index) => ({
+        name: centered(string.name, 18, 600, primary),
+        number: centered(String(stringNotes.length - index), 14, 500, primary)
+      })),
+    [centered, stringNotes]
+  );
   useEffect(() => {
     if (fonts && stringNotes?.length) onReady?.();
   }, [fonts, stringNotes, onReady]);
@@ -84,7 +94,7 @@ const Strings: FC<{
     stringLeft,
     stringWidth,
     stringBottom: bottom
-  } = guitarLayout(width, height);
+  } = guitarLayout(width, height, zoom);
   const spacing = stringWidth / Math.max(1, stringNotes.length - 1);
   const boxWidth = Math.min(NOTE_BOX_WIDTH, spacing - 4);
   const nutY = Math.min(-height, bottom - stringWidth * 12);
@@ -158,19 +168,14 @@ const Strings: FC<{
               x={x - boxWidth / 2}
               y={boxTop + 5}
               width={boxWidth}
-              paragraph={centered(s.name, 18, 600, primary)}
+              paragraph={labels?.[i].name ?? null}
             />
 
             <Paragraph
               x={x - boxWidth / 2}
               y={boxTop + 30}
               width={boxWidth}
-              paragraph={centered(
-                `${stringNotes.length - i}`,
-                14,
-                500,
-                primary
-              )}
+              paragraph={labels?.[i].number ?? null}
             />
           </Group>
         );
@@ -212,4 +217,4 @@ function StringFill({
     </Group>
   );
 }
-export default Strings;
+export default memo(Strings);

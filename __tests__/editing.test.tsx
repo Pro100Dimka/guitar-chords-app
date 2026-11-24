@@ -34,6 +34,7 @@ import {
 } from "../src/components/performance-audio";
 import * as crud from "../src/components/database/crud";
 import * as acousticPlayer from "../src/components/acoustic-player";
+import * as acousticInstrument from "../src/components/acoustic-instrument";
 import { chordsAboveLyrics } from "../src/screens/song/chords";
 import { Formik, FormikProps } from "formik";
 import onSubmit from "../src/screens/create-song-chords/formik/on-sabmit";
@@ -602,6 +603,8 @@ test("practice asks for a song pattern instead of inventing downstrokes", async 
 
 test("opening song tools mounts the controls before preparing the audio bank", async () => {
   jest.useFakeTimers();
+  const previous = AppState.currentState;
+  AppState.currentState = "active";
   const bank = jest.spyOn(acousticPlayer, "acousticBank");
   await act(async () => {
     screen = Renderer.create(
@@ -616,10 +619,12 @@ test("opening song tools mounts the controls before preparing the audio bank", a
   });
   expect(screen!.root.findAllByType(RhythmGrid)).toHaveLength(rhythms.length);
   expect(bank).not.toHaveBeenCalled();
-  await act(async () => jest.advanceTimersByTime(32));
+  await act(async () => jest.runAllTimersAsync());
   expect(bank).toHaveBeenCalledTimes(1);
+  AppState.currentState = previous;
 });
 test("each rhythm can be selected once through its full pattern and applied", async () => {
+  jest.useFakeTimers();
   const change = jest.fn();
   const injectJavaScript = jest.fn();
 
@@ -666,7 +671,9 @@ test("each rhythm can be selected once through its full pattern and applied", as
         .props.onMessage({ nativeEvent: { data: "started" } })
     );
     expect(change).not.toHaveBeenCalled();
-    const configuration = injectJavaScript.mock.calls.at(-1)![0];
+    const configuration = injectJavaScript.mock.calls
+      .filter(([script]) => script.startsWith("window.configurePlayer("))
+      .at(-1)![0];
     expect(configuration).toContain(
       `"pattern":${JSON.stringify(rhythms[index].pattern.padEnd(Math.ceil(rhythms[index].pattern.length / (rhythms[index].meter * rhythms[index].division)) * rhythms[index].meter * rhythms[index].division, "-"))}`
     );
@@ -696,6 +703,9 @@ test("each rhythm can be selected once through its full pattern and applied", as
     strumDivision: rhythms[7].division,
     strumPreset: rhythms[7].id
   });
+  await act(async () => jest.runAllTimersAsync());
+  // Publishing prepared chunks commits before the transfer effect schedules its timers.
+  await act(async () => jest.runAllTimersAsync());
   const html = screen!.root.findByType(WebView).props.source.html;
   const source = html.match(/<script>([\s\S]*?)<\/script>/)[1];
   const sources: any[] = [];
@@ -768,15 +778,21 @@ test("each rhythm can be selected once through its full pattern and applied", as
   });
   for (let i = 0; i < 20; i++) await Promise.resolve();
   expect(window.ReactNativeWebView.postMessage).toHaveBeenCalledWith("ready");
-  const initialization = injectJavaScript.mock.calls.find(([script]) =>
-    script.startsWith("window.loadInstrument(")
-  )![0];
+  const initialization = injectJavaScript.mock.calls
+    .map(([script]) => script as string)
+    .filter((script) =>
+      /^window\.(beginInstrument|appendInstrument|finishInstrument)\(/.test(
+        script
+      )
+    )
+    .join("\n");
+  expect(initialization).toContain("window.finishInstrument(");
   const load = window.loadInstrument;
   window.loadInstrument = (data: any) => {
     data.bank.recordings = [];
     return load(data);
   };
-  require("node:vm").runInNewContext(initialization.split(";")[0], { window });
+  require("node:vm").runInNewContext(initialization, { window });
   for (let i = 0; i < 20; i++) await Promise.resolve();
   window.configurePlayer({
     stroke: null,
@@ -2005,5 +2021,205 @@ test.each([false, true])(
     expect(
       screen!.root.findAllByType(require("../src/screens/song/tools").Sheet)
     ).toHaveLength(0);
+  }
+);
+
+test("a closed fingering sheet does not prepare an audio bank or mount a WebView", async () => {
+  jest.useFakeTimers();
+  const previous = AppState.currentState;
+  AppState.currentState = "active";
+  jest.replaceProperty(performanceAudio, "preparedFingeringSupported", true);
+  jest.mocked(performanceAudio.prepareFingering).mockResolvedValue(false);
+  const bank = jest.spyOn(acousticPlayer, "acousticBank");
+  const onChange = jest.fn();
+  const onClose = jest.fn();
+  try {
+    await act(async () => {
+      screen = Renderer.create(
+        <ChordSheet
+          chord="Am"
+          visible={false}
+          onChange={onChange}
+          onClose={onClose}
+        />
+      );
+    });
+    await act(async () => jest.advanceTimersByTime(100));
+    expect(bank).not.toHaveBeenCalled();
+    expect(performanceAudio.prepareFingering).not.toHaveBeenCalled();
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
+    await act(async () =>
+      screen!.update(
+        <ChordSheet chord="Am" onChange={onChange} onClose={onClose} />
+      )
+    );
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(1);
+    await act(async () =>
+      screen!.update(
+        <ChordSheet
+          chord="Am"
+          visible={false}
+          onChange={onChange}
+          onClose={onClose}
+        />
+      )
+    );
+    await act(async () => jest.advanceTimersByTime(100));
+    expect(bank).not.toHaveBeenCalled();
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
+  } finally {
+    AppState.currentState = previous;
+  }
+});
+
+test("backgrounded rhythm controls defer bank preparation until the app is active", async () => {
+  jest.useFakeTimers();
+  const previous = AppState.currentState;
+  AppState.currentState = "background";
+  const prepare = jest.spyOn(acousticInstrument, "prepareAcousticInstrument");
+  try {
+    await act(async () => {
+      screen = Renderer.create(
+        <ChordSheet chord="Am" onChange={() => {}} onClose={() => {}} />
+      );
+    });
+    await act(async () => jest.advanceTimersByTime(100));
+    expect(prepare).not.toHaveBeenCalled();
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
+    await act(async () => {
+      AppState.currentState = "active";
+      jest
+        .mocked(AppState.addEventListener)
+        .mock.calls.forEach(([, listener]) => listener("active"));
+    });
+    await act(async () => jest.runAllTimersAsync());
+    expect(prepare).toHaveBeenCalledTimes(1);
+    expect(screen!.root.findAllByType(WebView)).toHaveLength(1);
+  } finally {
+    AppState.currentState = previous;
+  }
+});
+
+test("a large recording library mounts a bounded visible list and retains all takes", async () => {
+  const takes = Array.from({ length: 500 }, (_, index) => ({
+    path: `/performances/song-1-${index}.m4a`,
+    date: index,
+    bytes: 1000
+  }));
+  jest.mocked(performanceAudio.list).mockResolvedValue(takes);
+  await act(async () => {
+    screen = Renderer.create(
+      <SongRecorder songId={1} active open browseOnly onStart={() => {}} />
+    );
+  });
+  const list = screen!.root.findByType(FlatList);
+  expect(list.props.data).toEqual(takes);
+  const visible = screen!.root
+    .findAllByType(Action)
+    .filter((node) => node.props.accessibilityLabel === "ListenTake");
+  expect(visible.length).toBeGreaterThan(0);
+  expect(visible.length).toBeLessThanOrEqual(12);
+  expect(
+    screen!.root.findByType(require("../src/screens/song/tools").Sheet).props
+      .scrollable
+  ).toBe(false);
+});
+
+test.each(["close", "background", "change"] as const)(
+  "obsolete rhythm preparation is canceled after %s and never reaches the WebView",
+  async (leave) => {
+    jest.useFakeTimers();
+    const previous = AppState.currentState;
+    AppState.currentState = "active";
+    jest.replaceProperty(performanceAudio, "preparedFingeringSupported", false);
+    const requests: {
+      signal: AbortSignal;
+      chords: string[];
+      finish: (chunks: string[]) => void;
+    }[] = [];
+    jest
+      .spyOn(acousticInstrument, "prepareAcousticInstrument")
+      .mockImplementation((spec, signal) =>
+        new Promise((resolve) => {
+          requests.push({ signal, chords: spec.chords, finish: resolve });
+        })
+      );
+    const injectJavaScript = jest.fn();
+    const onChange = jest.fn();
+    const onClose = jest.fn();
+    try {
+      await act(async () => {
+        screen = Renderer.create(
+          <ChordSheet chord="Am" onChange={onChange} onClose={onClose} />,
+          { createNodeMock: () => ({ injectJavaScript }) }
+        );
+      });
+      await act(async () =>
+        screen!.root.findByType(WebView).props.onMessage({
+          nativeEvent: { data: "ready" }
+        })
+      );
+      expect(requests).toHaveLength(1);
+      const first = requests[0];
+      if (leave === "background") {
+        await act(async () => {
+          AppState.currentState = "background";
+          jest
+            .mocked(AppState.addEventListener)
+            .mock.calls.forEach(([, listener]) => listener("background"));
+        });
+      } else {
+        await act(async () =>
+          screen!.update(
+            <ChordSheet
+              chord={leave === "change" ? "C" : "Am"}
+              visible={leave !== "close"}
+              onChange={onChange}
+              onClose={onClose}
+            />
+          )
+        );
+      }
+      expect(first.signal.aborted).toBe(true);
+      await act(async () => first.finish(['{"chords":["obsolete"]}']));
+      await act(async () => jest.runAllTimersAsync());
+      expect(
+        injectJavaScript.mock.calls.some(([script]) =>
+          script.startsWith("window.beginInstrument(")
+        )
+      ).toBe(false);
+      if (leave === "change") {
+        const latest = requests.at(-1)!;
+        expect(latest.chords).toEqual(["C"]);
+        expect(latest.signal.aborted).toBe(false);
+        await act(async () =>
+          latest.finish([JSON.stringify({ chords: latest.chords })])
+        );
+        await act(async () => jest.runAllTimersAsync());
+        const chunks: string[] = [];
+        let received: unknown;
+        const receiver = {
+          beginInstrument: () => {
+            chunks.length = 0;
+          },
+          appendInstrument: (_token: number, chunk: string) =>
+            chunks.push(chunk),
+          finishInstrument: () => {
+            received = JSON.parse(chunks.join(""));
+          }
+        };
+        for (const [script] of injectJavaScript.mock.calls) {
+          if (
+            /^window\.(beginInstrument|appendInstrument|finishInstrument)\(/.test(
+              script
+            )
+          )
+            require("node:vm").runInNewContext(script, { window: receiver });
+        }
+        expect(received).toEqual({ chords: ["C"] });
+      }
+    } finally {
+      AppState.currentState = previous;
+    }
   }
 );

@@ -3,19 +3,34 @@ import com.freetune.reserveRecordingFile
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.WritableArray
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import android.media.MediaExtractor
 
 fun checkRecordingFiles(directory: File) {
     val root=File(directory,"recording-file-regressions").apply { mkdirs() }
     val failures=mutableListOf<String>()
     fun runCase(name: String, body: (File, RecordingStoreProbe)->Unit) {
         val folder=File(root,name).apply { mkdirs() }
-        try { body(folder,RecordingStoreProbe(folder)) }
+        val store=RecordingStoreProbe(folder)
+        try { body(folder,store) }
         catch(error: Throwable) { failures.add("$name: ${error.message}") }
-        finally { folder.listFiles()?.forEach { check(it.delete()) }; check(folder.delete()) }
+        finally {
+            store.filesWorker.shutdownNow()
+            check(store.filesWorker.awaitTermination(5,TimeUnit.SECONDS))
+            folder.listFiles()?.forEach { check(it.delete()) }; check(folder.delete())
+        }
     }
     fun list(store: RecordingStoreProbe): WritableArray {
         var result: WritableArray?=null
-        store.listTakes("1",object:Promise { override fun resolve(value: Any) { result=value as WritableArray } })
+        var failure: Throwable?=null
+        val finished=CountDownLatch(1)
+        store.listTakes("1",object:Promise {
+            override fun resolve(value: Any) { result=value as WritableArray; finished.countDown() }
+            override fun reject(code: String,error: Throwable) { failure=error; finished.countDown() }
+        })
+        check(finished.await(5,TimeUnit.SECONDS)) { "List did not complete" }
+        failure?.let { throw it }
         return result ?: error("List did not resolve")
     }
     runCase("reserve-collision") { folder,_ ->
@@ -46,8 +61,42 @@ fun checkRecordingFiles(directory: File) {
         val final=File(folder,"song-1-12.m4a").apply { createNewFile() }
         val partial=File(folder,"song-1-12.processing.m4a").apply { writeText("capture in progress") }
         store.processing.add(final.absolutePath)
+        store.activeRecordingFiles.add(final.absolutePath)
         list(store)
         check(final.exists() && partial.readText()=="capture in progress")
+    }
+    runCase("recovery-keeps-playback-and-reservation-responsive") { folder,store ->
+        File(folder,"song-1-15.processing.m4a").writeText("complete audio")
+        val entered=CountDownLatch(1)
+        val resume=CountDownLatch(1)
+        val finished=CountDownLatch(1)
+        var heldPlaybackLock=false
+        var heldReservationLock=false
+        var failure: Throwable?=null
+        MediaExtractor.onOpen={
+            heldPlaybackLock=Thread.holdsLock(store)
+            heldReservationLock=Thread.holdsLock(store.recordingFilesLock)
+            entered.countDown()
+            check(resume.await(5,TimeUnit.SECONDS)) { "Recovery did not resume" }
+        }
+        try {
+            store.listTakes("1",object:Promise {
+                override fun resolve(value: Any) { finished.countDown() }
+                override fun reject(code: String,error: Throwable) { failure=error; finished.countDown() }
+            })
+            check(entered.await(5,TimeUnit.SECONDS))
+            check(finished.count==1L) { "Listing blocked its caller until decoder completion" }
+            check(!heldPlaybackLock && !heldReservationLock) { "Recovery decoder held an interactive lock" }
+            synchronized(store) { check(finished.count==1L) }
+            val reserve=store.javaClass.getDeclaredMethod("reserveActiveRecordingFile",String::class.java).apply { isAccessible=true }
+            val fresh=reserve.invoke(store,"1") as File
+            check(fresh.exists() && fresh.absolutePath in store.activeRecordingFiles)
+            resume.countDown()
+            check(finished.await(5,TimeUnit.SECONDS))
+            failure?.let { throw it }
+            list(store)
+            check(fresh.exists()) { "Background listing deleted a reserved take before capture began" }
+        } finally { resume.countDown(); MediaExtractor.onOpen=null }
     }
     runCase("delete-file-family") { folder,store ->
         val final=File(folder,"song-1-13.m4a").apply { writeText("complete audio") }
@@ -63,5 +112,5 @@ fun checkRecordingFiles(directory: File) {
     }
     check(root.delete())
     check(failures.isEmpty()) { failures.joinToString("; ") }
-    println("Recording file regressions passed: incomplete cleanup, complete recovery, active protection and file-family deletion (codec boundary stubbed).")
+    println("Recording file regressions passed: asynchronous scans, unlocked decoding, reserved/active protection, incomplete cleanup, recovery and file-family deletion (codec boundary stubbed).")
 }

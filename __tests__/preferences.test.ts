@@ -29,6 +29,7 @@ import {
   readSongCover,
   readRemoteSongCover,
   parseLibraryBackup,
+  parseLibraryBackupAsync,
   restoreLibrary
 } from "../src/components/library-files";
 import {
@@ -270,7 +271,9 @@ test("a valid 38-cover library exports completely in individually restorable par
     .mockResolvedValue([
       { uri: "content://backup/part.json", name: "part.json", error: null }
     ]);
-  await exportLibrary();
+  const exporting = exportLibrary();
+  await jest.advanceTimersByTimeAsync(1000);
+  await exporting;
   expect(jest.mocked(saveDocuments).mock.calls.length).toBeGreaterThan(1);
   const restored = [...files.values()].flatMap((text) => {
     expect(
@@ -347,6 +350,49 @@ test("song preferences and cover survive serialization and reload; failed commit
     shapes: { F: 3 },
     tempo: 92
   });
+});
+
+test.each([
+  [undefined, 1],
+  ["large", 1],
+  [0.2, 0.75],
+  [9, 1.5],
+  [1.27, 1.27]
+])(
+  "saved guitar zoom %s loads as the bounded value %s",
+  async (savedZoom, expected) => {
+    const text = JSON.stringify({ playGuitarZoom: savedZoom });
+    jest.mocked(getAllItems).mockImplementation(async (query) => {
+      if (query.fields?.startsWith("length")) return [{ length: text.length }];
+      if (query.fields?.startsWith("substr")) return [{ value: text }];
+      return [];
+    });
+    await loadPreferences();
+    expect(usePreferences.getState().playGuitarZoom).toBe(expected);
+  }
+);
+
+test("a settled guitar size is serialized and restored", async () => {
+  let text = "";
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    body({
+      executeSql: (_sql, args) => {
+        if (args?.[0] === "experience") text = String(args[1]);
+      }
+    });
+    success?.();
+  });
+  usePreferences.getState().update({ playGuitarZoom: 1.31 });
+  await flushPreferences();
+  expect(JSON.parse(text).playGuitarZoom).toBe(1.31);
+  usePreferences.setState({ playGuitarZoom: 1 });
+  jest.mocked(getAllItems).mockImplementation(async (query) => {
+    if (query.fields?.startsWith("length")) return [{ length: text.length }];
+    if (query.fields?.startsWith("substr")) return [{ value: text }];
+    return [];
+  });
+  await loadPreferences();
+  expect(usePreferences.getState().playGuitarZoom).toBe(1.31);
 });
 
 test("exported backup retains artist, lyrics, cover and chord shapes", async () => {
@@ -664,11 +710,15 @@ test.each([false, true])(
       if (fail) error?.(Object.assign(new Error("disk full"), { code: 1 }));
       else success?.();
     });
+    const loading = loadPreferences();
+    const checked = fail
+      ? expect(loading).rejects.toThrow("disk full")
+      : expect(loading).resolves.toBeUndefined();
+    await jest.advanceTimersByTimeAsync(1000);
+    await checked;
     if (fail) {
-      await expect(loadPreferences()).rejects.toThrow("disk full");
       expect(usePreferences.getState().songs).toEqual({});
     } else {
-      await loadPreferences();
       expect(Object.keys(usePreferences.getState().songs)).toHaveLength(144);
       expect(usePreferences.getState().songs[144]).toMatchObject({
         favorite: true,
@@ -1243,6 +1293,7 @@ test("closing the backup sheet stays blocked during the restore transaction", as
         .find((node) => node.props.label === "RestoreLibrary")!
         .props.onPress();
     });
+    await act(async () => jest.advanceTimersByTimeAsync(50));
     let commit!: () => void;
     jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
       const tx: SQLTransaction = {
@@ -1282,5 +1333,324 @@ test("closing the backup sheet stays blocked during the restore transaction", as
   } finally {
     await act(async () => screen.unmount());
     jest.restoreAllMocks();
+  }
+});
+
+test("unchanged preferences do not notify screens or rewrite stored songs", async () => {
+  const state = usePreferences.getState();
+  state.updateSong(17, { tempo: 92, position: 125 });
+  await flushPreferences();
+  jest.mocked(db.transaction).mockClear();
+  const snapshot = usePreferences.getState();
+  const notify = jest.fn();
+  const unsubscribe = usePreferences.subscribe(notify);
+  try {
+    snapshot.update({ tab: snapshot.tab, tuning: snapshot.tuning });
+    snapshot.updateSong(17, { tempo: 92, position: 125 });
+    snapshot.removeSong(99999);
+    jest.runOnlyPendingTimers();
+    await flushPreferences();
+    expect(usePreferences.getState()).toBe(snapshot);
+    expect(notify).not.toHaveBeenCalled();
+    expect(db.transaction).not.toHaveBeenCalled();
+  } finally {
+    unsubscribe();
+  }
+});
+
+function mockImportBytes(bytes: Uint8Array) {
+  const data = require("node:buffer").Buffer.from(bytes);
+  jest.mocked(pick).mockResolvedValue([
+    {
+      ...fileMetadata,
+      uri: "content://large.txt",
+      name: "large.txt",
+      size: data.length
+    }
+  ]);
+  jest.mocked(keepLocalCopy).mockResolvedValue([
+    {
+      status: "success",
+      sourceUri: "content://large.txt",
+      localUri: "file:///large.txt"
+    }
+  ]);
+  jest.mocked(FileSystem.stat).mockResolvedValue({
+    size: data.length
+  } as Awaited<ReturnType<typeof FileSystem.stat>>);
+  jest.mocked(FileSystem.readFile).mockImplementation(async (_path, encoding) =>
+    data.toString(encoding)
+  );
+  jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+}
+
+test.each(["é", "€", "🎵"])(
+  "UTF-8 validation preserves %s split across decode chunks",
+  async (character) => {
+    const source = "a".repeat(49151) + character + "\r\nПривіт";
+    mockImportBytes(require("node:buffer").Buffer.from(source, "utf8"));
+    const reading = readLibraryFile("song");
+    await jest.advanceTimersByTimeAsync(50);
+    await expect(reading).resolves.toEqual({
+      text: source.replace("\r\n", "\n"),
+      name: "large.txt"
+    });
+    expect(jest.getTimerCount()).toBe(0);
+  }
+);
+
+test.each([
+  [0xc2],
+  [0xc2, 0x41],
+  [0xe0, 0x80, 0x80],
+  [0xed, 0xa0, 0x80],
+  [0xf0, 0x80, 0x80, 0x80],
+  [0xf4, 0x90, 0x80, 0x80]
+])("invalid UTF-8 spanning decode chunks is rejected: %j", async (...tail) => {
+  const bytes = require("node:buffer").Buffer.concat([
+    require("node:buffer").Buffer.alloc(49151, 0x61),
+    require("node:buffer").Buffer.from(tail)
+  ]);
+  mockImportBytes(bytes);
+  const checked = expect(readLibraryFile("song")).rejects.toThrow(
+    "FileEncodingError"
+  );
+  await jest.advanceTimersByTimeAsync(50);
+  await checked;
+  expect(FileSystem.unlink).toHaveBeenCalledWith("file:///large.txt");
+  expect(
+    jest.mocked(FileSystem.readFile).mock.calls.map((call) => call[1])
+  ).toEqual(["base64"]);
+});
+
+test("cancellation interrupts CPU validation before the next file chunk", async () => {
+  mockImportBytes(
+    require("node:buffer").Buffer.from("a".repeat(200000), "utf8")
+  );
+  const controller = new AbortController();
+  const reading = readLibraryFile("song", controller.signal).catch(
+    (error) => error
+  );
+  for (let index = 0; index < 30; index++) await Promise.resolve();
+  expect(jest.getTimerCount()).toBe(2);
+  controller.abort();
+  expect(await reading).toMatchObject({ code: "cancelled" });
+  expect(
+    jest.mocked(FileSystem.readFile).mock.calls.map((call) => call[1])
+  ).toEqual(["base64"]);
+  expect(FileSystem.unlink).toHaveBeenCalledWith("file:///large.txt");
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test("large startup preference loads yield without publishing a partial library", async () => {
+  usePreferences.getState().updateSong(999, { tempo: 123 });
+  await flushPreferences();
+  const before = usePreferences.getState().songs;
+  const rows = Array.from({ length: 64 }, (_, index) => ({
+    key: `song:${index + 1}:0`,
+    value: JSON.stringify({ tempo: 92, capo: index % 12 })
+  }));
+  jest
+    .mocked(getAllItems)
+    .mockImplementation(async (query) =>
+      query.parameters?.[0] === "song:%" ? rows : []
+    );
+  const changed = jest.fn();
+  const unsubscribe = usePreferences.subscribe(changed);
+  let done = false;
+  const reading = loadPreferences().then(() => {
+    done = true;
+  });
+  try {
+    for (let index = 0; index < 20; index++) await Promise.resolve();
+    expect(done).toBe(false);
+    expect(usePreferences.getState().songs).toBe(before);
+    expect(changed).not.toHaveBeenCalled();
+    await jest.advanceTimersByTimeAsync(50);
+    await reading;
+    expect(Object.keys(usePreferences.getState().songs)).toHaveLength(64);
+    expect(usePreferences.getState().songs[64]).toMatchObject({
+      tempo: 92,
+      capo: 3
+    });
+    expect(changed).toHaveBeenCalledTimes(1);
+  } finally {
+    unsubscribe();
+  }
+});
+
+test("export normalizes stable preferences once and captures edits made while yielding", async () => {
+  const songs = Array.from({ length: 32 }, (_, index) => ({
+    id: index + 1,
+    title: `Song ${index + 1} 🎵 Привіт`,
+    content: "[Am]Words 世界",
+    band_name: "Artist",
+    youtube_music: "",
+    youtobe_lesson: ""
+  }));
+  for (const song of songs)
+    usePreferences
+      .getState()
+      .updateSong(song.id, { backupId: `song:${song.id}` });
+  await flushPreferences();
+  jest.mocked(db.transaction).mockClear();
+  jest.mocked(getAllItems).mockResolvedValue(songs);
+  jest.mocked(FileSystem.writeFile).mockResolvedValue(undefined);
+  jest.mocked(FileSystem.stat).mockResolvedValue({
+    size: 1000
+  } as Awaited<ReturnType<typeof FileSystem.stat>>);
+  jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+  jest.mocked(saveDocuments).mockResolvedValue([
+    {
+      uri: "content://backup/library.json",
+      name: "library.json",
+      error: null
+    }
+  ]);
+  const normalize = jest.spyOn(
+    require("../src/components/preferences"),
+    "normalizeSongPreferences"
+  );
+  try {
+    const exporting = exportLibrary();
+    for (let index = 0; index < 20; index++) await Promise.resolve();
+    expect(FileSystem.writeFile).not.toHaveBeenCalled();
+    usePreferences.getState().updateSong(1, { tempo: 137 });
+    await jest.advanceTimersByTimeAsync(50);
+    await exporting;
+    expect(normalize).toHaveBeenCalledTimes(33);
+    const text = jest.mocked(FileSystem.writeFile).mock.calls[0][1];
+    const exported = parseLibraryBackup(text);
+    expect(exported).toHaveLength(32);
+    expect(exported[0].preferences).toMatchObject({
+      tempo: 137,
+      backupId: "song:1"
+    });
+    expect(exported.map((song) => song.title)).toEqual(
+      songs.map((song) => song.title)
+    );
+    expect(usePreferences.getState().songs[1].tempo).toBe(137);
+    expect(db.transaction).not.toHaveBeenCalled();
+  } finally {
+    normalize.mockRestore();
+  }
+});
+
+function largeBackup(version = 2) {
+  return {
+    format: "freetune-library",
+    version,
+    songs: Array.from({ length: 64 }, (_, index) => ({
+      title: `Song ${index} Привіт 🎵`,
+      content: "[Am]Words 世界",
+      band_name: "Artist",
+      youtube_music: "",
+      youtobe_lesson: "",
+      preferences: { tablature, cover, capo: index % 12 }
+    }))
+  };
+}
+
+test.each([1, 2])(
+  "cooperative backup validation preserves all version %s songs",
+  async (version) => {
+    const source = largeBackup(version);
+    if (version === 1) source.songs[0].title = "Legacy ".repeat(200);
+    const text = JSON.stringify(source);
+    const expected = parseLibraryBackup(text);
+    let completed = false;
+    const reading = parseLibraryBackupAsync(text).then((songs) => {
+      completed = true;
+      return songs;
+    });
+    await Promise.resolve();
+    expect(completed).toBe(false);
+    await jest.advanceTimersByTimeAsync(100);
+    await expect(reading).resolves.toEqual(expected);
+    expect(jest.getTimerCount()).toBe(0);
+  }
+);
+
+test("backup cancellation stops normalization before the remaining songs", async () => {
+  const normalize = jest.spyOn(
+    require("../src/components/preferences"),
+    "normalizeSongPreferences"
+  );
+  const controller = new AbortController();
+  const reading = parseLibraryBackupAsync(
+    JSON.stringify(largeBackup()),
+    controller.signal
+  ).catch((error) => error);
+  try {
+    await jest.advanceTimersByTimeAsync(0);
+    const count = normalize.mock.calls.length;
+    expect(count).toBeGreaterThan(0);
+    expect(count).toBeLessThan(64);
+    controller.abort();
+    expect(await reading).toMatchObject({ code: "cancelled" });
+    expect(normalize).toHaveBeenCalledTimes(count);
+    expect(jest.getTimerCount()).toBe(0);
+    expect(db.transaction).not.toHaveBeenCalled();
+  } finally {
+    normalize.mockRestore();
+  }
+});
+
+test("an invalid late backup song rejects the whole result after yielding", async () => {
+  const source = largeBackup();
+  source.songs[63].content = "";
+  const reading = expect(
+    parseLibraryBackupAsync(JSON.stringify(source))
+  ).rejects.toThrow("BackupInvalid");
+  await jest.advanceTimersByTimeAsync(100);
+  await reading;
+  expect(db.transaction).not.toHaveBeenCalled();
+  expect(jest.getTimerCount()).toBe(0);
+});
+
+test("export serializes each song without a second whole-library JSON pass", async () => {
+  const songs = largeBackup().songs.map((song, index) => ({
+    ...song,
+    id: index + 1
+  }));
+  for (const song of songs)
+    usePreferences.getState().updateSong(song.id, {
+      ...song.preferences,
+      backupId: `song:${song.id}`
+    });
+  await flushPreferences();
+  jest.mocked(getAllItems).mockResolvedValue(songs);
+  jest.mocked(FileSystem.writeFile).mockResolvedValue(undefined);
+  jest.mocked(FileSystem.stat).mockResolvedValue({
+    size: 1000
+  } as Awaited<ReturnType<typeof FileSystem.stat>>);
+  jest.mocked(FileSystem.unlink).mockResolvedValue(undefined);
+  jest
+    .mocked(saveDocuments)
+    .mockResolvedValue([
+      { uri: "content://backup.json", name: "backup.json", error: null }
+    ]);
+  const stringify = jest.spyOn(JSON, "stringify");
+  try {
+    const exporting = exportLibrary();
+    await jest.advanceTimersByTimeAsync(100);
+    await exporting;
+    expect(
+      stringify.mock.calls.some(
+        ([value]) => Array.isArray(value?.songs) && value.songs.length > 1
+      )
+    ).toBe(false);
+    const text = jest.mocked(FileSystem.writeFile).mock.calls[0][1];
+    const restored = parseLibraryBackup(text);
+    expect(restored.map((song) => song.title)).toEqual(
+      songs.map((song) => song.title)
+    );
+    expect(restored.every((song) => song.preferences.cover === cover)).toBe(
+      true
+    );
+    expect(restored[63].preferences.tablature).toMatchObject(tablature);
+    expect(text).toBe(JSON.stringify(JSON.parse(text)));
+  } finally {
+    stringify.mockRestore();
   }
 });

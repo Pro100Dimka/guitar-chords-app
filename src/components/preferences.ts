@@ -1,4 +1,9 @@
+import { cooperativeWork } from "./cooperative-work";
 import { guitarTunings, standardTuning } from "../screens/tuner/tunings";
+import {
+  MAX_GUITAR_ZOOM,
+  MIN_GUITAR_ZOOM
+} from "../screens/tuner/guitar-layout";
 import { create } from "zustand";
 import type { SQLTransaction } from "react-native-sqlite-2";
 import { db } from "./database";
@@ -58,6 +63,7 @@ interface Preferences {
   tunerSound: boolean;
   tunerReference: number;
   tunerSpectrum: boolean;
+  playGuitarZoom: number;
   chromaticOctave: number | null;
   autoDetect: boolean;
   stringIndex: number;
@@ -76,13 +82,14 @@ let saving: Promise<void> | undefined;
 let revision = 0;
 let savedRevision = 0;
 let savedSongs: Record<string, SongPreferences> = {};
-export const usePreferences = create<PreferencesStore>((set) => ({
+export const usePreferences = create<PreferencesStore>((set, get) => ({
   instrument: "guitar",
   tuning: "standard",
   customTuning: standardTuning,
   tunerSound: true,
   tunerReference: 440,
   tunerSpectrum: false,
+  playGuitarZoom: 1,
   chromaticOctave: null,
   autoDetect: true,
   stringIndex: 0,
@@ -90,10 +97,18 @@ export const usePreferences = create<PreferencesStore>((set) => ({
   songs: {},
   saveError: false,
   update: (patch) => {
+    const state = get();
+    if (
+      Object.entries(patch).every(([key, value]) =>
+        Object.is(state[key as keyof Preferences], value)
+      )
+    )
+      return;
     set(patch);
     scheduleSave();
   },
   removeSong: (id) => {
+    if (get().songs[id] === undefined) return;
     set((state) => {
       const songs = { ...state.songs };
       delete songs[id];
@@ -102,6 +117,14 @@ export const usePreferences = create<PreferencesStore>((set) => ({
     scheduleSave();
   },
   updateSong: (id, patch) => {
+    const previous = get().songs[id];
+    if (
+      previous &&
+      Object.entries(patch).every(([key, value]) =>
+        Object.is(previous[key as keyof SongPreferences], value)
+      )
+    )
+      return;
     set((state) => ({
       songs: {
         ...state.songs,
@@ -309,6 +332,7 @@ export function normalizeRhythm(value: unknown): SongRhythm {
   };
 }
 export async function loadPreferences() {
+  const checkpoint = cooperativeWork();
   const [size] = await getAllItems<{ length: number }>({
     tableName: "settings",
     fields: "length(value) AS length",
@@ -336,10 +360,12 @@ export async function loadPreferences() {
   }
   const songs: Record<string, SongPreferences> = {};
   if (record(data.songs))
-    Object.entries(data.songs).forEach(([id, song]) => {
-      if (!record(song) || !/^\d+$/.test(id)) return;
-      songs[id] = normalizeSongPreferences(song);
-    });
+    for (const [id, song] of Object.entries(data.songs)) {
+      if (record(song) && /^\d+$/.test(id))
+        songs[id] = normalizeSongPreferences(song);
+      const pause = checkpoint();
+      if (pause) await pause;
+    }
   const rows = await getAllItems<{ key: string; value: string }>({
     tableName: "settings",
     filters: "key LIKE ?",
@@ -347,6 +373,8 @@ export async function loadPreferences() {
   });
   const pieces = new Map<string, Map<number, string>>();
   for (const row of rows) {
+    const pause = checkpoint();
+    if (pause) await pause;
     const match = /^song:(\d+):(\d+)$/.exec(row.key);
     if (!match) continue;
     const parts = pieces.get(match[1]) ?? new Map<number, string>();
@@ -365,6 +393,8 @@ export async function loadPreferences() {
       usePreferences.setState({ saveError: true });
       throw new Error("PreferenceReadFailed");
     }
+    const pause = checkpoint();
+    if (pause) await pause;
   }
   const state: Preferences = {
     songs,
@@ -383,6 +413,12 @@ export async function loadPreferences() {
     tunerSound: data.tunerSound !== false,
     tunerReference: Math.round(number(data.tunerReference, 440, 400, 480)),
     tunerSpectrum: data.tunerSpectrum === true,
+    playGuitarZoom: number(
+      data.playGuitarZoom,
+      1,
+      MIN_GUITAR_ZOOM,
+      MAX_GUITAR_ZOOM
+    ),
     chromaticOctave:
       typeof data.chromaticOctave === "number" &&
       [1, 2, 3, 4, 5, 6].includes(data.chromaticOctave)
