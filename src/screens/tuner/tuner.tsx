@@ -105,9 +105,23 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const rms = useSharedValue(0);
   const plucks = useSharedValue<number[]>([]);
   const note = useSharedValue<INote | null>(null);
-  const [accessibleReading, setAccessibleReading] = useState<INote | null>(
-    null
-  );
+  const [accessibleReading, setReading] = useState<INote | null>(null);
+  const readingRef = useRef<INote | null>(null);
+  const setAccessibleReading = useCallback((next: INote | null) => {
+    const previous = readingRef.current;
+    if (
+      previous === next ||
+      (previous &&
+        next &&
+        previous.name === next.name &&
+        previous.octave === next.octave &&
+        previous.direction === next.direction &&
+        previous.pitch.toFixed(1) === next.pitch.toFixed(1))
+    )
+      return;
+    readingRef.current = next;
+    setReading(next);
+  }, []);
   const readingUpdatedAt = useRef(0);
   const [stringNotes, setStringNotes] = useState<IString[] | null>(null);
   const config = {
@@ -346,23 +360,17 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       const valid = Number.isFinite(cents) && buffer.rms > 0.003;
       if (now - readingUpdatedAt.current >= 1000) {
         readingUpdatedAt.current = now;
-        setAccessibleReading((previous) => {
-          if (!valid) return null;
-          if (
-            previous?.name === buffer.note &&
-            previous.octave === buffer.octave &&
-            previous.direction === buffer.direction &&
-            previous.pitch.toFixed(1) === buffer.pitch.toFixed(1)
-          )
-            return previous;
-          return {
-            name: buffer.note,
-            octave: buffer.octave,
-            pitch: buffer.pitch,
-            refFreq: buffer.refFreq,
-            direction: buffer.direction
-          };
-        });
+        setAccessibleReading(
+          valid
+            ? {
+                name: buffer.note,
+                octave: buffer.octave,
+                pitch: buffer.pitch,
+                refFreq: buffer.refFreq,
+                direction: buffer.direction
+              }
+            : null
+        );
       }
       if (valid && state.key !== key) {
         state.key = key;
@@ -460,7 +468,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     fillKey,
     signal,
     isChromatic,
-    chromaticOctave
+    chromaticOctave,
+    setAccessibleReading
   ]);
   const previewUntil = useRef(0);
   const selectString = (index: number) => {

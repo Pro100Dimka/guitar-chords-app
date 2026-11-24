@@ -36,10 +36,14 @@ import {
 } from "@/components/preferences";
 import palette from "@/theme/palette";
 import {
-  acousticBank,
   acousticEngine,
   selectedChordShape
 } from "../../components/acoustic-player";
+import {
+  AcousticInstrument,
+  prepareAcousticInstrument,
+  transferAcousticInstrument
+} from "../../components/acoustic-instrument";
 import { performanceAudio } from "../../components/performance-audio";
 import guitarBackground from "../../../assets/images/gold-background.webp";
 import {
@@ -949,14 +953,14 @@ function RhythmPlayer({
 }) {
   const { t } = useTranslation();
   const [active, setActive] = useState(AppState.currentState === "active");
-  const [canPrepare, setCanPrepare] = useState(false);
   const web = useRef<WebView>(null);
-  const ready = useRef(false);
-  useEffect(() => {
-    if (!active) return;
-    const frame = requestAnimationFrame(() => setCanPrepare(true));
-    return () => cancelAnimationFrame(frame);
-  }, [active]);
+  const [ready, setReady] = useState(false);
+  const [preparationError, setPreparationError] = useState(false);
+  const [instrument, setInstrument] = useState<{
+    spec: AcousticInstrument;
+    chunks: string[];
+  } | null>(null);
+  const transferToken = useRef(0);
   useEffect(() => {
     const listener = AppState.addEventListener("change", (state) =>
       setActive(state === "active")
@@ -995,25 +999,34 @@ function RhythmPlayer({
     });
   }, [progressionKey, shapesKey, fingeringsKey, capo]);
   const fingeringPreview = stroke !== undefined;
-  const bank = useMemo(
-    () =>
-      canPrepare && frequencies.every((notes) => notes.length)
-        ? acousticBank(frequencies.flat(), frequencies, fingeringPreview)
-        : null,
-    [frequencies, canPrepare, fingeringPreview]
+  const instrumentSpec = useMemo<AcousticInstrument>(
+    () => ({
+      chords: progressionKey.split(" "),
+      frequencies,
+      previewKeys: JSON.parse(previewKeysKey),
+      preview: fingeringPreview
+    }),
+    [frequencies, progressionKey, previewKeysKey, fingeringPreview]
   );
-  const instrument = useMemo(
-    () =>
-      bank
-        ? JSON.stringify({
-            chords: progressionKey.split(" "),
-            frequencies,
-            previewKeys: JSON.parse(previewKeysKey),
-            bank
-          })
-        : "",
-    [bank, frequencies, progressionKey, previewKeysKey]
-  );
+  useEffect(() => {
+    setInstrument(null);
+    setPreparationError(false);
+    web.current?.injectJavaScript("window.invalidateInstrument?.();true;");
+    if (!active || !frequencies.every((notes) => notes.length)) return;
+    const controller = new AbortController();
+    void prepareAcousticInstrument(instrumentSpec, controller.signal)
+      .then((chunks) => {
+        if (chunks && !controller.signal.aborted)
+          setInstrument({ spec: instrumentSpec, chunks });
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) {
+          console.warn("Rhythm instrument preparation failed", error);
+          setPreparationError(true);
+        }
+      });
+    return () => controller.abort();
+  }, [active, frequencies, instrumentSpec]);
   const labels = JSON.stringify({
     play: t(practice ? "StartPractice" : "ListenRhythm"),
     stop: t("Pause"),
@@ -1036,7 +1049,7 @@ function RhythmPlayer({
     () => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{background:transparent}body{margin:0;background:transparent;font-family:system-ui;color:${palette.glass.ink}}button{width:100%;height:48px;border:1px solid ${palette.glass.edge};border-radius:14px;background:${palette.glass.play};color:${palette.gold.ink};box-shadow:0 0 12px #ffb00077,inset 0 1px 1px #fff9c9;border-color:#ffe59b;background:linear-gradient(#fff2a6,#ffd65a 16%,#ffbc08 48%,#ffaa00 52%,#ffd34a);font:600 19px system-ui}#count{height:28px;line-height:28px;text-align:center;font-size:13px}${compact ? "button{width:44px;height:44px;border-radius:50%;margin:2px;box-shadow:0 0 2px #ffb00077,inset 0 1px 1px #fff9c9}#count{display:none}" : ""}</style></head><body><button id="play"></button><div id="count"></div><script>
     let context,engine,timer,playing=false,step=0,next=0,start=0,preparing=Promise.resolve(),playToken=0,lastChord=-1,singleStroke=false,activeFingering=0,loading=true,wantsPlay=false,instrumentToken=0;
     let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false,arrangements=[],bar=0,slot=0,patternStep=0,planKey='',scheduled=[];
-    let chords=[],frequencies=[];
+    let chords=[],frequencies=[],incomingToken=0,incomingChunks=[];
     const beatCounts=${JSON.stringify(rhythmCounts)};
     const labels=${labels};
     const button=document.getElementById('play'), count=document.getElementById('count');button.textContent=${compact ? JSON.stringify("▶") : "labels.play"};button.setAttribute('aria-label',labels.play);
@@ -1092,6 +1105,19 @@ function RhythmPlayer({
       }catch(e){stop();window.ReactNativeWebView?.postMessage('stopped');button.textContent=${compact ? JSON.stringify("!") : "labels.error"};button.setAttribute('aria-label',labels.error);}
       finally{if(token===playToken||!playing)button.disabled=false;}
     }
+    window.invalidateInstrument=()=>{
+      const resume=playing||wantsPlay;stop();wantsPlay=resume;loading=true;
+      instrumentToken++;incomingToken=0;incomingChunks=[];
+    };
+    window.beginInstrument=token=>{window.invalidateInstrument();incomingToken=token;};
+    window.appendInstrument=(token,chunk)=>{if(token===incomingToken)incomingChunks.push(chunk);};
+    window.cancelInstrument=token=>{if(token===incomingToken)window.invalidateInstrument();};
+    window.finishInstrument=token=>{
+      if(token!==incomingToken)return;
+      const encoded=incomingChunks.join('');incomingChunks=[];
+      try{window.loadInstrument(JSON.parse(encoded));}
+      catch(error){stop();loading=true;button.textContent=labels.error;window.ReactNativeWebView?.postMessage('stopped');}
+    };
     window.loadInstrument=data=>{
       const resume=playing||wantsPlay,token=++instrumentToken;
       stop();wantsPlay=resume;loading=true;chords=data.chords;frequencies=data.frequencies;
@@ -1115,24 +1141,44 @@ function RhythmPlayer({
     [labels, compact]
   );
   useEffect(() => {
-    ready.current = false;
-  }, [preview]);
+    setReady(false);
+  }, [preview, active]);
   useEffect(() => {
-    if (ready.current && instrument)
+    if (!active || !ready || instrument?.spec !== instrumentSpec) return;
+    const controller = new AbortController();
+    const token = ++transferToken.current;
+    void transferAcousticInstrument(
+      instrument.chunks,
+      token,
+      (script) => web.current?.injectJavaScript(script),
+      controller.signal
+    ).catch((error) => {
+      if (!controller.signal.aborted) {
+        console.warn("Rhythm instrument transfer failed", error);
+        setPreparationError(true);
+      }
+    });
+    return () => {
+      controller.abort();
       web.current?.injectJavaScript(
-        `window.loadInstrument(${instrument});true;`
+        `window.cancelInstrument?.(${token});true;`
       );
-  }, [instrument]);
+    };
+  }, [active, ready, instrument, instrumentSpec]);
   useEffect(() => {
-    if (ready.current)
+    if (ready)
       web.current?.injectJavaScript(
         `window.configurePlayer(${playConfig});true;`
       );
-  }, [playConfig]);
+  }, [ready, playConfig]);
   const source = useMemo(() => ({ html: preview }), [preview]);
   const unavailable = progression.filter(
     (_, index) => !frequencies[index]?.length
   );
+  if (preparationError)
+    return autoplay ? null : (
+      <Text style={styles.description}>{t("RhythmAudioError")}</Text>
+    );
   if (unavailable.length)
     return autoplay ? null : (
       <Text style={styles.description}>
@@ -1144,9 +1190,7 @@ function RhythmPlayer({
       {active && (
         <WebView
           ref={web}
-          onLoadStart={() => {
-            ready.current = false;
-          }}
+          onLoadStart={() => setReady(false)}
           originWhitelist={["about:blank"]}
           source={source}
           style={
@@ -1173,12 +1217,7 @@ function RhythmPlayer({
               } catch {}
               return;
             }
-            if (nativeEvent.data === "ready") {
-              ready.current = true;
-              web.current?.injectJavaScript(
-                `${instrument ? `window.loadInstrument(${instrument});` : ""}window.configurePlayer(${playConfig});true;`
-              );
-            }
+            if (nativeEvent.data === "ready") setReady(true);
             if (nativeEvent.data === "started") onStarted?.();
             if (nativeEvent.data === "stopped") onStopped?.();
           }}
