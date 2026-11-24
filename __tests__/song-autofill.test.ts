@@ -115,7 +115,7 @@ describe("content provider failover", () => {
         : response(String(url))
     );
     const pending = lookup(title, artist);
-    await jest.advanceTimersByTimeAsync(0);
+    await jest.runAllTimersAsync();
     const result = await pending;
     expect(result[0]).toMatchObject({
       capo: 2,
@@ -148,7 +148,7 @@ describe("content provider failover", () => {
             : response(String(url))
       );
       const pending = lookup(title, artist);
-      await jest.advanceTimersByTimeAsync(10000);
+      await jest.runAllTimersAsync();
       const options = await pending;
       const option = options.find((entry) => entry.source === "Пісенник")!;
       expect(option.capo).toBe(3);
@@ -181,7 +181,7 @@ describe("content provider failover", () => {
             : response(String(url))
       );
       const pending = lookup(title, artist);
-      await jest.advanceTimersByTimeAsync(10000);
+      await jest.runAllTimersAsync();
       const option = (await pending).find(
         (entry) => entry.source === "Пісенник"
       )!;
@@ -205,7 +205,7 @@ describe("content provider failover", () => {
             : response(String(url))
       );
       const pending = lookup(title, artist);
-      await jest.advanceTimersByTimeAsync(10000);
+      await jest.runAllTimersAsync();
       const option = (await pending).find(
         (entry) => entry.source === "Пісенник"
       )!;
@@ -250,7 +250,7 @@ describe("content provider failover", () => {
           : response(String(url))
     );
     const pending = lookup(title, artist);
-    await jest.advanceTimersByTimeAsync(10000);
+    await jest.runAllTimersAsync();
     expect(
       (await pending).find((option) => option.source === "Пісенник")
     ).toMatchObject({
@@ -289,7 +289,7 @@ describe("content provider failover", () => {
             : response(String(url))
       );
       const pending = lookup(`${title} (2011 Remaster)`, artist);
-      await jest.advanceTimersByTimeAsync(10000);
+      await jest.runAllTimersAsync();
       const result = await pending;
       expect(
         request.mock.calls.some(([url]) => String(url) === candidate)
@@ -323,7 +323,7 @@ describe("content provider failover", () => {
         return response(String(url));
       });
       const result = lookup(title, artist);
-      await jest.advanceTimersByTimeAsync(0);
+      await jest.runAllTimersAsync();
       await expect(result).resolves.toEqual([
         expect.objectContaining({ source, url: canonical, hasChords: true })
       ]);
@@ -395,7 +395,7 @@ describe("content provider failover", () => {
         : response(String(url))
     );
     const result = lookup("Hotel California", "Eagles");
-    await jest.advanceTimersByTimeAsync(0);
+    await jest.runAllTimersAsync();
     await expect(result).resolves.toEqual([
       expect.objectContaining({
         source: "Cifra Club",
@@ -430,7 +430,7 @@ describe("content provider failover", () => {
       return response(value);
     });
     const result = lookup(title, artist);
-    await jest.advanceTimersByTimeAsync(0);
+    await jest.runAllTimersAsync();
     await expect(result).resolves.toEqual([
       expect.objectContaining({
         source: "GuitareTab",
@@ -498,6 +498,156 @@ describe("content provider failover", () => {
     controller.abort();
     await expect(result).resolves.toEqual(new Error("Cancelled"));
     await jest.runAllTimersAsync();
+    expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it.each(["cifraclub.com", "e-chords.com", "cifras.com.br"])(
+    "extracts decoded entities and displayed rows without reparsing %s",
+    async (domain) => {
+      const body =
+        '<span class="js-tab-row"><b>Am</b>&nbsp;&nbsp;C</span>' +
+        '<span class="js-tab-row">Fish &amp; chips &lt;br&gt;</span><br>' +
+        "<span>G</span>\r\u200b\nNext&nbsp;line";
+      request.mockImplementation(async (url) =>
+        String(url).includes(domain)
+          ? new Response(
+              `<h1>${title}</h1><h2>${artist}</h2><pre>${body}</pre>`
+            )
+          : response(String(url))
+      );
+      const pending = lookup(title, artist);
+      await jest.runAllTimersAsync();
+      const { transposeSong } = require("../src/screens/song/chords");
+      expect((await pending)[0].content).toBe(
+        transposeSong("Am  C\nFish & chips <br>\nG\nNext line", 0)
+      );
+    }
+  );
+
+  it("Pisennyk keeps nested chord tags, entities and paragraph spacing", async () => {
+    const candidate = "https://pisennyk.com.ua/test-artist/nested-chart";
+    request.mockImplementation(async (url) =>
+      String(url).startsWith("https://pisennyk.com.ua/search")
+        ? new Response(`<a href="${candidate}">${title} ${artist}</a>`)
+        : String(url) === candidate
+          ? new Response(
+              `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: title, byArtist: { name: artist } })}</script>` +
+                '<div class="interpretation-content"><p><code data-chord="Am"><b>Am</b></code>Fish &amp; chips&nbsp;today<br> next\n  line</p><p><code data-chord="C">C</code>End</p></div>'
+            )
+          : response(String(url))
+    );
+    const pending = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    const { transposeSong } = require("../src/screens/song/chords");
+    expect((await pending)[0].content).toBe(
+      transposeSong("[Am]Fish & chips today\n nextline\n[C]End", 0)
+    );
+  });
+
+  it("normalization keeps a legal chart whose source text exceeds the content limit", async () => {
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(
+            `<h1>${title}</h1><h2>${artist}</h2><pre>${"\u200b".repeat(220000)}Am C\nExample words</pre>`
+          )
+        : response(String(url))
+    );
+    const pending = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    const { transposeSong } = require("../src/screens/song/chords");
+    expect((await pending)[0].content).toBe(
+      transposeSong("Am C\nExample words", 0)
+    );
+  });
+
+  it("text normalization preserves a CRLF separated by removed characters at a work boundary", async () => {
+    const text = "Am C\n" + "x".repeat(16378) + "\r\u200b\nG\r\nLast&nbsp;line";
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(`<h1>${title}</h1><h2>${artist}</h2><pre>${text}</pre>`)
+        : response(String(url))
+    );
+    const pending = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    const { transposeSong } = require("../src/screens/song/chords");
+    expect((await pending)[0].content).toBe(
+      transposeSong("Am C\n" + "x".repeat(16378) + "\nG\nLast line", 0)
+    );
+  });
+
+  it("cancelling decoded chart traversal stops before the remaining nodes and does not cache a partial result", async () => {
+    const { DomUtils } = require("htmlparser2");
+    const isText = DomUtils.isText;
+    const controller = new AbortController();
+    let visited = 0;
+    const textNodes = jest
+      .spyOn(DomUtils, "isText")
+      .mockImplementation((node) => {
+        const text = isText(node);
+        if (text && ++visited === 1) setTimeout(() => controller.abort(), 0);
+        return text;
+      });
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(
+            `<h1>${title}</h1><h2>${artist}</h2><pre>${"<span>Am C</span><br><span>Words</span><br>".repeat(12000)}</pre>`
+          )
+        : response(String(url))
+    );
+    const pending = lookup(title, artist, controller.signal).catch(
+      (error) => error
+    );
+    await jest.runAllTimersAsync();
+    expect(await pending).toEqual(new Error("Cancelled"));
+    expect(visited).toBeGreaterThan(0);
+    expect(visited).toBeLessThan(1000);
+    expect(jest.getTimerCount()).toBe(0);
+    textNodes.mockRestore();
+    request.mockClear();
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(chart)
+        : response(String(url))
+    );
+    const retry = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    expect((await retry)[0].content).toContain("Original example words");
+    expect(request).toHaveBeenCalled();
+  });
+
+  it("cancelling text normalization stops before the remaining extracted chunks", async () => {
+    const controller = new AbortController();
+    let clock = 100000;
+    jest.spyOn(Date, "now").mockImplementation(() => (clock += 2));
+    const original = String.prototype.replace;
+    let chunks = 0;
+    jest.spyOn(String.prototype, "replace").mockImplementation(function (
+      this: string,
+      pattern,
+      replacement
+    ) {
+      if (
+        pattern instanceof RegExp &&
+        pattern.source === "\\u200b" &&
+        ++chunks === 1
+      )
+        setTimeout(() => controller.abort(), 0);
+      return original.call(this, pattern, replacement);
+    });
+    request.mockImplementation(async (url) =>
+      String(url).includes("cifraclub.com")
+        ? new Response(
+            `<h1>${title}</h1><h2>${artist}</h2><pre>${"\u200b".repeat(600000)}Am C\nWords</pre>`
+          )
+        : response(String(url))
+    );
+    const pending = lookup(title, artist, controller.signal).catch(
+      (error) => error
+    );
+    await jest.runAllTimersAsync();
+    expect(await pending).toEqual(new Error("Cancelled"));
+    expect(chunks).toBeGreaterThan(0);
+    expect(chunks).toBeLessThan(5);
     expect(jest.getTimerCount()).toBe(0);
   });
 
