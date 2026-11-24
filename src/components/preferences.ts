@@ -1,5 +1,9 @@
 import { cooperativeWork } from "./cooperative-work";
 import { guitarTunings, standardTuning } from "../screens/tuner/tunings";
+import {
+  MAX_GUITAR_ZOOM,
+  MIN_GUITAR_ZOOM
+} from "../screens/tuner/guitar-layout";
 import { create } from "zustand";
 import type { SQLTransaction } from "react-native-sqlite-2";
 import { db } from "./database";
@@ -59,6 +63,7 @@ interface Preferences {
   tunerSound: boolean;
   tunerReference: number;
   tunerSpectrum: boolean;
+  playGuitarZoom: number;
   chromaticOctave: number | null;
   autoDetect: boolean;
   stringIndex: number;
@@ -84,6 +89,7 @@ export const usePreferences = create<PreferencesStore>((set, get) => ({
   tunerSound: true,
   tunerReference: 440,
   tunerSpectrum: false,
+  playGuitarZoom: 1,
   chromaticOctave: null,
   autoDetect: true,
   stringIndex: 0,
@@ -407,6 +413,12 @@ export async function loadPreferences() {
     tunerSound: data.tunerSound !== false,
     tunerReference: Math.round(number(data.tunerReference, 440, 400, 480)),
     tunerSpectrum: data.tunerSpectrum === true,
+    playGuitarZoom: number(
+      data.playGuitarZoom,
+      1,
+      MIN_GUITAR_ZOOM,
+      MAX_GUITAR_ZOOM
+    ),
     chromaticOctave:
       typeof data.chromaticOctave === "number" &&
       [1, 2, 3, 4, 5, 6].includes(data.chromaticOctave)

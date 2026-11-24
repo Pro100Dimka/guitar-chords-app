@@ -352,6 +352,49 @@ test("song preferences and cover survive serialization and reload; failed commit
   });
 });
 
+test.each([
+  [undefined, 1],
+  ["large", 1],
+  [0.2, 0.75],
+  [9, 1.5],
+  [1.27, 1.27]
+])(
+  "saved guitar zoom %s loads as the bounded value %s",
+  async (savedZoom, expected) => {
+    const text = JSON.stringify({ playGuitarZoom: savedZoom });
+    jest.mocked(getAllItems).mockImplementation(async (query) => {
+      if (query.fields?.startsWith("length")) return [{ length: text.length }];
+      if (query.fields?.startsWith("substr")) return [{ value: text }];
+      return [];
+    });
+    await loadPreferences();
+    expect(usePreferences.getState().playGuitarZoom).toBe(expected);
+  }
+);
+
+test("a settled guitar size is serialized and restored", async () => {
+  let text = "";
+  jest.mocked(db.transaction).mockImplementation((body, _error, success) => {
+    body({
+      executeSql: (_sql, args) => {
+        if (args?.[0] === "experience") text = String(args[1]);
+      }
+    });
+    success?.();
+  });
+  usePreferences.getState().update({ playGuitarZoom: 1.31 });
+  await flushPreferences();
+  expect(JSON.parse(text).playGuitarZoom).toBe(1.31);
+  usePreferences.setState({ playGuitarZoom: 1 });
+  jest.mocked(getAllItems).mockImplementation(async (query) => {
+    if (query.fields?.startsWith("length")) return [{ length: text.length }];
+    if (query.fields?.startsWith("substr")) return [{ value: text }];
+    return [];
+  });
+  await loadPreferences();
+  expect(usePreferences.getState().playGuitarZoom).toBe(1.31);
+});
+
 test("exported backup retains artist, lyrics, cover and chord shapes", async () => {
   const contentSource = {
     name: "GuitareTab",

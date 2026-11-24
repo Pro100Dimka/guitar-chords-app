@@ -1,4 +1,9 @@
 {
+  "TabShowKeypad": "Показати панель ладів",
+  "TabHideKeypad": "Сховати панель ладів",
+  "GuitarZoom": "Розмір гітари",
+  "GuitarZoomHint": "Налаштуйте розмір гітари та відстань між струнами під свою руку.",
+  "GuitarZoomReset": "Скинути до 100%",
   "TabNextPosition": "Наступна позиція",
   "TabLoopShort": "Цикл",
   "TabTempoShort": "Темп",

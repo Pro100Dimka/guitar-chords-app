@@ -36,6 +36,7 @@ const Strings: FC<{
   currString: IString | null;
   width: number;
   height: number;
+  zoom?: number;
   onReady?: () => void;
 }> = (props) => {
   const {
@@ -48,6 +49,7 @@ const Strings: FC<{
     currString,
     width,
     height,
+    zoom,
     onReady
   } = props;
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
@@ -92,7 +94,7 @@ const Strings: FC<{
     stringLeft,
     stringWidth,
     stringBottom: bottom
-  } = guitarLayout(width, height);
+  } = guitarLayout(width, height, zoom);
   const spacing = stringWidth / Math.max(1, stringNotes.length - 1);
   const boxWidth = Math.min(NOTE_BOX_WIDTH, spacing - 4);
   const nutY = Math.min(-height, bottom - stringWidth * 12);

@@ -40,6 +40,7 @@ import {
 } from "../../components/acoustic-player";
 import { warmGuitar } from "../../components/guitar-audio";
 import { performanceAudio } from "../../components/performance-audio";
+import { usePreferences } from "../../components/preferences";
 import type { INote } from "../../@interfaces";
 import palette from "../../theme/palette";
 import type { TabNote } from "../../components/tablature";
@@ -48,11 +49,24 @@ import { TablatureLibrary } from "./tablature-library";
 import { TablaturePractice } from "./tablature-practice";
 import { useTablature } from "./use-tablature";
 import { useTablatureSession } from "./use-tablature-session";
+import { GuitarZoom } from "./guitar-zoom";
 
 export default function PlayGuitar() {
   const { t } = useTranslation();
   const focused = useIsFocused();
   const screenSize = useWindowDimensions();
+  const savedZoom = usePreferences((state) => state.playGuitarZoom);
+  const savePreferences = usePreferences((state) => state.update);
+  const [zoom, setZoom] = useState(savedZoom);
+  const [zoomAdjusting, setZoomAdjusting] = useState(false);
+  useEffect(() => setZoom(savedZoom), [savedZoom]);
+  const commitZoom = useCallback(
+    (value: number) => {
+      setZoom(value);
+      savePreferences({ playGuitarZoom: value });
+    },
+    [savePreferences]
+  );
   const [foreground, setForeground] = useState(
     AppState.currentState === "active"
   );
@@ -155,8 +169,8 @@ export default function PlayGuitar() {
   });
   currentPitches.current = pitches;
   const frame = useMemo(
-    () => guitarLayout(layout.width, layout.height),
-    [layout.width, layout.height]
+    () => guitarLayout(layout.width, layout.height, zoom),
+    [layout.width, layout.height, zoom]
   );
   const landscape = screenSize.width > screenSize.height;
   const badgeTop = landscape
@@ -214,9 +228,18 @@ export default function PlayGuitar() {
       active,
       status: tablature.status,
       practiceOpen,
-      audioInterruption
+      audioInterruption,
+      zoomAdjusting,
+      frame
     }),
-    [active, tablature.status, practiceOpen, audioInterruption]
+    [
+      active,
+      tablature.status,
+      practiceOpen,
+      audioInterruption,
+      zoomAdjusting,
+      frame
+    ]
   );
   const liveTouchContext = useRef<typeof touchContext | null>(null);
   const strumTouchContext = useRef<typeof touchContext | null>(null);
@@ -230,7 +253,9 @@ export default function PlayGuitar() {
       touchContext.status !== "idle" ||
       touchContext.active !== previous?.active ||
       touchContext.practiceOpen !== previous?.practiceOpen ||
-      touchContext.audioInterruption !== previous?.audioInterruption
+      touchContext.audioInterruption !== previous?.audioInterruption ||
+      touchContext.zoomAdjusting !== previous?.zoomAdjusting ||
+      touchContext.frame !== previous?.frame
     )
       strumTouchContext.current = null;
     liveTouchContext.current = touchContext;
@@ -249,7 +274,11 @@ export default function PlayGuitar() {
       requests.forEach((request) => request.controller.abort());
       requests.clear();
     };
-  }, [active, pitchKey, practiceOpen, audioInterruption]);
+  }, [active, pitchKey, practiceOpen, audioInterruption, frame, zoomAdjusting]);
+
+  useLayoutEffect(() => {
+    touches.value = {};
+  }, [frame, zoomAdjusting, touches]);
 
   useEffect(() => {
     if (tabOwnsAudio) stopBacking();
@@ -281,6 +310,7 @@ export default function PlayGuitar() {
   }, []);
   useEffect(() => {
     if (!active) {
+      setZoomAdjusting(false);
       prepared.current.clear();
       setPlaying(false);
       setMetronome(false);
@@ -402,7 +432,8 @@ export default function PlayGuitar() {
         (liveTouchContext.current !== touchContext &&
           strumTouchContext.current !== touchContext) ||
         !touchContext.active ||
-        touchContext.practiceOpen
+        touchContext.practiceOpen ||
+        touchContext.zoomAdjusting
       )
         return;
       if (tabPlayback) {
@@ -472,6 +503,7 @@ export default function PlayGuitar() {
             tracked[touch.id] = { x: touch.x, first: index };
             if (
               active &&
+              !zoomAdjusting &&
               touch.y >= 65 &&
               touch.y <= frame.stringBottom &&
               index >= 0 &&
@@ -498,7 +530,12 @@ export default function PlayGuitar() {
             const previous = tracked[touch.id];
             if (!previous) continue;
             const crossed: number[] = [];
-            if (active && touch.y >= 65 && touch.y <= frame.stringBottom) {
+            if (
+              active &&
+              !zoomAdjusting &&
+              touch.y >= 65 &&
+              touch.y <= frame.stringBottom
+            ) {
               for (let index = 0; index < 6; index++) {
                 const x = frame.stringLeft + spacing * index;
                 if (
@@ -546,7 +583,7 @@ export default function PlayGuitar() {
         .onFinalize(() => {
           touches.value = {};
         }),
-    [active, frame, frets, playStrings, plucks, touches]
+    [active, zoomAdjusting, frame, frets, playStrings, plucks, touches]
   );
   const chordChoices =
     picker || patternStep !== null ? (
@@ -583,17 +620,32 @@ export default function PlayGuitar() {
         ))}
       </View>
     ) : null;
-  const strings = guitar.stringNotes!.map((string, index) => {
-    const cue = tabPlayback
-      ? tabNotes.find((entry) => entry.string === index)
-      : undefined;
-    const midi = cue ? guitarMidi[index] + cue.fret : pitches[index];
-    return {
-      ...string,
-      name: midi === null ? "×" : noteNames[midi % 12],
-      octave: midi === null ? 0 : Math.floor(midi / 12) - 1
-    };
-  });
+  const strings = useMemo(
+    () =>
+      guitar.stringNotes!.map((string, index) => {
+        const cue = tabPlayback
+          ? tabNotes.find((entry) => entry.string === index)
+          : undefined;
+        const midi = cue ? guitarMidi[index] + cue.fret : pitches[index];
+        return {
+          ...string,
+          name: midi === null ? "×" : noteNames[midi % 12],
+          octave: midi === null ? 0 : Math.floor(midi / 12) - 1
+        };
+      }),
+    [tabPlayback, tabNotes, pitches]
+  );
+
+  const zoomControl = (
+    <GuitarZoom
+      compact={landscape}
+      value={frame.zoom}
+      maximum={frame.maximumZoom}
+      onChange={setZoom}
+      onCommit={commitZoom}
+      onInteractionChange={setZoomAdjusting}
+    />
+  );
 
   return (
     <View style={styles.root}>
@@ -640,7 +692,9 @@ export default function PlayGuitar() {
           />
           <Text style={styles.topLabel}>{t("FreePlay")}</Text>
         </Pressable>
+        {landscape && zoomControl}
       </View>
+      {!landscape && zoomControl}
       {["readError", "writeError"].includes(tabSession.draftStatus) && (
         <View style={styles.draftStatus}>
           <Text accessibilityLiveRegion="polite" style={styles.draftMessage}>
@@ -672,6 +726,7 @@ export default function PlayGuitar() {
         </Text>
       )}
       <View
+        testID="play-guitar-stage"
         style={styles.stage}
         onLayout={({ nativeEvent }) => setLayout(nativeEvent.layout)}
       >
@@ -702,6 +757,7 @@ export default function PlayGuitar() {
                   }
                   width={layout.width}
                   height={layout.height}
+                  zoom={zoom}
                 />
               </Canvas>
             </GestureDetector>
@@ -1281,6 +1337,7 @@ const styles = StyleSheet.create({
     borderBottomColor: palette.glass.surfaceEdge
   },
   topControl: {
+    flexShrink: 1,
     minHeight: 40,
     paddingHorizontal: 10,
     flexDirection: "row",
