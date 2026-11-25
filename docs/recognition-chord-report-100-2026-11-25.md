@@ -1,5 +1,7 @@
 # 100-song lyrics-and-chords lookup audit — 25 November 2026
 
+This is the preserved **93/100 checkpoint**. The subsequent run on the same frozen manifest reached **100/100**; see the [continued coverage report and all 100 results](recognition-chord-coverage-100-2026-11-25.md).
+
 ## Final completed result: 93 of 100 at checkpoint `4d38baf`
 
 The completed [GitHub Actions audit, run 45534938428](https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45534938428), returned an identity-verified arrangement passing the automated **lyrics-and-chords check for 93 of 100 distinct song identities**. The remaining seven queries returned only lyrics; none returned no matching content. This run did not achieve 100/100.
