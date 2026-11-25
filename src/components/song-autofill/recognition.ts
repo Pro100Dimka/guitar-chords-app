@@ -171,8 +171,8 @@ export async function cancelRecognition() {
   ) {
     if (!cancelling) {
       cancelling = true;
-      cancellation = native()
-        .cancel()
+      cancellation = Promise.resolve()
+        .then(() => native().cancel())
         .finally(() => {
           cancelling = false;
           cancellation = Promise.resolve();

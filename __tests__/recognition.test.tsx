@@ -515,6 +515,20 @@ test("a failed native cancellation does not poison subsequent recognition", asyn
   ).toHaveBeenCalledTimes(1);
 });
 
+test("a synchronous native cancellation failure does not strand the cancellation lock", async () => {
+  const failure = new Error("Native bridge unavailable");
+  const cancel = NativeModules.SongRecognition.cancel;
+  cancel.mockImplementationOnce(() => {
+    throw failure;
+  });
+  await expect(cancelRecognition()).rejects.toBe(failure);
+  await expect(cancelRecognition()).resolves.toBeUndefined();
+  expect(cancel).toHaveBeenCalledTimes(2);
+  await expect(recognizeMicrophone()).resolves.toMatchObject({
+    title: "Track"
+  });
+});
+
 test("a rejected concurrent caller cannot cancel the active owner", async () => {
   const running = deferred<null>();
   NativeModules.SongRecognition.recognizeMicrophone.mockReturnValue(
