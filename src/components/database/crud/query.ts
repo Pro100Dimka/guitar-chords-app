@@ -88,7 +88,9 @@ export function queryScope(table: string, joins: string[] = []) {
       (value.match(/\?/g) ?? []).length !== parameters.length ||
       parameters.some(
         (value) =>
-          value !== null && !["string", "number"].includes(typeof value)
+          value !== null &&
+          (typeof value !== "string" &&
+            (typeof value !== "number" || !Number.isFinite(value)))
       )
     )
       invalid();
