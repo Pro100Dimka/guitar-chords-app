@@ -34,6 +34,17 @@ test.each([
   }
 );
 
+test.each([
+  { page: Number.MAX_SAFE_INTEGER, limit: 2 },
+  { page: 2, limit: Number.MAX_SAFE_INTEGER }
+])("rejects overflowing SQLite page offsets before starting a transaction: %o", async (pagination) => {
+  jest.mocked(db.transaction).mockClear();
+  await expect(
+    getAllItems({ tableName: "songs", ...pagination })
+  ).rejects.toThrow("Invalid pagination");
+  expect(db.transaction).not.toHaveBeenCalled();
+});
+
 test("record selection cannot inject SQL or target a table without an id column", async () => {
   jest.mocked(db.transaction).mockClear();
   await expect(
