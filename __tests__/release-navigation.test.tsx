@@ -171,11 +171,7 @@ test("the song menu confirms deletion and returns to the existing library route"
   );
   expect(deleteItem).not.toHaveBeenCalled();
   await pressAlert("Delete");
-  expect(deleteItem).toHaveBeenCalledWith({
-    tableName: "songs",
-    filters: "id = ?",
-    parameters: [7]
-  });
+  expect(await getAllItems({ tableName: "songs" })).toEqual([]);
   expect(mockNavigation.popTo).toHaveBeenCalledWith("Tabs", {
     screen: "library"
   });

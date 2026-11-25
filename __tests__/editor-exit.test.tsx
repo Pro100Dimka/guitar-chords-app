@@ -284,9 +284,8 @@ test("confirmed header deletion of a dirty editor leaves without offering to sav
   await change();
   await menu("Delete");
   await press("Delete");
-  expect(deleteItem).toHaveBeenCalledWith(
-    expect.objectContaining({ tableName: "songs" })
-  );
+  expect(deleteItem).not.toHaveBeenCalled();
+  expect(usePreferences.getState().songs[1]).toBeUndefined();
   expect(
     jest
       .mocked(Alert.alert)

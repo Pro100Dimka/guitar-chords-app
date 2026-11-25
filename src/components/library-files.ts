@@ -1,7 +1,6 @@
 import { Alert } from "react-native";
 import { t } from "../locales";
 import { performanceAudio } from "./performance-audio";
-import { deleteItem } from "./database/crud";
 import { songFieldLimits } from "@/@interfaces";
 import { transposeSong } from "../screens/song/chords";
 import { sourceArrangement } from "../screens/song/rhythms";
@@ -799,10 +798,10 @@ export function requestSongDeletion(
       if (takes.some((take) => take.processing))
         throw new Error("RecordingBusy");
       performanceAudio.stopPlayback();
-      if (takes.length)
-        await new Promise<void>((resolve, reject) =>
-          db.transaction(
-            (tx) => {
+      await new Promise<void>((resolve, reject) =>
+        db.transaction(
+          (tx) => {
+            if (takes.length)
               tx.executeSql(
                 "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
                 [
@@ -812,27 +811,21 @@ export function requestSongDeletion(
                   )
                 ]
               );
-              tx.executeSql(
-                "DELETE FROM songs WHERE id = ?",
-                [songId],
-                (_, result) => {
-                  if (result.rowsAffected !== 1) throw new Error("SongMissing");
-                }
-              );
-              tx.executeSql("DELETE FROM settings WHERE key LIKE ?", [
-                `song:${songId}:%`
-              ]);
-            },
-            reject,
-            resolve
-          )
-        );
-      else
-        await deleteItem({
-          tableName: "songs",
-          filters: "id = ?",
-          parameters: [songId]
-        });
+            tx.executeSql(
+              "DELETE FROM songs WHERE id = ?",
+              [songId],
+              (_, result) => {
+                if (result.rowsAffected !== 1) throw new Error("SongMissing");
+              }
+            );
+            tx.executeSql("DELETE FROM settings WHERE key LIKE ?", [
+              `song:${songId}:%`
+            ]);
+          },
+          reject,
+          resolve
+        )
+      );
       usePreferences.getState().removeSong(songId);
       onDeleted();
       if (takes.length)

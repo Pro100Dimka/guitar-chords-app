@@ -191,6 +191,20 @@ async function main() {
 
   const library=load("src/components/library-files.ts");
 
+  const plainSong=await create({tableName:"songs",data:{title:"No audio",content:"Am\nWords"}});
+  const plainKey=`song:${plainSong.insertId}:0`;
+  sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run(plainKey,JSON.stringify({favorite:true}));
+  const plainCount=()=>sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key = ?").get(plainKey).n;
+  failure="DELETE FROM settings WHERE key LIKE ?";
+  const plainFailed=await new Promise(resolve=>{deletionResult=resolve;library.requestSongDeletion(plainSong.insertId,()=>{deletionResult=undefined;resolve(true);},()=>{});});
+  failure=undefined;
+  assert.equal(plainFailed,false);
+  assert.equal(plainCount(),1,"Failed metadata removal preserves preferences");
+  assert.equal((await read({tableName:"songs",filters:"id = ?",parameters:[plainSong.insertId]})).length,1,"Song deletion rolls back with metadata");
+  const plainCommitted=await new Promise(resolve=>{deletionResult=resolve;library.requestSongDeletion(plainSong.insertId,()=>{deletionResult=undefined;resolve(plainCount());},()=>{});});
+  assert.equal(plainCommitted,0,"Song metadata is removed before UI reports success, even without recordings");
+  assert.equal((await read({tableName:"songs",filters:"id = ?",parameters:[plainSong.insertId]})).length,0);
+
   const takeSong=await create({tableName:"songs",data:{title:"Recorded",content:"Am\nWords"}});
   const takePath=`/private/performances/song-${takeSong.insertId}-1.m4a`;
   recordingFiles.set(takePath,{path:takePath,date:1,bytes:100});
