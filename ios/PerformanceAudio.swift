@@ -522,7 +522,17 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         // can release it. Only the old voice's fade cleanup is deferred.
         audio.currentTime = 0
         audio.setVolume(0.22, fadeDuration: 0)
-        audio.play()
+        if !audio.play() {
+            do {
+                let session = AVAudioSession.sharedInstance()
+                if session.category != .playAndRecord {
+                    try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
+                }
+                try session.setActive(true)
+                stringSessionActive = true
+                if !audio.play() { stringSessionActive = false }
+            } catch { stringSessionActive = false }
+        }
     }
     @objc func playGuitar(_ wave: String) {
         let key = "inline-preview"
