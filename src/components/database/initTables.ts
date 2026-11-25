@@ -1,6 +1,6 @@
 // src/components/database/initTables.ts
 import models from "./models";
-import { WebsqlDatabase } from "react-native-sqlite-2";
+import { SQLTransaction, WebsqlDatabase } from "react-native-sqlite-2";
 
 const initialSchema = Object.entries(models).map(
   ([tableName, { fields, foreignKeys }]) => {
@@ -13,13 +13,35 @@ const initialSchema = Object.entries(models).map(
 );
 
 // Append migrations in version order. Existing migrations must remain unchanged.
-const migrations = [
+const migrations: (string[] | ((tx: SQLTransaction) => void))[] = [
   initialSchema,
   [
     "CREATE INDEX IF NOT EXISTS songs_title_order ON songs(title COLLATE NOCASE, id)",
     "CREATE INDEX IF NOT EXISTS songs_title_match ON songs(title)",
     "CREATE INDEX IF NOT EXISTS bands_name_match ON bands(name)"
-  ]
+  ],
+  (tx) => {
+    // Older libraries allowed missing search keys. SQLite LOWER alone does
+    // not lowercase Cyrillic or other non-ASCII titles and artist names.
+    for (const [table, field] of [
+      ["songs", "title"],
+      ["bands", "name"]
+    ]) {
+      tx.executeSql(
+        `SELECT id, ${field} AS value FROM ${table} WHERE search_text_lower IS NULL OR search_text_lower = ''`,
+        [],
+        (_, result) => {
+          for (let i = 0; i < result.rows.length; i++) {
+            const row = result.rows.item(i);
+            tx.executeSql(
+              `UPDATE ${table} SET search_text_lower = ? WHERE id = ?`,
+              [row.value.toLowerCase(), row.id]
+            );
+          }
+        }
+      );
+    }
+  }
 ];
 
 const initTables = (db: WebsqlDatabase) => {
@@ -34,7 +56,8 @@ const initTables = (db: WebsqlDatabase) => {
             );
           }
           migrations.slice(version).forEach((statements, index) => {
-            statements.forEach((sql) => tx.executeSql(sql));
+            if (typeof statements === "function") statements(tx);
+            else statements.forEach((sql) => tx.executeSql(sql));
             tx.executeSql(`PRAGMA user_version = ${version + index + 1}`);
           });
         });
