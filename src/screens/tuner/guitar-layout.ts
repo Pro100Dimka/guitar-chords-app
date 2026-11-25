@@ -1,4 +1,4 @@
-export const MIN_GUITAR_ZOOM = 0.25;
+export const MIN_GUITAR_ZOOM = 1;
 export const MAX_GUITAR_ZOOM = 1.5;
 
 export function guitarLayout(
