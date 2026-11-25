@@ -120,6 +120,7 @@ export function GuitarZoom({
           if (dragging.current) update(event);
         }}
         onResponderRelease={(event) => {
+          if (!dragging.current) return;
           update(event);
           finish();
         }}

@@ -153,6 +153,9 @@ test("an interrupted slider gesture settles once and ignores later move events",
   await act(async () =>
     slider().props.onResponderMove({ nativeEvent: { locationX: 0 } })
   );
+  await act(async () =>
+    slider().props.onResponderRelease({ nativeEvent: { locationX: 0 } })
+  );
   await act(async () => slider().props.onResponderTerminate());
   expect(changed).not.toHaveBeenCalled();
   expect(committed).toHaveBeenCalledTimes(1);
