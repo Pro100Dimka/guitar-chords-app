@@ -80,6 +80,7 @@ export function Action({
   compact = false,
   showLabel = false,
   notation = false,
+  accessibilityRole = "button",
   style
 }: {
   label: string;
@@ -93,13 +94,14 @@ export function Action({
   compact?: boolean;
   showLabel?: boolean;
   notation?: boolean;
+  accessibilityRole?: "button" | "tab";
   style?: StyleProp<ViewStyle>;
 }) {
   const finish =
     selected || primary ? (notation ? palette.notation : palette.finish) : null;
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected, disabled }}
       disabled={disabled}
