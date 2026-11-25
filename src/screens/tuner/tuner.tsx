@@ -744,7 +744,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
                   style={[
                     styles.referenceNote,
                     {
-                      width: `${100 / octaveLayout.columns}%`
+                      width: `${100 / octaveLayout.columns}%`,
+                      height: octaveLayout.rowHeight
                     },
                     referenceNote === name && styles.selectedReference
                   ]}
@@ -907,7 +908,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   referenceNote: {
-    height: 32,
     borderRadius: 8,
     borderWidth: 0,
     borderColor: palette.gold.top

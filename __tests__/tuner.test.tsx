@@ -92,6 +92,12 @@ jest.mock("../src/screens/tuner/chormatic-wheel", () => ({
   default: () => null,
   chromaticLayout: () => ({
     hole: { x: 0, y: 0, width: 100, height: 100 },
+    panelWidth: 300,
+    panelHeight: 104,
+    panelLeft: 0,
+    panelTop: 100,
+    columns: 6,
+    rowHeight: 44,
     octaveLeft: 0,
     octaveTop: 0,
     octaveWidth: 100
@@ -109,6 +115,32 @@ jest.mock("../src/screens/tuner/config", () => ({
 }));
 
 let screen: Renderer.ReactTestRenderer;
+
+test.each([
+  [240, 960],
+  [320, 360],
+  [390, 640],
+  [430, 740],
+  [568, 220],
+  [844, 300],
+  [900, 255],
+  [768, 900]
+])("chromatic notes have aligned 44-point targets on %s × %s", (width, height) => {
+  const { chromaticLayout } = jest.requireActual<
+    typeof import("../src/screens/tuner/chormatic-wheel")
+  >("../src/screens/tuner/chormatic-wheel");
+  const layout = chromaticLayout(width, height);
+  expect((layout.panelWidth - 16) / layout.columns).toBeGreaterThanOrEqual(44);
+  expect(layout.rowHeight).toBe(44);
+  expect(layout.panelHeight).toBe((12 / layout.columns) * layout.rowHeight + 16);
+  expect(layout.octaveTop + 44).toBeLessThanOrEqual(height);
+  if (width > height) {
+    expect(layout.panelLeft).toBeGreaterThanOrEqual(
+      layout.hole.x + layout.hole.width + 19.99
+    );
+    expect(layout.panelLeft + layout.panelWidth).toBeLessThanOrEqual(width - 67.99);
+  }
+});
 
 test("first-frame validation reads one opaque pixel instead of copying the full canvas", async () => {
   jest.useFakeTimers();
