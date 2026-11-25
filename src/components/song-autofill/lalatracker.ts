@@ -269,54 +269,49 @@ export async function lookupLalaTracker(
       context
     );
     if (!candidateLines.size) continue;
-    let identity: Pick<
-      LyricsOption,
-      "artist" | "sourceArtist" | "identityReference"
-    > = {
-      artist: foundArtist
-    };
-    if (!context.sameArtist(artist, foundArtist)) {
-      // Reuse the in-flight result. Never combine one source's chords with
-      // another source's lyrics or collect matches across different references.
-      const options = await awaitReferences(references, signal);
-      let verified = false;
-      for (const reference of options.slice(0, 20)) {
-        if (
-          reference.source !== "LRCLIB" ||
-          !reference.url ||
-          !/^https:\/\/lrclib\.net\/api\/get\/\d+$/.test(reference.url) ||
-          !context.matchingIdentity(title, reference.title) ||
-          !context.sameArtist(artist, reference.artist) ||
-          !reference.content ||
-          reference.content.length > 200000
-        )
-          continue;
-        const referenceLines = await eligibleLyricLines(
-          reference.content,
-          reference.title,
-          signal,
-          context
-        );
-        const matchedLines = [...candidateLines].filter((line) =>
-          referenceLines.has(line)
-        ).length;
-        if (matchedLines < 4 || matchedLines / candidateLines.size < 0.5)
-          continue;
-        identity = {
-          artist: reference.artist,
-          sourceArtist: foundArtist,
-          identityReference: {
-            source: "LRCLIB",
-            url: reference.url,
-            matchedLines,
-            candidateLines: candidateLines.size
-          }
-        };
-        verified = true;
-        break;
-      }
-      if (!verified) continue;
+    let identity:
+      | Pick<LyricsOption, "artist" | "sourceArtist" | "identityReference">
+      | undefined;
+    // This catalogue can publish another song's body under matching labels.
+    // Corroborate every chart, including exact artist names, using the existing
+    // in-flight result. Keep the source chart intact and use one reference.
+    const options = await awaitReferences(references, signal);
+    for (const reference of options.slice(0, 20)) {
+      if (
+        reference.source !== "LRCLIB" ||
+        !reference.url ||
+        !/^https:\/\/lrclib\.net\/api\/get\/\d+$/.test(reference.url) ||
+        !context.matchingIdentity(title, reference.title) ||
+        !context.sameArtist(artist, reference.artist) ||
+        !reference.content ||
+        reference.content.length > 200000
+      )
+        continue;
+      const referenceLines = await eligibleLyricLines(
+        reference.content,
+        reference.title,
+        signal,
+        context
+      );
+      const matchedLines = [...candidateLines].filter((line) =>
+        referenceLines.has(line)
+      ).length;
+      if (matchedLines < 4 || matchedLines / candidateLines.size < 0.5)
+        continue;
+      const exactArtist = context.sameArtist(artist, foundArtist);
+      identity = {
+        artist: exactArtist ? foundArtist : reference.artist,
+        ...(!exactArtist ? { sourceArtist: foundArtist } : {}),
+        identityReference: {
+          source: "LRCLIB",
+          url: reference.url,
+          matchedLines,
+          candidateLines: candidateLines.size
+        }
+      };
+      break;
     }
+    if (!identity) continue;
     if (signal?.aborted) throw new Error("Cancelled");
     return [
       {

@@ -129,13 +129,31 @@ describe("LalaTracker corroborated catalogue provider", () => {
     ).toHaveLength(1);
   });
 
-  it("accepts an exact artist identity without needing LRCLIB", async () => {
-    respond(page(markup(), title, artist), search(title, artist), []);
+  it("corroborates exact artist names too and preserves their published identity", async () => {
+    respond(page(markup(), title, artist), search(title, artist));
     const options = lalaOptions(await finish());
     expect(options).toHaveLength(1);
     expect(options[0].artist).toBe(artist);
     expect(options[0].sourceArtist).toBeUndefined();
-    expect(options[0].identityReference).toBeUndefined();
+    expect(options[0].identityReference).toEqual({
+      source: "LRCLIB",
+      url: "https://lrclib.net/api/get/1",
+      matchedLines: 4,
+      candidateLines: 4
+    });
+    expect(
+      urls().filter((url) => url.startsWith("https://lrclib.net/"))
+    ).toHaveLength(1);
+  });
+
+  it("rejects an exact artist identity without an independent lyric reference", async () => {
+    respond(page(markup(), title, artist), search(title, artist), []);
+    expect(lalaOptions(await finish())).toEqual([]);
+  });
+
+  it("rejects another song's body even when every artist and title label matches", async () => {
+    respond(page(markup(extraLines), title, artist), search(title, artist));
+    expect(lalaOptions(await finish())).toEqual([]);
   });
 
   it.each([
