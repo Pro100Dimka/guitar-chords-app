@@ -4,6 +4,7 @@ import {
   transposeSong,
   songContentFromEditor,
   createSongEditorState,
+  hasSongChordsAsync,
   songChordSequence
 } from "../src/screens/song/chords";
 import { importedSong } from "../src/components/library-files";
@@ -12,6 +13,28 @@ jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
 }));
 jest.mock("../src/locales", () => ({ t: String }));
+
+test.each([
+  ["[Am]Original words [G]with chords", true],
+  ["Am    G\nOriginal words with chords", true],
+  ["[Припев]\n[Am]Приклад тексту пісні", true],
+  ["Only example lyrics", false],
+  ["[Intro]\nAm G F C", false],
+  ["Вступление: см. табы и ноты\nAm G F C", false],
+  ["Verse:\n[Am] [G]\n{tempo: 100}\nCapo: 2", false],
+  ["[Am] [G]\ne|--0--2--3--|", false]
+])(
+  "a playable recognition result requires lyrics and chords: %s",
+  async (content, expected) => {
+    await expect(
+      hasSongChordsAsync(content as string, undefined, true)
+    ).resolves.toBe(expected);
+  }
+);
+
+test("the existing chord-only parser still accepts an instrumental progression", async () => {
+  await expect(hasSongChordsAsync("Am G C F")).resolves.toBe(true);
+});
 
 test.each(["C x2", "C (x3)", "|: C :|", "[Verse] C"])(
   "editor round trip retains annotated chord row %s",

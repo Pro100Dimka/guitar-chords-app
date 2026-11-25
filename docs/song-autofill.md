@@ -16,7 +16,7 @@ Branch: `feature/song-autofill`. Android phone APKs with versionCode 10 were bui
 - `shazamio-core` **2.1.0** is MIT; versions **up to and including 2.0.0** contained SongRec GPL-3.0+ code. Only the 2.1 source was adapted; original MIT text is in `android/song-fingerprint/UPSTREAM-LICENSE`. https://github.com/shazamio/shazamio-core
 - `Audile` is GPL-3.0+; none of its implementation was copied. https://github.com/AudileTeam/Audile
 - Rust JNI dependency `jni 0.21.1` is MIT/Apache-2.0; `chfft 0.3.4` is MPL-2.0. The unmodified `chfft` source is available at https://crates.io/crates/chfft/0.3.4; license text is in `CHFFT-MPL-2.0`. Binary redistribution must retain notices and MPL source availability. Also check resolved Cargo.lock transitive license inventory before a store release.
-- LRCLIB and lyrics.ovh supply lyrics only. Пісенник supplies complete arrangements with inline chord markers. Source links are retained in song preferences and library backups. Site access does not establish permission for redistribution; review publisher permissions before store release.
+- LRCLIB and lyrics.ovh supply lyrics only. Пісенник supplies arrangements with inline chord markers; chord publishers can provide shortened arrangements. Source links are retained in song preferences and library backups. Site access does not establish permission for redistribution; review publisher permissions before store release.
 - Shazam is an unofficial endpoint with no contractual availability guarantee; HTTP 429, geographical restrictions, schema changes and no match are possible.
 
 ## Reproducible checks
@@ -52,9 +52,9 @@ This phase **implements a real local fingerprint/network pipeline** and confirms
 
 ## Content lookup
 
-- `lookupSongContent` checks Cifra Club, E-Chords, Cifras, GuitareTab, Пісенник and LRCLIB concurrently, returning the first matching chord arrangement. Individual provider errors do not block another successful source. It never joins another source's lyrics to those chords.
-- Пісенник HTML is parsed as data with htmlparser2. Scripts are not executed. Search and detail requests are separated by the site's 10-second crawl delay. Only matching public song pages are followed.
-- If these sources return no usable content, the public lyrics.ovh API is queried for the exact artist and title. Provider errors do not discard recognized metadata.
+- `lookupSongContent` checks Akkords.pro, Пісенник and LRCLIB concurrently for all scripts, adding Cifra Club, E-Chords, Cifras and GuitareTab for Latin-script identities. Recognition requires both lyric text and chords from the same verified arrangement. Individual provider errors do not block another successful source. It never joins another source's lyrics to those chords.
+- Provider HTML is parsed as data with htmlparser2; scripts are not executed. Пісенник retries a title-only search when the combined title/artist search contains no verified match. Search and detail requests remain separated by the site's 10-second crawl delay. Only matching public song pages are followed.
+- If the sources answer without usable content, the public lyrics.ovh API can supply ordinary lyrics for the exact artist and title; these alone do not make recognition successful. If every applicable chord provider fails, `ChordSourcesUnavailable` distinguishes an outage from a healthy no-match response, even if LRCLIB supplies lyrics. Recognized metadata remains available for retry.
 - «Ліхтарі» / O.Torvald was manually retrieved from Пісенник: 1,318 characters, 88 chord markers, 55 lines. lyrics.ovh returned HTTP 200 for «Broken» / Seether. These are live checks, not an availability guarantee.
 - The source name and HTTPS URL survive save, editing and library backup. The form exposes a source link. No remote song catalog or lyric content is bundled with the application.
 - Privacy text lists the external services receiving song title, artist, fingerprint or artwork requests.
@@ -94,3 +94,37 @@ This phase **implements a real local fingerprint/network pipeline** and confirms
 - HTTP 403 responses pause requests to that origin for five minutes; HTTP 429 uses numeric Retry-After (bounded to one hour) or a 30-second default. Other providers continue. E-Chords and Cifras still return Cloudflare challenges on this network; this change does not bypass them or guarantee their availability.
 - Live checks against current source from Windows Node: Hotel California returned Cifra Club in 0.32 seconds. With only Cifra Club deliberately replaced by HTTP 503, Broken, Wonderwall, Hotel California and Someone Like You returned real GuitareTab arrangements in 0.30 to 0.62 seconds; Nothing Else Matters returned a real Pisennyk arrangement after its crawl delay (18.6 seconds). These timings exclude audio recognition and do not measure an Android phone.
 - No lyric or chord-chart text is bundled or copied into this documentation. Public availability does not grant redistribution rights. This source fix is not included in the previously built versionCode 8 APKs.
+
+## Chord retrieval investigation, 25 November 2026
+
+Baseline: `e0fbc668f46f7d16682f0fc54b10d16c0977e177`. The investigation executed the actual TypeScript `lookupSongContent` in Node 24.22.3 on Linux with live HTTP requests, then repeated the same eight identities in the same order after the provider changes. Each run started in a fresh process; each lookup had a 50-second cancellation deadline. These are content-lookup checks, excluding audio recognition and device UI. [Machine-readable results](recognition-chord-check-2026-11-25.json) contain identity, source URL and timing metadata only.
+
+### Confirmed causes and correction
+
+- **Search results hid an existing arrangement.** The public Пісенник query [Обійми + Океан Ельзи](https://pisennyk.com.ua/search?q=%D0%9E%D0%B1%D1%96%D0%B9%D0%BC%D0%B8+%D0%9E%D0%BA%D0%B5%D0%B0%D0%BD+%D0%95%D0%BB%D1%8C%D0%B7%D0%B8) returned other songs from its limited result list but omitted the required title. The [title-only query](https://pisennyk.com.ua/search?q=%D0%9E%D0%B1%D1%96%D0%B9%D0%BC%D0%B8) returned [the correct arrangement](https://pisennyk.com.ua/okean-elzi/obiymi). A 50-result regression fixture failed before the change and passed after one bounded title-only retry. Search-result and page performer checks remain mandatory.
+- **Cyrillic identities had only one applicable chord source.** Four existing providers use Latin canonical paths and were skipped for Cyrillic titles/artists. Akkords.pro now supplies a second source through its public [search form](https://akkords.pro/), which accepts both scripts. Title and artist are checked separately in the result and again in the page's `MusicRecording` metadata; only the page's `p.chords` body is imported. `Вахтерам` also matches the source spelling `Вахтёрам` through `ё/е` normalization.
+- **Some existing sources were unavailable from the test network.** Cifra Club and GuitareTab returned HTTP 403; requests to E-Chords and Cifras failed. Access restrictions were not bypassed. A successful lyrics-only response previously masked the distinction between all chord sources failing and a real no-match result. The new `ChordSourcesUnavailable` outcome preserves that distinction.
+
+### Same eight-song comparison
+
+“Lyrics only” means that recognition metadata could be followed by text, but no verified arrangement with chords was returned. Times cover content lookup, including source delays.
+
+| Artist — title | Baseline result | After change | Baseline / after seconds | Verified source page after change |
+| --- | --- | --- | --- | --- |
+| O.Torvald — Ліхтарі | Пісенник, lyrics + chords | Пісенник, lyrics + chords | 12.915 / 14.280 | [Пісенник](https://pisennyk.com.ua/o-torvald/lihtari) |
+| Океан Ельзи — Обійми | Lyrics only | Akkords.pro, lyrics + chords | 10.456 / 6.771 | [Akkords.pro](https://akkords.pro/songs/okean-elzi/obiymi/) |
+| Скрябін — Старі фотографії | Пісенник, lyrics + chords | Пісенник, lyrics + chords | 19.546 / 22.492 | [Пісенник](https://pisennyk.com.ua/skryabin/stari-fotografiji) |
+| Кино — Группа крови | Lyrics only | Akkords.pro, lyrics + chords | 9.240 / 6.380 | [Akkords.pro](https://akkords.pro/songs/kino/gruppa-krovi/) |
+| Бумбокс — Вахтерам | Lyrics only | Akkords.pro, lyrics + chords | 10.777 / 2.369 | [Akkords.pro](https://akkords.pro/songs/bumboks/vaxteram/) |
+| Seether — Broken | Пісенник, lyrics + chords | Пісенник, lyrics + chords | 20.032 / 21.579 | [Пісенник](https://pisennyk.com.ua/seether/broken) |
+| Oasis — Wonderwall | Пісенник, lyrics + chords | Akkords.pro, lyrics + chords | 20.216 / 6.280 | [Akkords.pro](https://akkords.pro/songs/oasis/wonderwall/) |
+| Eagles — Hotel California | Lyrics only | Akkords.pro, lyrics + chords | 11.454 / 2.356 | [Akkords.pro](https://akkords.pro/songs/eagles/hotel-california/) |
+
+This bounded sample improved from **4/8 to 8/8** returned arrangements containing lyric text and chords. The provider regression suite passed **66/66 tests**, including wrong performers, foreign URLs, unrelated page blocks, missing lyrics, cancellation and provider failure. Fixture lyric lines are original test text.
+
+### Bounds and limitations
+
+- Пісенник makes at most two searches and one detail request, retaining its global ten-second minimum interval between request starts. Akkords.pro makes one search and visits at most three verified candidates sequentially, stopping after the first lyrics-and-chords result; the usual successful case is two requests. Existing 12-second request timeouts, cancellation, HTML/text size limits, HTTP 403/429 cooldowns and successful-result caching still apply.
+- The Hotel California page publishes a **partial arrangement: first verse and chorus**. The complete published chart was imported; this is not the complete studio-recording lyric sequence. Other publishers may also abbreviate repeats or sections. Chords are neither generated nor inferred from ordinary lyrics.
+- A Node/network check does not establish microphone, phone-audio capture, mobile network or UI correctness on Android or iPhone. Those checks require the relevant device/build verification.
+- Eight selected songs do not establish a catalog-wide success rate. Public catalog coverage, publisher changes, spelling/credit differences and access restrictions remain limits. **There is no guarantee that every song will have an accessible matching arrangement.** No copyrighted lyric or chart body is included in this report or its JSON data.

@@ -1141,24 +1141,54 @@ export function transposeSongAsync(
   return finishParserAsync(transposeContentWork(content, semitones), signal);
 }
 
-function* hasSongChordsWork(content: string): ParserWork<boolean> {
+function* hasSongChordsWork(
+  content: string,
+  requireLyrics: boolean
+): ParserWork<boolean> {
+  let chords = false,
+    lyrics = !requireLyrics;
   for (const line of content.split("\n")) {
     yield;
-    if (yield* isChordLineWork(line)) return true;
-    let units = 0;
-    for (const match of line.matchAll(/\[([^\[\]]+)\]/g)) {
-      if (chordNotationPattern.test(normalizeChord(match[1]))) return true;
-      if (++units % 64 === 0) yield;
+    if (yield* isChordLineWork(line)) chords = true;
+    else {
+      const inline = yield* inlineChordLineWork(line);
+      if (inline?.anchors.length) chords = true;
+      if (requireLyrics && !lyrics) {
+        const text = (inline?.lyrics ?? line)
+          .replace(sectionPattern, "")
+          .trim();
+        const heading = sectionHeading.exec(text);
+        const words = heading ? (heading[2] ?? "") : text;
+        if (
+          !/^(?:intro|outro|solo|interlude|instrumental|вступ|вступление|програш|проигрыш|інтро|интро|аутро|соло)(?:\s|$)/i.test(
+            heading?.[1] ?? ""
+          ) &&
+          !/^\{[^{}]*\}$/.test(words) &&
+          !/^(?:see\s+(?:tabs?|notation)|см\.|див\.)\s/iu.test(words) &&
+          !/^(?:capo|капо(?:дастр)?|tempo|bpm|темп|tuning|строй)\s*[:\d]/iu.test(
+            words
+          ) &&
+          !/^[eBGDAE]\s*[|:][\d\s|/\\().~xXhpb\-]+$/.test(words) &&
+          /\p{L}{2}/u.test(words)
+        )
+          lyrics = true;
+      }
     }
+    if (chords && lyrics) return true;
   }
   return false;
 }
 
 export function hasSongChordsAsync(
   content: string,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  requireLyrics = false
 ): Promise<boolean> {
-  return finishParserAsync(hasSongChordsWork(content), signal, false);
+  return finishParserAsync(
+    hasSongChordsWork(content, requireLyrics),
+    signal,
+    false
+  );
 }
 
 export function songChords(content: string) {

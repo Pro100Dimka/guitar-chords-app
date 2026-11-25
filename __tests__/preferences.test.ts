@@ -35,6 +35,7 @@ import {
 import {
   flushPreferences,
   loadPreferences,
+  normalizeSongPreferences,
   usePreferences
 } from "../src/components/preferences";
 import { SQLTransaction } from "react-native-sqlite-2";
@@ -49,6 +50,23 @@ jest.mock("../src/components/database/crud", () => ({
 }));
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
+test("new chord-source attribution survives preference normalization", () => {
+  const contentSource = {
+    name: "Akkords.pro",
+    url: "https://akkords.pro/songs/kino/gruppa-krovi/"
+  };
+  expect(normalizeSongPreferences({ contentSource }).contentSource).toEqual(
+    contentSource
+  );
+  expect(
+    normalizeSongPreferences({
+      contentSource: {
+        ...contentSource,
+        url: "https://akkords.pro.example.org/song"
+      }
+    }).contentSource
+  ).toBeUndefined();
+});
 const tabPractice = {
   ...defaultTabPractice(),
   metronome: true,

@@ -23,7 +23,8 @@ export interface LyricsOption {
     | "Cifra Club"
     | "E-Chords"
     | "Cifras"
-    | "GuitareTab";
+    | "GuitareTab"
+    | "Akkords.pro";
   url?: string;
   hasChords?: boolean;
 }
@@ -31,6 +32,7 @@ const normalize = (value: string) =>
   value
     .normalize("NFKC")
     .toLocaleLowerCase()
+    .replace(/ё/g, "е")
     .replace(/['’]/g, "")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
@@ -548,24 +550,38 @@ async function lookupPisennyk(
   signal?: AbortSignal
 ): Promise<LyricsOption[]> {
   const origin = "https://pisennyk.com.ua";
-  const search = await fetchPisennyk(
-    `${origin}/search?${new URLSearchParams({ q: `${trackTitle(title)} ${primaryArtist(artist)}` })}`,
-    signal
-  );
-  if (!search) return [];
-  const document = await parseSource(search, signal);
-  const candidate = DomUtils.getElementsByTagName("a", document.children).find(
-    (element) =>
-      sameArtist(
-        `${trackTitle(title)} ${primaryArtist(artist)}`,
-        trackTitle(DomUtils.textContent(element))
-      ) &&
-      /^https:\/\/pisennyk\.com\.ua\/[^/?#]+\/[^/?#]+$/.test(
-        element.attribs.href ?? ""
-      )
-  );
-  if (!candidate) return [];
-  const url = candidate.attribs.href;
+  let url: string | undefined;
+  // Broad artist matches can fill the site's limited result list. Retry the
+  // title alone, still verifying the performer on both the result and page.
+  for (const query of [
+    `${trackTitle(title)} ${primaryArtist(artist)}`,
+    trackTitle(title)
+  ]) {
+    const search = await fetchPisennyk(
+      `${origin}/search?${new URLSearchParams({ q: query })}`,
+      signal
+    );
+    if (!search) return [];
+    const document = await parseSource(search, signal);
+    const candidate = DomUtils.getElementsByTagName(
+      "a",
+      document.children
+    ).find(
+      (element) =>
+        sameArtist(
+          `${trackTitle(title)} ${primaryArtist(artist)}`,
+          trackTitle(DomUtils.textContent(element))
+        ) &&
+        /^https:\/\/pisennyk\.com\.ua\/[^/?#]+\/[^/?#]+$/.test(
+          element.attribs.href ?? ""
+        )
+    );
+    if (candidate) {
+      url = candidate.attribs.href;
+      break;
+    }
+  }
+  if (!url) return [];
   const html = await fetchPisennyk(url, signal);
   if (!html) return [];
   const page = await parseSource(html, signal);
@@ -670,7 +686,7 @@ async function lookupPisennyk(
   const transposed = await transposeSongAsync(content, capo ?? 0, signal);
   await sourceTurn(signal);
   const rhythm = chartRhythm(content, metadata);
-  const hasChords = await hasSongChordsAsync(content, signal);
+  const hasChords = await hasSongChordsAsync(content, signal, true);
   if (signal?.aborted) throw new Error("Cancelled");
   return [
     {
@@ -691,7 +707,8 @@ const chordSources = {
   "Cifra Club": { origin: "https://www.cifraclub.com", path: "" },
   "E-Chords": { origin: "https://www.e-chords.com", path: "/en/chords" },
   Cifras: { origin: "https://www.cifras.com.br", path: "/cifra" },
-  GuitareTab: { origin: "https://www.guitaretab.com", path: "/fetch/" }
+  GuitareTab: { origin: "https://www.guitaretab.com", path: "/fetch/" },
+  "Akkords.pro": { origin: "https://akkords.pro", path: "/songs" }
 };
 const contentCache = new Map<
   string,
@@ -704,6 +721,49 @@ async function lookupChordPage(
   signal?: AbortSignal,
   candidateUrl?: string
 ): Promise<LyricsOption[]> {
+  const matchesArtist = (value: string) =>
+    sameArtist(artist, value) ||
+    (source === "Akkords.pro" &&
+      sameArtist(artist, value.replace(/\s+\([^()]+\)\s*$/, "")));
+  const provider = chordSources[source];
+  if (source === "Akkords.pro" && !candidateUrl) {
+    const search = await fetchSource(
+      `${provider.origin}/?${new URLSearchParams({
+        s: `${trackTitle(title)} ${primaryArtist(artist)}`
+      })}`,
+      signal
+    );
+    if (!search) return [];
+    const document = await parseSource(search, signal);
+    const candidates = new Set<string>();
+    for (const link of DomUtils.getElementsByTagName("a", document.children)) {
+      if (
+        !/^https:\/\/akkords\.pro\/songs\/[a-z0-9-]+\/[a-z0-9-]+\/$/.test(
+          link.attribs.href ?? ""
+        )
+      )
+        continue;
+      const label = (className: string) => {
+        const element = DomUtils.findOne(
+          (node) => (node.attribs.class ?? "").split(/\s+/).includes(className),
+          link.children
+        );
+        return element ? DomUtils.textContent(element).trim() : "";
+      };
+      if (
+        matchingIdentity(title, label("apx-top-songs__title")) &&
+        matchesArtist(label("apx-top-songs__artist"))
+      ) {
+        candidates.add(link.attribs.href);
+        if (candidates.size === 3) break;
+      }
+    }
+    for (const url of candidates) {
+      const options = await lookupChordPage(title, artist, source, signal, url);
+      if (options.some((option) => option.hasChords)) return options;
+    }
+    return [];
+  }
   const slug = (value: string) =>
     value
       .normalize("NFKD")
@@ -714,8 +774,7 @@ async function lookupChordPage(
       .replace(/^-|-$/g, "");
   const artistSlug = slug(primaryArtist(artist)),
     titleSlug = slug(trackTitle(title));
-  if (!artistSlug || !titleSlug) return [];
-  const provider = chordSources[source];
+  if ((!artistSlug || !titleSlug) && !candidateUrl) return [];
   const candidateArtist =
     source === "Cifra Club" && candidateUrl
       ? new URL(candidateUrl).pathname.split("/")[1]
@@ -773,6 +832,11 @@ async function lookupChordPage(
         )
       )
     );
+    if (
+      results.length &&
+      results.every((result) => result.status === "rejected")
+    )
+      throw new Error("LyricsServiceUnavailable");
     return results.flatMap((result) =>
       result.status === "fulfilled" ? result.value : []
     );
@@ -849,7 +913,7 @@ async function lookupChordPage(
           typeof entry.name === "string" &&
           typeof performer?.name === "string" &&
           matchingIdentity(title, entry.name) &&
-          sameArtist(artist, performer.name)
+          matchesArtist(performer.name)
         ) {
           foundTitle = entry.name;
           foundArtist = performer.name;
@@ -860,6 +924,7 @@ async function lookupChordPage(
       continue;
     }
   }
+  if (source === "Akkords.pro" && (!foundTitle || !foundArtist)) return [];
   const heading = (tag: string, className: string) => {
     const element = DomUtils.getElementsByTagName(tag, document.children).find(
       (node) => (node.attribs.class ?? "").split(/\s+/).includes(className)
@@ -873,23 +938,27 @@ async function lookupChordPage(
   const artistHeading = DomUtils.getElementsByTagName(
     "h2",
     document.children
-  ).find((element) => sameArtist(artist, DomUtils.textContent(element)));
+  ).find((element) => matchesArtist(DomUtils.textContent(element)));
   foundTitle ||=
     heading("h1", "t1") ||
     (titleHeading ? DomUtils.textContent(titleHeading).trim() : "");
   foundArtist ||=
     heading("h2", "t3") ||
     (artistHeading ? DomUtils.textContent(artistHeading).trim() : "");
-  if (!matchingIdentity(title, foundTitle) || !sameArtist(artist, foundArtist))
+  if (!matchingIdentity(title, foundTitle) || !matchesArtist(foundArtist))
     return [];
   const container = DomUtils.findOne(
     (element) =>
-      (element.attribs.class ?? "")
-        .split(/\s+/)
-        .some((name) => ["cifra_cnt", "core", "cifra"].includes(name)) ||
-      ["core", "cifra", "chord-content"].includes(element.attribs.id),
+      source === "Akkords.pro"
+        ? element.name === "p" &&
+          (element.attribs.class ?? "").split(/\s+/).includes("chords")
+        : (element.attribs.class ?? "")
+            .split(/\s+/)
+            .some((name) => ["cifra_cnt", "core", "cifra"].includes(name)) ||
+          ["core", "cifra", "chord-content"].includes(element.attribs.id),
     document.children
   );
+  if (source === "Akkords.pro" && !container) return [];
   const blocks = DomUtils.getElementsByTagName(
     "pre",
     container?.children ?? document.children
@@ -949,7 +1018,7 @@ async function lookupChordPage(
       document.children
     )
   );
-  const hasChords = await hasSongChordsAsync(content, signal);
+  const hasChords = await hasSongChordsAsync(content, signal, true);
   if (signal?.aborted) throw new Error("Cancelled");
   return [
     {
@@ -1021,12 +1090,13 @@ export async function lookupSongContent(
   let collectionTimer: ReturnType<typeof setTimeout> | undefined;
   signal?.addEventListener("abort", abort, { once: true });
   try {
-    const sources = /^\p{Script=Latin}+$/u.test(
+    const latinIdentity = /^\p{Script=Latin}+$/u.test(
       `${title} ${artist}`.replace(/[^\p{L}]/gu, "")
-    )
-      ? Object.keys(chordSources)
-      : [];
-    const requests = [
+    );
+    const sources = Object.keys(chordSources).filter(
+      (source) => source === "Akkords.pro" || latinIdentity
+    );
+    const chordRequests = [
       ...sources.map((source) =>
         lookupChordPage(
           title,
@@ -1035,7 +1105,10 @@ export async function lookupSongContent(
           controller.signal
         )
       ),
-      lookupPisennyk(title, artist, controller.signal),
+      lookupPisennyk(title, artist, controller.signal)
+    ];
+    const requests = [
+      ...chordRequests,
       lookupLyrics(title, artist, controller.signal)
     ];
     const collected: LyricsOption[] = [];
@@ -1080,8 +1153,14 @@ export async function lookupSongContent(
       });
       return withChords;
     }
-    if (options.length) return options;
     const results = await completed;
+    if (
+      results
+        .slice(0, chordRequests.length)
+        .every((result) => result.status === "rejected")
+    )
+      throw new Error("ChordSourcesUnavailable");
+    if (options.length) return options;
     try {
       const fallback = await lookupOvh(title, artist, controller.signal);
       if (signal?.aborted) throw new Error("Cancelled");
