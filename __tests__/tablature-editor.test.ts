@@ -385,3 +385,49 @@ test("conflicting or oversized paste is atomic and leaves the original score unc
   expect(pasteTabSelection(tab, 128 * 96, copied).error).toBe("TabEditLimit");
   expect(JSON.stringify(tab)).toBe(before);
 });
+
+test("fractional clipboard onsets cannot silently overwrite another note", () => {
+  const tab = score({
+    version: 3,
+    notes: [
+      { string: 0, fret: 9, tick: 19.2, duration: 19.2 },
+      { string: 0, fret: 3, tick: 57.6, duration: 19.2 }
+    ]
+  });
+  const copied = copyTabSelection(tab, 0, 38.4);
+  expect(pasteTabSelection(tab, 38.4, copied).error).toBe("TabNoteCollision");
+  expect(
+    putTabNote(tab, { string: 0, fret: 7, tick: 38.4 + 19.2, duration: 1 })
+      .error
+  ).toBe("TabNoteCollision");
+  expect(tab.notes.map((note) => note.fret)).toEqual([9, 3]);
+});
+
+test("fractional selection never copies a rest ending exactly at its start", () => {
+  const tab = score({
+    version: 3,
+    rests: [{ tick: 16.8, duration: 0.6 }]
+  });
+  expect(copyTabSelection(tab, 17.4, 18)).toEqual({
+    ticks: 0.6,
+    notes: [],
+    rests: []
+  });
+});
+
+test("fractional range deletion does not insert an unplayable zero-length rest", () => {
+  const tab = score({
+    version: 3,
+    notes: [
+      { string: 0, fret: 3, tick: 38.4, duration: 19.2 },
+      { string: 2, fret: 3, tick: 48, duration: 9.6 }
+    ],
+    rests: [{ tick: 57.6, duration: 19.2 }]
+  });
+  const deleted = deleteTabSelection(tab, [tab.notes[1]], {
+    start: 40,
+    end: 76.8
+  }).tab!;
+  expect(deleted.notes).toEqual([tab.notes[0]]);
+  expect(deleted.rests).toEqual(tab.rests);
+});

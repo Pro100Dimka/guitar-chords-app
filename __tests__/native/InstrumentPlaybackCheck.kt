@@ -84,6 +84,32 @@ open class InstrumentModule(val context: InstrumentContext) {
 }
 
 fun main() {
+    // A callback from a released MediaPlayer may already be queued when a
+    // new recording starts. It must not release the new player or emit an error.
+    run {
+        val module = PerformanceAudio(InstrumentContext())
+        val first = InstrumentTrack(byteArrayOf(1)).apply { play() }
+        module.player = first
+        module.stopPlayback()
+        val next = InstrumentTrack(byteArrayOf(2)).apply { play() }
+        module.player = next
+        module.events.clear()
+        val finish = module.javaClass.getDeclaredMethod(
+            "finishTakePlayback", InstrumentTrack::class.java, java.lang.Boolean.TYPE
+        ).apply { isAccessible = true }
+        finish.invoke(module, first, false)
+        finish.invoke(module, first, true)
+        check(module.player === next && next.playing && !next.released)
+        check(module.events.isEmpty()) { "Stale playback callback escaped its owner" }
+        finish.invoke(module, next, false)
+        check(module.player == null && next.released && module.events == listOf("stopped"))
+        val failed = InstrumentTrack(byteArrayOf(3)).apply { play() }
+        module.player = failed
+        module.events.clear()
+        finish.invoke(module, failed, true)
+        check(failed.released && module.events == listOf("stopped", "error"))
+        module.invalidate()
+    }
     // RN addLifecycleEventListener queues onHostResume when attached to a
     // resumed context. Its callback can arrive after onHostPause changed state.
     run {

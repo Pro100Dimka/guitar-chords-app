@@ -5,7 +5,9 @@ export function chromaticLayout(width: number, height: number) {
     Math.min(width * 0.52, height - 40, 2 * (width * 0.71 - 236))
   );
   // Keep the note panel outside the dial and the right-side audio controls.
-  const panelLeft = landscape ? (width * 0.58 + landscapeDiameter) / 2 + 20 : 16;
+  const panelLeft = landscape
+    ? (width * 0.58 + landscapeDiameter) / 2 + 20
+    : 16;
   const panelWidth = Math.max(16, width - panelLeft - (landscape ? 68 : 16));
   const availableRows = height - (landscape ? 86 : 252);
   // Prefer 44-point touch targets in both dimensions; when the viewport is

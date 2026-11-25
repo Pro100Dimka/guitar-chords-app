@@ -19,6 +19,8 @@ import {
   tabBeatTicks,
   tabNoteDuration,
   tabNoteSymbols,
+  roundTabTick,
+  tabTickEnd,
   TabTechnique,
   TabNote,
   TabRest,
@@ -1404,7 +1406,7 @@ export function TablaturePanel({
     if (selection && selection.tick >= tablatureLength(tab))
       setSelection({
         ...selection,
-        tick: Math.max(0, tablatureLength(tab) - grid)
+        tick: roundTabTick(Math.max(0, tablatureLength(tab) - grid))
       });
     if (restSelection !== null && restSelection >= tablatureLength(tab))
       setRestSelection(null);
@@ -1431,8 +1433,9 @@ export function TablaturePanel({
     if (readOnly) return;
     cancelPreview();
     transport.pause();
-    setSelection(cell);
-    setPage(Math.floor(cell.tick / barTicks));
+    const at = roundTabTick(cell.tick);
+    setSelection({ ...cell, tick: at });
+    setPage(Math.floor(at / barTicks));
     setRestSelection(null);
     setEditError(null);
   };
@@ -1522,21 +1525,29 @@ export function TablaturePanel({
     };
     const target = (tab.rests ?? []).find(
       (rest) =>
-        rest.tick <= cursor.tick && rest.tick + rest.duration > cursor.tick
+        rest.tick <= cursor.tick &&
+        tabTickEnd(rest.tick, rest.duration) > cursor.tick
     );
+    const end = tabTickEnd(cursor.tick, next.duration);
     const rests = (tab.rests ?? []).flatMap((rest) =>
       rest !== target
         ? [rest]
         : [
             ...(rest.tick < cursor.tick
-              ? [{ tick: rest.tick, duration: cursor.tick - rest.tick }]
-              : []),
-            ...(rest.tick + rest.duration > cursor.tick + next.duration
               ? [
                   {
-                    tick: cursor.tick + next.duration,
-                    duration:
-                      rest.tick + rest.duration - cursor.tick - next.duration
+                    tick: rest.tick,
+                    duration: roundTabTick(cursor.tick - rest.tick)
+                  }
+                ]
+              : []),
+            ...(tabTickEnd(rest.tick, rest.duration) > end
+              ? [
+                  {
+                    tick: end,
+                    duration: roundTabTick(
+                      tabTickEnd(rest.tick, rest.duration) - end
+                    )
                   }
                 ]
               : [])
@@ -1558,7 +1569,7 @@ export function TablaturePanel({
       ...tab.notes.map((note) => note.tick),
       ...(tab.rests ?? []).map((rest) => rest.tick)
     ];
-    const target =
+    const target = roundTabTick(
       direction > 0
         ? Math.min(position + step, ...events.filter((at) => at > position))
         : Math.max(
@@ -1567,7 +1578,8 @@ export function TablaturePanel({
             ...events.filter(
               (at) => at < position && at >= position - insertDuration
             )
-          );
+          )
+    );
     if (target >= TAB_MAX_BARS * barTicks) return;
     if (target >= length && !apply(insertTabBar(tab, bars))) return;
     selectCell({ ...cursor, tick: target });
@@ -1579,8 +1591,8 @@ export function TablaturePanel({
     cancelPreview();
     transport.pause();
     const bounded = {
-      start: Math.max(0, next.start),
-      end: Math.min(length, next.end)
+      start: roundTabTick(Math.max(0, next.start)),
+      end: roundTabTick(Math.min(length, next.end))
     };
     if (bounded.start >= bounded.end) return;
     setNoteRange(bounded);
@@ -1622,7 +1634,7 @@ export function TablaturePanel({
     copyTabSelection(
       tab,
       noteRange?.start ?? position,
-      noteRange?.end ?? position + duration,
+      noteRange?.end ?? tabTickEnd(position, duration),
       noteRange ? undefined : selected
     );
   const saveNotesToClipboard = (cut = false) => {
@@ -1636,7 +1648,7 @@ export function TablaturePanel({
     const source = duplicate ? selectedClipboard() : noteClipboard;
     if (!source || (!source.notes.length && !source.rests.length)) return;
     const at = duplicate
-      ? (noteRange?.end ?? position + duration)
+      ? (noteRange?.end ?? tabTickEnd(position, duration))
       : cursor.tick;
     if (
       apply(
