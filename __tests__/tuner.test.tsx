@@ -509,6 +509,30 @@ test("returning from settings refreshes microphone access without requesting it 
   expect(MicrophoneStream.stopRecording).toHaveBeenCalled();
 });
 
+test("foreground permission refresh cannot be lost behind a pending request", async () => {
+  let finish!: (granted: boolean) => void;
+  jest
+    .mocked(checkMicPermission)
+    .mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }))
+    .mockResolvedValue(false);
+  const listener = jest.spyOn(AppState, "addEventListener");
+  await act(async () => {
+    screen = Renderer.create(<RequireMicAccess />);
+  });
+  const onChange = listener.mock.calls.find(
+    ([event]) => event === "change"
+  )?.[1];
+  await act(async () => {
+    onChange?.("background");
+    onChange?.("active");
+    finish(true);
+  });
+  expect(checkMicPermission).toHaveBeenCalledTimes(2);
+  expect(checkMicPermission).toHaveBeenLastCalledWith(false);
+  expect(screen.root.findAllByType(Tuner)).toHaveLength(0);
+  expect(MicrophoneStream.startRecording).not.toHaveBeenCalled();
+});
+
 test("silence does not repeatedly restart the recorder", async () => {
   await act(async () => {
     screen = Renderer.create(<Tuner active />);

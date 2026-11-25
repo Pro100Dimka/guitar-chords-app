@@ -24,27 +24,39 @@ const RequireMicAccess: FC = () => {
   useEffect(() => {
     let mounted = true;
     let pending = false;
+    let queued = false;
+    setCanRecord(false);
     const refreshPermission = async (request: boolean) => {
-      if (pending) return;
+      if (pending) {
+        queued = true;
+        return;
+      }
       pending = true;
       try {
         const granted = await checkMicPermission(request);
-        if (mounted) {
+        if (mounted && !queued) {
           setHasPermission(granted);
           setCanRecord(granted);
         }
       } catch (error) {
         console.error("Microphone permission check failed:", error);
-        if (mounted) setHasPermission(false);
+        if (mounted && !queued) {
+          setHasPermission(false);
+          setCanRecord(false);
+        }
       } finally {
         pending = false;
+        if (mounted && queued) {
+          queued = false;
+          void refreshPermission(false);
+        }
       }
     };
     void refreshPermission(isFocused && AppState.currentState === "active");
     const subscription = AppState.addEventListener("change", (state) => {
       setAppState(state);
+      setCanRecord(false);
       if (state === "active") {
-        setCanRecord(false);
         void refreshPermission(false);
       }
     });
