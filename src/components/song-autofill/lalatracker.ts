@@ -6,6 +6,7 @@ import {
 } from "../../screens/song/chords";
 import type { ChordProviderContext } from "./chord-provider-context";
 import type { LyricsOption } from "./lyrics";
+import { sourceMetadata } from "./source-metadata";
 
 const origin = "https://lalatracker.com";
 const sourceSong =
@@ -321,6 +322,7 @@ export async function lookupLalaTracker(
         content,
         album: "",
         duration: null,
+        ...sourceMetadata(content),
         source: "LalaTracker",
         url,
         hasChords: true

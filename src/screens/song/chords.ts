@@ -1141,16 +1141,85 @@ export function transposeSongAsync(
   return finishParserAsync(transposeContentWork(content, semitones), signal);
 }
 
+type PlayingInstruction = "tempo" | "rhythm";
+
+// This is lyric validation only, not a second rhythm/tempo importer. Keep its
+// label vocabulary aligned with sourceRhythm without importing rhythms.ts,
+// which already depends on this module for section parsing.
+function playingInstruction(line: string, previous?: PlayingInstruction) {
+  let text = line.replace(/[BБ]₂/gi, "A").normalize("NFKC").trim();
+  if (/^(?:\{[^{}]*\}|\[[^\[\]]*\])$/.test(text))
+    text = text
+      .slice(1, -1)
+      .trim()
+      .replace(/^meta:\s*/i, "");
+  if (!text)
+    return { metadata: false, next: line.trim() ? undefined : previous };
+  const tempoValue = (value: string) =>
+    /^(?:♩\s*=\s*)?\d+(?:[.,]\d+)?\s*(?:bpm|уд(?:аров)?\.?\s*(?:\/|в)\s*мин(?:уту)?\.?)?$/iu.test(
+      value
+    );
+  const rhythmValue = (value: string) => {
+    const normalized = value
+      .toLowerCase()
+      .replace(/ё/g, "е")
+      .replace(/\s*\([^()\n]{1,80}\)\s*$/, "")
+      .trim();
+    return (
+      /^[duxabб1-6↓↑×·|\s-]+$/iu.test(normalized) ||
+      /^(?:шестерка(?: с глушением| 6\/8)?|шістка(?: з (?:глушінням|глушкою|приглушенням)| 6\/8)?|четверка|четвірка|восьмерка|вісімка|пятерка|п['’]ятірка|девятка|дев['’]ятка|four|five|six(?: notes 6\/8)?|eight|nine|вальс|waltz|[45689]|[34]\/4|6\/8)$/iu.test(
+        normalized
+      )
+    );
+  };
+  const tempo = text.match(
+    /^(?:tempo|bpm|темп|andamento)(?=\s|[:=–—-]|$)\s*([:=–—-])?\s*(.*)$/iu
+  );
+  const rhythm = text.match(
+    /^(?:(?:рекомендуемый|рекомендую)\s+)?(?:бой|бій|strumming(?: pattern)?|strum(?: pattern)?|batida|ritmo|перебор|арпеджіо|арпеджио|fingerpicking(?: pattern)?|picking(?: pattern)?|arpeggio)(?=\s|[:=–—-]|$)\s*([:=–—-])?\s*(.*)$/iu
+  );
+  const instruction = tempo ?? rhythm;
+  if (instruction) {
+    const value = instruction[2].trim();
+    if (
+      !value ||
+      instruction[1] ||
+      (tempo ? tempoValue(value) : rhythmValue(value)) ||
+      /^(?:рекомендуемый|рекомендую)\s/iu.test(text)
+    )
+      return {
+        metadata: true,
+        next: !value
+          ? ((tempo ? "tempo" : "rhythm") as PlayingInstruction)
+          : undefined
+      };
+  }
+  return {
+    metadata:
+      (previous === "tempo" &&
+        (tempoValue(text) || /^(?:♩\s*=\s*)?[+\-−]?\d/u.test(text))) ||
+      (previous === "rhythm" && rhythmValue(text)) ||
+      /^\d+(?:[.,]\d+)?\s*[-–—]\s*\d+(?:[.,]\d+)?\s*bpm$/iu.test(text) ||
+      (/(?:bpm|уд(?:аров)?\.?\s*(?:\/|в)\s*мин(?:уту)?\.?)$/iu.test(text) &&
+        tempoValue(text)) ||
+      (/^♩\s*=/.test(text) && tempoValue(text)),
+    next: undefined
+  };
+}
+
 function* hasSongChordsWork(
   content: string,
   requireLyrics: boolean
 ): ParserWork<boolean> {
   let chords = false,
     lyrics = !requireLyrics;
+  let instruction: PlayingInstruction | undefined;
   for (const line of content.split("\n")) {
     yield;
-    if (yield* isChordLineWork(line)) chords = true;
-    else {
+    if (yield* isChordLineWork(line)) {
+      chords = true;
+      instruction = undefined;
+    } else {
       const inline = yield* inlineChordLineWork(line);
       if (inline?.anchors.length) chords = true;
       if (requireLyrics && !lyrics) {
@@ -1159,7 +1228,10 @@ function* hasSongChordsWork(
           .trim();
         const heading = sectionHeading.exec(text);
         const words = heading ? (heading[2] ?? "") : text;
+        const playing = playingInstruction(words, instruction);
+        instruction = !words && line.trim() ? undefined : playing.next;
         if (
+          !playing.metadata &&
           !/^(?:intro|outro|solo|interlude|instrumental|вступ|вступление|програш|проигрыш|інтро|интро|аутро|соло)(?:\s|$)/i.test(
             heading?.[1] ?? ""
           ) &&

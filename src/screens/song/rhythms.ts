@@ -203,6 +203,35 @@ const sourceSymbols = Object.fromEntries(
   Object.entries(rhythmSymbols).map(([symbol, display]) => [display, symbol])
 );
 
+function sourcePattern(
+  preset: (typeof rhythms)[number],
+  notation: string,
+  picking: boolean,
+  noteList = false
+) {
+  const expected = noteList ? preset.pattern.replace(/-/g, "") : preset.pattern;
+  const actual = noteList ? notation.replace(/-/g, "") : notation;
+  if (
+    expected.length !== actual.length ||
+    ![...expected].every(
+      (symbol, index) =>
+        symbol === actual[index] ||
+        (picking && symbol === "B" && /[456]/.test(actual[index]))
+    )
+  )
+    return;
+  let index = 0;
+  const pattern = noteList
+    ? preset.pattern.replace(/[^-]/g, () => actual[index++])
+    : actual;
+  // Numeric strings are literal in the player; B chooses a chord's bass.
+  return {
+    ...preset,
+    pattern,
+    id: pattern === preset.pattern ? preset.id : ""
+  };
+}
+
 export function sourceRhythm(text: string): SongRhythm | undefined {
   const lines = text.split(/\r?\n/);
   let selected: (typeof rhythms)[number] | undefined;
@@ -210,19 +239,26 @@ export function sourceRhythm(text: string): SongRhythm | undefined {
     const match = lines[index]
       .trim()
       .match(
-        /^(бой|бій|strumming(?: pattern)?|strum(?: pattern)?|batida|ritmo|перебор|арпеджіо|арпеджио|fingerpicking(?: pattern)?|picking(?: pattern)?|arpeggio)(?:\s*[:\-\u2013\u2014]\s*|\s+|$)(.*)$/i
+        /^(?:(?:рекомендуемый|рекомендую)\s+)?(бой|бій|strumming(?: pattern)?|strum(?: pattern)?|batida|ritmo|перебор|арпеджіо|арпеджио|fingerpicking(?: pattern)?|picking(?: pattern)?|arpeggio)(?:\s*[:\-\u2013\u2014]\s*|\s+|$)(.*)$/i
       );
     if (!match) continue;
-    const value = (match[2].trim() || lines[index + 1]?.trim() || "")
+    let value = (match[2].trim() || lines[index + 1]?.trim() || "")
       .replace(/[BБ]₂/gi, "A")
       .normalize("NFKC")
       .toLowerCase()
       .replace(/ё/g, "е");
-    const catalog = /^(?:перебор|арпедж|fingerpicking|picking|arpeggio)/i.test(
+    const picking = /^(?:перебор|арпедж|fingerpicking|picking|arpeggio)/i.test(
       match[1]
-    )
-      ? pickingPatterns
-      : rhythms;
+    );
+    const annotation = value.match(/^([^()]+)\(([^()]+)\)$/);
+    if (annotation) value = annotation[1].trim();
+    const label = annotation?.[2].trim();
+    const catalog = (picking ? pickingPatterns : rhythms).filter(
+      (preset) =>
+        !label ||
+        preset.aliases?.includes(label) ||
+        rhythmMeterLabel(preset.meter, preset.division) === label
+    );
     const notation = value
       .replace(/[↓↑×·]/g, (symbol) => sourceSymbols[symbol])
       .replace(/[\s|]/g, "")
@@ -230,13 +266,26 @@ export function sourceRhythm(text: string): SongRhythm | undefined {
       .replace(/Б/g, "B");
     let matches = catalog.filter((rhythm) => rhythm.aliases?.includes(value));
     if (!matches.length)
-      matches = catalog.filter((rhythm) => rhythm.pattern === notation);
-    if (!matches.length && /^[DUXBA1-6-]+$/.test(notation))
-      matches = catalog.filter(
-        (rhythm) =>
-          rhythm.pattern.replace(/-/g, "") === notation.replace(/-/g, "")
+      matches = catalog.flatMap(
+        (preset) => sourcePattern(preset, notation, picking) ?? []
       );
-    if (matches.length !== 1 || (selected && selected.id !== matches[0].id))
+    // An exact grid preserves rests. Only a plain stroke sequence or a
+    // uniformly delimited picking list can borrow one known preset's timing.
+    const noteList =
+      !value.includes("·") &&
+      (!notation.includes("-") ||
+        (picking && /^[BA1-6](?:-[BA1-6])+$/.test(notation)));
+    if (!matches.length && noteList && /^[DUXBA1-6-]+$/.test(notation))
+      matches = catalog.flatMap(
+        (preset) => sourcePattern(preset, notation, picking, true) ?? []
+      );
+    if (
+      matches.length !== 1 ||
+      (selected &&
+        (selected.pattern !== matches[0].pattern ||
+          selected.meter !== matches[0].meter ||
+          selected.division !== matches[0].division))
+    )
       return;
     selected = matches[0];
   }

@@ -1,6 +1,13 @@
 name: chord-corpus-audit
 on:
   workflow_dispatch:
+  pull_request:
+    paths:
+      - 'src/components/song-autofill/**'
+      - 'src/screens/song/chords.ts'
+      - 'src/screens/song/rhythms.ts'
+      - 'scripts/check-chord-corpus.cjs'
+      - '.github/workflows/chord-corpus-audit.yml'
 permissions:
   contents: read
 concurrency:

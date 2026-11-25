@@ -65,6 +65,36 @@ describe("WeingGuitar public Korean chord provider", () => {
     jest.restoreAllMocks();
   });
 
+  it("imports explicit score instructions without importing scrolling speed", async () => {
+    const instructions =
+      piece("", "BPM: 116") +
+      '<div class="clearfix"></div>' +
+      piece("", "Picking: 6-3-2-3-1-3-2-3") +
+      '<div class="clearfix"></div>';
+    mockPages(
+      search(),
+      page(
+        body.replace(
+          '<div class="score-paragraph">',
+          `<div class="score-paragraph">${instructions}`
+        )
+      ) +
+        '<select id="autoScrollSpeedSelect"><option>180</option></select><aside>Tempo: 160</aside>'
+    );
+    const options = await finish();
+    expect(options[0]).toMatchObject({
+      tempo: 116,
+      rhythm: {
+        strum: "63231323",
+        strumPreset: "",
+        strumMeter: 4,
+        strumDivision: 2
+      }
+    });
+    expect(options[0].content).toContain("BPM: 116");
+    expect(weingURLs()).toEqual([combined, candidate]);
+  });
+
   it.each([credit, "ABC(가상가수)", "ABC"])(
     "verifies the published artist credit %s and preserves native lyric fragments",
     async (performer) => {

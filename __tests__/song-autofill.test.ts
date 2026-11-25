@@ -148,6 +148,57 @@ describe("content provider failover", () => {
     jest.restoreAllMocks();
   });
 
+  it.each([
+    ["Akkords.pro", false],
+    ["Akkords.pro", true],
+    ["Пісенник", false],
+    ["Пісенник", true]
+  ])(
+    "imports scoped metadata once and preserves conflicts through the cache: %s / %s",
+    async (source, conflict) => {
+      const track = "Обійми",
+        performer = "Океан Ельзи";
+      const candidate =
+        source === "Akkords.pro"
+          ? "https://akkords.pro/songs/okean-elzi/obiymi/"
+          : "https://pisennyk.com.ua/okean-elzi/obiymi";
+      request.mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.startsWith("https://akkords.pro/?") && source === "Akkords.pro")
+          return new Response(
+            `<a href="${candidate}"><span class="apx-top-songs__title">${track}</span><span class="apx-top-songs__artist">${performer}</span></a>`
+          );
+        if (
+          url.startsWith("https://pisennyk.com.ua/search") &&
+          source === "Пісенник"
+        )
+          return new Response(
+            `<a href="${candidate}">${track} - ${performer}</a>`
+          );
+        if (url === candidate)
+          return new Response(
+            `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: track, byArtist: { name: performer } })}</script>` +
+              '<div class="song-metadata"><p>BPM: 96</p><p>Бой: четверка</p></div>' +
+              `<p class="${source === "Akkords.pro" ? "chords" : "interpretation-content"}">Tempo: ${conflict ? 120 : 96}<br>Бой: ${conflict ? "шестёрка" : "четверка"}<br>Am C<br>Тестовий рядок для перевірки</p>` +
+              "<aside>Tempo: 180<br>Бой: восьмерка</aside>"
+          );
+        return response(url);
+      });
+      const pending = lookup(track, performer);
+      await jest.runAllTimersAsync();
+      const options = await pending;
+      expect(options).toHaveLength(1);
+      expect(options[0].source).toBe(source);
+      expect(options[0].tempo).toBe(conflict ? undefined : 96);
+      expect(options[0].rhythm?.strumPreset).toBe(
+        conflict ? undefined : "four"
+      );
+      const count = request.mock.calls.length;
+      expect(await lookup(track, performer)).toEqual(options);
+      expect(request).toHaveBeenCalledTimes(count);
+    }
+  );
+
   it("finds Pisennyk charts hidden by the combined query's limited results", async () => {
     const track = "Обійми";
     const performer = "Океан Ельзи";
@@ -1300,8 +1351,9 @@ describe("content provider failover", () => {
         request.mock.calls.some(([url]) => String(url).includes("example.com"))
       ).toBe(false);
       expect(
-        request.mock.calls.some(([url]) =>
-          String(url) === "https://www.guitaretab.com/o/oasis/123.html"
+        request.mock.calls.some(
+          ([url]) =>
+            String(url) === "https://www.guitaretab.com/o/oasis/123.html"
         )
       ).toBe(failure === "different artist");
     }

@@ -89,6 +89,8 @@ write({
     "Provider-validated identity plus repeated title/artist field checks using production normalization and hasSongChordsAsync(content, signal, true)",
   lyricCorroboration:
     "Diagnostic-only unique normalized lyric-line overlap with identity-matching LRCLIB plainLyrics; does not change status",
+  arrangementMetadata:
+    "Explicit tempo and rhythm imported from each verified chart; missing metadata is not guessed. Independent Shazam/SongBPM tempo lookup and audio are not tested here.",
   includesAudioRecognition: false,
   recordsLyrics: false
 });
@@ -294,7 +296,15 @@ function summary(finished) {
     completed: completed.length,
     total: selectedSongs.length,
     byStatus,
-    byGroup
+    byGroup,
+    sourceMetadataCounts: {
+      songsWithTempo: completed.filter((song) =>
+        song.options.some((option) => option.lyricsAndChords && option.identityMatches && option.tempo !== undefined)
+      ).length,
+      songsWithRhythm: completed.filter((song) =>
+        song.options.some((option) => option.lyricsAndChords && option.identityMatches && option.rhythm)
+      ).length
+    }
   };
 }
 
@@ -343,6 +353,8 @@ function summary(finished) {
         };
         if (option.sourceArtist) optionMetadata.sourceArtist = option.sourceArtist;
         if (option.identityReference) optionMetadata.identityReference = option.identityReference;
+        if (option.tempo !== undefined) optionMetadata.tempo = option.tempo;
+        if (option.rhythm) optionMetadata.rhythm = option.rhythm;
         result.options.push(optionMetadata);
         if (option.source !== "LRCLIB")
           searchMetadataJobs.push(() => {

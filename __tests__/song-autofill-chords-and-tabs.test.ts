@@ -56,6 +56,22 @@ describe("Chords & Tabs public arrangement provider", () => {
     };
   });
 
+  it("imports explicit chart tempo and rhythm while excluding unrelated page instructions", async () => {
+    request.mockImplementation(async (url) =>
+      url === `${origin}/songs/search/`
+        ? card()
+        : page(`BPM: 104\nStrumming pattern: D-DU-UDU\n${chart}`) +
+          "<aside>Tempo: 180<br>Strumming: four</aside>"
+    );
+    const options = await finish();
+    expect(options[0]).toMatchObject({
+      tempo: 104,
+      rhythm: { strumPreset: "six", strum: "D-DU-UDU" }
+    });
+    expect(options[0].content).toContain("BPM: 104");
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
   it("uses the published form, verifies both identities, and preserves all chart lines", async () => {
     const result = await finish();
     expect(result).toHaveLength(1);

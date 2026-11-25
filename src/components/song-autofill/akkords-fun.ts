@@ -5,6 +5,7 @@ import {
 } from "../../screens/song/chords";
 import type { ChordProviderContext } from "./chord-provider-context";
 import type { LyricsOption } from "./lyrics";
+import { sourceMetadata } from "./source-metadata";
 
 const origin = "https://akkords.fun";
 const artistURL = /^https:\/\/akkords\.fun\/(?:rus|eng)\/[a-z0-9-]+\/$/;
@@ -196,6 +197,7 @@ export async function lookupAkkordsFun(
           content,
           album: "",
           duration: null,
+          ...sourceMetadata(content),
           source: "Akkords.fun",
           url,
           hasChords: true

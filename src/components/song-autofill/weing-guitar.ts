@@ -6,6 +6,7 @@ import {
 } from "../../screens/song/chords";
 import type { ChordProviderContext } from "./chord-provider-context";
 import type { LyricsOption } from "./lyrics";
+import { sourceMetadata } from "./source-metadata";
 
 const origin = "https://guitar.weingchicken.com";
 const hasClass = (element: { attribs: Record<string, string> }, name: string) =>
@@ -181,6 +182,7 @@ export async function lookupWeingGuitar(
         id: 0,
         album: "",
         duration: null,
+        ...sourceMetadata(content),
         source: "WeingGuitar",
         url,
         hasChords: true,

@@ -59,6 +59,21 @@ describe("Akkords.fun public catalogue provider", () => {
     jest.restoreAllMocks();
   });
 
+  it("imports chart instructions while retaining the original text and ignoring page tools", async () => {
+    respond(
+      page(
+        `<p class="af-ln">Темп: 108</p><p class="af-ln">Рекомендуемый Бой: Восьмерка</p>${rows}`
+      ) + '<div class="af-tools">Tempo: 180<br>Бой: четверка</div>'
+    );
+    const options = await finish();
+    expect(options[0]).toMatchObject({
+      tempo: 108,
+      rhythm: { strumPreset: "eighth", strum: "DUDUDUDU" }
+    });
+    expect(options[0].content).toContain("Рекомендуемый Бой: Восьмерка");
+    expect(urls()).toEqual([`${origin}/eng/`, performerURL, songURL]);
+  });
+
   it("follows a verified artist and song without requesting the search endpoint", async () => {
     respond();
     const options = await finish();

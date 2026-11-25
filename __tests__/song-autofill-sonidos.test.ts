@@ -44,6 +44,24 @@ describe("Sonidos public arrangement provider", () => {
     };
   });
 
+  it("imports instructions inside the chart without treating toolbar numbers as tempo", async () => {
+    request.mockImplementation(async (url) =>
+      url === combined
+        ? card()
+        : page(
+            `<pre class="cifra-pre">Andamento: 96\nBatida: D-DU-UDU\nAm C\nUma linha inventada para testar</pre>`
+          ) +
+          '<aside>Tempo: 180</aside><select id="scrollSpeed"><option>120</option></select>'
+    );
+    const options = await finish();
+    expect(options[0]).toMatchObject({
+      tempo: 96,
+      rhythm: { strumPreset: "six", strum: "D-DU-UDU" }
+    });
+    expect(options[0].content).toContain("Andamento: 96");
+    expect(request).toHaveBeenCalledTimes(2);
+  });
+
   it("uses public search and retains chord alignment with the verified lyric lines", async () => {
     const options = await finish();
     expect(options).toHaveLength(1);

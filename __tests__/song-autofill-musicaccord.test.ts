@@ -48,6 +48,31 @@ describe("Musicaccord public chord provider", () => {
     jest.restoreAllMocks();
   });
 
+  it("imports tempo and picking from the selected chart without reading page controls", async () => {
+    const instructions = body.replace(
+      '<div class="musicaccord-song">',
+      '<div class="musicaccord-song">Темп: 92 BPM<br>Перебор: восьмёрка<br>'
+    );
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === combined) return new Response(card());
+      if (url === candidate)
+        return new Response(
+          page(instructions) +
+            '<aside>Tempo: 180<br>Бой: четверка</aside><input value="120">'
+        );
+      return empty(url);
+    });
+    const options = await finish();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toMatchObject({
+      tempo: 92,
+      rhythm: { strumPreset: "pick-eight", strum: "B3231323" }
+    });
+    expect(options[0].content).toContain("Темп: 92 BPM");
+    expect(musicURLs()).toEqual([combined, candidate]);
+  });
+
   it.each([
     [title, artist],
     ["Synthetic Ballad", "Example Performer"]

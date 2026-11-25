@@ -90,6 +90,7 @@ export default function RecognizeSong() {
   const [tileMessage, setTileMessage] = useState("");
   const [draft, setDraft] = useState<FormValues | null>(null);
   const draftReady = useRef(false);
+  const fallbackTempo = useRef<number | undefined>(undefined);
   const [lyricsNotice, setLyricsNotice] = useState<
     | "AddSongLyricsNotice"
     | "AddSongNoLyrics"
@@ -189,6 +190,7 @@ export default function RecognizeSong() {
       setAvailableVersions([]);
       setDraft(null);
       draftReady.current = false;
+      fallbackTempo.current = undefined;
       setLyricsNotice("AddSongNoLyrics");
       setMessage(
         t(
@@ -255,8 +257,8 @@ export default function RecognizeSong() {
             () => ({ options: [], failed: true })
           ),
           readRemoteSongCover(result.cover ?? "", abort.signal).catch(() => ""),
-          result.tempo !== undefined
-            ? Promise.resolve(result.tempo)
+          next.tempo !== undefined
+            ? Promise.resolve(next.tempo)
             : lookupSongTempo(
                 result.title,
                 result.artist,
@@ -265,6 +267,14 @@ export default function RecognizeSong() {
               ).catch(() => undefined)
         ]);
         if (request !== generation.current) return;
+        next = applyRecognitionDraft(
+          next,
+          result.title,
+          result.artist,
+          undefined,
+          tempo
+        );
+        fallbackTempo.current = next.tempo;
         const playable: LyricsOption[] = [];
         for (const option of lyrics.options) {
           if (
@@ -306,7 +316,7 @@ export default function RecognizeSong() {
         next = {
           ...next,
           cover,
-          ...(tempo !== undefined ? { tempo } : {}),
+          tempo: selected.tempo ?? fallbackTempo.current,
           capo: selected?.capo,
           rhythm: selected?.rhythm,
           sourceTuning: selected?.tuning,
@@ -655,6 +665,7 @@ export default function RecognizeSong() {
                       previous && {
                         ...previous,
                         content: option.content,
+                        tempo: option.tempo ?? fallbackTempo.current,
                         capo: option.capo,
                         rhythm: option.rhythm,
                         sourceTuning: option.tuning,

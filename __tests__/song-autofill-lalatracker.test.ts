@@ -100,6 +100,25 @@ describe("LalaTracker corroborated catalogue provider", () => {
     jest.restoreAllMocks();
   });
 
+  it("imports only corroborated chart instructions, independently of page controls", async () => {
+    respond(
+      page(`Темп: 106\nПеребор: восьмёрка\n${markup()}`) +
+        '<aside>Tempo: 180<br>Бой: четверка</aside><input value="18">'
+    );
+    const options = lalaOptions(await finish());
+    expect(options).toHaveLength(1);
+    expect(options[0]).toMatchObject({
+      tempo: 106,
+      rhythm: { strumPreset: "pick-eight", strum: "B3231323" },
+      identityReference: { matchedLines: 4, candidateLines: 4 }
+    });
+    expect(options[0].content).toContain("Темп: 106");
+    expect(urls().filter((url) => url.startsWith(origin))).toEqual([
+      searchURL,
+      chartURL
+    ]);
+  });
+
   it("corroborates a complete reversed name and keeps all chart content from its source", async () => {
     respond(page(markup([...lines, extraLines[0]])));
     const options = lalaOptions(await finish());

@@ -6,6 +6,7 @@ import {
   transposeSongAsync
 } from "../../screens/song/chords";
 import type { LyricsOption } from "./lyrics";
+import { sourceMetadata } from "./source-metadata";
 import type { ChordProviderContext } from "./chord-provider-context";
 
 const origin = "https://www.sonidos.com.br";
@@ -224,6 +225,7 @@ export async function lookupSonidos(
         capo,
         album: "",
         duration: null,
+        ...sourceMetadata(text),
         source: "Sonidos",
         url,
         hasChords: true

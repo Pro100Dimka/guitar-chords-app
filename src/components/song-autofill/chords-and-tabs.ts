@@ -4,7 +4,7 @@ import {
   hasSongChordsAsync,
   transposeSongAsync
 } from "../../screens/song/chords";
-import { sourceArrangement } from "../../screens/song/rhythms";
+import { sourceMetadata } from "./source-metadata";
 import type { ChordProviderContext } from "./chord-provider-context";
 import type { LyricsOption } from "./lyrics";
 
@@ -193,7 +193,7 @@ export async function lookupChordsAndTabs(
         content,
         capo,
         tuning,
-        rhythm: sourceArrangement(text),
+        ...sourceMetadata(text),
         album: "",
         duration: null,
         source: "Chords & Tabs",

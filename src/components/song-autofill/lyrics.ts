@@ -5,7 +5,7 @@ import {
   transposeSongAsync
 } from "../../screens/song/chords";
 import { Parser, DomHandler, DomUtils } from "htmlparser2";
-import { sourceArrangement } from "../../screens/song/rhythms";
+import { sourceMetadata } from "./source-metadata";
 import { lookupChordsAndTabs } from "./chords-and-tabs";
 import { lookupSonidos } from "./sonidos";
 import { lookupWeingGuitar } from "./weing-guitar";
@@ -23,7 +23,8 @@ export interface LyricsOption {
   duration: number | null;
   capo?: number;
   tuning?: string;
-  rhythm?: ReturnType<typeof sourceArrangement>;
+  tempo?: number;
+  rhythm?: ReturnType<typeof sourceMetadata>["rhythm"];
   sourceArtist?: string;
   identityReference?: {
     source: "LRCLIB";
@@ -313,11 +314,11 @@ const sameArtist = (expected: string, actual: string) => {
   );
 };
 
-function chartRhythm(
+function chartMetadata(
   text: string,
   metadata?: Parameters<typeof DomUtils.getChildren>[0] | null
 ) {
-  return sourceArrangement(
+  return sourceMetadata(
     [
       ...(metadata
         ? DomUtils.getChildren(metadata).map((node) =>
@@ -820,7 +821,7 @@ async function lookupPisennyk(
   if (!content || content.length > 200000) return [];
   const transposed = await transposeSongAsync(content, capo ?? 0, signal);
   await sourceTurn(signal);
-  const rhythm = chartRhythm(content, metadata);
+  const metadataValues = chartMetadata(content, metadata);
   const hasChords = await hasSongChordsAsync(content, signal, true);
   if (signal?.aborted) throw new Error("Cancelled");
   return [
@@ -828,7 +829,7 @@ async function lookupPisennyk(
       ...identity,
       content: transposed,
       capo,
-      rhythm,
+      ...metadataValues,
       album: "",
       duration: null,
       source: "Пісенник",
@@ -992,6 +993,7 @@ async function lookupMusicAccord(
         content,
         album: "",
         duration: null,
+        ...sourceMetadata(content),
         source: "Musicaccord.ru",
         url,
         hasChords: true
@@ -1328,7 +1330,7 @@ async function lookupChordPage(
   );
   if (!content || content.length > 200000) return [];
   await sourceTurn(signal);
-  const rhythm = chartRhythm(
+  const metadataValues = chartMetadata(
     text,
     DomUtils.findOne(
       (element) =>
@@ -1346,7 +1348,7 @@ async function lookupChordPage(
       content,
       capo,
       tuning,
-      rhythm,
+      ...metadataValues,
       album: "",
       duration: null,
       source,
