@@ -194,6 +194,32 @@ test.each(["GO_BACK", "POP", "POP_TO_TOP"])(
     expect(mockNavigation.dispatch).toHaveBeenCalledWith(action);
   }
 );
+test("failed video link validation remains visible even when optional fields are collapsed", async () => {
+  await change();
+  await act(async () =>
+    values.setFieldValue("youtube_music", "https://example.com/no-video")
+  );
+  const form = screen.root.findAll(
+    (node) => node.props.formik && node.props.name === "title"
+  )[0].props.formik;
+  jest.mocked(db.transaction).mockClear();
+  await act(async () => form.submitForm());
+  expect(db.transaction).not.toHaveBeenCalled();
+  const error = screen.root.findAll(
+    (node) =>
+      node.props.accessibilityRole === "alert" &&
+      node.props.children === "SongLink: InvalidUrl" &&
+      typeof node.props.onPress === "function"
+  )[0];
+  expect(error).toBeDefined();
+  await act(async () => error.props.onPress());
+  expect(
+    screen.root.findAll(
+      (node) => node.props.formik && node.props.name === "youtube_music"
+    ).length
+  ).toBeGreaterThan(0);
+});
+
 test("save-and-leave waits for successful persistence; failure preserves the edited text", async () => {
   await change();
   const action = { type: "GO_BACK" };

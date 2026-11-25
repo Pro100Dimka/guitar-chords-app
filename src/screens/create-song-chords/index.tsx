@@ -529,6 +529,26 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     { paddingBottom: Math.max(insets.bottom, 12) }
                   ]}
                 >
+                  {!formik.isSubmitting &&
+                    !formik.isValidating &&
+                    formik.submitCount > 0 &&
+                    (formik.errors.youtube_music ||
+                      formik.errors.youtobe_lesson) && (
+                      <Text
+                        accessibilityRole="alert"
+                        style={styles.fieldError}
+                        onPress={() => setExtras(true)}
+                      >
+                        {[
+                          formik.errors.youtube_music &&
+                            `${t("SongLink")}: ${formik.errors.youtube_music}`,
+                          formik.errors.youtobe_lesson &&
+                            `${t("TrainingLink")}: ${formik.errors.youtobe_lesson}`
+                        ]
+                          .filter(Boolean)
+                          .join("\n")}
+                      </Text>
+                    )}
                   <Action
                     primary
                     label={t("SaveSong")}
