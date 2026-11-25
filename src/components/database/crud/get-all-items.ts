@@ -36,6 +36,9 @@ const getAllItems = <T = Record<string, unknown>>({
       )
     )
       throw new Error("Invalid pagination");
+    const offset = page && page > 0 && limit !== undefined ? page * limit : 0;
+    if (!Number.isSafeInteger(offset))
+      throw new Error("Invalid pagination");
     let sql = `SELECT ${fields} FROM ${tableName}`;
     if (joins.length > 0) sql += " " + joins.join(" "); //  join если есть
     if (filters) sql += ` WHERE ${filters}`; //  фильтры
@@ -43,7 +46,6 @@ const getAllItems = <T = Record<string, unknown>>({
       sql += `${filters ? " AND" : " WHERE"} ${idColumn} IN (${ids.join(",") || "NULL"})`;
     if (orderBy) sql += ` ORDER BY ${orderBy}`;
     if (limit !== undefined) {
-      const offset = page && page > 0 ? page * limit : 0;
       sql += ` LIMIT ${limit} OFFSET ${offset}`; // пагинация
     }
     const rows: T[] = [];
