@@ -338,7 +338,7 @@ export function emptyTablature(
     version: 2,
     tempo: integer(tempo, 40, 200) ? tempo : 80,
     beatsPerBar: integer(beatsPerBar, 1, 32) ? beatsPerBar : 4,
-    beatUnit: beatUnit === 8 ? 8 : 4,
+    beatUnit: beatUnit === 2 || beatUnit === 8 ? beatUnit : 4,
     barCount: 1,
     notes: [],
     rests: []

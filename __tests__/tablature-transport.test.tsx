@@ -635,6 +635,27 @@ test("a complete replacement recording is one undo operation and preserves its m
   expect(transport.getSnapshot().tab).toEqual(recorded);
 });
 
+test("recording a replacement take preserves 2/2 and its bar duration", () => {
+  const original = {
+    ...emptyTablature(80, 2, 2),
+    beatUnit: 2 as const,
+    notes: [{ string: 5, fret: 12, tick: 0, duration: 48 }]
+  };
+  transport.replaceTab(original);
+  transport.startRecording();
+  transport.capture([{ string: 0, fret: 0 }]);
+  jest.advanceTimersByTime(2500);
+  transport.stopRecording();
+  expect(transport.getSnapshot().tab).toMatchObject({
+    beatUnit: 2,
+    beatsPerBar: 2,
+    tempo: 80,
+    barCount: 1
+  });
+  transport.undo();
+  expect(transport.getSnapshot().tab).toEqual(original);
+});
+
 test("undo cancels audio and the bounded history retains the latest fifty edits", async () => {
   const initial = score([{ string: 0, fret: 0, tick: 0, duration: 24 }]);
   transport.replaceTab(initial);

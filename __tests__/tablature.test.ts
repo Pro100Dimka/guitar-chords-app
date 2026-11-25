@@ -267,6 +267,14 @@ test("length includes releases, rests and deliberately empty final bars", () => 
   ).toBe(2);
 });
 
+test("2/2 preserves half-note beats in newly created tablature", () => {
+  const tab = emptyTablature(90, 2, 2);
+  expect(tab.beatUnit).toBe(2);
+  expect(tabBeatTicks(tab)).toBe(48);
+  expect(tabBarTicks(tab)).toBe(96);
+  expect(normalizeTablature(tab)).toEqual(tab);
+});
+
 test("6/8 counts eighth beats while quarter-based tick durations remain stable", () => {
   const tab = emptyTablature(90, 6, 8);
   expect(tabBeatTicks(tab)).toBe(12);
