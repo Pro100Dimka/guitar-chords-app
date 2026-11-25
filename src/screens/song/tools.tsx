@@ -17,9 +17,11 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleProp,
   StyleSheet,
   useWindowDimensions,
-  View
+  View,
+  ViewStyle
 } from "react-native";
 import Text from "../../components/styled-text";
 import {
@@ -76,7 +78,10 @@ export function Action({
   icon,
   primary = false,
   compact = false,
-  showLabel = false
+  showLabel = false,
+  notation = false,
+  accessibilityRole = "button",
+  style
 }: {
   label: string;
   onPress: () => void;
@@ -88,10 +93,15 @@ export function Action({
   primary?: boolean;
   compact?: boolean;
   showLabel?: boolean;
+  notation?: boolean;
+  accessibilityRole?: "button" | "tab";
+  style?: StyleProp<ViewStyle>;
 }) {
+  const finish =
+    selected || primary ? (notation ? palette.notation : palette.finish) : null;
   return (
     <Pressable
-      accessibilityRole="button"
+      accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected, disabled }}
       disabled={disabled}
@@ -107,6 +117,11 @@ export function Action({
         !!icon && compact && styles.compactIconAction,
         !!icon && showLabel && styles.labeledAction,
         !!icon && showLabel && compact && styles.compactLabeledAction,
+        notation && styles.notationAction,
+        notation && !!icon && showLabel && styles.notationLabeledAction,
+        notation && !!icon && !showLabel && styles.notationIconAction,
+        notation && (selected || primary) && styles.notationSelected,
+        style,
         pressed && styles.pressed,
         disabled && styles.dim
       ]}
@@ -114,29 +129,35 @@ export function Action({
       <LinearGradient
         pointerEvents="none"
         colors={
-          selected || primary
-            ? palette.finish.goldColors
-            : ["rgba(255,255,255,0.06)", "rgba(255,255,255,0)"]
+          finish?.goldColors ?? [
+            "rgba(255,255,255,0.06)",
+            "rgba(255,255,255,0)"
+          ]
         }
         style={[
           styles.actionGradient,
           !!icon && styles.iconGradient,
-          !!icon && showLabel && styles.labeledGradient
+          !!icon && showLabel && styles.labeledGradient,
+          notation && styles.notationGradient
         ]}
-        locations={selected || primary ? palette.finish.locations : [0, 1]}
+        locations={finish?.locations ?? [0, 1]}
       />
       {typeof icon === "string" ? (
         <MaterialCommunityIcons
           name={icon}
-          size={21}
+          size={notation ? 17 : 21}
+          style={notation ? styles.notationIcon : undefined}
           color={selected || primary ? palette.gold.ink : palette.glass.ink}
         />
       ) : (
         (icon ?? (
           <Text
+            numberOfLines={notation ? 1 : undefined}
+            adjustsFontSizeToFit={notation}
             style={[
               styles.actionText,
               compact && styles.compactActionText,
+              notation && styles.notationText,
               glass && styles.glassText,
               (selected || primary) && styles.goldText
             ]}
@@ -152,6 +173,7 @@ export function Action({
           minimumFontScale={0.8}
           style={[
             styles.actionCaption,
+            notation && styles.notationCaption,
             (selected || primary) && styles.goldText
           ]}
         >
@@ -237,7 +259,12 @@ export function Sheet({
   landscapeOnly = false,
   maxWidth = 760,
   scrollable = true,
-  subtitle
+  subtitle,
+  toolbar,
+  footer,
+  dense = false,
+  scrollKey,
+  headerAccessory
 }: {
   title: string;
   onClose: () => void;
@@ -249,6 +276,11 @@ export function Sheet({
   maxWidth?: number;
   scrollable?: boolean;
   subtitle?: string;
+  toolbar?: React.ReactNode;
+  footer?: React.ReactNode;
+  dense?: boolean;
+  scrollKey?: string;
+  headerAccessory?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -267,7 +299,11 @@ export function Sheet({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={[styles.scrim, { paddingTop: insets.top + 8 }]}
+        style={[
+          styles.scrim,
+          { paddingTop: insets.top + 8 },
+          dense && styles.notationScrim
+        ]}
       >
         <Pressable
           style={styles.backdrop}
@@ -299,23 +335,42 @@ export function Sheet({
             ]}
             style={StyleSheet.absoluteFillObject}
           />
-          <View style={styles.sheetHeader}>
-            <Text accessibilityRole="header" style={styles.sheetTitle}>
+          <View style={[styles.sheetHeader, dense && styles.denseSheetHeader]}>
+            <Text
+              accessibilityRole="header"
+              style={[styles.sheetTitle, dense && styles.notationTitle]}
+            >
               {title}
             </Text>
             {!!subtitle && (
-              <Text numberOfLines={1} style={styles.sheetSubtitle}>
+              <Text
+                numberOfLines={1}
+                style={[styles.sheetSubtitle, dense && styles.notationSubtitle]}
+              >
                 {subtitle}
               </Text>
             )}
-            <Action compact icon="close" label={t("Close")} onPress={onClose} />
+            {headerAccessory}
+            <Action
+              compact
+              notation={dense}
+              style={dense ? styles.notationClose : undefined}
+              icon="close"
+              label={t("Close")}
+              onPress={onClose}
+            />
           </View>
+          {toolbar}
           {scrollable ? (
             <ScrollView
+              key={scrollKey}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
               style={compact ? styles.compactScroll : styles.musicScroll}
-              contentContainerStyle={styles.sheetContent}
+              contentContainerStyle={[
+                styles.sheetContent,
+                dense && styles.denseSheetContent
+              ]}
             >
               {children}
             </ScrollView>
@@ -324,6 +379,7 @@ export function Sheet({
               {children}
             </View>
           )}
+          {footer}
         </SafeAreaView>
       </KeyboardAvoidingView>
     </Modal>
@@ -1258,7 +1314,18 @@ function RhythmPlayer({
       stop();arrangements=config.arrangements||[];pattern=config.pattern;tempo=config.tempo;meter=config.meter;division=config.division||2;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
       wantsPlay=resume;if(resume&&!loading)play();
     };
-    button.onclick=()=>{if(playing||wantsPlay){stop();return;}if(loading){wantsPlay=true;return;}play();};
+    button.onclick=()=>{
+      if(playing||wantsPlay){stop();return;}
+      if(!loading){play();return;}
+      wantsPlay=true;
+      prepareAudio();
+      const token=playToken;
+      context.resume().catch(()=>{
+        if(token!==playToken)return;
+        stop();button.textContent=labels.error;button.setAttribute('aria-label',labels.error);
+        window.ReactNativeWebView?.postMessage('stopped');
+      });
+    };
     prepareAudio();window.ReactNativeWebView?.postMessage('ready');
     document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();window.ReactNativeWebView?.postMessage('stopped');}});
     window.addEventListener('pagehide',()=>{stop();context?.close().catch(()=>{});});
@@ -1327,7 +1394,7 @@ function RhythmPlayer({
           }
           scrollEnabled={false}
           javaScriptEnabled
-          mediaPlaybackRequiresUserAction={!autoplay}
+          mediaPlaybackRequiresUserAction={false}
           onMessage={({ nativeEvent }) => {
             if (nativeEvent.data.startsWith("{")) {
               try {
@@ -1904,6 +1971,54 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: palette.glass.surfaceEdge
   },
+  denseSheetHeader: { paddingVertical: 4, paddingHorizontal: 12, gap: 8 },
+  denseSheetContent: { padding: 0, paddingBottom: 0 },
+  notationScrim: { paddingTop: 2 },
+  notationClose: {
+    width: 40,
+    minWidth: 40,
+    height: 40,
+    minHeight: 40,
+    borderRadius: 20
+  },
+  notationTitle: { flex: 1, fontSize: 18, lineHeight: 22 },
+  notationSubtitle: {
+    flex: 1,
+    fontSize: 10,
+    marginHorizontal: 4,
+    borderLeftWidth: 1,
+    borderLeftColor: palette.notation.divider,
+    paddingLeft: 10
+  },
+  notationGradient: { borderRadius: 6 },
+  notationSelected: {
+    borderColor: palette.notation.gold,
+    borderTopColor: palette.notation.gold,
+    borderBottomColor: palette.notation.gold
+  },
+  notationAction: {
+    flex: 0,
+    width: 48,
+    height: 40,
+    minWidth: 48,
+    minHeight: 40,
+    paddingHorizontal: 4,
+    paddingVertical: 0,
+    borderRadius: 7,
+    backgroundColor: palette.notation.control,
+    borderColor: palette.notation.edge,
+    gap: 1
+  },
+  notationLabeledAction: {
+    height: 40,
+    minHeight: 40,
+    paddingVertical: 2,
+    gap: 0
+  },
+  notationIconAction: { width: 48 },
+  notationIcon: { lineHeight: 18 },
+  notationText: { fontSize: 10, lineHeight: 13 },
+  notationCaption: { fontSize: 9, lineHeight: 10 },
   sheetSubtitle: {
     flex: 2,
     fontSize: 12,

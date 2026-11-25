@@ -35,6 +35,7 @@ import {
 import {
   flushPreferences,
   loadPreferences,
+  normalizeSongPreferences,
   usePreferences
 } from "../src/components/preferences";
 import { SQLTransaction } from "react-native-sqlite-2";
@@ -49,6 +50,34 @@ jest.mock("../src/components/database/crud", () => ({
 }));
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
+test.each([
+  ["Akkords.pro", "https://akkords.pro/songs/kino/gruppa-krovi/"],
+  ["Musicaccord.ru", "https://musicaccord.ru/songs/tnmk-granuli/"],
+  ["Chords & Tabs", "https://www.chords-and-tabs.net/song/name/example-song"],
+  ["Sonidos", "https://www.sonidos.com.br/example-performer/example-song"],
+  ["WeingGuitar", "https://guitar.weingchicken.com/scores/1"],
+  ["Akkords.fun", "https://akkords.fun/eng/example-performer/example-song/"],
+  ["LalaTracker", "https://lalatracker.com/chords/example_performer/example-song"]
+])("%s attribution survives preference normalization", (name, url) => {
+  const contentSource = {
+    name,
+    url
+  };
+  expect(normalizeSongPreferences({ contentSource }).contentSource).toEqual(
+    contentSource
+  );
+  expect(
+    normalizeSongPreferences({
+      contentSource: {
+        ...contentSource,
+        url: url.replace(
+          new URL(url).hostname,
+          `${new URL(url).hostname}.example.org`
+        )
+      }
+    }).contentSource
+  ).toBeUndefined();
+});
 const tabPractice = {
   ...defaultTabPractice(),
   metronome: true,
@@ -355,7 +384,7 @@ test("song preferences and cover survive serialization and reload; failed commit
 test.each([
   [undefined, 1],
   ["large", 1],
-  [0.2, 0.75],
+  [0.2, 1],
   [9, 1.5],
   [1.27, 1.27]
 ])(
@@ -444,9 +473,17 @@ test("exported backup retains artist, lyrics, cover and chord shapes", async () 
   );
 });
 
+test("backup restores expressive score settings and short note values", () => {
+  const score = { ...tablature, version: 3, notes: [{ string: 5, fret: 5, tick: 0.75, duration: 1.5, velocity: 82, techniques: ["bend", "vibrato"], bend: 1.5, voice: 2 }] };
+  const restored = parseLibraryBackup(JSON.stringify({ format: "freetune-library", version: 2, songs: [{
+    title: "Riff", content: "Saved tab", band_name: "", youtube_music: "", youtobe_lesson: "", preferences: { tablature: score }
+  }] }));
+  expect(restored[0].preferences?.tablature).toEqual(score);
+});
+
 test.each([
   null,
-  { ...tablature, version: 3 },
+  { ...tablature, version: 4 },
   { ...tablature, notes: [{ string: 6, fret: 0, tick: 0 }] },
   { ...tablature, notes: [{ string: 0, fret: 0, tick: -1 }] }
 ])(
@@ -475,7 +512,7 @@ test.each([
 
 test("export refuses invalid tablature before reporting a successful backup", async () => {
   usePreferences.getState().updateSong(17, {
-    tablature: { ...tablature, version: 3 } as unknown as Tablature
+    tablature: { ...tablature, version: 4 } as unknown as Tablature
   });
   jest.mocked(getAllItems).mockResolvedValue([
     {

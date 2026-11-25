@@ -1,0 +1,36 @@
+{
+  "startedAt": "2026-11-25T00:33:42.203Z",
+  "updatedAt": "2026-11-25T00:56:30.002Z",
+  "finished": true,
+  "manifestSha256": "50eaa10a5a403868cad7ac49c06bd539c7c76ff15df8729045168a4ec5105a20",
+  "sourceSha256": {
+    "src/components/song-autofill/lyrics.ts": "63fe577d22f287b91be1aa0ed821ff92b1557759ebba07de6f101d19c66622ce",
+    "src/screens/song/chords.ts": "7daa443978b10db8e42653b4551831fd1e972581b2c140fd19f92d998590dd6a",
+    "src/screens/song/rhythms.ts": "2585216e3de308374e9b660c8f2f5c43fed9085667a2b8a6db0c1da984651459"
+  },
+  "completed": 100,
+  "total": 100,
+  "byStatus": {
+    "lyrics_and_chords": 74,
+    "no_matching_arrangement": 4,
+    "lyrics_only": 22
+  },
+  "byGroup": {
+    "ukrainian": {
+      "checked": 30,
+      "lyricsAndChords": 21
+    },
+    "russian": {
+      "checked": 30,
+      "lyricsAndChords": 22
+    },
+    "english": {
+      "checked": 30,
+      "lyricsAndChords": 27
+    },
+    "other": {
+      "checked": 10,
+      "lyricsAndChords": 4
+    }
+  }
+}

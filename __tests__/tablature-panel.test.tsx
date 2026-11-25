@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import Renderer, { act } from "react-test-renderer";
 import { StyleSheet, useWindowDimensions, View } from "react-native";
+import { G, Path } from "react-native-svg";
 import {
   TablatureBar,
   TablaturePanel
@@ -43,8 +44,15 @@ jest.mock("../src/screens/song/tools", () => {
         onPress,
         disabled
       }),
-    Sheet: ({ children }: any) =>
-      React.createElement(Native.View, {}, children),
+    Sheet: ({ children, toolbar, footer, headerAccessory }: any) =>
+      React.createElement(
+        Native.View,
+        {},
+        headerAccessory,
+        toolbar,
+        children,
+        footer
+      ),
     TempoControl: ({
       value,
       onChange,
@@ -123,25 +131,23 @@ const button = (screen: Renderer.ReactTestRenderer, label: string) =>
     .findAll((node) => typeof node.props.onPress === "function")
     .find((node) => node.props.accessibilityLabel === label)!;
 const press = async (screen: Renderer.ReactTestRenderer, label: string) => {
+  if (label === "TabAddNote") label = "TabFret: 0";
   if (!button(screen, label)) {
     if (button(screen, "TabFullView"))
       await act(async () => button(screen, "TabFullView").props.onPress());
     if (/^TabFret: \d+$/.test(label) && button(screen, "TabShowKeypad"))
       await act(async () => button(screen, "TabShowKeypad").props.onPress());
     if (!button(screen, label)) {
-      const section =
-        [
-          { pattern: /^Tab(Speed|QuarterTempo)/, label: "TabLoopShort" },
-          { pattern: /^Tab(Range|Loop|WholePiece)/, label: "TabLoopShort" },
-          {
-            pattern:
-              /^Tab(InsertBar|AppendBar|DuplicateBar|DeleteBar|CopyBar|PasteBar|Meter)/,
-            label: "TabBars"
-          }
-        ].find((entry) => entry.pattern.test(label))?.label ?? "TabScore";
-      await act(async () => button(screen, section).props.onPress());
-      if (!button(screen, label) && button(screen, "TabMoreOptions"))
-        await act(async () => button(screen, "TabMoreOptions").props.onPress());
+      if (/^Tab(MeterValue|Meter)$/.test(label.split(":")[0])) {
+        if (!button(screen, "TabMeter"))
+          await act(async () => button(screen, "TabScore").props.onPress());
+        await act(async () => button(screen, "TabMeter").props.onPress());
+      } else {
+        const section = /^Tab(InsertBar|AppendBar)$/.test(label)
+          ? "TabBars"
+          : "TabScore";
+        await act(async () => button(screen, section).props.onPress());
+      }
     }
   }
   const target = button(screen, label);
@@ -149,6 +155,45 @@ const press = async (screen: Renderer.ReactTestRenderer, label: string) => {
   expect(target.props.disabled).not.toBe(true);
   await act(async () => target.props.onPress());
 };
+async function editable(initial = emptyTablature()) {
+  const updates: Tablature[] = [];
+  const base = mockTransport(initial);
+  function Editor() {
+    const [tab, setTab] = useState(initial);
+    return (
+      <TablaturePanel
+        {...props({
+          ...base,
+          tab,
+          setTab: (next) => {
+            const normalized = normalizeTablature(next);
+            if (!normalized) return false;
+            updates.push(normalized);
+            setTab(normalized);
+            return true;
+          }
+        })}
+      />
+    );
+  }
+  await act(async () => {
+    screen = Renderer.create(<Editor />);
+  });
+  await press(screen!, "TabFullView");
+  return { updates, base };
+}
+
+const pressNote = async (string: number, fret: number) => {
+  const target = screen!.root
+    .findAll((node) => typeof node.props.onPress === "function")
+    .find((node) =>
+      node.props.accessibilityLabel?.includes(
+        `"string":${string},"fret":${fret}`
+      )
+    )!;
+  await act(async () => target.props.onPress());
+};
+
 let screen: Renderer.ReactTestRenderer | undefined;
 beforeEach(() => {
   mockPreview.mockClear();
@@ -324,143 +369,146 @@ test("tablature rows run from high e to low E and preserve string/fret identity"
   ).toContain('"string":6,"fret":0');
 });
 
-test("selected note can change fret and string, then be deleted without changing other notes", async () => {
-  const updates: Tablature[] = [];
-  const base = mockTransport();
-  function Editor() {
-    const [tab, setTab] = useState(example);
-    return (
-      <TablaturePanel
-        {...props({
-          ...base,
-          tab,
-          setTab: (next) => {
-            updates.push(next);
-            setTab(next);
-            return true;
-          }
-        })}
-      />
-    );
-  }
-  await act(async () => {
-    screen = Renderer.create(<Editor />);
-  });
-  const note = screen!.root
-    .findAll((node) => typeof node.props.onPress === "function")
-    .find((node) =>
-      node.props.accessibilityLabel?.includes('"string":1,"fret":7')
-    )!;
-  await act(async () => note.props.onPress());
-  await press(screen!, "TabFret: +");
-  expect(updates.at(-1)!.notes).toContainEqual({
+test("string arrows navigate without moving or replaying the previously selected note", async () => {
+  const { updates } = await editable(example);
+  await pressNote(1, 7);
+  await press(screen!, "TabFret: 8");
+  const count = updates.length,
+    previews = mockPreview.mock.calls.length;
+  await press(screen!, "TabString ↓");
+  expect(updates).toHaveLength(count);
+  expect(mockPreview).toHaveBeenCalledTimes(previews);
+  await press(screen!, "TabFret: 6");
+  expect(updates.at(-1)?.notes).toEqual(
+    expect.arrayContaining([
+      { string: 5, fret: 8, tick: 24, duration: 24 },
+      { string: 4, fret: 6, tick: 24, duration: 24 }
+    ])
+  );
+  await press(screen!, "TabDeleteNote");
+  expect(updates.at(-1)?.notes).toContainEqual({
     string: 5,
     fret: 8,
     tick: 24,
     duration: 24
   });
-  await press(screen!, "TabString: +");
-  expect(updates.at(-1)!.notes).toContainEqual({
-    string: 4,
-    fret: 8,
-    tick: 24,
-    duration: 24
-  });
-  expect(
-    mockPreview.mock.calls.map(([note]) => [note.string, note.fret])
-  ).toEqual([
-    [5, 7],
-    [5, 8],
-    [4, 8]
-  ]);
-  await press(screen!, 'TabGridValue:{"value":"1/16"}');
-  await press(screen!, "TabNoteLater");
-  expect(updates.at(-1)!.notes).toContainEqual({
-    string: 4,
-    fret: 8,
-    tick: 30,
-    duration: 24
-  });
-  await press(screen!, "TabDeleteNote");
-  expect(updates.at(-1)!.notes).toEqual([example.notes[0], example.notes[2]]);
-  expect(mockPreview).toHaveBeenCalledTimes(3);
-  expect(base.pause).toHaveBeenCalled();
+  expect(updates.at(-1)?.rests).toEqual([]);
 });
 
-test("moving onto an occupied string and time preserves both notes", async () => {
-  const transport = mockTransport({
-    ...example,
+test("navigating to an occupied string selects it without overwriting either pitch", async () => {
+  const initial = normalizeTablature({
+    ...emptyTablature(),
     notes: [
-      { string: 5, fret: 7, tick: 24 },
-      { string: 4, fret: 5, tick: 24 }
+      { string: 5, fret: 7, tick: 0, duration: 24 },
+      { string: 4, fret: 5, tick: 0, duration: 24 }
     ]
-  });
-  await act(async () => {
-    screen = Renderer.create(<TablaturePanel {...props(transport)} />);
-  });
-  const note = screen!.root
-    .findAll((node) => typeof node.props.onPress === "function")
-    .find((node) =>
-      node.props.accessibilityLabel?.includes('"string":1,"fret":7')
-    )!;
-  await act(async () => note.props.onPress());
-  await press(screen!, "TabString: +");
-  expect(transport.setTab).not.toHaveBeenCalled();
-  expect(mockPreview).toHaveBeenCalledTimes(1);
-  expect(JSON.stringify(screen!.toJSON())).toContain("TabNoteCollision");
+  })!;
+  const { updates } = await editable(initial);
+  await pressNote(1, 7);
+  await press(screen!, "TabString ↓");
+  expect(updates).toHaveLength(0);
+  await press(screen!, "TabFret: 6");
+  expect(updates.at(-1)?.notes).toEqual([
+    { string: 4, fret: 6, tick: 0, duration: 24 },
+    initial.notes[1]
+  ]);
 });
 
-test("speed and a one-bar repeat are passed to the transport in musical ticks", async () => {
-  const transport = mockTransport();
-  await act(async () => {
-    screen = Renderer.create(<TablaturePanel {...props(transport)} />);
-  });
-  await press(screen!, "TabFullView");
-  await press(screen!, 'TabSpeedPercent:{"percent":50}');
-  expect(transport.setSpeed).toHaveBeenCalledWith(0.5);
-  await press(screen!, "TabRangeTo: −");
-  expect(transport.setRange).toHaveBeenCalledWith({ start: 0, end: 96 });
-  expect(transport.setLoop).toHaveBeenCalledWith(true);
+test("long pressing a note defines an exact loop range and the loop button only toggles playback", async () => {
+  const { base } = await editable(example);
+  const staff = screen!.root
+    .findAllByType(TablatureBar)
+    .find((n) => !n.props.compact)!;
+  await act(async () => staff.props.onRange({ start: 24, end: 48 }));
+  expect(base.setRange).toHaveBeenCalledWith({ start: 24, end: 48 });
+  await press(screen!, "TabLoopShort");
+  expect(base.setLoop).toHaveBeenCalledWith(true);
+  expect(button(screen!, "TabWholePiece")).toBeUndefined();
 });
 
-async function editable(initial = emptyTablature()) {
-  const updates: Tablature[] = [];
-  const base = mockTransport(initial);
-  function Editor() {
-    const [tab, setTab] = useState(initial);
-    return (
-      <TablaturePanel
-        {...props({
-          ...base,
-          tab,
-          setTab: (next) => {
-            const normalized = normalizeTablature(next);
-            if (!normalized) return false;
-            updates.push(normalized);
-            setTab(normalized);
-            return true;
-          }
-        })}
-      />
-    );
-  }
-  await act(async () => {
-    screen = Renderer.create(<Editor />);
+test("the single palette preserves expression settings without changing chord peers", async () => {
+  const initial = normalizeTablature({
+    ...emptyTablature(),
+    notes: [
+      { string: 5, fret: 7, tick: 0, duration: 24 },
+      { string: 3, fret: 5, tick: 0, duration: 24 }
+    ]
+  })!;
+  const { updates } = await editable(initial);
+  await pressNote(1, 7);
+  await press(screen!, "TabScore");
+  expect(button(screen!, "TabTechniqueTab")).toBeUndefined();
+  expect(button(screen!, "TabDynamics")).toBeUndefined();
+  await press(screen!, "TabTechnique_bend");
+  await press(screen!, "1.5 TabTone");
+  await press(screen!, 'TabVelocityValue:{"value":"f"}');
+  expect(updates.at(-1)?.notes.find((n) => n.fret === 7)).toMatchObject({
+    bend: 1.5,
+    techniques: ["bend"],
+    velocity: 96
   });
-  await press(screen!, "TabFullView");
-  return { updates, base };
-}
+  expect(updates.at(-1)?.notes.find((n) => n.fret === 5)?.velocity).toBe(96);
+});
 
-const pressNote = async (string: number, fret: number) => {
-  const target = screen!.root
-    .findAll((node) => typeof node.props.onPress === "function")
-    .find((node) =>
-      node.props.accessibilityLabel?.includes(
-        `"string":${string},"fret":${fret}`
-      )
-    )!;
-  await act(async () => target.props.onPress());
-};
+test("an expressive note keeps its settings while entering a new two-digit fret", async () => {
+  const initial = normalizeTablature({
+    ...emptyTablature(),
+    version: 3,
+    notes: [
+      {
+        string: 5,
+        fret: 7,
+        tick: 0,
+        duration: 12,
+        velocity: 40,
+        techniques: ["vibrato"]
+      }
+    ]
+  })!;
+  const { updates } = await editable(initial);
+  await pressNote(1, 7);
+  await press(screen!, "TabFret: 1");
+  await press(screen!, "TabFret: 2");
+  expect(updates.at(-1)?.notes[0]).toMatchObject({
+    fret: 12,
+    velocity: 40,
+    techniques: ["vibrato"],
+    duration: 12
+  });
+});
+
+test("the note sheet omits position controls while retaining rhythm settings", async () => {
+  await editable();
+  await press(screen!, "TabScore");
+  for (const label of [
+    "TabChooseStringMenu",
+    "TabFret: +",
+    "TabFret: −",
+    "TabNoteEarlier",
+    "TabNoteLater",
+    "TabScopeNote",
+    "TabScopeChord",
+    "TabScopeSelection",
+    'TabVoiceChoice:{"voice":1}',
+    "TabSoundOn",
+    "TabPreviewNote",
+    "Done"
+  ])
+    expect(button(screen!, label)).toBeUndefined();
+  expect(button(screen!, 'TabDurationChoice:{"denominator":4}')).toBeDefined();
+});
+
+test("velocity presets apply a single edit and no attack slider is present", async () => {
+  const { updates } = await editable(example);
+  await pressNote(1, 7);
+  await press(screen!, "TabScore");
+  expect(
+    screen!.root.findAll((n) => n.props.accessibilityRole === "adjustable")
+  ).toHaveLength(0);
+  await press(screen!, 'TabVelocityValue:{"value":"p"}');
+  expect(updates).toHaveLength(1);
+  expect(updates[0].notes.find((n) => n.fret === 7)?.velocity).toBe(48);
+});
 
 test("staff taps and the keypad compose chords and two-digit frets with the last duration", async () => {
   const { updates } = await editable();
@@ -494,9 +542,11 @@ test("staff taps and the keypad compose chords and two-digit frets with the last
     duration: 12
   });
   expect(updates.at(-1)!.notes).toHaveLength(3);
-  expect(mockPreview.mock.calls.map(([note]) => note.fret)).toEqual([
-    7, 5, 1, 12, 5, 3
-  ]);
+  [7, 5, 1, 12, 5, 3].forEach((fret, index) =>
+    expect(mockPreview.mock.calls[index][0]).toEqual(
+      expect.arrayContaining([expect.objectContaining({ fret })])
+    )
+  );
 });
 
 test("rejected note writes stay silent and leave the document unchanged", async () => {
@@ -537,7 +587,7 @@ test("inline tempo arrows update the score without opening a settings sheet", as
   const { Sheet } = require("../src/screens/song/tools");
   const sheets = screen!.root.findAllByType(Sheet).length;
   await press(screen!, "TabQuarterTempo: +");
-  expect(updates.at(-1)).toMatchObject({ tempo: 85, notes: example.notes });
+  expect(updates.at(-1)).toMatchObject({ tempo: 81, notes: example.notes });
   expect(screen!.root.findAllByType(Sheet)).toHaveLength(sheets);
   await press(screen!, "TabQuarterTempo: −");
   expect(updates.at(-1)?.tempo).toBe(80);
@@ -605,7 +655,11 @@ test("pausing just after a bar boundary follows the final transport position", a
   const bar = screen!.root
     .findAllByType(TablatureBar)
     .find((entry) => !entry.props.compact)!;
-  expect(bar.props.bar).toBe(1);
+  expect(
+    screen!.root
+      .findAllByType(TablatureBar)
+      .some((node) => !node.props.compact && node.props.bar === 1)
+  ).toBe(true);
   expect(bar.props.selected).toMatchObject({ tick: 96 });
 });
 
@@ -614,6 +668,7 @@ test("a triplet insertion cursor remains visible between the selected grid posit
   await press(screen!, 'TabDurationChoice:{"denominator":8}');
   await press(screen!, "TabTriplet");
   await press(screen!, "TabAddNote");
+  await press(screen!, "TabNextPosition");
   const cursor = button(
     screen!,
     'TabEmptyCell:{"string":1,"bar":1,"beat":1.33}'
@@ -622,33 +677,27 @@ test("a triplet insertion cursor remains visible between the selected grid posit
   expect(cursor.props.accessibilityState.selected).toBe(true);
 });
 
-test("playing locks hidden note edits but preserves pause and playback preferences", async () => {
+test("playing locks note editing but preserves pause, rewind and the loop switch", async () => {
   const transport = { ...mockTransport(), canUndo: true };
   const value = props(transport);
   await act(async () => {
     screen = Renderer.create(<TablaturePanel {...value} />);
   });
   await pressNote(1, 7);
-  await act(async () => {
+  await act(async () =>
     screen!.update(
       <TablaturePanel
         {...value}
         transport={{ ...transport, status: "playing", tick: 96 }}
       />
-    );
-  });
-  await press(screen!, "TabScore");
-  await press(screen!, "TabMoreOptions");
-  for (const label of ["TabFret: +", "TabDeleteNote", "TabUndo"])
+    )
+  );
+  for (const label of ["TabUndo", "TabQuarterTempo: +", "TabNextPosition"])
     expect(button(screen!, label).props.disabled).toBe(true);
   expect(button(screen!, "Pause").props.disabled).not.toBe(true);
   expect(button(screen!, "TabRewind").props.disabled).not.toBe(true);
   await press(screen!, "TabLoopShort");
-  expect(button(screen!, "TabQuarterTempo: +").props.disabled).toBe(true);
-  expect(
-    button(screen!, 'TabSpeedPercent:{"percent":50}').props.disabled
-  ).not.toBe(true);
-  expect(button(screen!, "TabLoop").props.disabled).not.toBe(true);
+  expect(transport.setLoop).toHaveBeenCalledWith(true);
   expect(transport.setTab).not.toHaveBeenCalled();
 });
 
@@ -663,7 +712,7 @@ test("compact playback metadata shows the effective practice tempo", async () =>
   ).toBeGreaterThan(0);
 });
 
-test("fixed speed is not marked selected while the progressive trainer controls tempo", async () => {
+test("loop toggle keeps practice trainer settings and tempo unchanged", async () => {
   const transport = mockTransport();
   transport.practice.trainer.enabled = true;
   await act(async () => {
@@ -671,9 +720,9 @@ test("fixed speed is not marked selected while the progressive trainer controls 
   });
   await press(screen!, "TabFullView");
   await press(screen!, "TabLoopShort");
-  expect(
-    button(screen!, 'TabSpeedPercent:{"percent":100}').props.selected
-  ).toBe(false);
+  expect(transport.setLoop).toHaveBeenCalledWith(true);
+  expect(transport.setTab).not.toHaveBeenCalled();
+  expect(transport.setPractice).not.toHaveBeenCalled();
 });
 
 test("deleting a retrigger cannot revive an earlier hidden sustain across a rest", async () => {
@@ -692,10 +741,13 @@ test("deleting a retrigger cannot revive an earlier hidden sustain across a rest
   expect(updates[0].notes).toEqual([
     { string: 5, fret: 3, tick: 0, duration: 24 }
   ]);
-  expect(updates[0].rests).toEqual(initial.rests);
+  expect(updates[0].rests).toEqual([
+    { tick: 24, duration: 12 },
+    ...initial.rests!
+  ]);
 });
 
-test("moving a retrigger to another string preserves the original release before a rest", async () => {
+test("adding a pitch on another string does not revive the earlier sustain", async () => {
   const initial = normalizeTablature({
     ...emptyTablature(),
     notes: [
@@ -706,39 +758,35 @@ test("moving a retrigger to another string preserves the original release before
   })!;
   const { updates } = await editable(initial);
   await pressNote(1, 7);
-  await press(screen!, "TabString: +");
-  expect(updates).toHaveLength(1);
-  expect(updates[0].notes).toEqual([
-    { string: 5, fret: 3, tick: 0, duration: 24 },
-    { string: 4, fret: 7, tick: 24, duration: 12 }
-  ]);
+  await press(screen!, "TabString ↓");
+  await press(screen!, "TabFret: 7");
+  expect(updates.at(-1)?.notes.find((n) => n.tick === 0)?.duration).toBe(24);
+  expect(updates.at(-1)?.rests).toEqual(initial.rests);
 });
 
 test("an empty editor composes a note and a silent rest without virtual guitar touches", async () => {
   const { updates } = await editable();
   await press(screen!, 'TabDurationChoice:{"denominator":8}');
-  await press(screen!, "TabFret: +");
-  await press(screen!, "TabFret: +");
-  await press(screen!, "TabAddNote");
+  await press(screen!, "TabFret: 2");
   expect(updates.at(-1)!.notes).toEqual([
     { string: 5, fret: 2, tick: 0, duration: 12 }
   ]);
+  await press(screen!, "TabNextPosition");
   await press(screen!, "TabAddRest");
   expect(updates.at(-1)!.rests).toEqual([{ tick: 12, duration: 12 }]);
   expect(mockPreview).toHaveBeenCalledTimes(1);
-  expect(mockPreview).toHaveBeenCalledWith({
+  expect(mockPreview).toHaveBeenCalledWith([{
     string: 5,
     fret: 2,
     tick: 0,
     duration: 12
-  });
+  }]);
   expect(button(screen!, "TabSave").props.disabled).toBe(false);
   expect(button(screen!, "TabPlay").props.disabled).toBe(false);
 });
 
 test("chord entry stays at one onset when advance is off and another string is chosen", async () => {
   const { updates } = await editable();
-  await press(screen!, "TabAdvanceCursor");
   await press(screen!, "TabAddNote");
   await press(screen!, 'TabEmptyCell:{"string":2,"bar":1,"beat":1}');
   await press(screen!, "TabAddNote");
@@ -748,7 +796,7 @@ test("chord entry stays at one onset when advance is off and another string is c
   ]);
 });
 
-test("selected notes support dotted values, triplets and matching movement grid", async () => {
+test("selected notes support dotted values and triplets", async () => {
   const { updates } = await editable(example);
   await pressNote(1, 7);
   await press(screen!, 'TabDurationChoice:{"denominator":8}');
@@ -760,12 +808,6 @@ test("selected notes support dotted values, triplets and matching movement grid"
   expect(updates.at(-1)!.notes.find((note) => note.fret === 7)?.duration).toBe(
     8
   );
-  await press(screen!, 'TabGridValue:{"value":"1/8 ×⅔"}');
-  await press(screen!, "TabNoteLater");
-  expect(updates.at(-1)!.notes.find((note) => note.fret === 7)).toMatchObject({
-    tick: 32,
-    duration: 8
-  });
 });
 
 test("a conflicting rest does not erase or truncate a sounding note", async () => {
@@ -781,54 +823,52 @@ test("a conflicting rest does not erase or truncate a sounding note", async () =
   expect(JSON.stringify(screen!.toJSON())).toContain("TabRestCollision");
 });
 
-test("four quarters fill one bar without adding an unintended silent loop bar", async () => {
+test("four quarters fill a bar and advancing past the final position appends exactly one bar", async () => {
   const { updates } = await editable();
-  for (let note = 0; note < 4; note++) await press(screen!, "TabAddNote");
-  expect(updates.at(-1)!.notes.map((note) => note.tick)).toEqual([
-    0, 24, 48, 72
-  ]);
-  expect(updates.at(-1)!.barCount).toBe(1);
-  await press(screen!, "TabShowKeypad");
-  expect(button(screen!, "TabDeleteNote")).toBeDefined();
-  await press(screen!, "TabAppendBar");
-  await press(screen!, "TabAddNote");
-  expect(updates.at(-1)!.notes[4]).toMatchObject({ tick: 96, duration: 24 });
-  expect(updates.at(-1)!.barCount).toBe(2);
+  for (let i = 0; i < 4; i++) {
+    await press(screen!, "TabFret: 0");
+    if (i < 3) await press(screen!, "TabNextPosition");
+  }
+  expect(updates.at(-1)?.notes.map((n) => n.tick)).toEqual([0, 24, 48, 72]);
+  expect(updates.at(-1)?.barCount).toBe(1);
+  await press(screen!, "TabNextPosition");
+  expect(updates.at(-1)?.barCount).toBe(2);
+  await press(screen!, "TabFret: 0");
+  expect(updates.at(-1)?.notes.at(-1)?.tick).toBe(96);
 });
 
-test("duplicate and delete bar controls preserve surrounding attacks", async () => {
+test("context duplication preserves pitches and inserts after the selected note", async () => {
   const initial = normalizeTablature({
     ...emptyTablature(),
     notes: [{ string: 5, fret: 3, tick: 0, duration: 24 }]
   })!;
   const { updates } = await editable(initial);
-  await press(screen!, "TabDuplicateBar");
-  expect(updates.at(-1)!).toMatchObject({
-    barCount: 2,
-    notes: [
-      { string: 5, fret: 3, tick: 0, duration: 24 },
-      { string: 5, fret: 3, tick: 96, duration: 24 }
-    ]
-  });
-  await press(screen!, "TabDeleteBar");
-  expect(updates.at(-1)!).toEqual(initial);
+  await pressNote(1, 3);
+  await press(screen!, "TabDuplicateNotes");
+  expect(updates.at(-1)?.notes).toEqual([
+    initial.notes[0],
+    { string: 5, fret: 3, tick: 24, duration: 24 }
+  ]);
+  await press(screen!, "TabDeleteNote");
+  expect(updates.at(-1)?.notes).toEqual(initial.notes);
+  expect(updates.at(-1)?.rests).toEqual([{ tick: 24, duration: 24 }]);
 });
 
-test("six-eight changes bar boundaries and loop lengths using eighth-note beats", async () => {
-  const { updates, base } = await editable(example);
+test("time signature changes are applied explicitly from the note palette", async () => {
+  const { updates } = await editable(example);
   await press(screen!, 'TabMeterValue:{"beats":6,"unit":8}');
-  expect(updates.at(-1)!).toMatchObject({
+  expect(updates).toHaveLength(0);
+  await press(screen!, "Apply");
+  expect(updates.at(-1)).toMatchObject({
     beatUnit: 8,
     beatsPerBar: 6,
     barCount: 3,
     notes: example.notes
   });
-  await press(screen!, "TabRangeTo: −");
-  expect(base.setRange).toHaveBeenCalledWith({ start: 0, end: 144 });
   expect(button(screen!, "TabQuarterTempo: +")).toBeDefined();
 });
 
-test("history controls call transport undo and redo, and all editing locks while recording", async () => {
+test("history controls are in the header and editing is locked while recording", async () => {
   const transport = { ...mockTransport(), canUndo: true, canRedo: true };
   const value = props(transport);
   await act(async () => {
@@ -839,24 +879,22 @@ test("history controls call transport undo and redo, and all editing locks while
   await press(screen!, "TabRedo");
   expect(transport.undo).toHaveBeenCalledTimes(1);
   expect(transport.redo).toHaveBeenCalledTimes(1);
-  await act(async () => {
+  await act(async () =>
     screen!.update(
       <TablaturePanel
         {...value}
         transport={{ ...transport, status: "recording" }}
       />
-    );
-  });
-  for (const [section, labels] of [
-    ["TabScore", ["TabUndo", "TabRedo", "TabFret: +", "TabTriplet"]],
-    ["TabBars", ["TabDuplicateBar", 'TabMeterValue:{"beats":6,"unit":8}']],
-    ["TabLoopShort", ["TabQuarterTempo: +"]]
-  ] as const) {
-    await press(screen!, section);
-    if (section === "TabScore") await press(screen!, "TabMoreOptions");
-    for (const label of labels)
-      expect(button(screen!, label).props.disabled).toBe(true);
-  }
+    )
+  );
+  for (const label of [
+    "TabUndo",
+    "TabRedo",
+    "TabNextPosition",
+    "TabQuarterTempo: +"
+  ])
+    expect(button(screen!, label).props.disabled).toBe(true);
+  await press(screen!, "TabActionsMenu");
   expect(button(screen!, "TabStopRecording").props.disabled).not.toBe(true);
 });
 
@@ -967,7 +1005,11 @@ test("full-view playback follows its cursor instead of retaining the selected ed
   });
   expect(staff().props.selected).toBeNull();
   expect(staff().props.selectedRest).toBeNull();
-  expect(staff().props.bar).toBe(1);
+  expect(
+    screen!.root
+      .findAllByType(TablatureBar)
+      .some((node) => !node.props.compact && node.props.bar === 1)
+  ).toBe(true);
 });
 
 test.each([false, true])(
@@ -1054,4 +1096,272 @@ test("moving the insertion cursor and grid does not reread offscreen score notes
       .accessibilityState.selected
   ).toBe(true);
   expect(reads).toBe(0);
+});
+
+test("the rhythm staff groups chord tones and beams contiguous eighths within a beat", async () => {
+  const tab = normalizeTablature({
+    ...emptyTablature(),
+    notes: [
+      { string: 5, fret: 0, tick: 0, duration: 24 },
+      { string: 4, fret: 2, tick: 0, duration: 24 },
+      { string: 5, fret: 3, tick: 24, duration: 12 },
+      { string: 5, fret: 5, tick: 36, duration: 12 }
+    ],
+    rests: [{ tick: 48, duration: 24 }]
+  })!;
+  await act(async () => {
+    screen = Renderer.create(<TablatureBar tab={tab} bar={0} tick={0} />);
+  });
+  const events = screen!.root
+    .findAllByType(G)
+    .filter((node) => node.props.testID?.startsWith("tab-rhythm-event"));
+  expect(events.map((node) => node.props.testID)).toEqual([
+    "tab-rhythm-event-0-1-24",
+    "tab-rhythm-event-24-1-12",
+    "tab-rhythm-event-36-1-12"
+  ]);
+  expect(
+    screen!.root
+      .findAllByType(Path)
+      .filter((node) => node.props.testID === "tab-rhythm-beam-24-36-0")
+  ).toHaveLength(1);
+  expect(
+    screen!.root
+      .findAllByType(Path)
+      .filter((node) => node.props.testID === "tab-rhythm-beam-0-24-0")
+  ).toHaveLength(0);
+  expect(
+    button(screen!, 'TabRestDescription:{"bar":1,"beat":3,"duration":"1/4"}')
+  ).toBeDefined();
+});
+
+test("rhythm engraving preserves different voices and separates beams at beat boundaries", async () => {
+  const tab = normalizeTablature({
+    ...emptyTablature(),
+    notes: [
+      { string: 5, fret: 0, tick: 0, duration: 48, voice: 2 },
+      { string: 4, fret: 2, tick: 0, duration: 12 },
+      { string: 4, fret: 3, tick: 12, duration: 12 },
+      { string: 4, fret: 5, tick: 24, duration: 12 },
+      { string: 4, fret: 7, tick: 36, duration: 12 }
+    ]
+  })!;
+  await act(async () => {
+    screen = Renderer.create(<TablatureBar tab={tab} bar={0} tick={0} />);
+  });
+  const events = screen!.root
+    .findAllByType(G)
+    .filter((node) => node.props.testID?.startsWith("tab-rhythm-event"));
+  expect(events).toHaveLength(5);
+  const beams = screen!.root
+    .findAllByType(Path)
+    .filter((node) => node.props.testID?.startsWith("tab-rhythm-beam"));
+  expect(beams.map((node) => node.props.testID)).toEqual([
+    "tab-rhythm-beam-0-12-0",
+    "tab-rhythm-beam-24-36-0"
+  ]);
+});
+
+test("six-eight rhythm beams stay within each dotted-quarter pulse", async () => {
+  const tab = normalizeTablature({
+    ...emptyTablature(),
+    beatsPerBar: 6,
+    beatUnit: 8,
+    notes: [0, 12, 24, 36, 48, 60].map((tick) => ({
+      string: 5,
+      fret: 3,
+      tick,
+      duration: 12
+    }))
+  })!;
+  await act(async () => {
+    screen = Renderer.create(<TablatureBar tab={tab} bar={0} tick={0} />);
+  });
+  const beams = screen!.root
+    .findAllByType(Path)
+    .filter((node) => node.props.testID?.startsWith("tab-rhythm-beam"));
+  expect(beams.map((node) => node.props.testID)).toEqual([
+    "tab-rhythm-beam-0-12-0",
+    "tab-rhythm-beam-12-24-0",
+    "tab-rhythm-beam-36-48-0",
+    "tab-rhythm-beam-48-60-0"
+  ]);
+});
+
+test("the six strings and rhythm fit the available landscape score height", async () => {
+  jest
+    .mocked(useWindowDimensions)
+    .mockReturnValue({ width: 844, height: 390, scale: 1, fontScale: 1 });
+  await act(async () => {
+    screen = Renderer.create(
+      <TablatureBar tab={example} bar={0} tick={0} availableHeight={150} />
+    );
+  });
+  const rows = screen!.root
+    .findAllByType(View)
+    .filter((node) => node.props.testID?.startsWith("tablature-string-"));
+  expect(rows).toHaveLength(6);
+  const stringHeight = rows.reduce(
+    (sum, row) => sum + StyleSheet.flatten(row.props.style).height,
+    0
+  );
+  expect(stringHeight + 18 + 32).toBeLessThanOrEqual(150.001);
+});
+
+test("rhythm stems start at fret values and use the existing gold accent", async () => {
+  await act(async () => {
+    screen = Renderer.create(<TablatureBar tab={example} bar={0} tick={0} />);
+  });
+  const stems = screen!.root
+    .findAllByType(Path)
+    .filter((node) => node.props.testID?.startsWith("tab-rhythm-stem"));
+  expect(stems.length).toBeGreaterThan(0);
+  for (const stem of stems) {
+    const coordinates = stem.props.d.match(/-?\d+(?:\.\d+)?/g).map(Number);
+    expect(coordinates[1]).toBeLessThan(6 * 44);
+    expect(coordinates[2]).toBeGreaterThan(6 * 44);
+    expect(stem.props.stroke).toBe("#FFD04A");
+  }
+});
+
+test("the header overflow menu exposes four actions and closes after saving", async () => {
+  const value = props();
+  await act(async () => {
+    screen = Renderer.create(
+      <TablaturePanel {...value} standalone onPractice={jest.fn()} />
+    );
+  });
+  expect(button(screen!, "TabOpen")).toBeUndefined();
+  await press(screen!, "TabActionsMenu");
+  const labels = [
+    ...new Set(
+      screen!.root
+        .findAll((node) => node.props.accessibilityRole === "menuitem")
+        .map((node) => node.props.accessibilityLabel)
+    )
+  ];
+  expect(labels).toEqual(["TabOpen", "TabRecord", "TabSave", "TabPractice"]);
+  await press(screen!, "TabSave");
+  expect(value.onSave).toHaveBeenCalledTimes(1);
+  expect(button(screen!, "TabOpen")).toBeUndefined();
+});
+test("deleting the last note at an onset preserves its duration as a rest", async () => {
+  const { updates } = await editable(example);
+  await pressNote(1, 7);
+  await press(screen!, "TabDeleteNote");
+  expect(updates.at(-1)?.rests).toContainEqual({ tick: 24, duration: 24 });
+});
+
+test("the approved note palette has one sheet without tabs, velocity slider or duplicate edit actions", async () => {
+  await editable(example);
+  await press(screen!, "TabScore");
+  for (const label of [
+    "TabNoteTab",
+    "TabTechniqueTab",
+    "TabDynamics",
+    "TabClearEffects",
+    "TabAttack",
+    "TabCopyNotes"
+  ])
+    expect(button(screen!, label)).toBeUndefined();
+  expect(
+    button(screen!, 'TabDurationChoice:{"denominator":64}')
+  ).toBeUndefined();
+  expect(button(screen!, "TabDuplet")).toBeDefined();
+  expect(button(screen!, "TabMeter")).toBeDefined();
+});
+
+test("bar actions contain only insert-before and insert-after", async () => {
+  await editable(example);
+  await press(screen!, "TabBars");
+  expect(button(screen!, "TabInsertBar")).toBeDefined();
+  expect(button(screen!, "TabAppendBar")).toBeDefined();
+  for (const label of [
+    "TabCopyBar",
+    "TabPasteBar",
+    "TabDeleteBar",
+    "TabDuplicateBar",
+    "TabMeter"
+  ])
+    expect(button(screen!, label)).toBeUndefined();
+});
+
+test("range context actions copy, cut and paste all selected pitches with pauses and preserved timing", async () => {
+  const { updates, base } = await editable(example);
+  const staff = screen!.root
+    .findAllByType(TablatureBar)
+    .find((node) => !node.props.compact)!;
+  await act(async () => staff.props.onRange({ start: 0, end: 48 }));
+  await press(screen!, "TabCutNotes");
+  expect(updates.at(-1)?.notes).toEqual([example.notes[2]]);
+  expect(updates.at(-1)?.rests).toEqual([{ tick: 0, duration: 48 }]);
+  await press(screen!, 'TabEmptyCell:{"string":1,"bar":1,"beat":3}');
+  await press(screen!, "TabPasteNotes");
+  expect(updates.at(-1)?.notes).toEqual(
+    expect.arrayContaining([
+      { string: 0, fret: 0, tick: 48, duration: 24 },
+      { string: 5, fret: 7, tick: 72, duration: 24 },
+      example.notes[2]
+    ])
+  );
+  expect(base.setRange).toHaveBeenCalledWith({ start: 0, end: 48 });
+});
+
+test("a long press exposes exact note selection, handles, and the contextual loop range", async () => {
+  const { base } = await editable(example);
+  const target = screen!.root
+    .findAll(
+      (node) =>
+        node.props.accessibilityRole === "button" &&
+        typeof node.props.onLongPress === "function"
+    )
+    .find((node) =>
+      node.props.accessibilityLabel?.includes('"string":1,"fret":7')
+    )!;
+  await act(async () => target.props.onLongPress());
+  expect(base.setRange).toHaveBeenLastCalledWith({ start: 24, end: 48 });
+  for (const label of ["TabSelectionStart", "TabSelectionEnd"])
+    expect(
+      screen!.root.findAll((node) => node.props.accessibilityLabel === label)
+    ).not.toHaveLength(0);
+  await press(screen!, "TabCancelSelection");
+  expect(base.setRange).toHaveBeenLastCalledWith(null);
+  expect(button(screen!, "TabCopyNotes")).toBeUndefined();
+});
+
+test("right arrow visits an empty position inside the bar before adding another bar", async () => {
+  const initial = normalizeTablature({
+    ...emptyTablature(),
+    notes: [{ string: 5, fret: 3, tick: 0, duration: 24 }]
+  })!;
+  const { updates } = await editable(initial);
+  await pressNote(1, 3);
+  await press(screen!, "TabNextPosition");
+  expect(updates).toHaveLength(0);
+  expect(
+    button(screen!, 'TabEmptyCell:{"string":1,"bar":1,"beat":2}').props
+      .accessibilityState.selected
+  ).toBe(true);
+  await press(screen!, "TabFret: 5");
+  expect(updates.at(-1)?.notes.at(-1)).toMatchObject({
+    tick: 24,
+    fret: 5,
+    duration: 24
+  });
+});
+
+test("entering a fret into a rest keeps its silent remainder and never overlaps the new note", async () => {
+  const initial = normalizeTablature({
+    ...emptyTablature(),
+    rests: [{ tick: 0, duration: 48 }]
+  })!;
+  const { updates } = await editable(initial);
+  await press(screen!, 'TabEmptyCell:{"string":1,"bar":1,"beat":1}');
+  await press(screen!, "TabFret: 3");
+  expect(updates.at(-1)?.notes[0]).toMatchObject({
+    tick: 0,
+    fret: 3,
+    duration: 24
+  });
+  expect(updates.at(-1)?.rests).toEqual([{ tick: 24, duration: 24 }]);
 });

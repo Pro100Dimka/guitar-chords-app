@@ -23,6 +23,8 @@ RCT_EXTERN_METHOD(getBufPerSec:(RCTPromiseResolveBlock)resolve
 
 @interface RCT_EXTERN_MODULE(SongRecognition, NSObject)
 RCT_EXTERN_METHOD(recognizeMicrophone:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(recognizePlayback:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(consumeLaunchURL:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(recognizeFile:(NSString *)uri resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(cancel:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 @end
@@ -42,6 +44,7 @@ RCT_EXTERN_METHOD(playPreparedGuitar:(NSString *)key)
 RCT_EXTERN_METHOD(playGuitarString:(NSString *)key index:(NSInteger)index)
 RCT_EXTERN_METHOD(stopGuitarString:(NSInteger)index)
 RCT_EXTERN_METHOD(setMetronome:(double)tempo enabled:(BOOL)enabled phase:(double)phase)
+RCT_EXTERN_METHOD(setMetronomePattern:(double)tempo enabled:(BOOL)enabled phase:(double)phase beats:(double)beats)
 RCT_EXTERN_METHOD(playMetronomeBeat:(double)accent volume:(double)volume)
 RCT_EXTERN_METHOD(stopMetronomeBeats)
 @end

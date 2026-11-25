@@ -44,6 +44,7 @@ export const TablatureKeypad = React.memo(function TablatureKeypad({
   const [progress] = useState(() => new Animated.Value(expanded ? 1 : 0));
   const [reduceMotion, setReduceMotion] = useState(true);
   const [retained, setRetained] = useState(expanded);
+  const [panelHeight, setPanelHeight] = useState(0);
   const transition = useRef(0);
   const fullExtent = expanded || retained;
   const slide = useMemo(
@@ -160,6 +161,7 @@ export const TablatureKeypad = React.memo(function TablatureKeypad({
           accessibilityElementsHidden={!expanded}
           importantForAccessibility={expanded ? "auto" : "no-hide-descendants"}
           style={[styles.panel, { opacity: progress }]}
+          onLayout={(event) => setPanelHeight(event.nativeEvent.layout.height)}
         >
           {fullExtent && (
             <ScrollView
@@ -198,6 +200,12 @@ export const TablatureKeypad = React.memo(function TablatureKeypad({
                       }}
                       style={({ pressed }) => [
                         styles.key,
+                        panelHeight > 0 && {
+                          minHeight: Math.max(
+                            28,
+                            Math.min(44, (panelHeight - 50) / 4)
+                          )
+                        },
                         pressed && styles.pressed,
                         unavailable && styles.disabled
                       ]}

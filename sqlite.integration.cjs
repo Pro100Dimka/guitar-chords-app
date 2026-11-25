@@ -434,7 +434,7 @@ async function main() {
   assert.equal(JSON.stringify((await tabs.getTablatureSong(tabId)).practice),JSON.stringify(practice),"Practice count-in and trainer settings survive SQLite reload");
   assert.equal((await tabs.listTablatureSongs("100%_! Riff"))[0].id,tabId,"Literal wildcard characters must stay searchable");
   assert.equal((await tabs.listTablatureSongs("100%_! Riff",true,30)).length,0);
-  const nextTab=tabModel.normalizeTablature({version:2,tempo:90,beatsPerBar:6,beatUnit:8,barCount:3,notes:[{string:2,fret:5,tick:0,duration:18},{string:5,fret:7,tick:36,duration:8}],rests:[{tick:24,duration:12}]});
+  const nextTab=tabModel.normalizeTablature({version:3,tempo:90,beatsPerBar:6,beatUnit:8,barCount:3,notes:[{string:2,fret:5,tick:0,duration:18,velocity:82,techniques:["bend","vibrato"],bend:1.5,leftFinger:3,voice:2},{string:5,fret:7,tick:36.75,duration:1.5,accent:"ghost",fade:"out"}],rests:[{tick:24,duration:12}]});
   sqlite.prepare("UPDATE songs SET content = ? WHERE id = ?").run(tabModel.legacyTablatureText(tab),tabId);
   await tabs.saveTablature({id:tabId,title:"Edited riff",tablature:nextTab});
   assert.equal(sqlite.prepare("SELECT content FROM songs WHERE id = ?").get(tabId).content,tabModel.tablatureText(nextTab));
@@ -485,7 +485,7 @@ async function main() {
   assert.equal(JSON.stringify((await tabs.getTablatureSong(restoredTabs.find(song=>song.title==="Tacit intro").id)).tablature),JSON.stringify(restTab));
   await assert.rejects(tabs.saveTablature({id:999999,title:"Deleted",tablature:tab}),/SongMissing/);
   assert.equal((await tabs.listTablatureSongs()).length,3);
-  console.log("Tablature SQLite checks passed: atomic create/update rollback, lyrics and metadata preservation, literal search, pagination, reload and backup round trip.");
+  console.log("Tablature SQLite checks passed: atomic rollback, lyrics preservation, expressive notes, fractional timing, pagination, reload, draft and backup round trip.");
   const drafts=load("src/components/tablature-draft.ts");
   const draft={version:1,tab:nextTab,savedTab:tab,song:{id:restoredTabs.find(song=>song.title==="Edited riff").id,title:"Edited riff"},practice};
   assert.equal(await drafts.readTablatureDraft(),null);

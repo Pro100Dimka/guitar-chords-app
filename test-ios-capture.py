@@ -43,6 +43,7 @@ final class CaptureSession {
         let rawValue: Int
         static let defaultToSpeaker = Options(rawValue: 1)
         static let notifyOthersOnDeactivation = Options(rawValue: 2)
+        static let allowBluetoothA2DP = Options(rawValue: 4)
     }
     static let shared = CaptureSession()
     static func sharedInstance() -> CaptureSession { shared }

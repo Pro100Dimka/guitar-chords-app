@@ -30,7 +30,7 @@ import Text from "../../components/styled-text";
 import { Action, Diagram, Sheet } from "../song/tools";
 import Strings from "../tuner/strings";
 import guitar from "../tuner/config/guitar-classic";
-import { guitarLayout } from "../tuner/guitar-layout";
+import { guitarLayout, guitarStringSpan } from "../tuner/guitar-layout";
 import { noteNames } from "../tuner/tunings";
 import MicrophoneStream from "../tuner/MicrophoneStream";
 import { chordShapeOptions, guitarMidi } from "../song/chords";
@@ -87,9 +87,6 @@ export default function PlayGuitar() {
   const [picker, setPicker] = useState(false);
   const [settings, setSettings] = useState(false);
   const [edit, setEdit] = useState<number | null>(null);
-  const [free, setFree] = useState(false);
-  const [fretsSheet, setFretsSheet] = useState(false);
-  const [freeFrets, setFreeFrets] = useState([0, 0, 0, 0, 0, 0]);
   const [tabNotes, setTabNotes] = useState<TabNote[]>([]);
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [audioInterruption, setAudioInterruption] = useState(0);
@@ -103,11 +100,8 @@ export default function PlayGuitar() {
   );
   const chord = progression[selected] ?? "";
   const frets = useMemo(
-    () =>
-      free
-        ? freeFrets
-        : (selectedChordShape(chord, shapes[chord])?.frets ?? freeFrets),
-    [free, freeFrets, chord, shapes]
+    () => selectedChordShape(chord, shapes[chord])?.frets ?? [0, 0, 0, 0, 0, 0],
+    [chord, shapes]
   );
   const fingering = useMemo(
     () =>
@@ -141,7 +135,6 @@ export default function PlayGuitar() {
   const selectChord = (index: number) => {
     if (!tabRecording) tablature.pause();
     setSelected(index);
-    setFree(false);
   };
   const pitches = useMemo(
     () =>
@@ -165,6 +158,7 @@ export default function PlayGuitar() {
     running: false,
     wasPlaying: false,
     tempo: 0,
+    beats: 4,
     linkedMetronome: false
   });
   currentPitches.current = pitches;
@@ -173,9 +167,12 @@ export default function PlayGuitar() {
     [layout.width, layout.height, zoom]
   );
   const landscape = screenSize.width > screenSize.height;
-  const badgeTop = landscape
-    ? 78
-    : Math.max(90, Math.min(layout.height * 0.22, 160));
+  const badgeTop =
+    zoom < 0.6
+      ? 12
+      : landscape
+        ? 78
+        : Math.max(90, Math.min(layout.height * 0.22, 160));
   const badgeWidth = landscape
     ? Math.min(240, layout.width * 0.4)
     : Math.min(300, Math.max(220, layout.width - 60));
@@ -329,24 +326,25 @@ export default function PlayGuitar() {
     const update =
       enabled !== transport.metronome ||
       tempo !== transport.tempo ||
+      beats !== transport.beats ||
       (enabled && starting);
     transport.wasPlaying = playing;
     transport.tempo = tempo;
+    transport.beats = beats;
     transport.metronome = enabled;
     if (!update) return;
     let phase = 0;
     if (enabled) {
       if (transport.running && !starting) {
-        phase =
-          ((Date.now() - transport.origin) % (60000 / tempo)) / (60000 / tempo);
+        phase = ((Date.now() - transport.origin) / (60000 / tempo)) % beats;
       } else {
         transport.origin = Date.now();
         transport.step = -1;
       }
       transport.pulseOrigin = transport.origin;
     }
-    performanceAudio.metronome(tempo, enabled, phase);
-  }, [active, metronome, tempo, playing, tabOwnsAudio]);
+    performanceAudio.metronome(tempo, enabled, phase, beats);
+  }, [active, metronome, tempo, beats, playing, tabOwnsAudio]);
   useEffect(() => {
     prepared.current.clear();
     if (!active || tabPlayback) return;
@@ -373,8 +371,7 @@ export default function PlayGuitar() {
     return () => controller.abort();
   }, [active, pitchKey, tabPlayback]);
   useEffect(() => {
-    if (!active || !playing || !progression.length || free || tabOwnsAudio)
-      return;
+    if (!active || !playing || !progression.length || tabOwnsAudio) return;
     const duration = 60000 / tempo / 2;
     const slots = beats * 2;
     const now = Date.now();
@@ -419,7 +416,6 @@ export default function PlayGuitar() {
     progression.length,
     tempo,
     beats,
-    free,
     pattern,
     tabOwnsAudio
   ]);
@@ -497,14 +493,15 @@ export default function PlayGuitar() {
           }
           const tracked = { ...touches.value };
           const hit: number[] = [];
-          const spacing = frame.stringWidth / 5;
           for (const touch of event.changedTouches) {
-            const index = Math.round((touch.x - frame.stringLeft) / spacing);
+            const span = guitarStringSpan(frame, touch.y);
+            const spacing = span.width / 5;
+            const index = Math.round((touch.x - span.left) / spacing);
             tracked[touch.id] = { x: touch.x, first: index };
             if (
               active &&
               !zoomAdjusting &&
-              touch.y >= 65 &&
+              touch.y >= Math.max(65, frame.stringTop + 65) &&
               touch.y <= frame.stringBottom &&
               index >= 0 &&
               index < 6 &&
@@ -525,19 +522,20 @@ export default function PlayGuitar() {
         .onTouchesMove((event) => {
           const tracked = { ...touches.value };
           const hit: number[] = [];
-          const spacing = frame.stringWidth / 5;
           for (const touch of event.changedTouches) {
             const previous = tracked[touch.id];
             if (!previous) continue;
+            const span = guitarStringSpan(frame, touch.y);
+            const spacing = span.width / 5;
             const crossed: number[] = [];
             if (
               active &&
               !zoomAdjusting &&
-              touch.y >= 65 &&
+              touch.y >= Math.max(65, frame.stringTop + 65) &&
               touch.y <= frame.stringBottom
             ) {
               for (let index = 0; index < 6; index++) {
-                const x = frame.stringLeft + spacing * index;
+                const x = span.left + spacing * index;
                 if (
                   index !== previous.first &&
                   frets[index] !== null &&
@@ -553,9 +551,7 @@ export default function PlayGuitar() {
             tracked[touch.id] = {
               x: touch.x,
               first:
-                Math.abs(
-                  touch.x - frame.stringLeft - previous.first * spacing
-                ) >
+                Math.abs(touch.x - span.left - previous.first * spacing) >
                 spacing / 2
                   ? -1
                   : previous.first
@@ -611,7 +607,6 @@ export default function PlayGuitar() {
                   [patternStep]: target
                 }));
               }
-              setFree(false);
               setPlaying(false);
               setPicker(false);
               setPatternStep(null);
@@ -672,25 +667,6 @@ export default function PlayGuitar() {
             {t(tabRecording ? "TabStopRecording" : "TabTitle")}
           </Text>
           {tabSession.dirty && <View style={styles.unsavedDot} />}
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("FreePlay")}
-          accessibilityState={{ selected: free }}
-          onPress={() => {
-            if (!tabRecording) tablature.pause();
-            setPlaying(false);
-            setFree(true);
-            setFretsSheet(true);
-          }}
-          style={[styles.topControl, free && styles.topControlActive]}
-        >
-          <MaterialCommunityIcons
-            name="music-note-eighth"
-            size={20}
-            color={palette.glass.accent}
-          />
-          <Text style={styles.topLabel}>{t("FreePlay")}</Text>
         </Pressable>
         {landscape && zoomControl}
       </View>
@@ -769,8 +745,8 @@ export default function PlayGuitar() {
                     styles.tabFret,
                     {
                       left:
-                        frame.stringLeft +
-                        (frame.stringWidth / 5) * entry.string -
+                        guitarStringSpan(frame, 88).left +
+                        (guitarStringSpan(frame, 88).width / 5) * entry.string -
                         16
                     }
                   ]}
@@ -802,23 +778,18 @@ export default function PlayGuitar() {
                 {direction === 1 && (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={t(free ? "FreePlay" : "Fingering")}
-                    onPress={() =>
-                      free ? setFretsSheet(true) : openFingerings(chord)
-                    }
+                    accessibilityLabel={t("Fingering")}
+                    onPress={() => openFingerings(chord)}
                     style={styles.currentChord}
                   >
                     <Text
                       numberOfLines={1}
                       adjustsFontSizeToFit
-                      style={[
-                        styles.currentChordName,
-                        free && styles.freeChordName
-                      ]}
+                      style={styles.currentChordName}
                     >
-                      {free ? t("FreePlay") : chord}
+                      {chord}
                     </Text>
-                    {!free && <Diagram frets={frets} width={60} selected />}
+                    <Diagram frets={frets} width={60} selected />
                   </Pressable>
                 )}
                 <Pressable
@@ -826,7 +797,7 @@ export default function PlayGuitar() {
                   accessibilityLabel={t(
                     direction < 0 ? "PlayPreviousChord" : "PlayNextChord"
                   )}
-                  disabled={free || progression.length < 2}
+                  disabled={progression.length < 2}
                   onPress={() =>
                     selectChord(
                       (selected + direction + progression.length) %
@@ -838,9 +809,7 @@ export default function PlayGuitar() {
                   <MaterialCommunityIcons
                     name={direction < 0 ? "chevron-left" : "chevron-right"}
                     size={28}
-                    color={
-                      free ? palette.glass.muted : palette.finish.highlight
-                    }
+                    color={palette.finish.highlight}
                   />
                 </Pressable>
               </React.Fragment>
@@ -864,19 +833,16 @@ export default function PlayGuitar() {
                   key={index}
                   accessibilityRole="button"
                   accessibilityLabel={name}
-                  accessibilityState={{ selected: !free && selected === index }}
+                  accessibilityState={{ selected: selected === index }}
                   onPressIn={() => selectChord(index)}
                   onPress={() => selectChord(index)}
                   onLongPress={() => setEdit(index)}
-                  style={[
-                    styles.chip,
-                    !free && selected === index && styles.selected
-                  ]}
+                  style={[styles.chip, selected === index && styles.selected]}
                 >
                   <Text
                     style={[
                       styles.chipText,
-                      !free && selected === index && styles.selectedInk
+                      selected === index && styles.selectedInk
                     ]}
                   >
                     {name}
@@ -912,9 +878,9 @@ export default function PlayGuitar() {
               accessibilityLabel={t(playing ? "Pause" : "AutoChords")}
               accessibilityState={{
                 selected: playing,
-                disabled: !progression.length || free || tabRecording
+                disabled: !progression.length || tabRecording
               }}
-              disabled={!progression.length || free || tabRecording}
+              disabled={!progression.length || tabRecording}
               onPress={() => {
                 if (!tabRecording) tablature.pause();
                 if (playing) {
@@ -999,7 +965,7 @@ export default function PlayGuitar() {
             </Pressable>
           </View>
         </View>
-        {tabToolsOpen && (
+        {tabToolsOpen && landscape && (
           <TablaturePanel
             standalone
             visible={!tabSession.dialog}
@@ -1033,6 +999,7 @@ export default function PlayGuitar() {
           <Sheet title={progression[edit]} onClose={() => setEdit(null)}>
             <Action
               label={t("Delete")}
+              disabled={progression.length === 1}
               onPress={() => {
                 const remaining = progression.filter(
                   (_, index) => index !== edit
@@ -1057,7 +1024,6 @@ export default function PlayGuitar() {
                   Math.min(selected, Math.max(0, remaining.length - 1))
                 );
                 setPlaying(false);
-                setFree(remaining.length === 0);
                 setEdit(null);
               }}
             />
@@ -1258,42 +1224,6 @@ export default function PlayGuitar() {
             )}
           </Sheet>
         )}
-        {fretsSheet && (
-          <Sheet title={t("FreePlay")} onClose={() => setFretsSheet(false)}>
-            {freeFrets.map((fret, index) => (
-              <View key={index} style={styles.controls}>
-                <Text style={styles.label}>
-                  {6 - index} · {noteNames[(guitarMidi[index] + fret) % 12]}
-                </Text>
-                <Action
-                  glass
-                  label="−"
-                  disabled={fret === 0}
-                  onPress={() =>
-                    setFreeFrets((values) =>
-                      values.map((value, string) =>
-                        string === index ? value - 1 : value
-                      )
-                    )
-                  }
-                />
-                <Text style={styles.label}>{t("PositionFret", { fret })}</Text>
-                <Action
-                  glass
-                  label="+"
-                  disabled={fret === 24}
-                  onPress={() =>
-                    setFreeFrets((values) =>
-                      values.map((value, string) =>
-                        string === index ? value + 1 : value
-                      )
-                    )
-                  }
-                />
-              </View>
-            ))}
-          </Sheet>
-        )}
       </View>
       {tabSession.dialog && (
         <TablatureLibrary
@@ -1324,7 +1254,7 @@ export default function PlayGuitar() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.gold.ink },
+  root: { flex: 1, backgroundColor: palette.paper.background },
   stage: { flex: 1, overflow: "hidden" },
   topBar: {
     minHeight: 44,
@@ -1411,7 +1341,6 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     flexShrink: 1
   },
-  freeChordName: { fontSize: 20, textAlign: "center" },
   chordArrow: {
     width: 36,
     minHeight: 72,

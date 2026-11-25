@@ -94,7 +94,7 @@ class MicrophoneStream: RCTEventEmitter {
 
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker])
+            try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetoothA2DP])
             try session.setActive(true)
         } catch {
             print("Audio session start error: \(error)")

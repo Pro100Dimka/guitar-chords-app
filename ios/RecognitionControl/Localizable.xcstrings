@@ -1,0 +1,166 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "Audio source": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Источник звука"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Джерело звуку"
+          }
+        }
+      }
+    },
+    "Microphone": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Микрофон"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мікрофон"
+          }
+        }
+      }
+    },
+    "Phone audio": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Звук телефона"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Звук телефона"
+          }
+        }
+      }
+    },
+    "Find song chords": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Найти аккорды песни"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Знайти акорди пісні"
+          }
+        }
+      }
+    },
+    "Recognize with microphone": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Распознать с микрофона"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розпізнати з мікрофона"
+          }
+        }
+      }
+    },
+    "Recognize phone audio and find lyrics with chords.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Распознать звук телефона и найти текст с аккордами."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розпізнати звук телефона та знайти текст з акордами."
+          }
+        }
+      }
+    },
+    "Listen to a song nearby and find lyrics with chords.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Распознать песню рядом и найти текст с аккордами."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розпізнати пісню поруч та знайти текст з акордами."
+          }
+        }
+      }
+    },
+    "Audio captured. Return to FreeTune to find chords.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Звук записан. Вернитесь в FreeTune, чтобы найти аккорды."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Звук записано. Поверніться у FreeTune, щоб знайти акорди."
+          }
+        }
+      }
+    },
+    "Audio capture stopped. Return to FreeTune.": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запись звука остановлена. Вернитесь в FreeTune."
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Запис звуку зупинено. Поверніться у FreeTune."
+          }
+        }
+      }
+    },
+    "Recognize phone audio": {
+      "localizations": {
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Распознать звук телефона"
+          }
+        },
+        "uk": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Розпізнати звук телефона"
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

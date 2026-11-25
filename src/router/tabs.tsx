@@ -22,8 +22,12 @@ const Tab = createBottomTabNavigator();
 const TabLayout = () => {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
+  const activeTab = usePreferences((state) => state.tab);
   return (
-    <SafeAreaView edges={["top", "left", "right"]} style={layout.container}>
+    <SafeAreaView
+      edges={["top", "left", "right"]}
+      style={[layout.container, activeTab === "play" && layout.playSurface]}
+    >
       <Tab.Navigator
         detachInactiveScreens
         initialRouteName={usePreferences.getState().tab}
@@ -47,7 +51,7 @@ const TabLayout = () => {
               marginHorizontal: 3,
               marginTop: 5,
               marginBottom: 5,
-              paddingVertical: 5,
+              paddingVertical: 0,
               borderRadius: 14,
               overflow: "hidden"
             },
@@ -99,7 +103,13 @@ const styles = {
 };
 const layout = StyleSheet.create({
   container: { flex: 1 },
-  tabButton: { borderRadius: 14 },
+  playSurface: { backgroundColor: palette.paper.background },
+  tabButton: {
+    borderRadius: 14,
+    paddingVertical: 4,
+    justifyContent: "center",
+    gap: 2
+  },
   tabLabel: {
     width: "100%",
     paddingHorizontal: 2,

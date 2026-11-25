@@ -1,6 +1,50 @@
 import { toByteArray } from "base64-js";
 import { prepareGuitar, warmGuitar } from "../src/components/guitar-audio";
-import { playGuitar } from "../src/components/guitar-audio";
+import { playGuitar, guitarNoteKey, tabNoteExpression } from "../src/components/guitar-audio";
+import { TAB_TECHNIQUES, TabNote } from "../src/components/tablature";
+
+const renderedNote = (patch: Partial<TabNote>) => {
+  const note: TabNote = { string: 1, fret: 0, tick: 0, duration: 24, ...patch };
+  const bytes = toByteArray(prepareGuitar([45 + note.fret], 440, 1, tabNoteExpression(note, 80)));
+  const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  return Array.from({ length: (bytes.length - 44) / 2 }, (_, index) => view.getInt16(44 + index * 2, true) / 32768);
+};
+const energy = (pcm: number[], from = 0.05, to = 0.5) => {
+  const segment = pcm.slice(Math.round(from * 22050), Math.round(to * 22050));
+  return Math.sqrt(segment.reduce((sum, value) => sum + value * value, 0) / segment.length);
+};
+
+test("note dynamics and palm muting change the audible signal without changing its rate", () => {
+  const soft = renderedNote({ velocity: 16 });
+  const loud = renderedNote({ velocity: 104 });
+  const plain = renderedNote({});
+  const muted = renderedNote({ techniques: ["palmMute"] });
+  expect(loud.length).toBe(soft.length);
+  expect(energy(loud)).toBeGreaterThan(energy(soft) * 1.8);
+  expect(energy(muted, 0.3, 0.6)).toBeLessThan(energy(plain, 0.3, 0.6) * 0.2);
+});
+
+test("all expression combinations keep native sample keys bounded and reusable", () => {
+  const note: TabNote = { string: 5, fret: 24, tick: 0, duration: 96, velocity: 127,
+    techniques: Object.keys(TAB_TECHNIQUES) as NonNullable<TabNote["techniques"]>,
+    bend: 3, bendRelease: true, sourceFret: 0, accent: "strong", fade: "diminuendo", pick: "downBrush" };
+  expect(guitarNoteKey(note, 40).length).toBeLessThan(256);
+  expect(guitarNoteKey(note, 40)).toBe(guitarNoteKey({ ...note, techniques: [...note.techniques!].reverse() }, 40));
+  expect(guitarNoteKey({ string: 0, fret: 0, tick: 0 }, 80)).toBe("440:40:string0");
+});
+
+test("tremolo retriggers the recorded attack instead of only changing sustain volume", () => {
+  const pcm = renderedNote({ techniques: ["tremolo"] });
+  const period = Math.round(22050 * 60 / 80 / 8);
+  expect(pcm.slice(period * 2 + 300, period * 2 + 900)).toEqual(pcm.slice(period * 3 + 300, period * 3 + 900));
+  expect(energy(pcm, period * 2 / 22050, (period * 3) / 22050)).toBeGreaterThan(0.0001);
+});
+
+test.each(Object.keys(TAB_TECHNIQUES).filter((key) => key !== "letRing"))("%s produces a finite, non-silent audition", (technique) => {
+  const pcm = renderedNote({ fret: 5, techniques: [technique as NonNullable<TabNote["techniques"]>[number]] });
+  expect(pcm.every(Number.isFinite)).toBe(true);
+  expect(energy(pcm)).toBeGreaterThan(0.00001);
+});
 import { performanceAudio } from "../src/components/performance-audio";
 import { chordShapes, guitarMidi } from "../src/screens/song/chords";
 

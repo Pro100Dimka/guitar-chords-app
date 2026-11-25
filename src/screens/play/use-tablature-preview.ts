@@ -1,19 +1,23 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { AppState } from "react-native";
-import { warmGuitar } from "../../components/guitar-audio";
+import {
+  guitarNoteKey,
+  tabNoteExpression,
+  warmGuitar
+} from "../../components/guitar-audio";
 import { performanceAudio } from "../../components/performance-audio";
 import { TAB_TUNING, TabNote } from "../../components/tablature";
 
 /** Audition successful note edits without changing the score or transport. */
-export function useTablaturePreview(enabled: boolean) {
-  const context = useMemo(() => ({ enabled }), [enabled]);
+export function useTablaturePreview(enabled: boolean, tempo = 80) {
+  const context = useMemo(() => ({ enabled, tempo }), [enabled, tempo]);
   const liveContext = useRef<typeof context | null>(null);
   const foreground = useRef(
     AppState.currentState !== "background" &&
       AppState.currentState !== "inactive"
   );
   const pending = useRef<AbortController | null>(null);
-  const soundingString = useRef<number | null>(null);
+  const soundingStrings = useRef<number[]>([]);
 
   const abortPending = useCallback(() => {
     pending.current?.abort();
@@ -23,7 +27,7 @@ export function useTablaturePreview(enabled: boolean) {
     abortPending();
     // Shared string voices may already belong to playback by the time React
     // runs cleanup. Only an explicit cancellation before handoff may stop one.
-    soundingString.current = null;
+    soundingStrings.current = [];
   }, [abortPending]);
 
   useLayoutEffect(() => {
@@ -54,32 +58,34 @@ export function useTablaturePreview(enabled: boolean) {
   const cancelPreview = useCallback(() => {
     if (liveContext.current !== context) return;
     abortPending();
-    const string = soundingString.current;
-    soundingString.current = null;
-    if (string !== null) performanceAudio.stopGuitarString(string);
+    soundingStrings.current.forEach((string) =>
+      performanceAudio.stopGuitarString(string)
+    );
+    soundingStrings.current = [];
   }, [abortPending, context]);
 
   const preview = useCallback(
-    (note: TabNote) => {
-      const { string, fret } = note;
+    (notes: TabNote | TabNote[]) => {
+      const chord = (Array.isArray(notes) ? notes : [notes]).filter(
+        ({ string, fret }) =>
+          Number.isInteger(string) &&
+          string >= 0 &&
+          string < TAB_TUNING.length &&
+          Number.isInteger(fret) &&
+          fret >= 0 &&
+          fret <= 24
+      );
       if (
         liveContext.current !== context ||
         !context.enabled ||
         !foreground.current ||
-        !Number.isInteger(string) ||
-        string < 0 ||
-        string >= TAB_TUNING.length ||
-        !Number.isInteger(fret) ||
-        fret < 0 ||
-        fret > 24
+        !chord.length
       )
         return;
 
       abortPending();
       const request = new AbortController();
       pending.current = request;
-      const midi = TAB_TUNING[string] + fret;
-      const key = `440:${midi}:string${string}`;
       const current = () =>
         !request.signal.aborted &&
         pending.current === request &&
@@ -88,17 +94,30 @@ export function useTablaturePreview(enabled: boolean) {
       void (async () => {
         // A native cache probe avoids synthesizing or resending a prepared WAV.
         // Never assume JS cache residency means the bounded native cache is warm.
-        const ready =
-          performanceAudio.preparedFingeringSupported &&
-          (await performanceAudio.prepareFingering(key, ""));
+        await Promise.all(
+          chord.map(async (note) => {
+            const key = guitarNoteKey(note, tempo);
+            const ready =
+              performanceAudio.preparedFingeringSupported &&
+              (await performanceAudio.prepareFingering(key, ""));
+            if (!current() || ready) return;
+            await warmGuitar(
+              [TAB_TUNING[note.string] + note.fret],
+              440,
+              request.signal,
+              note.string,
+              tabNoteExpression(note, tempo)
+            );
+          })
+        );
         if (!current()) return;
-        if (!ready) await warmGuitar([midi], 440, request.signal, string);
-        if (!current()) return;
-        const previous = soundingString.current;
-        if (previous !== null && previous !== string)
-          performanceAudio.stopGuitarString(previous);
-        performanceAudio.guitarString(key, string);
-        soundingString.current = string;
+        soundingStrings.current.forEach((string) =>
+          performanceAudio.stopGuitarString(string)
+        );
+        chord.forEach((note) =>
+          performanceAudio.guitarString(guitarNoteKey(note, tempo), note.string)
+        );
+        soundingStrings.current = chord.map((note) => note.string);
       })()
         .catch(() => {
           // A failed audition must not reject the edit or prevent the next tap.
@@ -107,7 +126,7 @@ export function useTablaturePreview(enabled: boolean) {
           if (pending.current === request) pending.current = null;
         });
     },
-    [abortPending, context]
+    [abortPending, context, tempo]
   );
 
   return { preview, cancelPreview };

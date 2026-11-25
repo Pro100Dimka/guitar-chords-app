@@ -21,7 +21,10 @@ import {
   usePreferences
 } from "../src/components/preferences";
 import { Action, Sheet } from "../src/screens/song/tools";
-import { guitarLayout } from "../src/screens/tuner/guitar-layout";
+import {
+  guitarLayout,
+  guitarStringSpan
+} from "../src/screens/tuner/guitar-layout";
 import { performanceAudio } from "../src/components/performance-audio";
 import { warmGuitar } from "../src/components/guitar-audio";
 import {
@@ -99,6 +102,7 @@ jest.mock("react-native-gesture-handler", () => ({
   }
 }));
 jest.mock("../src/components/guitar-audio", () => ({
+  ...jest.requireActual("../src/components/guitar-audio"),
   prepareGuitar: jest.fn(),
   warmGuitar: jest.fn().mockResolvedValue(undefined)
 }));
@@ -201,10 +205,12 @@ async function pluck(string: number) {
     dimensions.height,
     screen!.root.findByType(Strings).props.zoom
   );
+  const y = Math.max(100, frame.stringTop + 100);
+  const span = guitarStringSpan(frame, y);
   const touch = {
     id: 1,
-    x: frame.stringLeft + (frame.stringWidth / 5) * string,
-    y: 100
+    x: span.left + (span.width / 5) * string,
+    y
   };
   await act(async () => {
     mockDown({ changedTouches: [touch] }, manager);
@@ -214,6 +220,12 @@ async function pluck(string: number) {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
+  jest.spyOn(require("react-native"), "useWindowDimensions").mockReturnValue({
+    width: 844,
+    height: 390,
+    scale: 1,
+    fontScale: 1
+  });
   usePreferences.setState({ songs: {}, saveError: false, playGuitarZoom: 1 });
   jest.mocked(readTablatureDraft).mockResolvedValue(null);
   jest.mocked(writeTablatureDraft).mockResolvedValue(undefined);
@@ -313,40 +325,16 @@ test("fret overlays follow the zoomed string columns", async () => {
   });
   expect(overlay).toBeDefined();
   expect(StyleSheet.flatten(overlay!.props.style).left).toBeCloseTo(
-    frame.stringLeft + frame.stringWidth / 5 - 16
+    guitarStringSpan(frame, 88).left +
+      guitarStringSpan(frame, 88).width / 5 -
+      16
   );
 });
 
-test("screen-string touches record chosen frets and timing, save, and reopen the same tab", async () => {
+test("screen-string touches record timing, save, and reopen the same tab", async () => {
   await render();
   await panelAction("onRecord");
-  await act(async () =>
-    screen!.root
-      .findAll(
-        (node) =>
-          node.props.accessibilityLabel === "FreePlay" &&
-          typeof node.props.onPress === "function"
-      )[0]
-      .props.onPress()
-  );
-  const free = () =>
-    screen!.root
-      .findAllByType(Sheet)
-      .find((node) => node.props.title === "FreePlay")!;
-  await act(async () =>
-    free()
-      .findAllByType(Action)
-      .filter((node) => node.props.label === "+")[0]
-      .props.onPress()
-  );
-  await act(async () =>
-    free()
-      .findAllByType(Action)
-      .filter((node) => node.props.label === "+")[0]
-      .props.onPress()
-  );
-  await act(async () => free().props.onClose());
-  await pluck(0);
+  await pluck(1);
   await act(async () => {
     await jest.advanceTimersByTimeAsync(750);
   });
@@ -354,15 +342,15 @@ test("screen-string touches record chosen frets and timing, save, and reopen the
   await act(async () => transport().stopRecording());
   const recorded = transport().tab;
   expect(recorded.notes).toEqual([
-    { string: 0, fret: 2, tick: 0, duration: 24 },
-    { string: 4, fret: 0, tick: 24, duration: 24 }
+    { string: 1, fret: 0, tick: 0, duration: 24 },
+    { string: 4, fret: 1, tick: 24, duration: 24 }
   ]);
   expect(performanceAudio.guitarString).toHaveBeenCalledWith(
-    "440:42:string0",
-    0
+    "440:45:string1",
+    1
   );
   expect(performanceAudio.guitarString).toHaveBeenCalledWith(
-    "440:59:string4",
+    "440:60:string4",
     4
   );
   expect((await panel()).props.dirty).toBe(true);
@@ -779,15 +767,6 @@ test("recording count-in permits fingering changes but preserves the old tab whe
       .find((button) => button.text === "TabRecord")!.onPress!()
   );
   expect(transport().status).toBe("countingIn");
-  await act(async () =>
-    screen!.root
-      .findAll(
-        (node) =>
-          node.props.accessibilityLabel === "FreePlay" &&
-          typeof node.props.onPress === "function"
-      )[0]
-      .props.onPress()
-  );
   await pluck(0);
   expect(transport().status).toBe("countingIn");
   expect(transport().tab).toEqual(saved);

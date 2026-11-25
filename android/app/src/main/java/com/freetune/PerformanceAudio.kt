@@ -304,17 +304,28 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
         } catch (error: Exception) { track.release(); throw error }
     }
     @ReactMethod @Synchronized fun setMetronome(tempo: Double, enabled: Boolean, phase: Double) {
+        setMetronomePattern(tempo, enabled, phase, 4.0)
+    }
+    @ReactMethod @Synchronized fun setMetronomePattern(tempo: Double, enabled: Boolean, phase: Double, beats: Double) {
         fadeGuitar(metronome); metronome = null
-        if (!enabled || !instrumentPlaybackActive || recorder != null || !tempo.isFinite() || tempo !in 40.0..200.0) return
+        if (!enabled || !instrumentPlaybackActive || recorder != null || !tempo.isFinite() || tempo !in 40.0..200.0 || !beats.isFinite()) return
+        val count = beats.toInt().coerceIn(1, 32)
         val rate = 22050
-        val frames = Math.round(rate * 60.0 / tempo).toInt()
-        val shift = if (phase.isFinite()) Math.round(frames * phase.coerceIn(0.0, 1.0)).toInt() % frames else 0
+        val beatFrames = Math.round(rate * 60.0 / tempo).toInt()
+        val frames = beatFrames * count
+        val shift = if (phase.isFinite()) Math.round(beatFrames * ((phase % count + count) % count)).toInt() % frames else 0
         val pcm = ByteBuffer.allocate(frames * 2).order(ByteOrder.LITTLE_ENDIAN)
-        for (index in 0 until (rate * 0.025).toInt()) {
-            val time = index.toDouble() / rate
-            val value = 0.09 * kotlin.math.sin(2 * Math.PI * 1200 * time) *
-                (1 - kotlin.math.exp(-2000 * time)) * kotlin.math.exp(-200 * time)
-            pcm.putShort(((index - shift + frames) % frames) * 2, (value * 32767).toInt().toShort())
+        for (beat in 0 until count) {
+            val frequency = if (beat == 0) 1800.0 else 900.0
+            val level = if (beat == 0) 0.24 else 0.12
+            for (index in 0 until (rate * 0.03).toInt()) {
+                val time = index.toDouble() / rate
+                val value = level * kotlin.math.sin(2 * Math.PI * frequency * time) *
+                    (1 - kotlin.math.exp(-3000 * time)) * kotlin.math.exp(-180 * time) *
+                    (1 - index.toDouble() / (rate * 0.03 - 1))
+                val at = (beat * beatFrames + index - shift + frames) % frames
+                pcm.putShort(at * 2, (value * 32767).toInt().toShort())
+            }
         }
         try {
             val track = pcmTrack(pcm.array(), rate, 1)

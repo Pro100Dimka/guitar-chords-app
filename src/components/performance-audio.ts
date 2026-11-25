@@ -42,8 +42,15 @@ export const performanceAudio = {
   guitarString: (key: string, index: number) =>
     native.playGuitarString(key, index),
   stopGuitarString: (index: number) => native.stopGuitarString(index),
-  metronome: (tempo: number, enabled: boolean, phase = 0) =>
-    native.setMetronome(tempo, enabled, phase),
+  metronome: (tempo: number, enabled: boolean, phase = 0, beats = 4) => {
+    if (native.setMetronomePattern)
+      return native.setMetronomePattern(tempo, enabled, phase, beats);
+    return native.setMetronome(
+      tempo,
+      enabled,
+      Number.isFinite(phase) ? phase % 1 : 0
+    );
+  },
   metronomeBeat: (accent: number, volume: number) => {
     if (!Number.isFinite(accent) || !Number.isFinite(volume)) return;
     native.playMetronomeBeat?.(

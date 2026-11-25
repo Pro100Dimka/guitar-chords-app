@@ -1,0 +1,5 @@
+<resources>
+    <string name="recognition_tile">Найти аккорды песни</string>
+    <string name="recognition_playback_active">Слушаем звук с этого телефона</string>
+    <string name="recognition_stop">Остановить</string>
+</resources>

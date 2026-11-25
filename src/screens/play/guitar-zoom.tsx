@@ -68,7 +68,10 @@ export function GuitarZoom({
     onInteractionChange(false);
   };
   const percent = Math.round(value * 100);
-  const progress = (value - MIN_GUITAR_ZOOM) / (maximum - MIN_GUITAR_ZOOM);
+  const progress =
+    maximum > MIN_GUITAR_ZOOM
+      ? (value - MIN_GUITAR_ZOOM) / (maximum - MIN_GUITAR_ZOOM)
+      : 0;
   const thumb = inset + Math.max(0, width - inset * 2) * progress;
 
   return (

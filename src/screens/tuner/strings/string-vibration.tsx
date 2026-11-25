@@ -45,7 +45,8 @@ const getStringPath = (
   x: number,
   top: number,
   bottom: number,
-  amplitude: number
+  amplitude: number,
+  topX = x
 ) => {
   const path = Skia.Path.Make();
   const steps = 32;
@@ -54,7 +55,7 @@ const getStringPath = (
   for (let i = 0; i <= steps; i++) {
     const y = visibleTop + i * dy;
     const offset = amplitude * Math.sin(((y - top) / (bottom - top)) * Math.PI);
-    const px = x + offset;
+    const px = topX + (x - topX) * ((y - top) / (bottom - top)) + offset;
     if (i === 0) path.moveTo(px, y);
     else path.lineTo(px, y);
   }
@@ -62,6 +63,7 @@ const getStringPath = (
 };
 const StringWithVibration: FC<StringWithVibrationProps> = ({
   x,
+  topX = x,
   top,
   bottom,
   thickness,
@@ -77,10 +79,10 @@ const StringWithVibration: FC<StringWithVibrationProps> = ({
   const oscillating = useSharedValue(false);
   const [path1, path2] = useMemo(
     () => [
-      getStringPath(x, top, bottom, -Math.min(9, 4 + thickness)),
-      getStringPath(x, top, bottom, Math.min(9, 4 + thickness))
+      getStringPath(x, top, bottom, -Math.min(9, 4 + thickness), topX),
+      getStringPath(x, top, bottom, Math.min(9, 4 + thickness), topX)
     ],
-    [x, top, bottom, thickness]
+    [x, topX, top, bottom, thickness]
   );
   useAnimatedReaction(
     () => plucks.value[index] ?? 0,

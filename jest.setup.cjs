@@ -9,6 +9,7 @@ jest.mock("react-native-svg", () => ({
   Ellipse: "Ellipse",
   Line: "Line",
   Path: "Path",
+  G: "G",
   Text: "SvgText"
 }));
 jest.mock("@react-native-documents/picker", () => ({

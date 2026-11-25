@@ -76,3 +76,14 @@ test("older native builds without one-shot clicks remain usable", () => {
     native.stopMetronomeBeats = stop;
   }
 });
+
+test("bar-aware native metronome receives the meter and phase instead of looping one identical beat", () => {
+  native.setMetronomePattern = jest.fn();
+  try {
+    performanceAudio.metronome(100, true, 2.25, 3);
+    expect(native.setMetronomePattern).toHaveBeenCalledWith(100, true, 2.25, 3);
+    expect(native.setMetronome).not.toHaveBeenCalled();
+  } finally {
+    delete native.setMetronomePattern;
+  }
+});

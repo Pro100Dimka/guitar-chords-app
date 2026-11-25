@@ -258,11 +258,18 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
         "E-Chords",
         "Cifras",
         "GuitareTab",
+        "Akkords.pro",
+        "Musicaccord.ru",
+        "Chords & Tabs",
+        "Sonidos",
+        "WeingGuitar",
+        "Akkords.fun",
+        "LalaTracker",
         "Shazam"
       ].includes(source.name) &&
       typeof source.url === "string" &&
       source.url.length < 1000 &&
-      /^https:\/\/(?:pisennyk\.com\.ua|lrclib\.net|api\.lyrics\.ovh|www\.cifraclub\.com|www\.e-chords\.com|www\.cifras\.com\.br|www\.guitaretab\.com|www\.shazam\.com)\//.test(
+      /^https:\/\/(?:pisennyk\.com\.ua|lrclib\.net|api\.lyrics\.ovh|www\.cifraclub\.com|www\.e-chords\.com|www\.cifras\.com\.br|www\.guitaretab\.com|akkords\.pro|musicaccord\.ru|www\.chords-and-tabs\.net|www\.sonidos\.com\.br|guitar\.weingchicken\.com|akkords\.fun|lalatracker\.com|www\.shazam\.com)\//.test(
         source.url
       )
         ? {

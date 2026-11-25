@@ -10,6 +10,7 @@ import { TAB_TUNING, TabNote } from "../src/components/tablature";
 import { useTablaturePreview } from "../src/screens/play/use-tablature-preview";
 
 jest.mock("../src/components/guitar-audio", () => ({
+  ...jest.requireActual("../src/components/guitar-audio"),
   warmGuitar: jest.fn()
 }));
 jest.mock("../src/components/performance-audio", () => ({
@@ -81,8 +82,7 @@ test("a prepared note sounds on the native cache response without timers or WAV 
   jest.useFakeTimers();
   await render();
   const schedule = jest.spyOn(globalThis, "setTimeout");
-  preview.preview(note(7, 5));
-  await Promise.resolve();
+  await act(async () => preview.preview(note(7, 5)));
   expect(performanceAudio.prepareFingering).toHaveBeenCalledWith(
     "440:71:string5",
     ""
@@ -118,7 +118,8 @@ test("a cold or evicted note waits for its physical-string sample before soundin
     [48],
     440,
     expect.any(AbortSignal),
-    1
+    1,
+    undefined
   );
   expect(performanceAudio.guitarString).not.toHaveBeenCalled();
   await act(async () => ready.resolve());
@@ -176,9 +177,9 @@ test("repeating a prepared note retriggers immediately and changing strings rele
   await act(async () => preview.preview(note(3, 2)));
   await act(async () => preview.preview(note(3, 2)));
   expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
-  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+  expect(performanceAudio.stopGuitarString).toHaveBeenCalledWith(2);
   await act(async () => preview.preview(note(4, 4)));
-  expect(performanceAudio.stopGuitarString).toHaveBeenCalledTimes(1);
+  expect(performanceAudio.stopGuitarString).toHaveBeenCalledTimes(2);
   expect(performanceAudio.stopGuitarString).toHaveBeenCalledWith(2);
   expect(performanceAudio.guitarString).toHaveBeenLastCalledWith(
     "440:63:string4",
@@ -304,7 +305,8 @@ test("legacy native modules await warmGuitar and invalid note data never starts 
     [48],
     440,
     expect.any(AbortSignal),
-    1
+    1,
+    undefined
   );
   expect(performanceAudio.guitarString).toHaveBeenCalledWith(
     "440:48:string1",
