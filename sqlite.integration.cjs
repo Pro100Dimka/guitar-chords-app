@@ -218,9 +218,14 @@ async function main() {
   const retainedPath="/NEW/Documents/performances/song-900004-100.m4a";
   recordingFiles.set(retainedPath,{path:retainedPath,date:100,bytes:100});
   sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("recording-delete:900004",JSON.stringify(["song-900004-100.m4a"]));
+  const independentPath="/NEW/Documents/performances/song-900005-100.m4a";
+  recordingFiles.set(independentPath,{path:independentPath,date:100,bytes:100});
+  sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("recording-delete:900005",JSON.stringify(["song-900005-100.m4a"]));
   const actualRemove=audio.remove;
-  audio.remove=async()=>true;
+  audio.remove=async(path)=>path===retainedPath?true:actualRemove(path);
   await assert.rejects(library.finishPendingRecordingDeletions(),/RecordingDeleteFailed/);
+  assert.equal(recordingFiles.has(independentPath),false,"One failed recording must not block other songs' cleanup");
+  assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key = 'recording-delete:900005'").get().n,0);
   assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key = 'recording-delete:900004'").get().n,1,"Cleanup journal must remain while the native list still contains its target");
   audio.remove=actualRemove;
   await library.finishPendingRecordingDeletions();
