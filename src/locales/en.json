@@ -120,6 +120,8 @@
   "SongNotFound": "Song unavailable",
   "HideVideos": "Hide videos",
   "ShowVideos": "Song videos",
+  "VideoUnavailable": "Video cannot be played here",
+  "VideoOpenYouTube": "Open in YouTube",
   "Pause": "Pause",
   "AutoScroll": "Auto-scroll",
   "ReturnToSong": "‹ Return to song",

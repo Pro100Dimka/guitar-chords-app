@@ -120,6 +120,8 @@
   "SongNotFound": "Пісня недоступна",
   "HideVideos": "Сховати відео",
   "ShowVideos": "Відео до пісні",
+  "VideoUnavailable": "Не вдалося відтворити відео тут",
+  "VideoOpenYouTube": "Відкрити в YouTube",
   "Pause": "Пауза",
   "AutoScroll": "Автопрокручування",
   "ReturnToSong": "‹ Повернутися до пісні",

@@ -1,11 +1,69 @@
-import { FC, useState } from "react";
+import { FC, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Alert,
+  Linking,
+  StyleSheet,
+  TouchableOpacity,
+  View
+} from "react-native";
 import Text from "../../components/styled-text";
 import YoutubePlayer from "react-native-youtube-iframe";
 import extractYoutubeId from "../../components/utils/extract-youtube-id";
 import palette from "../../theme/palette";
 import { ISong } from "@/@interfaces";
+function VideoFrame({ videoId, width }: { videoId: string; width: number }) {
+  const { t } = useTranslation();
+  const [failed, setFailed] = useState(false);
+  const attempt = useRef(0);
+  const generation = attempt.current;
+  const unavailable = () => {
+    if (attempt.current === generation) setFailed(true);
+  };
+  if (failed || width < 200)
+    return (
+      <View style={styles.failure}>
+        <Text accessibilityRole="alert" style={styles.tabText}>
+          {t("VideoUnavailable")}
+        </Text>
+        <TouchableOpacity
+          accessibilityRole="link"
+          style={styles.fallbackButton}
+          onPress={() =>
+            void Linking.openURL(
+              `https://www.youtube.com/watch?v=${videoId}`
+            ).catch(() => Alert.alert(t("LinkOpenError")))
+          }
+        >
+          <Text style={styles.tabText}>{t("VideoOpenYouTube")}</Text>
+        </TouchableOpacity>
+        {failed && width >= 200 && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={styles.fallbackButton}
+            onPress={() => {
+              attempt.current++;
+              setFailed(false);
+            }}
+          >
+            <Text style={styles.tabText}>{t("Retry")}</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  return (
+    <View style={styles.player}>
+      <YoutubePlayer
+        width={width}
+        height={Math.max(200, (width * 9) / 16)}
+        videoId={videoId}
+        onError={unavailable}
+        webViewProps={{ onError: unavailable, onHttpError: unavailable }}
+      />
+    </View>
+  );
+}
+
 const VideoTabs: FC<ISong> = (song) => {
   const { t } = useTranslation();
   const tabs = (
@@ -46,13 +104,7 @@ const VideoTabs: FC<ISong> = (song) => {
       </View>
       {!videoId && <Text style={styles.tabText}>{t("InvalidUrl")}</Text>}
       {!!videoId && width > 0 && (
-        <View style={styles.player}>
-          <YoutubePlayer
-            width={width}
-            height={(width * 9) / 16}
-            videoId={videoId}
-          />
-        </View>
+        <VideoFrame key={videoId} videoId={videoId} width={width} />
       )}
     </View>
   );
@@ -76,6 +128,15 @@ const styles = StyleSheet.create({
   activeTab: { backgroundColor: palette.glass.selected },
   activeText: { color: palette.gold.ink },
   tabText: { color: palette.glass.ink, fontWeight: "600" },
+  failure: { gap: 10, alignItems: "stretch" },
+  fallbackButton: {
+    minHeight: 44,
+    padding: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 12,
+    backgroundColor: palette.glass.header
+  },
   player: { borderRadius: 16, overflow: "hidden" }
 });
 export default VideoTabs;
