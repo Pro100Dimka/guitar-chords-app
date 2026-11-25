@@ -20,7 +20,29 @@
 AAB200000000000000000002 /* Manrope-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AAB200000000000000000001; };
 AAB200000000000000000004 /* Manrope-SemiBold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = AAB200000000000000000003; };
 AAB200000000000000000006 /* Manrope license in Resources */ = {isa = PBXBuildFile; fileRef = AAB200000000000000000005; };
+		AAC400000000000000000028 /* PlaybackCaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC400000000000000000001;  };
+		AAC400000000000000000029 /* PlaybackCaptureViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC400000000000000000002;  };
+		AAC40000000000000000002A /* OpenRecognitionIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC400000000000000000003;  };
+		AAC40000000000000000002B /* PlaybackCaptureStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC400000000000000000001;  };
+		AAC40000000000000000002C /* SampleHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC40000000000000000000A;  };
+		AAC40000000000000000002D /* OpenRecognitionIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC400000000000000000003;  };
+		AAC40000000000000000002E /* RecognitionControl.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC400000000000000000014;  };
+		AAC40000000000000000002F /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AAC400000000000000000016;  };
+		AAC400000000000000000030 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AAC400000000000000000016;  };
+		AAC400000000000000000031 /* PlaybackBroadcast.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AAC40000000000000000001E; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AAC400000000000000000032 /* RecognitionControl.appex in Embed App Extensions */ = {isa = PBXBuildFile; fileRef = AAC40000000000000000001F; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		AAC400000000000000000033 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB81A68108700A75B9A; };
+		AAC400000000000000000034 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = AAC400000000000000000016; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		AAC400000000000000000050 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 83CBB9F71A601CBA00E9B192; proxyType = 1; remoteGlobalIDString = AAC40000000000000000005A; remoteInfo = PlaybackBroadcast; };
+		AAC400000000000000000051 /* PBXContainerItemProxy */ = {isa = PBXContainerItemProxy; containerPortal = 83CBB9F71A601CBA00E9B192; proxyType = 1; remoteGlobalIDString = AAC40000000000000000005B; remoteInfo = RecognitionControl; };
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		AAC400000000000000000052 /* Embed App Extensions */ = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (AAC400000000000000000031, AAC400000000000000000032, ); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
+/* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
         AAC300000000000000000002 /* SongRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongRecognition.swift; sourceTree = "<group>"; };
@@ -61,6 +83,18 @@ AAB200000000000000000006 /* Manrope license in Resources */ = {isa = PBXBuildFil
 AAB200000000000000000001 /* Manrope-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Manrope-Regular.ttf"; path = "../assets/fonts/Manrope/Manrope-Regular.ttf"; sourceTree = "<group>"; };
 AAB200000000000000000003 /* Manrope-SemiBold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; name = "Manrope-SemiBold.ttf"; path = "../assets/fonts/Manrope/Manrope-SemiBold.ttf"; sourceTree = "<group>"; };
 AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKnownFileType = text; name = "Manrope-OFL.txt"; path = "../assets/fonts/Manrope/OFL.txt"; sourceTree = "<group>"; };
+		AAC400000000000000000001 /* PlaybackCaptureStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackCaptureStore.swift; sourceTree = "<group>"; };
+		AAC400000000000000000002 /* PlaybackCaptureViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackCaptureViewController.swift; sourceTree = "<group>"; };
+		AAC400000000000000000003 /* OpenRecognitionIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenRecognitionIntent.swift; sourceTree = "<group>"; };
+		AAC400000000000000000004 /* freetune.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = freetune/freetune.entitlements; sourceTree = "<group>"; };
+		AAC40000000000000000000A /* SampleHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleHandler.swift; sourceTree = "<group>"; };
+		AAC40000000000000000000B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AAC40000000000000000000C /* PlaybackBroadcast.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = PlaybackBroadcast.entitlements; sourceTree = "<group>"; };
+		AAC400000000000000000014 /* RecognitionControl.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecognitionControl.swift; sourceTree = "<group>"; };
+		AAC400000000000000000015 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		AAC400000000000000000016 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
+		AAC40000000000000000001E /* PlaybackBroadcast.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PlaybackBroadcast.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		AAC40000000000000000001F /* RecognitionControl.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = RecognitionControl.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -72,6 +106,8 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AAC400000000000000000047 /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
+		AAC40000000000000000004A /* Frameworks */ = {isa = PBXFrameworksBuildPhase; buildActionMask = 2147483647; files = (); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -83,6 +119,12 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				5BD81FA32F61EB5E00227B71 /* MicrophoneStreamModule.swift */,
                 AAB100000000000000000002 /* PerformanceAudio.swift */,
                 AAC300000000000000000002 /* SongRecognition.swift */,
+				AAC400000000000000000001,
+				AAC400000000000000000002,
+				AAC400000000000000000003,
+				AAC400000000000000000004,
+				AAC40000000000000000003C,
+				AAC40000000000000000003D,
                 AAB100000000000000000004 /* tuner_success.wav */,
 				AAB200000000000000000001 /* Manrope-Regular.ttf */,
                 AAB200000000000000000003 /* Manrope-SemiBold.ttf */,
@@ -131,6 +173,8 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			isa = PBXGroup;
 			children = (
 				13B07F961A680F5B00A75B9A /* freetune.app */,
+				AAC40000000000000000001E,
+				AAC40000000000000000001F,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -170,6 +214,8 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			name = Resources;
 			sourceTree = "<group>";
 		};
+		AAC40000000000000000003C /* PlaybackBroadcast */ = {isa = PBXGroup; children = (AAC40000000000000000000A, AAC40000000000000000000B, AAC40000000000000000000C, ); path = PlaybackBroadcast; sourceTree = "<group>"; };
+		AAC40000000000000000003D /* RecognitionControl */ = {isa = PBXGroup; children = (AAC400000000000000000014, AAC400000000000000000015, AAC400000000000000000016, ); path = RecognitionControl; sourceTree = "<group>"; };
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -185,16 +231,18 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */,
 				D40D52C1512B94B6DAD20BC3 /* [CP] Embed Pods Frameworks */,
 				348A70508EADE18A8CBCC369 /* [CP] Copy Pods Resources */,
+				AAC400000000000000000052 /* Embed App Extensions */,
 			);
 			buildRules = (
 			);
-			dependencies = (
-			);
+			dependencies = (AAC400000000000000000053, AAC400000000000000000054, );
 			name = freetune;
 			productName = freetune;
 			productReference = 13B07F961A680F5B00A75B9A /* freetune.app */;
 			productType = "com.apple.product-type.application";
 		};
+		AAC40000000000000000005A /* PlaybackBroadcast */ = {isa = PBXNativeTarget; buildConfigurationList = AAC40000000000000000005E; buildPhases = (AAC400000000000000000046, AAC400000000000000000047, AAC400000000000000000048, ); buildRules = (); dependencies = (); name = PlaybackBroadcast; productName = PlaybackBroadcast; productReference = AAC40000000000000000001E; productType = "com.apple.product-type.app-extension"; };
+		AAC40000000000000000005B /* RecognitionControl */ = {isa = PBXNativeTarget; buildConfigurationList = AAC40000000000000000005F; buildPhases = (AAC400000000000000000049, AAC40000000000000000004A, AAC40000000000000000004B, ); buildRules = (); dependencies = (); name = RecognitionControl; productName = RecognitionControl; productReference = AAC40000000000000000001F; productType = "com.apple.product-type.app-extension"; };
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -203,8 +251,11 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			attributes = {
 				LastUpgradeCheck = 1210;
 				TargetAttributes = {
+					AAC40000000000000000005A = {CreatedOnToolsVersion = 16.4; SystemCapabilities = {com.apple.ApplicationGroups.iOS = {enabled = 1; }; }; };
+					AAC40000000000000000005B = {CreatedOnToolsVersion = 16.4; };
 					13B07F861A680F5B00A75B9A = {
 						LastSwiftMigration = 1120;
+						SystemCapabilities = {com.apple.ApplicationGroups.iOS = {enabled = 1; }; };
 					};
 				};
 			};
@@ -222,6 +273,8 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			projectRoot = "";
 			targets = (
 				13B07F861A680F5B00A75B9A /* freetune */,
+				AAC40000000000000000005A,
+				AAC40000000000000000005B,
 			);
 		};
 /* End PBXProject section */
@@ -238,9 +291,12 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
                 AAB200000000000000000006 /* Manrope license in Resources */,
                 13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */,
 				1175EDDC4BD4E922B2B48DC1 /* PrivacyInfo.xcprivacy in Resources */,
+				AAC40000000000000000002F /* Localizable.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AAC400000000000000000048 /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (AAC400000000000000000034, ); runOnlyForDeploymentPostprocessing = 0; };
+		AAC40000000000000000004B /* Resources */ = {isa = PBXResourcesBuildPhase; buildActionMask = 2147483647; files = (AAC400000000000000000030, AAC400000000000000000033, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
@@ -347,10 +403,20 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				5BD81FA42F61EB5E00227B71 /* MicrophoneStreamModule.swift in Sources */,
                 AAB100000000000000000001 /* PerformanceAudio.swift in Sources */,
                 AAC300000000000000000001 /* SongRecognition.swift in Sources */,
+				AAC400000000000000000028,
+				AAC400000000000000000029,
+				AAC40000000000000000002A,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		AAC400000000000000000046 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AAC40000000000000000002B, AAC40000000000000000002C, ); runOnlyForDeploymentPostprocessing = 0; };
+		AAC400000000000000000049 /* Sources */ = {isa = PBXSourcesBuildPhase; buildActionMask = 2147483647; files = (AAC40000000000000000002D, AAC40000000000000000002E, ); runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		AAC400000000000000000053 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = AAC40000000000000000005A; targetProxy = AAC400000000000000000050; };
+		AAC400000000000000000054 /* PBXTargetDependency */ = {isa = PBXTargetDependency; target = AAC40000000000000000005B; targetProxy = AAC400000000000000000051; };
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		13B07F941A680F5B00A75B9A /* Debug */ = {
@@ -362,6 +428,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = "";
 				ENABLE_BITCODE = NO;
+				CODE_SIGN_ENTITLEMENTS = freetune/freetune.entitlements;
 				INFOPLIST_FILE = freetune/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -399,6 +466,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				CLANG_ENABLE_MODULES = YES;
 				CURRENT_PROJECT_VERSION = 6;
 				DEVELOPMENT_TEAM = "";
+				CODE_SIGN_ENTITLEMENTS = freetune/freetune.entitlements;
 				INFOPLIST_FILE = freetune/Info.plist;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.music";
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
@@ -609,6 +677,106 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			};
 			name = Release;
 		};
+		AAC400000000000000000064 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PlaybackBroadcast/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freetune.PlaybackBroadcast;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				CODE_SIGN_ENTITLEMENTS = PlaybackBroadcast/PlaybackBroadcast.entitlements;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AAC400000000000000000065 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = PlaybackBroadcast/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freetune.PlaybackBroadcast;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				CODE_SIGN_ENTITLEMENTS = PlaybackBroadcast/PlaybackBroadcast.entitlements;
+			};
+			name = Release;
+		};
+		AAC400000000000000000066 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RecognitionControl/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freetune.RecognitionControl;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		AAC400000000000000000067 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				APPLICATION_EXTENSION_API_ONLY = YES;
+				CLANG_ENABLE_MODULES = YES;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 6;
+				DEVELOPMENT_TEAM = "";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RecognitionControl/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
+				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.freetune.RecognitionControl;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -630,6 +798,8 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
+		AAC40000000000000000005E /* Build configuration list for PlaybackBroadcast */ = {isa = XCConfigurationList; buildConfigurations = (AAC400000000000000000064, AAC400000000000000000065, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
+		AAC40000000000000000005F /* Build configuration list for RecognitionControl */ = {isa = XCConfigurationList; buildConfigurations = (AAC400000000000000000066, AAC400000000000000000067, ); defaultConfigurationIsVisible = 0; defaultConfigurationName = Release; };
 /* End XCConfigurationList section */
 	};
 	rootObject = 83CBB9F71A601CBA00E9B192 /* Project object */;

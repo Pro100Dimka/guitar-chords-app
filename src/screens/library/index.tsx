@@ -25,6 +25,7 @@ import { usePreferences } from "@/components/preferences";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Sheet, Action } from "../song/tools";
 import { NavigationProp } from "@/router";
+import { playbackRecognitionSupported } from "../../components/song-autofill/recognition";
 import {
   libraryQuery,
   recentSongPage,
@@ -242,6 +243,19 @@ const Library: React.FC = () => {
                     icon: "microphone",
                     onPress: () =>
                       navigation.navigate("recognizeSong", { mode: "mic" })
+                  }
+                ]
+              : []),
+            ...(playbackRecognitionSupported()
+              ? [
+                  {
+                    label: "AutofillRecognizePlayback",
+                    hint: "AddSongPlaybackHint",
+                    icon: "cellphone-sound",
+                    onPress: () =>
+                      navigation.navigate("recognizeSong", {
+                        mode: "playback"
+                      })
                   }
                 ]
               : []),

@@ -1,0 +1,44 @@
+{
+  "startedAt": "2026-11-25T07:12:26.843Z",
+  "updatedAt": "2026-11-25T07:25:22.042Z",
+  "finished": true,
+  "manifestSha256": "3bc61bf3c8fa9ff31eb467244ad17008a4f2f412cc072e95811b0c23f9911a82",
+  "sourceSha256": {
+    "src/components/song-autofill/lyrics.ts": "2fb6220d2359e6323716b215805cda8b5b3de05979c072533f08f38ec17a59c4",
+    "src/screens/song/chords.ts": "f7d31f7877f83ffe5f16f158e7481487206ededd0aa4f2294430ce1ae3f90c8f",
+    "src/components/song-autofill/source-metadata.ts": "8aaa2382c4822b7b6d88d0912357782a7272269bb66395f5951b8cd3fb8a8b9b",
+    "src/screens/song/rhythms.ts": "d5951018d6e796677222117b86f269254faec0735c245e9bd1219d5ef261aa82",
+    "src/components/song-autofill/chords-and-tabs.ts": "fbcc66bd1309e25dd995ff8a206396fb54230f97fedb58e45b771d99f7e308e5",
+    "src/components/song-autofill/sonidos.ts": "3b85e1fc29db2f2cb77ea42d950f02708ecec048d28bf1a18bdddca921a812b3",
+    "src/components/song-autofill/weing-guitar.ts": "f952c26e9859719425967935ec5617e3a1af569afcd5a2e2ff44d5cba38f2ac7",
+    "src/components/song-autofill/akkords-fun.ts": "dc55e2519cd15e732bae8f8d9a33bead92ef64fa467ddab082352ca2d8bcb137",
+    "src/components/song-autofill/lalatracker.ts": "0197083d8ede7d9cef1edfedffec9bb03c1ec26a2f2e300df9d9f7ee8dfc14da"
+  },
+  "completed": 100,
+  "total": 100,
+  "byStatus": {
+    "lyrics_and_chords": 100
+  },
+  "byGroup": {
+    "ukrainian": {
+      "checked": 30,
+      "lyricsAndChords": 30
+    },
+    "russian": {
+      "checked": 30,
+      "lyricsAndChords": 30
+    },
+    "english": {
+      "checked": 30,
+      "lyricsAndChords": 30
+    },
+    "other": {
+      "checked": 10,
+      "lyricsAndChords": 10
+    }
+  },
+  "sourceMetadataCounts": {
+    "songsWithTempo": 0,
+    "songsWithRhythm": 11
+  }
+}

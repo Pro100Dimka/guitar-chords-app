@@ -191,6 +191,19 @@ jobs:
           unzip -t "$RUNNER_TEMP/FreeTune-unsigned-device.ipa" | tail -n 1
           shasum -a 256 "$RUNNER_TEMP/FreeTune-unsigned-device.ipa"
           tail -n 60 "$RUNNER_TEMP/ios-application-build.log"
+      - name: Verify embedded recognition extensions
+        run: |
+          if [ '${{ inputs.device_ipa }}' = 'true' ]; then
+            configuration=Release-iphoneos
+          else
+            configuration=Debug-iphonesimulator
+          fi
+          app="$IOS_DERIVED_DATA/Build/Products/$configuration/freetune.app"
+          for extension in PlaybackBroadcast RecognitionControl; do
+            bundle="$app/PlugIns/$extension.appex"
+            test -s "$bundle/$extension"
+            test "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$bundle/Info.plist")" = "com.freetune.$extension"
+          done
       - name: Record native input identity and cache footprint
         if: ${{ success() && !inputs.refresh_lock }}
         id: input-snapshot

@@ -1,7 +1,8 @@
 import {
   lookupLyrics,
   matchingIdentity,
-  preferredSongContent
+  preferredSongContent,
+  publishedArtistNames
 } from "../src/components/song-autofill/lyrics";
 
 describe("lyrics-only fallback", () => {
@@ -17,6 +18,61 @@ describe("lyrics-only fallback", () => {
     expect(matchingIdentity("Live Forever", "Forever")).toBe(false);
     expect(matchingIdentity("Song (Part II)", "Song")).toBe(false);
     expect(matchingIdentity("Song (Remix)", "Song")).toBe(false);
+    expect(matchingIdentity("Вахтерам", "Вахтёрам")).toBe(true);
+    expect(publishedArtistNames("UV (UA Version)")).toEqual([
+      "UV (UA Version)"
+    ]);
+    expect(publishedArtistNames("CB (Cover Band)")).toEqual([
+      "CB (Cover Band)"
+    ]);
+  });
+
+  it("matches exact cross-script transliterations without guessing aliases or same-script spellings", () => {
+    for (const [latin, cyrillic] of [
+      ["Okean Elzy", "Океан Ельзи"],
+      ["Skryabin", "Скрябін"],
+      ["Kino", "Кино"],
+      ["Antytila", "Антитіла"],
+      ["Obiymy", "Обійми"],
+      ["Кораблі", "Кораблi"],
+      ["KAZKA", "КАZКА"]
+    ]) {
+      expect(matchingIdentity(latin, cyrillic)).toBe(true);
+      expect(matchingIdentity(cyrillic, latin)).toBe(true);
+    }
+    for (const [expected, actual] of [
+      ["Boombox", "Бумбокс"],
+      ["Skryabin", "Skriabin"],
+      ["Скрябін", "Скрябин"],
+      ["Антитіла", "Антітіла"],
+      ["Кораблі", "Корабли"],
+      ["ABBA", "АВВА"],
+      ["Okean Elzy", "Океан Ельзи Cover"],
+      ["Kino", "Кино и друзья"]
+    ])
+      expect(matchingIdentity(expected, actual)).toBe(false);
+  });
+
+  it("accepts only explicitly published title acronyms with matching initials", () => {
+    const published = "TDME (Там Де Ми Є)";
+    for (const expected of ["ТДМЕ", "TDME", "Там Де Ми Є"])
+      expect(matchingIdentity(expected, published)).toBe(true);
+    for (const [expected, actual] of [
+      ["ТДМЕ", "TDME (Там Де Ми Разом)"],
+      ["ТДМЕ", "TDME (UA Version)"],
+      ["ТДМЕ", "TDME (Там Де Ми Є) (UA Version)"],
+      ["Дежавю", "Дежавю (UA Version)"],
+      ["UV", "UV (UA Version)"],
+      ["IT", "IT (Italian Translation)"],
+      ["RA", "RA (Remix Arrangement)"],
+      ["CB", "CB (Cover Band)"],
+      ["КВ", "КВ (Кавер Версия)"],
+      ["Там Де Ми Є", "ABCD (Там Де Ми Є)"],
+      ["Там Де Ми Е", published],
+      ["ТДМЄ", published],
+      ["Є", "Е"]
+    ])
+      expect(matchingIdentity(expected, actual)).toBe(false);
   });
 
   it("rejects different performers and preserves exact lyrics line breaks", async () => {
@@ -90,6 +146,429 @@ describe("content provider failover", () => {
     globalThis.fetch = originalFetch;
     jest.useRealTimers();
     jest.restoreAllMocks();
+  });
+
+  it.each([
+    ["Akkords.pro", false],
+    ["Akkords.pro", true],
+    ["Пісенник", false],
+    ["Пісенник", true]
+  ])(
+    "imports scoped metadata once and preserves conflicts through the cache: %s / %s",
+    async (source, conflict) => {
+      const track = "Обійми",
+        performer = "Океан Ельзи";
+      const candidate =
+        source === "Akkords.pro"
+          ? "https://akkords.pro/songs/okean-elzi/obiymi/"
+          : "https://pisennyk.com.ua/okean-elzi/obiymi";
+      request.mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.startsWith("https://akkords.pro/?") && source === "Akkords.pro")
+          return new Response(
+            `<a href="${candidate}"><span class="apx-top-songs__title">${track}</span><span class="apx-top-songs__artist">${performer}</span></a>`
+          );
+        if (
+          url.startsWith("https://pisennyk.com.ua/search") &&
+          source === "Пісенник"
+        )
+          return new Response(
+            `<a href="${candidate}">${track} - ${performer}</a>`
+          );
+        if (url === candidate)
+          return new Response(
+            `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: track, byArtist: { name: performer } })}</script>` +
+              '<div class="song-metadata"><p>BPM: 96</p><p>Бой: четверка</p></div>' +
+              `<p class="${source === "Akkords.pro" ? "chords" : "interpretation-content"}">Tempo: ${conflict ? 120 : 96}<br>Бой: ${conflict ? "шестёрка" : "четверка"}<br>Am C<br>Тестовий рядок для перевірки</p>` +
+              "<aside>Tempo: 180<br>Бой: восьмерка</aside>"
+          );
+        return response(url);
+      });
+      const pending = lookup(track, performer);
+      await jest.runAllTimersAsync();
+      const options = await pending;
+      expect(options).toHaveLength(1);
+      expect(options[0].source).toBe(source);
+      expect(options[0].tempo).toBe(conflict ? undefined : 96);
+      expect(options[0].rhythm?.strumPreset).toBe(
+        conflict ? undefined : "four"
+      );
+      const count = request.mock.calls.length;
+      expect(await lookup(track, performer)).toEqual(options);
+      expect(request).toHaveBeenCalledTimes(count);
+    }
+  );
+
+  it("finds Pisennyk charts hidden by the combined query's limited results", async () => {
+    const track = "Обійми";
+    const performer = "Океан Ельзи";
+    const candidate = "https://pisennyk.com.ua/okean-elzi/obiymi";
+    const wrongArtist = "https://pisennyk.com.ua/another-artist/obiymi";
+    request.mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.startsWith("https://pisennyk.com.ua/search"))
+        return new Response(
+          new URL(value).searchParams.get("q") === track
+            ? `<a href="${wrongArtist}">${track} - Інший виконавець</a><a href="${candidate}">${track} - ${performer}</a>`
+            : Array.from(
+                { length: 50 },
+                (_, index) =>
+                  `<a href="https://pisennyk.com.ua/okean-elzi/other-${index}">Інша пісня ${index} - ${performer}</a>`
+              ).join("")
+        );
+      if (value === candidate)
+        return new Response(
+          `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: track, byArtist: { name: performer } })}</script><div class="interpretation-content"><code data-chord="Am">Am</code>Тестовий рядок для перевірки</div>`
+        );
+      return response(value);
+    });
+    const pending = lookup(track, performer);
+    await jest.runAllTimersAsync();
+    expect(await pending).toEqual([
+      expect.objectContaining({
+        source: "Пісенник",
+        url: candidate,
+        hasChords: true
+      })
+    ]);
+    expect(
+      request.mock.calls
+        .map(([url]) => String(url))
+        .filter((url) => url.startsWith("https://pisennyk.com.ua/search"))
+        .map((url) => new URL(url).searchParams.get("q"))
+    ).toEqual([`${track} ${performer}`, track]);
+    expect(request.mock.calls.some(([url]) => url === wrongArtist)).toBe(false);
+  });
+
+  it.each(["Akkords.pro", "Пісенник"])(
+    "finds the official mixed-script Apple identity through %s without accepting a different performer",
+    async (source) => {
+      const candidate =
+        source === "Akkords.pro"
+          ? "https://akkords.pro/songs/okean-elzi/obiymi/"
+          : "https://pisennyk.com.ua/okean-elzi/obiymi";
+      const wrongArtist = candidate.replace("okean-elzi", "another-artist");
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (
+          source === "Akkords.pro" &&
+          value.startsWith("https://akkords.pro/?")
+        )
+          return new Response(
+            new URL(value).searchParams.get("s") === "Обійми"
+              ? `<a href="${wrongArtist}"><span class="apx-top-songs__title">Обійми</span><span class="apx-top-songs__artist">Інший виконавець</span></a><a href="${candidate}"><span class="apx-top-songs__title">Обійми</span><span class="apx-top-songs__artist">Океан Ельзи</span></a>`
+              : "<p>No results</p>"
+          );
+        if (
+          source === "Пісенник" &&
+          value.startsWith("https://pisennyk.com.ua/search")
+        )
+          return new Response(
+            `<a href="${wrongArtist}">Обійми - Інший виконавець</a><a href="${candidate}">Обійми - Океан Ельзи</a>`
+          );
+        if (value === candidate)
+          return new Response(
+            `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: "Обійми", byArtist: { name: "Океан Ельзи" } })}</script><p class="${source === "Akkords.pro" ? "chords" : "interpretation-content"}">Am C<br>Тестовий рядок для перевірки</p>`
+          );
+        return response(value);
+      });
+      const pending = lookup("Обійми", "Okean Elzy");
+      await jest.runAllTimersAsync();
+      expect(await pending).toEqual([
+        expect.objectContaining({ source, url: candidate, hasChords: true })
+      ]);
+      expect(request.mock.calls.some(([url]) => url === wrongArtist)).toBe(
+        false
+      );
+    }
+  );
+
+  it("preserves spaced hyphens inside Pisennyk titles and performer names", async () => {
+    const candidate = "https://pisennyk.com.ua/rok-hurt/noviy-den";
+    request.mockImplementation(async (url) =>
+      String(url).startsWith("https://pisennyk.com.ua/search")
+        ? new Response(`<a href="${candidate}">Новий - день - Рок - Гурт</a>`)
+        : String(url) === candidate
+          ? new Response(
+              `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: "Новий - день", byArtist: { name: "Рок - Гурт" } })}</script><p class="interpretation-content"><code data-chord="Am">Am</code>Тестовий рядок для перевірки</p>`
+            )
+          : response(String(url))
+    );
+    const pending = lookup("Новий - день", "Rok - Hurt");
+    await jest.runAllTimersAsync();
+    expect(await pending).toEqual([
+      expect.objectContaining({
+        source: "Пісенник",
+        hasChords: true,
+        url: candidate
+      })
+    ]);
+  });
+
+  it.each([
+    ["ВВ (Воплі Відоплясова)", true],
+    ["ВВ (Володимир Васильків)", false],
+    ["АБ (Воплі Відоплясова)", false],
+    ["Воплі Відоплясова (Україномовна версія від іншого виконавця)", false],
+    ["ВВ (feat. Воплі Відоплясова)", false]
+  ])(
+    "verifies the published artist abbreviation %s",
+    async (pageArtist, matches) => {
+      const candidate = "https://pisennyk.com.ua/vv-vopli-vidoplyasova/vesna";
+      request.mockImplementation(async (url) =>
+        String(url).startsWith("https://pisennyk.com.ua/search")
+          ? new Response(`<a href="${candidate}">Весна - ${pageArtist}</a>`)
+          : String(url) === candidate
+            ? new Response(
+                `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: "Весна", byArtist: { name: pageArtist } })}</script><p class="interpretation-content"><code data-chord="Am">Am</code>Тестовий рядок для перевірки</p>`
+              )
+            : response(String(url))
+      );
+      const pending = lookup("Весна", "Воплі Відоплясова");
+      await jest.runAllTimersAsync();
+      if (matches)
+        expect(await pending).toEqual([
+          expect.objectContaining({
+            source: "Пісенник",
+            artist: pageArtist,
+            hasChords: true
+          })
+        ]);
+      else expect(await pending).toEqual([]);
+    }
+  );
+
+  it.each([
+    ["TDME (Там Де Ми Є)", "Антитіла", true],
+    ["TDME (Там Де Ми Разом)", "Антитіла", false],
+    ["TDME (UA Version)", "Антитіла", false],
+    ["TDME (Там Де Ми Є)", "Інший гурт", false]
+  ])(
+    "verifies the published title acronym %s and page performer %s",
+    async (pageTitle, pageArtist, matches) => {
+      const candidate = "https://pisennyk.com.ua/antitila/tdme-tam-de-mi-ye";
+      request.mockImplementation(async (url) =>
+        String(url).startsWith("https://pisennyk.com.ua/search")
+          ? new Response(
+              `<a href="${candidate}">TDME (Там Де Ми Є) - Антитіла</a>`
+            )
+          : String(url) === candidate
+            ? new Response(
+                `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: pageTitle, byArtist: { name: pageArtist } })}</script><p class="interpretation-content"><code data-chord="Am">Am</code>Тестовий рядок для перевірки</p>`
+              )
+            : response(String(url))
+      );
+      const pending = lookup("ТДМЕ", "Антитіла");
+      await jest.runAllTimersAsync();
+      if (matches)
+        expect(await pending).toEqual([
+          expect.objectContaining({
+            source: "Пісенник",
+            title: pageTitle,
+            artist: pageArtist,
+            hasChords: true
+          })
+        ]);
+      else expect(await pending).toEqual([]);
+    }
+  );
+
+  it.each([
+    [
+      "Кораблі",
+      "The Hardkiss",
+      "Кораблi",
+      "The Hardkiss",
+      "the-hardkiss/korabli"
+    ],
+    ["Плакала", "KAZKA", "Плакала", "КАZКА", "kazka/plakala"]
+  ])(
+    "accepts exact mixed-script source labels for %s",
+    async (track, performer, pageTitle, pageArtist, path) => {
+      const candidate = `https://pisennyk.com.ua/${path}`;
+      request.mockImplementation(async (url) =>
+        String(url).startsWith("https://pisennyk.com.ua/search")
+          ? new Response(
+              `<a href="${candidate}">${pageTitle} - ${pageArtist}</a>`
+            )
+          : String(url) === candidate
+            ? new Response(
+                `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: pageTitle, byArtist: { name: pageArtist } })}</script><p class="interpretation-content"><code data-chord="Am">Am</code>Тестовий рядок для перевірки</p>`
+              )
+            : response(String(url))
+      );
+      const pending = lookup(track, performer);
+      await jest.runAllTimersAsync();
+      expect(await pending).toEqual([
+        expect.objectContaining({
+          source: "Пісенник",
+          hasChords: true,
+          url: candidate
+        })
+      ]);
+    }
+  );
+
+  it.each([
+    ["Кукушка", "Полина Гагарина", "Кукушка", "polina-gagarina/kukushka-2"],
+    ["Хочешь?", "Земфира", "Хочешь", "zemfira/hochesh"],
+    [
+      "Don't Stop - Go?!",
+      "Test Artist",
+      "Don't Stop - Go",
+      "test-artist/dont-stop-go"
+    ]
+  ])(
+    "retries Akkords by title after the combined search omits %s",
+    async (track, performer, searchTitle, path) => {
+      const candidate = `https://akkords.pro/songs/${path}/`;
+      const wrongArtist =
+        "https://akkords.pro/songs/another-artist/same-title/";
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.startsWith("https://akkords.pro/?"))
+          return new Response(
+            new URL(value).searchParams.get("s") === searchTitle
+              ? `<a href="${wrongArtist}"><span class="apx-top-songs__title">${searchTitle}</span><span class="apx-top-songs__artist">Другой артист</span></a><a href="${candidate}"><span class="apx-top-songs__title">${searchTitle}</span><span class="apx-top-songs__artist">${performer}</span></a>`
+              : "<p>No results</p>"
+          );
+        if (value === candidate)
+          return new Response(
+            `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: searchTitle, byArtist: { name: performer } })}</script><p class="chords">Am C\nOriginal example words</p>`
+          );
+        return response(value);
+      });
+      const pending = lookup(track, performer);
+      await jest.runAllTimersAsync();
+      expect(await pending).toEqual([
+        expect.objectContaining({
+          source: "Akkords.pro",
+          hasChords: true,
+          url: candidate
+        })
+      ]);
+      expect(
+        request.mock.calls
+          .map(([url]) => String(url))
+          .filter((url) => url.startsWith("https://akkords.pro/?"))
+          .map((url) => new URL(url).searchParams.get("s"))
+      ).toEqual([`${track} ${performer}`, searchTitle]);
+      expect(request.mock.calls.some(([url]) => url === wrongArtist)).toBe(
+        false
+      );
+    }
+  );
+
+  it("keeps a successful mixed-script combined search instead of broadening it", async () => {
+    const candidate = "https://akkords.pro/songs/the-hardkiss/korabli/";
+    request.mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.startsWith("https://akkords.pro/?"))
+        return new Response(
+          new URL(value).searchParams.get("s") === "Кораблі The Hardkiss"
+            ? `<a href="${candidate}"><span class="apx-top-songs__title">Кораблі</span><span class="apx-top-songs__artist">The Hardkiss</span></a>`
+            : "<p>No results</p>"
+        );
+      if (value === candidate)
+        return new Response(
+          `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: "Кораблі", byArtist: { name: "The Hardkiss" } })}</script><p class="chords">Am C\nOriginal example words</p>`
+        );
+      return response(value);
+    });
+    const pending = lookup("Кораблі", "The Hardkiss");
+    await jest.runAllTimersAsync();
+    expect(await pending).toEqual([
+      expect.objectContaining({ source: "Akkords.pro", hasChords: true })
+    ]);
+    expect(
+      request.mock.calls.filter(([url]) =>
+        String(url).startsWith("https://akkords.pro/?")
+      )
+    ).toHaveLength(1);
+  });
+
+  it.each([
+    [
+      "Группа крови",
+      "Кино",
+      "Группа крови",
+      "Кино (Виктор Цой)",
+      "kino/gruppa-krovi"
+    ],
+    ["Вахтерам", "Бумбокс", "Вахтёрам", "Бумбокс", "bumboks/vaxteram"],
+    [
+      "Hotel California",
+      "Eagles",
+      "Hotel California",
+      "Eagles",
+      "eagles/hotel-california"
+    ]
+  ])(
+    "finds lyrics with chords for %s through the public Akkords.pro search",
+    async (track, performer, pageTitle, pageArtist, path) => {
+      const candidate = `https://akkords.pro/songs/${path}/`;
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.startsWith("https://akkords.pro/?"))
+          return new Response(
+            `<a href="${candidate}"><span class="apx-top-songs__title">${pageTitle}</span><span class="apx-top-songs__artist">${pageArtist}</span></a>`
+          );
+        if (value === candidate)
+          return new Response(
+            `<script type="application/ld+json">${JSON.stringify({ "@graph": [{ "@type": ["MusicRecording", "Article"], name: pageTitle, byArtist: { name: pageArtist } }] })}</script><div class="core"><pre>Am C\nUnrelated sidebar example</pre></div><p class="chords"><b>Куплет 1:</b>\n<span>Am</span>       <span>C</span>\nOriginal example words\n<span>G</span>\nТестовий рядок для перевірки</p>`
+          );
+        return response(value);
+      });
+      const pending = lookup(track, performer);
+      await jest.runAllTimersAsync();
+      expect(await pending).toEqual([
+        expect.objectContaining({
+          source: "Akkords.pro",
+          url: candidate,
+          title: pageTitle,
+          artist: pageArtist,
+          hasChords: true,
+          content: expect.stringContaining("Am       C\nOriginal example words")
+        })
+      ]);
+      expect(
+        request.mock.calls
+          .map(([url]) => String(url))
+          .filter((url) => url.startsWith("https://akkords.pro/?"))
+          .map((url) => new URL(url).searchParams.get("s"))
+      ).toEqual([`${track} ${performer}`]);
+    }
+  );
+
+  it.each([
+    "search performer",
+    "page performer",
+    "foreign URL",
+    "missing chart body",
+    "chords without lyrics"
+  ])("rejects an Akkords.pro result with %s", async (invalid) => {
+    const candidate = "https://akkords.pro/songs/kino/gruppa-krovi/";
+    const linkedUrl =
+      invalid === "foreign URL"
+        ? candidate.replace("akkords.pro", "example.org")
+        : candidate;
+    request.mockImplementation(async (url) => {
+      const value = String(url);
+      if (value.startsWith("https://akkords.pro/?"))
+        return new Response(
+          `<a href="${linkedUrl}"><span class="apx-top-songs__title">Группа крови</span><span class="apx-top-songs__artist">${invalid === "search performer" ? "Другой артист" : "Кино (Виктор Цой)"}</span></a>`
+        );
+      if (value === candidate)
+        return new Response(
+          `<script type="application/ld+json">${JSON.stringify({ "@graph": [{ "@type": ["MusicRecording", "Article"], name: "Группа крови", byArtist: { name: invalid === "page performer" ? "Другой артист" : "Кино (Виктор Цой)" } }] })}</script><pre>Am C\nUnrelated sidebar example</pre><p class="${invalid === "missing chart body" ? "unrelated" : "chords"}">Am C\n${invalid === "chords without lyrics" ? "[Chorus]\nG F" : "Original example words"}</p>`
+        );
+      return response(value);
+    });
+    const pending = lookup("Группа крови", "Кино");
+    await jest.runAllTimersAsync();
+    expect(await pending).toEqual([]);
+    if (["search performer", "foreign URL"].includes(invalid))
+      expect(request.mock.calls.some(([url]) => url === linkedUrl)).toBe(false);
   });
 
   it("reuses completed chord results when the same song is searched again", async () => {
@@ -449,6 +928,113 @@ describe("content provider failover", () => {
     ).toBe("Am C\nOriginal example words");
   });
 
+  it.each([
+    [
+      "Shape of You",
+      "Ed Sheeran",
+      "Shape Of You tab",
+      "/e/ed-sheeran/389466.html"
+    ],
+    ["Caruso", "Lucio Dalla", "Caruso tab", "/l/lucio-dalla/33843.html"]
+  ])(
+    "checks the detail for a matching GuitareTab tab listing: %s",
+    async (track, performer, label, path) => {
+      const canonical = `https://www.guitaretab.com${path}`;
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.startsWith("https://www.guitaretab.com/fetch/?"))
+          return new Response(
+            `<div class="gt-list__row"><a href="${path.slice(0, path.lastIndexOf("/") + 1)}">${performer}</a><a href="${path}">${label}</a></div>`
+          );
+        if (value === canonical)
+          return new Response(
+            `<h1>${track}</h1><h2>${performer}</h2><pre>Am C\nOriginal synthetic example words</pre>`
+          );
+        return response(value);
+      });
+      const result = lookup(track, performer);
+      await jest.runAllTimersAsync();
+      expect(await result).toEqual([
+        expect.objectContaining({
+          source: "GuitareTab",
+          url: canonical,
+          hasChords: true
+        })
+      ]);
+      expect(request.mock.calls.some(([url]) => url === canonical)).toBe(true);
+    }
+  );
+
+  it.each([
+    ["tab-only", "e|--0--2--3--|\nB|--1--3--0--|"],
+    ["lyrics-only", "Original synthetic example words"]
+  ])(
+    "does not mark a GuitareTab %s detail as lyrics and chords",
+    async (_, body) => {
+      const canonical = "https://www.guitaretab.com/o/oasis/123.html";
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.startsWith("https://www.guitaretab.com/fetch/?"))
+          return new Response(
+            `<div class="gt-list__row"><a href="/o/oasis/">${artist}</a><a href="/o/oasis/123.html">${title} tab</a></div>`
+          );
+        if (value === canonical)
+          return new Response(
+            `<h1>${title}</h1><h2>${artist}</h2><pre>${body}</pre>`
+          );
+        return response(value);
+      });
+      const result = lookup(title, artist);
+      await jest.runAllTimersAsync();
+      expect(await result).toEqual([
+        expect.objectContaining({
+          source: "GuitareTab",
+          url: canonical,
+          hasChords: false
+        })
+      ]);
+    }
+  );
+
+  it.each([false, true])(
+    "limits GuitareTab tab fallback to three details and prefers any chords listing: %s",
+    async (hasChordListing) => {
+      const ids = [101, 102, 103, 104];
+      const search =
+        ids
+          .map(
+            (id) =>
+              `<div class="gt-list__row"><a href="/o/oasis/">${artist}</a><a href="/o/oasis/${id}.html">${title} tab (ver ${id})</a></div>`
+          )
+          .join("") +
+        (hasChordListing
+          ? `<div class="gt-list__row"><a href="/o/oasis/">${artist}</a><a href="/o/oasis/999.html">${title} chords</a></div>`
+          : "");
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.startsWith("https://www.guitaretab.com/fetch/?"))
+          return new Response(search);
+        if (/^https:\/\/www\.guitaretab\.com\/o\/oasis\/\d+\.html$/.test(value))
+          return new Response(chart);
+        return response(value);
+      });
+      const result = lookup(title, artist);
+      await jest.runAllTimersAsync();
+      expect((await result).every((option) => option.hasChords)).toBe(true);
+      expect(
+        request.mock.calls
+          .map(([url]) => String(url))
+          .filter((url) =>
+            /^https:\/\/www\.guitaretab\.com\/o\/oasis\/\d+\.html$/.test(url)
+          )
+      ).toEqual(
+        (hasChordListing ? [999] : ids.slice(0, 3)).map(
+          (id) => `https://www.guitaretab.com/o/oasis/${id}.html`
+        )
+      );
+    }
+  );
+
   it("tries another verified arrangement when the first version has no chords", async () => {
     const search = [123, 456]
       .map(
@@ -734,14 +1320,19 @@ describe("content provider failover", () => {
     ).toBe(true);
   });
 
-  it.each(["different artist", "external link"])(
-    "rejects a GuitareTab %s instead of importing an unrelated chart",
-    async (failure) => {
+  it.each([
+    ["chords", "different artist"],
+    ["chords", "external link"],
+    ["tab", "different artist"],
+    ["tab", "external link"]
+  ])(
+    "rejects a GuitareTab %s %s instead of importing an unrelated chart",
+    async (kind, failure) => {
       request.mockImplementation(async (url) => {
         const value = String(url);
         if (value.startsWith("https://www.guitaretab.com/fetch/?"))
           return new Response(
-            `<div class="gt-list__row"><a href="/o/oasis/">Oasis</a><a href="${failure === "external link" ? "https://example.com/song" : "/o/oasis/123.html"}">${title} chords</a></div>`
+            `<div class="gt-list__row"><a href="/o/oasis/">Oasis</a><a href="${failure === "external link" ? "https://example.com/song" : "/o/oasis/123.html"}">${title} ${kind}</a></div>`
           );
         if (value === "https://www.guitaretab.com/o/oasis/123.html")
           return new Response(
@@ -759,6 +1350,12 @@ describe("content provider failover", () => {
       expect(
         request.mock.calls.some(([url]) => String(url).includes("example.com"))
       ).toBe(false);
+      expect(
+        request.mock.calls.some(
+          ([url]) =>
+            String(url) === "https://www.guitaretab.com/o/oasis/123.html"
+        )
+      ).toBe(failure === "different artist");
     }
   );
 
@@ -783,37 +1380,49 @@ describe("content provider failover", () => {
     expect(request).toHaveBeenCalledTimes(2);
   });
 
-  it("keeps the lyrics fallback when chord providers are unavailable", async () => {
-    request.mockImplementation(async (url) => {
-      const value = String(url);
-      if (value.startsWith("https://lrclib.net/"))
-        return new Response(
-          JSON.stringify([
-            {
-              id: 1,
-              trackName: title,
-              artistName: artist,
-              plainLyrics: "Original example words"
-            }
-          ])
-        );
-      return new Response("", { status: 503 });
-    });
-    const result = lookup(title, artist);
-    await jest.advanceTimersByTimeAsync(0);
-    await expect(result).resolves.toEqual([
-      expect.objectContaining({
-        source: "LRCLIB",
-        content: "Original example words"
-      })
-    ]);
-  });
+  it.each([true, false])(
+    "distinguishes a chord service outage from no match despite healthy lyrics (outage: %s)",
+    async (outage) => {
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.startsWith("https://lrclib.net/"))
+          return new Response(
+            JSON.stringify([
+              {
+                id: 1,
+                trackName: title,
+                artistName: artist,
+                plainLyrics: "Original example words"
+              }
+            ])
+          );
+        return new Response("", {
+          status:
+            !outage && value.startsWith("https://akkords.pro/") ? 404 : 503
+        });
+      });
+      const result = lookup(title, artist).catch((error) => error);
+      await jest.advanceTimersByTimeAsync(0);
+      if (outage) {
+        expect(await result).toEqual(new Error("ChordSourcesUnavailable"));
+      } else {
+        expect(await result).toEqual([
+          expect.objectContaining({
+            source: "LRCLIB",
+            content: "Original example words"
+          })
+        ]);
+      }
+    }
+  );
 
   it("uses lyrics.ovh when the primary lyrics service is unavailable", async () => {
     request.mockImplementation(async (url) =>
       String(url).startsWith("https://api.lyrics.ovh/")
         ? new Response(JSON.stringify({ lyrics: "Original example words" }))
-        : new Response("", { status: 503 })
+        : new Response("", {
+            status: String(url).startsWith("https://lrclib.net/") ? 503 : 404
+          })
     );
     const result = lookup(title, artist);
     await jest.advanceTimersByTimeAsync(0);

@@ -14,12 +14,24 @@ source = (source.replace("import React", "").replace("import UIKit", "")
           .replace(", RCTBridgeModule", "").replace("@objc(SongRecognition)", "")
           .replace("@objc ", "").replace("private ", "")
           .replace("AVAudioSession", "CaptureSession").replace("AVAudioEngine", "CaptureEngine"))
+source += (root / "ios/PlaybackCaptureStore.swift").read_text(encoding="utf-8").replace("private ", "")
+source += ((root / "ios/PlaybackBroadcast/SampleHandler.swift").read_text(encoding="utf-8")
+           .replace("import ReplayKit", "").replace("private ", ""))
+source += ((root / "ios/OpenRecognitionIntent.swift").read_text(encoding="utf-8").split("@available", 1)[0]
+           .replace("import AppIntents", "").replace("private ", ""))
 fixture = r'''
 import AVFoundation
 import Foundation
 typealias RCTPromiseResolveBlock = (Any?) -> Void
 typealias RCTPromiseRejectBlock = (String?, String?, Error?) -> Void
 enum UIApplication { static let didEnterBackgroundNotification = Notification.Name("background") }
+enum RPSampleBufferType { case video, audioApp, audioMic }
+class RPBroadcastSampleHandler {
+  func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {}
+  func processSampleBuffer(_ sampleBuffer: CMSampleBuffer, with sampleBufferType: RPSampleBufferType) {}
+  func broadcastFinished() {}
+  func finishBroadcastWithError(_ error: Error) {}
+}
 final class CaptureSession {
   enum Category { case playAndRecord }
   enum Mode { case measurement }
@@ -29,13 +41,19 @@ final class CaptureSession {
     static let defaultToSpeaker = Options(rawValue: 1)
     static let allowBluetooth = Options(rawValue: 2)
     static let notifyOthersOnDeactivation = Options(rawValue: 4)
+    static let mixWithOthers = Options(rawValue: 8)
+    static let allowBluetoothA2DP = Options(rawValue: 16)
   }
   static let interruptionNotification = Notification.Name("interruption")
   static let instance = CaptureSession()
   static func sharedInstance() -> CaptureSession { instance }
   var recordPermission = Permission.granted
   var active = false
-  func setCategory(_ category: Category, mode: Mode, options: Options) throws {}
+  func setCategory(_ category: Category, mode: Mode, options: Options) throws {
+    precondition(options.contains(.mixWithOthers), "Recognition interrupts the music player")
+    precondition(options.contains(.allowBluetoothA2DP), "Recognition removes stereo Bluetooth output")
+    precondition(!options.contains(.allowBluetooth), "Recognition forces the music player onto hands-free audio")
+  }
   func setActive(_ value: Bool, options: Options = []) throws { active = value }
 }
 func pcm(_ rate: Double, _ count: Int) -> AVAudioPCMBuffer {
@@ -178,7 +196,114 @@ do { try fileRecognizer.check(timedOut); fatalError("File timeout ignored") }
 catch { precondition((error as NSError).domain == "FileReadTimeout") }
 timedOut.finishReading()
 precondition(!CaptureSession.instance.active, "File recognition activated the microphone")
-print("Production iOS recognition passed: PCM rates, metadata, cached audio, HTTP 429, cancellation, microphone cleanup, real WAV file decoding, file metadata/cache, file cancellation and read timeout.")
+
+// The ReplayKit extension owns capture while the main app is suspended/interrupted.
+let independent = RecognitionCapture(allowsBackground: true)
+running.control.sync { running.active = independent }
+NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+NotificationCenter.default.post(name: CaptureSession.interruptionNotification, object: nil)
+running.control.sync { precondition(!independent.cancelled); running.active = nil }
+let foreground = RecognitionCapture()
+running.control.sync { running.active = foreground }
+NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+running.control.sync { precondition(foreground.cancelled); running.active = nil }
+
+let store = PlaybackCaptureStore(directory: directory.appendingPathComponent("capture"))
+let older = try store.begin(), newer = try store.begin()
+precondition(!store.isCurrent(older) && store.isCurrent(newer))
+store.remove(older)
+precondition(store.isCurrent(newer), "Cancelling an old capture revoked a newer request")
+do { try store.complete(older, samples: samples); fatalError("Stale capture accepted") }
+catch { precondition((error as NSError).domain == "Cancelled") }
+try store.complete(newer, samples: samples)
+let stored = try store.samples(newer)
+precondition(stored == samples, "PCM changed during the extension handoff")
+store.remove(newer)
+precondition(!store.isCurrent(newer))
+let removed = try store.result(newer)
+precondition(removed == nil)
+let shortRequest = try store.begin()
+do { try store.complete(shortRequest, samples: [1]); fatalError("Short capture accepted") }
+catch { precondition((error as NSError).domain == "PlaybackAudioUnavailable") }
+
+func broadcastBuffer(rate: Double, common: AVAudioCommonFormat, interleaved: Bool, silent: Bool = false) -> CMSampleBuffer {
+  let format = AVAudioFormat(commonFormat: common, sampleRate: rate, channels: 2, interleaved: interleaved)!
+  let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(rate))!
+  buffer.frameLength = buffer.frameCapacity
+  for frame in 0..<Int(buffer.frameLength) {
+    for channel in 0..<2 {
+      let plane = interleaved ? 0 : channel, offset = interleaved ? frame * 2 + channel : frame
+      let value: Float = silent ? 0 : channel == 0 ? 0.5 : 0.25
+      switch common {
+      case .pcmFormatFloat32: buffer.floatChannelData![plane][offset] = value
+      case .pcmFormatInt16: buffer.int16ChannelData![plane][offset] = Int16(value * 32768)
+      case .pcmFormatInt32: buffer.int32ChannelData![plane][offset] = Int32(value * 2147483648)
+      default: fatalError("Unsupported fixture format")
+      }
+    }
+  }
+  var result: CMSampleBuffer?
+  var timing = CMSampleTimingInfo(duration: CMTime(value: 1, timescale: Int32(rate)), presentationTimeStamp: .zero, decodeTimeStamp: .invalid)
+  var frameSize = Int(format.streamDescription.pointee.mBytesPerFrame)
+  let created = withUnsafePointer(to: &frameSize) { size in
+    CMSampleBufferCreate(allocator: kCFAllocatorDefault, dataBuffer: nil, dataReady: false,
+      makeDataReadyCallback: nil, refcon: nil, formatDescription: format.formatDescription,
+      sampleCount: Int(buffer.frameLength), sampleTimingEntryCount: 1, sampleTimingArray: &timing,
+      sampleSizeEntryCount: interleaved ? 1 : 0, sampleSizeArray: interleaved ? size : nil, sampleBufferOut: &result)
+  }
+  precondition(created == noErr)
+  precondition(CMSampleBufferSetDataBufferFromAudioBufferList(result!, blockBufferAllocator: kCFAllocatorDefault,
+    blockBufferMemoryAllocator: kCFAllocatorDefault, flags: 0, bufferList: buffer.audioBufferList) == noErr)
+  precondition(CMSampleBufferSetDataReady(result!) == noErr)
+  return result!
+}
+for rate in [16000.0, 44100.0, 48000.0] {
+  for common in [AVAudioCommonFormat.pcmFormatFloat32, .pcmFormatInt16, .pcmFormatInt32] {
+    for interleaved in [false, true] {
+      let request = try store.begin(), handler = SampleHandler()
+      handler.store = store; handler.request = request
+      let buffer = broadcastBuffer(rate: rate, common: common, interleaved: interleaved)
+      handler.processSampleBuffer(buffer, with: .video)
+      handler.processSampleBuffer(buffer, with: .audioMic)
+      precondition(handler.samples.isEmpty, "Private video or microphone data was captured")
+      for _ in 0..<14 { handler.processSampleBuffer(buffer, with: .audioApp) }
+      let result = try store.result(request), captured = try store.samples(request)
+      precondition(result?.error == nil && handler.finished)
+      precondition(captured.count == PlaybackCaptureStore.maximumSamples, "Capture exceeded 12 seconds")
+      precondition(captured.allSatisfy { abs(Int($0) - 12287) <= 1 }, "Channel mixing/resampling corrupts the fingerprint input")
+      precondition(handler.samples.isEmpty, "Completed audio remains in extension memory")
+      store.remove(request)
+    }
+  }
+}
+let silentRequest = try store.begin(), silentHandler = SampleHandler()
+silentHandler.store = store; silentHandler.request = silentRequest
+silentHandler.processSampleBuffer(broadcastBuffer(rate: 48000, common: .pcmFormatFloat32, interleaved: false, silent: true), with: .audioApp)
+silentHandler.broadcastFinished()
+let silentResult = try store.result(silentRequest)
+precondition(silentResult?.error == "PlaybackAudioUnavailable", "Protected or silent playback was reported as a usable capture")
+store.remove(silentRequest)
+let cancelledRequest = try store.begin(), cancelledHandler = SampleHandler()
+cancelledHandler.store = store; cancelledHandler.request = cancelledRequest
+let audio = broadcastBuffer(rate: 48000, common: .pcmFormatFloat32, interleaved: true)
+cancelledHandler.processSampleBuffer(audio, with: .audioApp)
+store.remove(cancelledRequest)
+let following = try store.begin()
+cancelledHandler.processSampleBuffer(audio, with: .audioApp)
+let followingResult = try store.result(following)
+precondition(cancelledHandler.finished && cancelledHandler.samples.isEmpty && followingResult == nil && store.isCurrent(following))
+store.remove(following)
+
+RecognitionLaunch.open("playback")
+let firstLaunch = RecognitionLaunch.consume()!
+precondition(firstLaunch.hasPrefix("freetune://recognize/playback?autoStart=true&requestId="))
+precondition(RecognitionLaunch.consume() == nil, "Cold launch replayed the same shortcut")
+RecognitionLaunch.open("playback")
+precondition(RecognitionLaunch.consume() != firstLaunch, "Repeated controls share the same request ID")
+RecognitionLaunch.open("mic")
+UserDefaults.standard.set(Date().addingTimeInterval(-180), forKey: RecognitionLaunch.createdKey)
+precondition(RecognitionLaunch.consume() == nil, "An expired shortcut auto-started recognition")
+print("Production iOS recognition passed: microphone mixing, PCM rates, metadata/cache/HTTP 429, cancellation/cleanup, WAV decoding, ReplayKit background lifecycle, bounded stereo PCM handoff across 18 format/rate combinations, silence/private buffer rejection, stale session cancellation, and Control Center launch consumption.")
 '''
 subprocess.run(["cargo", "build", "--release", "--locked", "--lib", "--manifest-path",
                 str(root / "android/song-fingerprint/Cargo.toml")], check=True)

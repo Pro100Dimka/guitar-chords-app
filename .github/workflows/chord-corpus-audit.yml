@@ -1,0 +1,50 @@
+name: chord-corpus-audit
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: chord-corpus-audit-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  live-corpus:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - name: Audit all 100 identities against real chord providers
+        run: >-
+          node scripts/check-chord-corpus.cjs
+          docs/recognition-chord-corpus-validated-100-2026-11-25.json
+          chord-corpus-results.jsonl
+      - name: Report coverage and require a complete run
+        if: ${{ !cancelled() }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const summary = JSON.parse(fs.readFileSync('chord-corpus-results.summary.json', 'utf8'));
+          const rows = fs.readFileSync('chord-corpus-results.jsonl', 'utf8').trim().split('\n').map(JSON.parse);
+          const found = summary.byStatus.lyrics_and_chords || 0;
+          const misses = rows.filter(row => row.kind === 'song' && row.status !== 'lyrics_and_chords');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,
+            `## Live chord coverage\n\n${found}/${summary.total} returned verified lyrics with chords.\n\n` +
+            'A completed audit is not a claim of 100% coverage. No audio recordings are tested by this job.\n\n' +
+            misses.map(row => `- ${row.id}: ${row.artist} — ${row.title}: ${row.status}`).join('\n') + '\n');
+          if (!summary.finished || summary.completed !== 100) throw new Error('Incomplete corpus audit');
+          NODE
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: chord-corpus-results
+          path: |
+            chord-corpus-results.jsonl
+            chord-corpus-results.summary.json
+          if-no-files-found: error
+          retention-days: 30

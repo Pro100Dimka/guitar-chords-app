@@ -1,0 +1,717 @@
+{
+  "schemaVersion": 1,
+  "frozenOn": "2026-11-25",
+  "frozenBeforeAliasFixFromCommit": "ccabf464742304a25249cdf437970d36a508c925",
+  "selection": "Fixed, nonrandom repertoire spanning familiar Ukrainian, Russian, English and seven other song languages; selection was frozen before running these 100 queries. Failed entries must not be replaced.",
+  "identityNote": "These are fixed query spellings, not 100 captured native Shazam responses. Entry001 uses the exact mixed-script identity observed in the official Apple catalog. Other entries use common artist/title spellings.",
+  "expectedCounts": {
+    "ukrainian": 30,
+    "russian": 30,
+    "english": 30,
+    "other": 10
+  },
+  "songs": [
+    {
+      "id": "001",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Обійми",
+      "artist": "Okean Elzy",
+      "identitySource": "https://itunes.apple.com/search?term=Okean+Elzy+%D0%9E%D0%B1%D1%96%D0%B9%D0%BC%D0%B8&entity=song&limit=5",
+      "identitySourceTrackId": 1033595614
+    },
+    {
+      "id": "002",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Без бою",
+      "artist": "Океан Ельзи"
+    },
+    {
+      "id": "003",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Старі фотографії",
+      "artist": "Скрябін"
+    },
+    {
+      "id": "004",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Люди як кораблі",
+      "artist": "Скрябін"
+    },
+    {
+      "id": "005",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Ліхтарі",
+      "artist": "O.Torvald"
+    },
+    {
+      "id": "006",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Наодинці",
+      "artist": "Бумбокс"
+    },
+    {
+      "id": "007",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Люди",
+      "artist": "Бумбокс"
+    },
+    {
+      "id": "008",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "ТДМЕ",
+      "artist": "Антитіла"
+    },
+    {
+      "id": "009",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Фортеця Бахмут",
+      "artist": "Антитіла"
+    },
+    {
+      "id": "010",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Дежавю",
+      "artist": "Артем Пивоваров"
+    },
+    {
+      "id": "011",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Маніфест",
+      "artist": "Артем Пивоваров"
+    },
+    {
+      "id": "012",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Журавлі",
+      "artist": "The Hardkiss"
+    },
+    {
+      "id": "013",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Кораблі",
+      "artist": "The Hardkiss"
+    },
+    {
+      "id": "014",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Без неї ніяк",
+      "artist": "БЕЗ ОБМЕЖЕНЬ"
+    },
+    {
+      "id": "015",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Човен",
+      "artist": "Один в каное"
+    },
+    {
+      "id": "016",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "У мене немає дому",
+      "artist": "Один в каное"
+    },
+    {
+      "id": "017",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Тримай",
+      "artist": "Христина Соловій"
+    },
+    {
+      "id": "018",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Плакала",
+      "artist": "KAZKA"
+    },
+    {
+      "id": "019",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Шум",
+      "artist": "Go_A"
+    },
+    {
+      "id": "020",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Stefania",
+      "artist": "Kalush Orchestra"
+    },
+    {
+      "id": "021",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Зорі",
+      "artist": "KALUSH"
+    },
+    {
+      "id": "022",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Чути гімн",
+      "artist": "SKOFKA"
+    },
+    {
+      "id": "023",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Козацькому роду",
+      "artist": "Jerry Heil"
+    },
+    {
+      "id": "024",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Teresa & Maria",
+      "artist": "alyona alyona & Jerry Heil"
+    },
+    {
+      "id": "025",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Гранули",
+      "artist": "ТНМК"
+    },
+    {
+      "id": "026",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Три хвилини",
+      "artist": "Друга Ріка"
+    },
+    {
+      "id": "027",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Весна",
+      "artist": "Воплі Відоплясова"
+    },
+    {
+      "id": "028",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Вона",
+      "artist": "Плач Єремії"
+    },
+    {
+      "id": "029",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Понад хмарами",
+      "artist": "Тартак"
+    },
+    {
+      "id": "030",
+      "group": "ukrainian",
+      "language": "Ukrainian",
+      "title": "Пташечка",
+      "artist": "Vivienne Mort"
+    },
+    {
+      "id": "031",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Группа крови",
+      "artist": "Кино"
+    },
+    {
+      "id": "032",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Звезда по имени Солнце",
+      "artist": "Кино"
+    },
+    {
+      "id": "033",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Пачка сигарет",
+      "artist": "Кино"
+    },
+    {
+      "id": "034",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Я свободен",
+      "artist": "Кипелов"
+    },
+    {
+      "id": "035",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Беспечный ангел",
+      "artist": "Ария"
+    },
+    {
+      "id": "036",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Потерянный рай",
+      "artist": "Ария"
+    },
+    {
+      "id": "037",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Кукушка",
+      "artist": "Полина Гагарина"
+    },
+    {
+      "id": "038",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Всё идёт по плану",
+      "artist": "Гражданская Оборона"
+    },
+    {
+      "id": "039",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Вечно молодой",
+      "artist": "Смысловые Галлюцинации"
+    },
+    {
+      "id": "040",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Вахтерам",
+      "artist": "Бумбокс"
+    },
+    {
+      "id": "041",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Выхода нет",
+      "artist": "Сплин"
+    },
+    {
+      "id": "042",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Моё сердце",
+      "artist": "Сплин"
+    },
+    {
+      "id": "043",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Полковнику никто не пишет",
+      "artist": "Би-2"
+    },
+    {
+      "id": "044",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Серебро",
+      "artist": "Би-2"
+    },
+    {
+      "id": "045",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Лесник",
+      "artist": "Король и Шут"
+    },
+    {
+      "id": "046",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Кукла колдуна",
+      "artist": "Король и Шут"
+    },
+    {
+      "id": "047",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Что такое осень",
+      "artist": "ДДТ"
+    },
+    {
+      "id": "048",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Просвистела",
+      "artist": "ДДТ"
+    },
+    {
+      "id": "049",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Небо Лондон",
+      "artist": "Григорий Лепс & Тимати"
+    },
+    {
+      "id": "050",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Девочка, живи!",
+      "artist": "Мот"
+    },
+    {
+      "id": "051",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Хочешь?",
+      "artist": "Земфира"
+    },
+    {
+      "id": "052",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Искала",
+      "artist": "Земфира"
+    },
+    {
+      "id": "053",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Батарейка",
+      "artist": "Жуки"
+    },
+    {
+      "id": "054",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Конь",
+      "artist": "Любэ"
+    },
+    {
+      "id": "055",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Город золотой",
+      "artist": "Аквариум"
+    },
+    {
+      "id": "056",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Дорога",
+      "artist": "АукцЫон"
+    },
+    {
+      "id": "057",
+      "group": "russian",
+      "language": "Russian",
+      "title": "На заре",
+      "artist": "Альянс"
+    },
+    {
+      "id": "058",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Сансара",
+      "artist": "Баста"
+    },
+    {
+      "id": "059",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Мой рок-н-ролл",
+      "artist": "Би-2 & Чичерина"
+    },
+    {
+      "id": "060",
+      "group": "russian",
+      "language": "Russian",
+      "title": "Где ты",
+      "artist": "Нервы"
+    },
+    {
+      "id": "061",
+      "group": "english",
+      "language": "English",
+      "title": "Wonderwall",
+      "artist": "Oasis"
+    },
+    {
+      "id": "062",
+      "group": "english",
+      "language": "English",
+      "title": "Don't Look Back in Anger",
+      "artist": "Oasis"
+    },
+    {
+      "id": "063",
+      "group": "english",
+      "language": "English",
+      "title": "Hotel California",
+      "artist": "Eagles"
+    },
+    {
+      "id": "064",
+      "group": "english",
+      "language": "English",
+      "title": "Broken",
+      "artist": "Seether"
+    },
+    {
+      "id": "065",
+      "group": "english",
+      "language": "English",
+      "title": "Nothing Else Matters",
+      "artist": "Metallica"
+    },
+    {
+      "id": "066",
+      "group": "english",
+      "language": "English",
+      "title": "Enter Sandman",
+      "artist": "Metallica"
+    },
+    {
+      "id": "067",
+      "group": "english",
+      "language": "English",
+      "title": "Smells Like Teen Spirit",
+      "artist": "Nirvana"
+    },
+    {
+      "id": "068",
+      "group": "english",
+      "language": "English",
+      "title": "Come As You Are",
+      "artist": "Nirvana"
+    },
+    {
+      "id": "069",
+      "group": "english",
+      "language": "English",
+      "title": "Shape of You",
+      "artist": "Ed Sheeran"
+    },
+    {
+      "id": "070",
+      "group": "english",
+      "language": "English",
+      "title": "Perfect",
+      "artist": "Ed Sheeran"
+    },
+    {
+      "id": "071",
+      "group": "english",
+      "language": "English",
+      "title": "Someone Like You",
+      "artist": "Adele"
+    },
+    {
+      "id": "072",
+      "group": "english",
+      "language": "English",
+      "title": "Rolling in the Deep",
+      "artist": "Adele"
+    },
+    {
+      "id": "073",
+      "group": "english",
+      "language": "English",
+      "title": "Let It Be",
+      "artist": "The Beatles"
+    },
+    {
+      "id": "074",
+      "group": "english",
+      "language": "English",
+      "title": "Yesterday",
+      "artist": "The Beatles"
+    },
+    {
+      "id": "075",
+      "group": "english",
+      "language": "English",
+      "title": "Hallelujah",
+      "artist": "Leonard Cohen"
+    },
+    {
+      "id": "076",
+      "group": "english",
+      "language": "English",
+      "title": "Creep",
+      "artist": "Radiohead"
+    },
+    {
+      "id": "077",
+      "group": "english",
+      "language": "English",
+      "title": "Yellow",
+      "artist": "Coldplay"
+    },
+    {
+      "id": "078",
+      "group": "english",
+      "language": "English",
+      "title": "Viva La Vida",
+      "artist": "Coldplay"
+    },
+    {
+      "id": "079",
+      "group": "english",
+      "language": "English",
+      "title": "Zombie",
+      "artist": "The Cranberries"
+    },
+    {
+      "id": "080",
+      "group": "english",
+      "language": "English",
+      "title": "Losing My Religion",
+      "artist": "R.E.M."
+    },
+    {
+      "id": "081",
+      "group": "english",
+      "language": "English",
+      "title": "Californication",
+      "artist": "Red Hot Chili Peppers"
+    },
+    {
+      "id": "082",
+      "group": "english",
+      "language": "English",
+      "title": "Knockin' on Heaven's Door",
+      "artist": "Bob Dylan"
+    },
+    {
+      "id": "083",
+      "group": "english",
+      "language": "English",
+      "title": "Sweet Child O' Mine",
+      "artist": "Guns N' Roses"
+    },
+    {
+      "id": "084",
+      "group": "english",
+      "language": "English",
+      "title": "Boulevard of Broken Dreams",
+      "artist": "Green Day"
+    },
+    {
+      "id": "085",
+      "group": "english",
+      "language": "English",
+      "title": "All of Me",
+      "artist": "John Legend"
+    },
+    {
+      "id": "086",
+      "group": "english",
+      "language": "English",
+      "title": "Shallow",
+      "artist": "Lady Gaga & Bradley Cooper"
+    },
+    {
+      "id": "087",
+      "group": "english",
+      "language": "English",
+      "title": "Take Me to Church",
+      "artist": "Hozier"
+    },
+    {
+      "id": "088",
+      "group": "english",
+      "language": "English",
+      "title": "Riptide",
+      "artist": "Vance Joy"
+    },
+    {
+      "id": "089",
+      "group": "english",
+      "language": "English",
+      "title": "drivers license",
+      "artist": "Olivia Rodrigo"
+    },
+    {
+      "id": "090",
+      "group": "english",
+      "language": "English",
+      "title": "bad guy",
+      "artist": "Billie Eilish"
+    },
+    {
+      "id": "091",
+      "group": "other",
+      "language": "Spanish",
+      "title": "Despacito",
+      "artist": "Luis Fonsi & Daddy Yankee"
+    },
+    {
+      "id": "092",
+      "group": "other",
+      "language": "Spanish",
+      "title": "La Camisa Negra",
+      "artist": "Juanes"
+    },
+    {
+      "id": "093",
+      "group": "other",
+      "language": "French",
+      "title": "Je te promets",
+      "artist": "Johnny Hallyday"
+    },
+    {
+      "id": "094",
+      "group": "other",
+      "language": "French",
+      "title": "Je veux",
+      "artist": "Zaz"
+    },
+    {
+      "id": "095",
+      "group": "other",
+      "language": "Portuguese",
+      "title": "Ai Se Eu Te Pego",
+      "artist": "Michel Teló"
+    },
+    {
+      "id": "096",
+      "group": "other",
+      "language": "Portuguese",
+      "title": "Evidências",
+      "artist": "Chitãozinho & Xororó"
+    },
+    {
+      "id": "097",
+      "group": "other",
+      "language": "Italian",
+      "title": "Caruso",
+      "artist": "Lucio Dalla"
+    },
+    {
+      "id": "098",
+      "group": "other",
+      "language": "Polish",
+      "title": "Dni, których nie znamy",
+      "artist": "Marek Grechuta"
+    },
+    {
+      "id": "099",
+      "group": "other",
+      "language": "Japanese",
+      "title": "Lemon",
+      "artist": "Kenshi Yonezu"
+    },
+    {
+      "id": "100",
+      "group": "other",
+      "language": "Korean",
+      "title": "봄날",
+      "artist": "BTS"
+    }
+  ]
+}

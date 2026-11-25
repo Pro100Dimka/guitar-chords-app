@@ -1,0 +1,650 @@
+{
+  "checkedOn": "2026-11-25",
+  "recordsLyrics": false,
+  "mixedScriptFix": {
+    "sourceSha256": "23a6aa52bbb0a347e5d45c5ff3e46f8ae209add654fc360fd92b8c97257e744c",
+    "results": [
+      {
+        "title": "Кораблі",
+        "artist": "The Hardkiss",
+        "ms": 15026,
+        "options": [
+          {
+            "source": "Пісенник",
+            "url": "https://pisennyk.com.ua/the-hardkiss/korabli",
+            "chars": 1447,
+            "chords": true
+          }
+        ],
+        "requests": [
+          {
+            "url": "https://lrclib.net/api/search?track_name=%D0%9A%D0%BE%D1%80%D0%B0%D0%B1%D0%BB%D1%96&artist_name=The+Hardkiss",
+            "status": 200,
+            "ms": 4312
+          },
+          {
+            "url": "https://akkords.pro/?s=%D0%9A%D0%BE%D1%80%D0%B0%D0%B1%D0%BB%D1%96+The+Hardkiss",
+            "status": 200,
+            "ms": 4694
+          },
+          {
+            "url": "https://pisennyk.com.ua/search?q=%D0%9A%D0%BE%D1%80%D0%B0%D0%B1%D0%BB%D1%96+The+Hardkiss",
+            "status": 200,
+            "ms": 4942
+          },
+          {
+            "url": "https://akkords.pro/?s=%D0%9A%D0%BE%D1%80%D0%B0%D0%B1%D0%BB%D1%96",
+            "status": 200,
+            "ms": 467
+          },
+          {
+            "url": "https://pisennyk.com.ua/the-hardkiss/korabli",
+            "status": 200,
+            "ms": 4975
+          }
+        ]
+      },
+      {
+        "title": "Плакала",
+        "artist": "KAZKA",
+        "ms": 18772,
+        "options": [
+          {
+            "source": "Пісенник",
+            "url": "https://pisennyk.com.ua/kazka/plakala",
+            "chars": 1501,
+            "chords": true
+          }
+        ],
+        "requests": [
+          {
+            "url": "https://lrclib.net/api/search?track_name=%D0%9F%D0%BB%D0%B0%D0%BA%D0%B0%D0%BB%D0%B0&artist_name=KAZKA",
+            "status": 200,
+            "ms": 3701
+          },
+          {
+            "url": "https://akkords.pro/?s=%D0%9F%D0%BB%D0%B0%D0%BA%D0%B0%D0%BB%D0%B0+KAZKA",
+            "status": 200,
+            "ms": 4574
+          },
+          {
+            "url": "https://akkords.pro/?s=%D0%9F%D0%BB%D0%B0%D0%BA%D0%B0%D0%BB%D0%B0",
+            "status": 200,
+            "ms": 464
+          },
+          {
+            "url": "https://pisennyk.com.ua/search?q=%D0%9F%D0%BB%D0%B0%D0%BA%D0%B0%D0%BB%D0%B0+KAZKA",
+            "status": 200,
+            "ms": 3587
+          },
+          {
+            "url": "https://pisennyk.com.ua/kazka/plakala",
+            "status": 200,
+            "ms": 3760
+          }
+        ]
+      }
+    ]
+  },
+  "publishedIdentityEvidence": [
+    {
+      "kind": "request",
+      "url": "https://pisennyk.com.ua/search?q=%D0%A2%D0%94%D0%9C%D0%95+%D0%90%D0%BD%D1%82%D0%B8%D1%82%D1%96%D0%BB%D0%B0",
+      "status": 200,
+      "start": "2026-11-25T01:11:54.970Z"
+    },
+    {
+      "kind": "search",
+      "id": "008",
+      "query": "ТДМЕ Антитіла",
+      "matches": [
+        {
+          "url": "https://pisennyk.com.ua/antitila/tdme-tam-de-mi-ye",
+          "label": "TDME (Там Де Ми Є) - Антитіла"
+        }
+      ]
+    },
+    {
+      "kind": "request",
+      "url": "https://pisennyk.com.ua/antitila/tdme-tam-de-mi-ye",
+      "status": 200,
+      "start": "2026-11-25T01:12:04.981Z"
+    },
+    {
+      "kind": "detail",
+      "id": "008",
+      "url": "https://pisennyk.com.ua/antitila/tdme-tam-de-mi-ye",
+      "identities": [
+        {
+          "title": "TDME (Там Де Ми Є)",
+          "artist": "Антитіла",
+          "artistUrl": "https://pisennyk.com.ua/antitila"
+        }
+      ],
+      "arrangements": [
+        {
+          "length": 1331,
+          "chordMarkers": 99,
+          "lyricsAndChords": true
+        }
+      ]
+    },
+    {
+      "kind": "request",
+      "url": "https://pisennyk.com.ua/search?q=Stefania+Kalush+Orchestra",
+      "status": 200,
+      "start": "2026-11-25T01:12:14.995Z"
+    },
+    {
+      "kind": "search",
+      "id": "020",
+      "query": "Stefania Kalush Orchestra",
+      "matches": [
+        {
+          "url": "https://pisennyk.com.ua/kalush/stefania-kalush-orchestra",
+          "label": "Stefania (Kalush Orchestra) - Kalush"
+        },
+        {
+          "url": "https://pisennyk.com.ua/kalush/stefania",
+          "label": "Stefania - Kalush"
+        }
+      ]
+    },
+    {
+      "kind": "request",
+      "url": "https://pisennyk.com.ua/kalush/stefania-kalush-orchestra",
+      "status": 200,
+      "start": "2026-11-25T01:12:25.011Z"
+    },
+    {
+      "kind": "detail",
+      "id": "020",
+      "url": "https://pisennyk.com.ua/kalush/stefania-kalush-orchestra",
+      "identities": [
+        {
+          "title": "Stefania (Kalush Orchestra)",
+          "artist": "Kalush",
+          "artistUrl": "https://pisennyk.com.ua/kalush"
+        }
+      ],
+      "arrangements": [
+        {
+          "length": 1648,
+          "chordMarkers": 120,
+          "lyricsAndChords": true
+        }
+      ]
+    },
+    {
+      "kind": "request",
+      "url": "https://pisennyk.com.ua/search?q=%D0%92%D0%B5%D1%81%D0%BD%D0%B0+%D0%92%D0%BE%D0%BF%D0%BB%D1%96+%D0%92%D1%96%D0%B4%D0%BE%D0%BF%D0%BB%D1%8F%D1%81%D0%BE%D0%B2%D0%B0",
+      "status": 200,
+      "start": "2026-11-25T01:12:35.026Z"
+    },
+    {
+      "kind": "search",
+      "id": "027",
+      "query": "Весна Воплі Відоплясова",
+      "matches": []
+    },
+    {
+      "kind": "request",
+      "url": "https://pisennyk.com.ua/search?q=%D0%92%D0%B5%D1%81%D0%BD%D0%B0",
+      "status": 200,
+      "start": "2026-11-25T01:12:45.041Z"
+    },
+    {
+      "kind": "search",
+      "id": "027",
+      "query": "Весна",
+      "matches": [
+        {
+          "url": "https://pisennyk.com.ua/vv-vopli-vidoplyasova/vesna",
+          "label": "Весна - ВВ (Воплі Відоплясова)"
+        }
+      ]
+    },
+    {
+      "kind": "request",
+      "url": "https://pisennyk.com.ua/vv-vopli-vidoplyasova/vesna",
+      "status": 200,
+      "start": "2026-11-25T01:12:55.053Z"
+    },
+    {
+      "kind": "detail",
+      "id": "027",
+      "url": "https://pisennyk.com.ua/vv-vopli-vidoplyasova/vesna",
+      "identities": [
+        {
+          "title": "Весна",
+          "artist": "ВВ (Воплі Відоплясова)",
+          "artistUrl": "https://pisennyk.com.ua/vv-vopli-vidoplyasova"
+        }
+      ],
+      "arrangements": [
+        {
+          "length": 1056,
+          "chordMarkers": 4,
+          "lyricsAndChords": true
+        }
+      ]
+    }
+  ],
+  "lyricsOnlyAndTransientFailures": {
+    "method": "Default fetch; three sequential requests, >=10 seconds between starts; metadata only; production sourceBody/normalizeSourceText and strict hasSongChordsAsync; no source edits",
+    "results": [
+      {
+        "id": "029",
+        "url": "https://pisennyk.com.ua/tartak/ponad-hmarami",
+        "startedAt": "2026-11-25T01:02:29.385Z",
+        "gapSincePreviousStartMs": null,
+        "status": 200,
+        "musicIdentity": [
+          {
+            "type": "MusicRecording",
+            "name": "Понад хмарами",
+            "artist": "Тартак",
+            "id": 145490
+          }
+        ],
+        "containers": [
+          {
+            "index": 0,
+            "tag": "div",
+            "class": "interpretation-content",
+            "textLength": 1916,
+            "codeCount": 0,
+            "dataChordCount": 0,
+            "chordClassCount": 0,
+            "codeChordCount": 0,
+            "sourceBodyLength": 1916,
+            "sourceBodyLyricsAndChords": false,
+            "normalizedLength": 1914,
+            "normalizedLyricsAndChords": false
+          }
+        ],
+        "globalCodeCount": 0,
+        "globalDataChordCount": 0
+      },
+      {
+        "id": "097",
+        "url": "https://pisennyk.com.ua/lucio-dalla/caruso",
+        "startedAt": "2026-11-25T01:02:39.399Z",
+        "gapSincePreviousStartMs": 10014,
+        "status": 200,
+        "musicIdentity": [
+          {
+            "type": "MusicRecording",
+            "name": "Caruso",
+            "artist": "Lucio Dalla",
+            "id": 45110
+          }
+        ],
+        "containers": [
+          {
+            "index": 0,
+            "tag": "div",
+            "class": "interpretation-content",
+            "textLength": 1329,
+            "codeCount": 0,
+            "dataChordCount": 0,
+            "chordClassCount": 0,
+            "codeChordCount": 0,
+            "sourceBodyLength": 1329,
+            "sourceBodyLyricsAndChords": false,
+            "normalizedLength": 1326,
+            "normalizedLyricsAndChords": false
+          }
+        ],
+        "globalCodeCount": 0,
+        "globalDataChordCount": 0
+      },
+      {
+        "id": "098",
+        "url": "https://pisennyk.com.ua/marek-grechuta/dni-ktorych-nie-znamy",
+        "startedAt": "2026-11-25T01:02:49.421Z",
+        "gapSincePreviousStartMs": 10022,
+        "status": 200,
+        "musicIdentity": [
+          {
+            "type": "MusicRecording",
+            "name": "Dni, których nie znamy",
+            "artist": "Marek Grechuta",
+            "id": 49109
+          }
+        ],
+        "containers": [
+          {
+            "index": 0,
+            "tag": "div",
+            "class": "interpretation-content",
+            "textLength": 2274,
+            "codeCount": 259,
+            "dataChordCount": 259,
+            "chordClassCount": 0,
+            "codeChordCount": 259,
+            "sourceBodyLength": 2792,
+            "sourceBodyLyricsAndChords": true,
+            "normalizedLength": 2788,
+            "normalizedLyricsAndChords": true
+          }
+        ],
+        "globalCodeCount": 259,
+        "globalDataChordCount": 270
+      }
+    ]
+  },
+  "akkordsQueryEvidence": [
+    {
+      "title": "Хочешь?",
+      "artist": "Земфира",
+      "requests": [
+        {
+          "query": "Хочешь?",
+          "status": 200,
+          "verifiedCandidates": []
+        },
+        {
+          "query": "Хочешь",
+          "status": 200,
+          "verifiedCandidates": [
+            "https://akkords.pro/songs/zemfira/hochesh/"
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Искала",
+      "artist": "Земфира",
+      "query": "Искала",
+      "status": 200,
+      "verifiedCandidates": [
+        "https://akkords.pro/songs/zemfira/iskala/"
+      ]
+    },
+    {
+      "title": "Сансара",
+      "artist": "Баста",
+      "query": "Сансара",
+      "status": 200,
+      "url": "https://akkords.pro/songs/basta/sansara/",
+      "contentLength": 2055,
+      "lyricsAndChords": true
+    },
+    {
+      "title": "Мой рок-н-ролл",
+      "artist": "Би-2 & Чичерина",
+      "query": "Мой рок-н-ролл",
+      "status": 200,
+      "url": "https://akkords.pro/songs/bi-2/moy-rok-n-roll/",
+      "contentLength": 952,
+      "lyricsAndChords": true
+    }
+  ],
+  "transportFailures": [
+    {
+      "url": "https://www.e-chords.com/en/chords/ed-sheeran/shape-of-you/",
+      "error": "TypeError",
+      "cause": "UND_ERR_SOCKET: other side closed"
+    },
+    {
+      "url": "https://www.cifras.com.br/cifra/chitaozinho-xororo/evidencias/",
+      "error": "TypeError",
+      "cause": "UND_ERR_SOCKET: other side closed"
+    }
+  ],
+  "transportNote": "Observed in the local Node runtime. This is not evidence that the pages are absent or inaccessible on every phone/network.",
+  "postCorpusFollowup": {
+    "run": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45526245678",
+    "observations": [
+      {
+        "id": "101",
+        "checkedOn": "2026-11-25",
+        "runtime": "local Node, default fetch headers",
+        "url": "https://akkords.pro/?s=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD",
+        "httpStatus": 200,
+        "responseHeadersMs": 9566,
+        "matchingTitleLinks": [
+          {
+            "label": "Небо ЛондонаЗемфира",
+            "url": "https://akkords.pro/songs/zemfira/nebo-londona/"
+          }
+        ],
+        "conclusion": "The successful title-only response contained a different song/performer. No exact target was established; no identity relaxation was made."
+      },
+      {
+        "ids": [
+          "069",
+          "089",
+          "096",
+          "097",
+          "099"
+        ],
+        "source": "GuitareTab",
+        "ciObservation": "All five normal search requests returned HTTP 200 with no detail request. The original audit did not retain search-row metadata, so it cannot distinguish absent rows from a candidate filter mismatch or another HTML response.",
+        "localProbe": {
+          "url": "https://www.guitaretab.com/fetch/?type=tab&query=Ed+Sheeran+Shape+of+You",
+          "httpStatus": 403,
+          "followupRequests": 0
+        },
+        "conclusion": "No proven parser change. Add bounded metadata-only observation to the next normal audit responses without extra provider requests."
+      },
+      {
+        "id": "029",
+        "url": "https://musicaccord.ru/songs/tartak-ponad-hmarami/",
+        "ciRequest": {
+          "status": 200,
+          "responseHeadersMs": 560
+        },
+        "localHtmlSavedAt": "2026-11-25T01:49:08.127Z",
+        "localHtmlBytes": 92014,
+        "localStatusAndDurationRetained": false,
+        "beforeFixSourceSha256": "27a4fad4e51c8e1a1fe3e03031a6cb861ab8e5114e067eddcc6a54aa270ee217",
+        "heading": "Тартак - Понад Хмарами: аккорды на гитаре",
+        "artistBreadcrumb": {
+          "label": "Тартак",
+          "url": "https://musicaccord.ru/artists/tartak/"
+        },
+        "songBodyTextChars": 2481,
+        "lineBreakElements": 61,
+        "explicitChordSpans": 4,
+        "extractedBeforeFix": {
+          "chars": 2542,
+          "lines": 129,
+          "hasSongChords": false,
+          "hasLyricsAndChords": false
+        },
+        "cause": "Explicit span.ch[data-c] markers were flattened into plain text. An adjacent asterisk/annotation prevented the resulting line from being accepted as a chord-only line.",
+        "redFixture": "Synthetic structure-matching annotated chord row failed before provider edit (1 failed, 24 passed). No publisher lyrics copied into fixtures.",
+        "afterFixCachedHtmlReplay": {
+          "sourceSha256": "cee0520fefd23de7eab3a691ed647fee42e0fcc540ed2995e642560cc7c62e46",
+          "title": "Понад Хмарами",
+          "artist": "Тартак",
+          "source": "Musicaccord.ru",
+          "contentChars": 2550,
+          "hasLyricsAndChords": true,
+          "chords": [
+            "Am",
+            "Em",
+            "F"
+          ],
+          "usesLiveRequests": false,
+          "method": "Actual cached detail HTML replayed through lookupSongContent with a synthetic verified search card; not a replacement for the live 100-song run."
+        }
+      },
+      {
+        "id": "101",
+        "source": "Musicaccord.ru",
+        "url": "https://musicaccord.ru/?s=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD",
+        "runtime": "local Node default fetch",
+        "error": "AbortError",
+        "ms": 12005,
+        "httpStatus": null,
+        "followupRequests": 0,
+        "conclusion": "One title-only diagnostic probe timed out; no candidate spelling or catalogue absence was established."
+      },
+      {
+        "id": "101",
+        "source": "Musicaccord.ru",
+        "url": "https://musicaccord.ru/?s=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD",
+        "runtime": "local Node default fetch",
+        "recheckedOn": "2026-11-25",
+        "error": "TimeoutError",
+        "ms": 12004,
+        "httpStatus": null,
+        "conclusion": "A later bounded title-only probe still timed out. No candidate identity was inferred from the failure and no normalization was relaxed."
+      }
+    ],
+    "strictResultReview": {
+      "sourceSha256": "1332d6974a239c6002b191d53e0bbb0eb72a5fa58c46bf4e57ae90725e90fe4a",
+      "networkRequests": 0,
+      "method": "Synthetic regression tests against actual identity and provider functions; no publisher lyrics in fixtures.",
+      "cases": [
+        {
+          "input": "IT compared with IT (Italian Translation)",
+          "before": "accepted abbreviation",
+          "after": "rejected language/translation qualifier"
+        },
+        {
+          "input": "Explicit Musicaccord Am and unsupported Hm markers, no lyric text",
+          "before": "unsupported chord label counted as lyrics",
+          "after": "rejected after validation that excludes malformed marked-chord text"
+        },
+        {
+          "input": "Same Am/Hm markers with an actual synthetic lyric line",
+          "after": "accepted; original returned content preserved"
+        },
+        {
+          "input": "Malformed marked span containing [ before a plain Am chord line and synthetic lyrics",
+          "before": "cleaned validation passed while the returned content failed strict chord parsing",
+          "after": "rejected; both returned and cleaned validation content must pass"
+        }
+      ],
+      "focusedProviderTests": {
+        "passed": 114,
+        "suites": 2
+      },
+      "typecheck": "passed",
+      "productionFileLint": "passed",
+      "note": "These are regression checks, separate from the unchanged live audit snapshots."
+    },
+    "secondCiAudit": {
+      "run": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45531221784",
+      "commit": "41350a64cfafa3312795a936272191b316d2c86b",
+      "sourceSha256": "cee0520fefd23de7eab3a691ed647fee42e0fcc540ed2995e642560cc7c62e46",
+      "manifestSha256": "3bc61bf3c8fa9ff31eb467244ad17008a4f2f412cc072e95811b0c23f9911a82",
+      "resultsFile": "recognition-chord-ci-results-100-2026-11-25-41350a6.jsonl",
+      "artifactId": 14985138846,
+      "artifactZipSha256": "cca8fc6b9ef0c0de8d800d5734f532f8ffb99f0cb20f6da4096ad4eeaad6c06f",
+      "lyricsAndChords": 91,
+      "lyricsOnly": 9,
+      "completed": 100,
+      "recoveredIds": [
+        "008",
+        "029"
+      ],
+      "regressedIds": [],
+      "guitareTabSearchFindings": [
+        {
+          "id": "069",
+          "rowCount": 1,
+          "artist": "Ed Sheeran",
+          "label": "Shape Of You tab",
+          "path": "/e/ed-sheeran/389466.html",
+          "cause": "The candidate passes title, artist and path checks but the existing search-type filter permits chords only. Detail content has not yet been tested."
+        },
+        {
+          "id": "097",
+          "rowCount": 1,
+          "artist": "Lucio Dalla",
+          "label": "Caruso tab",
+          "path": "/l/lucio-dalla/33843.html",
+          "cause": "The candidate passes title, artist and path checks but the existing search-type filter permits chords only. Detail content has not yet been tested."
+        },
+        {
+          "ids": [
+            "089",
+            "096",
+            "099"
+          ],
+          "rowCount": 0,
+          "pageTitle": "No results",
+          "conclusion": "The actual combined-query responses have no search rows. This is not proof of global catalogue absence or proof that another query would succeed."
+        }
+      ],
+      "note": "This intermediate snapshot predates the subsequent strict-result regression guards. Its unchanged result must not be attributed to a later source hash."
+    },
+    "strictHeaderGuard": {
+      "sourceSha256": "54b71903e454be197688fc814d064c2543a59864551156cf1f83d3bb86ae6c18",
+      "networkRequests": 0,
+      "reproducedInput": "Song: Example\nArtist: Example performer\nTabbed by: Example author\nAm C\ne|--0--1--|",
+      "beforeStrictCheck": true,
+      "afterStrictCheck": false,
+      "change": "Only explicit Song/Title/Artist/Album headers with separators and leading Tabbed/Transcribed/Arranged by credits are excluded from lyric evidence. Ordinary sentences containing those words and the default chord-only parser remain valid.",
+      "focusedChecks": {
+        "passed": 92,
+        "suites": [
+          "chord-layout",
+          "song-editor-performance"
+        ]
+      },
+      "fullSourceVerification": {
+        "jestPassed": 1035,
+        "jestSuites": 40,
+        "log": "Local complete Jest run before publishing 4d38baf; subsequent CI evidence is recorded separately."
+      }
+    },
+    "finalCiAudit": {
+      "run": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45534938428",
+      "commit": "4d38baffee9b32f229d1205c1e37d358e08544ce",
+      "resultsFile": "recognition-chord-final-results-100-2026-11-25.jsonl",
+      "artifactId": 14987083753,
+      "artifactZipSha256": "5bb7a7e0a891fc724afd0b52b0bdb31a7cd9b540aa709f273085112760b3d08c",
+      "completed": 100,
+      "lyricsAndChords": 93,
+      "lyricsOnly": 7,
+      "recoveredFromPreviousRun": [
+        "069",
+        "097"
+      ],
+      "regressionsFromPreviousRun": [],
+      "lyricCorroboration": {
+        "songsWithAtLeastOnePassingOptionOverlap": 90,
+        "songsWithoutReference": [
+          "005",
+          "008",
+          "021"
+        ],
+        "note": "Diagnostic unique-line overlap; not proof of complete lyrics or musical correctness. ID080 overlaps only in its second passing option."
+      },
+      "remainingMisses": [
+        "010",
+        "012",
+        "101",
+        "089",
+        "096",
+        "099",
+        "100"
+      ]
+    },
+    "additionalProviderReview": {
+      "origin": "https://amdm.ru",
+      "requests": 1,
+      "robots": {
+        "url": "https://amdm.ru/robots.txt",
+        "status": 200,
+        "ms": 4301,
+        "bytes": 1250,
+        "aiCrawlerDisallowAll": true,
+        "generalDisallow": [
+          "/search",
+          "/api/"
+        ],
+        "crawlDelaySeconds": 5
+      },
+      "searchOrApiRequests": 0,
+      "implemented": false,
+      "conclusion": "An indexed Ed Sheeran catalogue listing mentions Shape of You, but a permitted supported automated discovery route and an accessible exact chart were not established. Published crawl restrictions were respected; no alternate hosts or headers were attempted."
+    }
+  }
+}

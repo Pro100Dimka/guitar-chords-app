@@ -30,7 +30,11 @@ export type RootStackParamList = {
           | "AddSongLyricsUnavailable";
       }
     | undefined;
-  recognizeSong: { mode: "mic" | "file" | "text" };
+  recognizeSong: {
+    mode: "mic" | "playback" | "file" | "text";
+    autoStart?: boolean;
+    requestId?: string;
+  };
 };
 export type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -85,6 +89,10 @@ const RootStack = createNativeStackNavigator({
     },
     recognizeSong: {
       screen: RecognizeSong,
+      linking: {
+        path: "recognize/:mode",
+        parse: { autoStart: (value: string) => value === "true" }
+      },
       options: {
         header: () => (
           <Header

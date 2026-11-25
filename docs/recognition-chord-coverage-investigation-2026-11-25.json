@@ -1,0 +1,1106 @@
+{
+  "date": "2026-11-25",
+  "sourceCommit": "e56339216041ad5fe190d56300938330ef9cf4a9",
+  "previousSourceCommit": "4d38baffee9b32f229d1205c1e37d358e08544ce",
+  "previousScore": {
+    "lyrics_and_chords": 93,
+    "lyrics_only": 7
+  },
+  "manifest": "recognition-chord-corpus-validated-100-2026-11-25.json",
+  "manifestSha256": "3bc61bf3c8fa9ff31eb467244ad17008a4f2f412cc072e95811b0c23f9911a82",
+  "previousFailureMechanism": {
+    "failedIds": [
+      "010",
+      "012",
+      "101",
+      "089",
+      "096",
+      "099",
+      "100"
+    ],
+    "requestCount": 53,
+    "allIssuedRequestsHttp200": true,
+    "chartDetailRequests": 0,
+    "description": "All seven failures ended during catalogue discovery or identity filtering, before chart extraction. They completed within the existing deadline; no match threshold or timeout was relaxed."
+  },
+  "implementation": [
+    "Five bounded fallback catalogues share existing fetch timeouts, cooldowns, parsing and cancellation. They start only when primary chord providers have finished without a verified arrangement.",
+    "Chords & Tabs public search form: exact search, visible and structured identities; chord superscripts retain their literal positions, including syllable splits.",
+    "Sonidos public search and scoped chord chart: separate h3 presentation labels from lyric evidence; preserve chord rows and exclude duplicated hidden intro labels.",
+    "WeingGuitar Korean score search: exact title; accept a Latin performer alias only when explicitly published in one Hangul/Latin credit. No title translation table.",
+    "Akkords.fun public artist indexes and catalogues: use permitted catalogue discovery, scoped visible chart, bounded two-index cache and three-detail limit.",
+    "LalaTracker accepts a chart only when at least four substantive unique lyric lines, at least half of candidate lines, match one identity-verified existing LRCLIB result. This applies to exact artist names and full Cyrillic two-token reversals. All returned lyrics and chords remain solely from the source chart; original sourceArtist is retained when normalized, and identityReference is always recorded."
+  ],
+  "discardedCandidates": [
+    {
+      "url": "https://akkordov.net/akkordi/artem-pivovarov/320263-dezhavyu",
+      "reason": "The chart had Ukrainian lyrics despite the generic title; it was not accepted as the requested Russian original."
+    },
+    {
+      "url": "https://mytabs.ru/akkordy/a-r/artem-pivovarov/dezhavyu-8_414426.html",
+      "reason": "Russian lyrics matched, but published baseline chords F#m/Cm/C did not form a consistent transposition of the independently observed A#m/F#/F arrangement. This questionable chart was not added or counted."
+    }
+  ],
+  "focusedProbes": [
+    {
+      "run": {
+        "kind": "run",
+        "startedAt": "2026-11-25T05:41:59.117Z",
+        "gitHead": "d4f7e06446d21da3ed3165591aeb201288d71a29",
+        "node": "v24.22.3",
+        "platform": "linux",
+        "manifest": "docs/recognition-chord-corpus-validated-100-2026-11-25.json",
+        "manifestSha256": "3bc61bf3c8fa9ff31eb467244ad17008a4f2f412cc072e95811b0c23f9911a82",
+        "sourceSha256": {
+          "src/components/song-autofill/lyrics.ts": "4651cd6ec1f6b8d7e86ed4f572a0048784c24e31cd038b8bcbc174c25e41415b",
+          "src/screens/song/chords.ts": "54b71903e454be197688fc814d064c2543a59864551156cf1f83d3bb86ae6c18",
+          "src/screens/song/rhythms.ts": "2585216e3de308374e9b660c8f2f5c43fed9085667a2b8a6db0c1da984651459",
+          "src/components/song-autofill/chords-and-tabs.ts": "7101779c98a5ab0ed8f2473b1d9c301003634c245528ccccb249f7e19b58af16",
+          "src/components/song-autofill/sonidos.ts": "8f1bb2e3925e359a0a87e819f629a9597cac9898463f3178ea316a2eb2da8f73",
+          "src/components/song-autofill/weing-guitar.ts": "ff83fb26e893830f85c546401c5fd7bf597ca7596b0e57115b84e44bb46ba14d",
+          "src/components/song-autofill/akkords-fun.ts": "ce20f2859130e703407c1322a4346e948af7f64fc40e45254d4e27eaad3e382b"
+        },
+        "timeoutMs": 60000,
+        "count": 6,
+        "corpusCount": 100,
+        "selectedIds": [
+          "012",
+          "101",
+          "089",
+          "096",
+          "099",
+          "100"
+        ],
+        "concurrency": "One song at a time in one process; application provider concurrency, crawl delay and cooldowns unchanged",
+        "successCriterion": "Provider-validated identity plus repeated title/artist field checks using production normalization and hasSongChordsAsync(content, signal, true)",
+        "lyricCorroboration": "Diagnostic-only unique normalized lyric-line overlap with identity-matching LRCLIB plainLyrics; does not change status",
+        "includesAudioRecognition": false,
+        "recordsLyrics": false
+      },
+      "summary": {
+        "kind": "summary",
+        "startedAt": "2026-11-25T05:41:59.117Z",
+        "updatedAt": "2026-11-25T05:43:57.474Z",
+        "finished": true,
+        "manifestSha256": "3bc61bf3c8fa9ff31eb467244ad17008a4f2f412cc072e95811b0c23f9911a82",
+        "sourceSha256": {
+          "src/components/song-autofill/lyrics.ts": "4651cd6ec1f6b8d7e86ed4f572a0048784c24e31cd038b8bcbc174c25e41415b",
+          "src/screens/song/chords.ts": "54b71903e454be197688fc814d064c2543a59864551156cf1f83d3bb86ae6c18",
+          "src/screens/song/rhythms.ts": "2585216e3de308374e9b660c8f2f5c43fed9085667a2b8a6db0c1da984651459",
+          "src/components/song-autofill/chords-and-tabs.ts": "7101779c98a5ab0ed8f2473b1d9c301003634c245528ccccb249f7e19b58af16",
+          "src/components/song-autofill/sonidos.ts": "8f1bb2e3925e359a0a87e819f629a9597cac9898463f3178ea316a2eb2da8f73",
+          "src/components/song-autofill/weing-guitar.ts": "ff83fb26e893830f85c546401c5fd7bf597ca7596b0e57115b84e44bb46ba14d",
+          "src/components/song-autofill/akkords-fun.ts": "ce20f2859130e703407c1322a4346e948af7f64fc40e45254d4e27eaad3e382b"
+        },
+        "completed": 6,
+        "total": 6,
+        "byStatus": {
+          "lyrics_and_chords": 6
+        },
+        "byGroup": {
+          "ukrainian": {
+            "checked": 1,
+            "lyricsAndChords": 1
+          },
+          "russian": {
+            "checked": 1,
+            "lyricsAndChords": 1
+          },
+          "english": {
+            "checked": 1,
+            "lyricsAndChords": 1
+          },
+          "other": {
+            "checked": 3,
+            "lyricsAndChords": 3
+          }
+        }
+      },
+      "songs": [
+        {
+          "kind": "song",
+          "id": "012",
+          "group": "ukrainian",
+          "language": "Ukrainian",
+          "title": "Журавлі",
+          "artist": "The Hardkiss",
+          "status": "lyrics_and_chords",
+          "options": [
+            {
+              "title": "Журавлі",
+              "artist": "The Hardkiss",
+              "source": "Akkords.fun",
+              "url": "https://akkords.fun/eng/the-hardkiss/zhuravli/",
+              "contentLength": 720,
+              "providerHasChords": true,
+              "lyricsAndChords": true,
+              "identityMatches": true,
+              "lyricCorroboration": {
+                "matchedLineCount": 13,
+                "referenceLineCount": 18,
+                "candidateLineCount": 15,
+                "status": "overlap"
+              }
+            }
+          ],
+          "ms": 17668,
+          "requests": [
+            {
+              "url": "https://akkords.pro/?s=%D0%96%D1%83%D1%80%D0%B0%D0%B2%D0%BB%D1%96+The+Hardkiss",
+              "status": 200,
+              "ms": 3868
+            },
+            {
+              "url": "https://musicaccord.ru/?s=%D0%96%D1%83%D1%80%D0%B0%D0%B2%D0%BB%D1%96+The+Hardkiss",
+              "status": null,
+              "ms": 12004,
+              "error": "AbortError"
+            },
+            {
+              "url": "https://lrclib.net/api/search?track_name=%D0%96%D1%83%D1%80%D0%B0%D0%B2%D0%BB%D1%96&artist_name=The+Hardkiss",
+              "status": 200,
+              "ms": 3522
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=%D0%96%D1%83%D1%80%D0%B0%D0%B2%D0%BB%D1%96+The+Hardkiss",
+              "status": 200,
+              "ms": 5191
+            },
+            {
+              "url": "https://akkords.pro/?s=%D0%96%D1%83%D1%80%D0%B0%D0%B2%D0%BB%D1%96",
+              "status": 200,
+              "ms": 553
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=%D0%96%D1%83%D1%80%D0%B0%D0%B2%D0%BB%D1%96",
+              "status": 200,
+              "ms": 3771
+            },
+            {
+              "url": "https://akkords.fun/eng/",
+              "status": 200,
+              "ms": 3116
+            },
+            {
+              "url": "https://akkords.fun/eng/the-hardkiss/",
+              "status": 200,
+              "ms": 255
+            },
+            {
+              "url": "https://akkords.fun/eng/the-hardkiss/zhuravli/",
+              "status": 200,
+              "ms": 250
+            }
+          ]
+        },
+        {
+          "kind": "song",
+          "id": "101",
+          "group": "russian",
+          "language": "Russian",
+          "title": "Лондон",
+          "artist": "Григорий Лепс & Timati",
+          "status": "lyrics_and_chords",
+          "options": [
+            {
+              "title": "Лондон",
+              "artist": "Григорий Лепс",
+              "source": "Akkords.fun",
+              "url": "https://akkords.fun/rus/grigoriy-leps/london/",
+              "contentLength": 2729,
+              "providerHasChords": true,
+              "lyricsAndChords": true,
+              "identityMatches": true,
+              "lyricCorroboration": {
+                "matchedLineCount": 50,
+                "referenceLineCount": 76,
+                "candidateLineCount": 52,
+                "status": "overlap"
+              }
+            }
+          ],
+          "ms": 17191,
+          "requests": [
+            {
+              "url": "https://akkords.pro/?s=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD+%D0%93%D1%80%D0%B8%D0%B3%D0%BE%D1%80%D0%B8%D0%B9+%D0%9B%D0%B5%D0%BF%D1%81+%26+Timati",
+              "status": 200,
+              "ms": 3189
+            },
+            {
+              "url": "https://musicaccord.ru/?s=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD+%D0%93%D1%80%D0%B8%D0%B3%D0%BE%D1%80%D0%B8%D0%B9+%D0%9B%D0%B5%D0%BF%D1%81+%26+Timati",
+              "status": null,
+              "ms": 12002,
+              "error": "AbortError"
+            },
+            {
+              "url": "https://lrclib.net/api/search?track_name=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD&artist_name=%D0%93%D1%80%D0%B8%D0%B3%D0%BE%D1%80%D0%B8%D0%B9+%D0%9B%D0%B5%D0%BF%D1%81+%26+Timati",
+              "status": 200,
+              "ms": 2051
+            },
+            {
+              "url": "https://lrclib.net/api/search?q=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD",
+              "status": 200,
+              "ms": 2205
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD+%D0%93%D1%80%D0%B8%D0%B3%D0%BE%D1%80%D0%B8%D0%B9+%D0%9B%D0%B5%D0%BF%D1%81+%26+Timati",
+              "status": 200,
+              "ms": 1921
+            },
+            {
+              "url": "https://akkords.pro/?s=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD",
+              "status": 200,
+              "ms": 579
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD",
+              "status": 200,
+              "ms": 1927
+            },
+            {
+              "url": "https://akkords.fun/rus/",
+              "status": 200,
+              "ms": 2212
+            },
+            {
+              "url": "https://akkords.fun/rus/grigoriy-leps/",
+              "status": 200,
+              "ms": 250
+            },
+            {
+              "url": "https://akkords.fun/rus/grigoriy-leps/london/",
+              "status": 200,
+              "ms": 248
+            }
+          ]
+        },
+        {
+          "kind": "song",
+          "id": "089",
+          "group": "english",
+          "language": "English",
+          "title": "drivers license",
+          "artist": "Olivia Rodrigo",
+          "status": "lyrics_and_chords",
+          "options": [
+            {
+              "title": "Drivers license",
+              "artist": "Olivia Rodrigo",
+              "source": "Chords & Tabs",
+              "url": "https://www.chords-and-tabs.net/song/name/olivia-rodrigo-drivers-license",
+              "contentLength": 2100,
+              "providerHasChords": true,
+              "lyricsAndChords": true,
+              "identityMatches": true,
+              "lyricCorroboration": {
+                "matchedLineCount": 25,
+                "referenceLineCount": 35,
+                "candidateLineCount": 33,
+                "status": "overlap"
+              }
+            }
+          ],
+          "ms": 23011,
+          "requests": [
+            {
+              "url": "https://www.cifraclub.com/olivia-rodrigo/drivers-license/",
+              "status": 403,
+              "ms": 1934
+            },
+            {
+              "url": "https://www.e-chords.com/en/chords/olivia-rodrigo/drivers-license/",
+              "status": null,
+              "ms": 5364,
+              "error": "TypeError"
+            },
+            {
+              "url": "https://www.cifras.com.br/cifra/olivia-rodrigo/drivers-license/",
+              "status": null,
+              "ms": 6273,
+              "error": "TypeError"
+            },
+            {
+              "url": "https://www.guitaretab.com/fetch/?type=tab&query=Olivia+Rodrigo+drivers+license",
+              "status": 403,
+              "ms": 1903
+            },
+            {
+              "url": "https://akkords.pro/?s=drivers+license+Olivia+Rodrigo",
+              "status": 200,
+              "ms": 2939
+            },
+            {
+              "url": "https://musicaccord.ru/?s=drivers+license+Olivia+Rodrigo",
+              "status": null,
+              "ms": 12003,
+              "error": "AbortError"
+            },
+            {
+              "url": "https://lrclib.net/api/search?track_name=drivers+license&artist_name=Olivia+Rodrigo",
+              "status": 200,
+              "ms": 2034
+            },
+            {
+              "url": "https://akkords.pro/?s=drivers+license",
+              "status": 200,
+              "ms": 625
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=drivers+license+Olivia+Rodrigo",
+              "status": 200,
+              "ms": 2474
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=drivers+license",
+              "status": 200,
+              "ms": 2508
+            },
+            {
+              "url": "https://www.chords-and-tabs.net/songs/search/",
+              "status": 200,
+              "ms": 5076
+            },
+            {
+              "url": "https://www.sonidos.com.br/busca?q=drivers+license+Olivia+Rodrigo",
+              "status": 200,
+              "ms": 2754
+            },
+            {
+              "url": "https://akkords.fun/eng/olivia-rodrigo/",
+              "status": 200,
+              "ms": 2607
+            },
+            {
+              "url": "https://akkords.fun/eng/olivia-rodrigo/drivers-license/",
+              "status": 200,
+              "ms": 390
+            },
+            {
+              "url": "https://www.sonidos.com.br/busca?q=drivers+license",
+              "status": 200,
+              "ms": 203
+            },
+            {
+              "url": "https://www.chords-and-tabs.net/song/name/olivia-rodrigo-drivers-license",
+              "status": 200,
+              "ms": 247
+            }
+          ]
+        },
+        {
+          "kind": "song",
+          "id": "096",
+          "group": "other",
+          "language": "Portuguese",
+          "title": "Evidências",
+          "artist": "Chitãozinho & Xororó",
+          "status": "lyrics_and_chords",
+          "options": [
+            {
+              "title": "Evidências",
+              "artist": "Chitãozinho & Xororó",
+              "source": "Sonidos",
+              "url": "https://www.sonidos.com.br/chitaozinho-xororo/evidencias",
+              "contentLength": 3699,
+              "providerHasChords": true,
+              "lyricsAndChords": true,
+              "identityMatches": true,
+              "lyricCorroboration": {
+                "matchedLineCount": 19,
+                "referenceLineCount": 42,
+                "candidateLineCount": 42,
+                "status": "overlap"
+              }
+            }
+          ],
+          "ms": 17746,
+          "requests": [
+            {
+              "url": "https://www.e-chords.com/en/chords/chitaozinho-xororo/evidencias/",
+              "status": null,
+              "ms": 4662,
+              "error": "TypeError"
+            },
+            {
+              "url": "https://www.cifras.com.br/cifra/chitaozinho-xororo/evidencias/",
+              "status": null,
+              "ms": 4639,
+              "error": "TypeError"
+            },
+            {
+              "url": "https://akkords.pro/?s=Evid%C3%AAncias+Chit%C3%A3ozinho+%26+Xoror%C3%B3",
+              "status": 200,
+              "ms": 3080
+            },
+            {
+              "url": "https://musicaccord.ru/?s=Evid%C3%AAncias+Chit%C3%A3ozinho+%26+Xoror%C3%B3",
+              "status": null,
+              "ms": 12006,
+              "error": "AbortError"
+            },
+            {
+              "url": "https://lrclib.net/api/search?track_name=Evid%C3%AAncias&artist_name=Chit%C3%A3ozinho+%26+Xoror%C3%B3",
+              "status": 200,
+              "ms": 1844
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=Evid%C3%AAncias+Chit%C3%A3ozinho+%26+Xoror%C3%B3",
+              "status": 200,
+              "ms": 3191
+            },
+            {
+              "url": "https://akkords.pro/?s=Evid%C3%AAncias",
+              "status": 200,
+              "ms": 519
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=Evid%C3%AAncias",
+              "status": 200,
+              "ms": 1919
+            },
+            {
+              "url": "https://www.chords-and-tabs.net/songs/search/",
+              "status": null,
+              "ms": 3693,
+              "error": "AbortError"
+            },
+            {
+              "url": "https://www.sonidos.com.br/busca?q=Evid%C3%AAncias+Chit%C3%A3ozinho+%26+Xoror%C3%B3",
+              "status": 200,
+              "ms": 1922
+            },
+            {
+              "url": "https://www.sonidos.com.br/chitaozinho-xororo/evidencias",
+              "status": 200,
+              "ms": 160
+            }
+          ]
+        },
+        {
+          "kind": "song",
+          "id": "099",
+          "group": "other",
+          "language": "Japanese",
+          "title": "Lemon",
+          "artist": "Kenshi Yonezu",
+          "status": "lyrics_and_chords",
+          "options": [
+            {
+              "title": "Lemon",
+              "artist": "Kenshi Yonezu",
+              "source": "Chords & Tabs",
+              "url": "https://www.chords-and-tabs.net/song/name/kenshi-yonezu-lemon",
+              "contentLength": 2192,
+              "providerHasChords": true,
+              "lyricsAndChords": true,
+              "identityMatches": true,
+              "lyricCorroboration": {
+                "matchedLineCount": 33,
+                "referenceLineCount": 34,
+                "candidateLineCount": 33,
+                "status": "overlap"
+              }
+            }
+          ],
+          "ms": 25749,
+          "requests": [
+            {
+              "url": "https://www.e-chords.com/en/chords/kenshi-yonezu/lemon/",
+              "status": null,
+              "ms": 5318,
+              "error": "TypeError"
+            },
+            {
+              "url": "https://www.cifras.com.br/cifra/kenshi-yonezu/lemon/",
+              "status": null,
+              "ms": 6288,
+              "error": "TypeError"
+            },
+            {
+              "url": "https://akkords.pro/?s=Lemon+Kenshi+Yonezu",
+              "status": 200,
+              "ms": 2301
+            },
+            {
+              "url": "https://musicaccord.ru/?s=Lemon+Kenshi+Yonezu",
+              "status": null,
+              "ms": 12003,
+              "error": "AbortError"
+            },
+            {
+              "url": "https://lrclib.net/api/search?track_name=Lemon&artist_name=Kenshi+Yonezu",
+              "status": 200,
+              "ms": 2296
+            },
+            {
+              "url": "https://akkords.pro/?s=Lemon",
+              "status": 200,
+              "ms": 516
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=Lemon+Kenshi+Yonezu",
+              "status": 200,
+              "ms": 2423
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=Lemon",
+              "status": 200,
+              "ms": 2177
+            },
+            {
+              "url": "https://www.chords-and-tabs.net/songs/search/",
+              "status": 200,
+              "ms": 6076
+            },
+            {
+              "url": "https://www.sonidos.com.br/busca?q=Lemon+Kenshi+Yonezu",
+              "status": 200,
+              "ms": 3037
+            },
+            {
+              "url": "https://www.sonidos.com.br/busca?q=Lemon",
+              "status": 200,
+              "ms": 351
+            },
+            {
+              "url": "https://www.chords-and-tabs.net/song/name/kenshi-yonezu-lemon",
+              "status": 200,
+              "ms": 3106
+            }
+          ]
+        },
+        {
+          "kind": "song",
+          "id": "100",
+          "group": "other",
+          "language": "Korean",
+          "title": "봄날",
+          "artist": "BTS",
+          "status": "lyrics_and_chords",
+          "options": [
+            {
+              "title": "봄날",
+              "artist": "BTS",
+              "source": "WeingGuitar",
+              "url": "https://guitar.weingchicken.com/scores/147",
+              "contentLength": 1439,
+              "providerHasChords": true,
+              "lyricsAndChords": true,
+              "identityMatches": true,
+              "lyricCorroboration": {
+                "matchedLineCount": 23,
+                "referenceLineCount": 37,
+                "candidateLineCount": 41,
+                "status": "overlap"
+              }
+            }
+          ],
+          "ms": 16938,
+          "requests": [
+            {
+              "url": "https://akkords.pro/?s=%EB%B4%84%EB%82%A0+BTS",
+              "status": 200,
+              "ms": 3180
+            },
+            {
+              "url": "https://musicaccord.ru/?s=%EB%B4%84%EB%82%A0+BTS",
+              "status": null,
+              "ms": 12011,
+              "error": "AbortError"
+            },
+            {
+              "url": "https://lrclib.net/api/search?track_name=%EB%B4%84%EB%82%A0&artist_name=BTS",
+              "status": 200,
+              "ms": 2611
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=%EB%B4%84%EB%82%A0+BTS",
+              "status": 200,
+              "ms": 2731
+            },
+            {
+              "url": "https://akkords.pro/?s=%EB%B4%84%EB%82%A0",
+              "status": 200,
+              "ms": 521
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=%EB%B4%84%EB%82%A0",
+              "status": 200,
+              "ms": 3129
+            },
+            {
+              "url": "https://akkords.fun/eng/bts/",
+              "status": 200,
+              "ms": 3683
+            },
+            {
+              "url": "https://guitar.weingchicken.com/scores?query=%EB%B4%84%EB%82%A0+BTS",
+              "status": 200,
+              "ms": 3417
+            },
+            {
+              "url": "https://guitar.weingchicken.com/scores/147",
+              "status": 200,
+              "ms": 366
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "run": {
+        "kind": "run",
+        "startedAt": "2026-11-25T05:49:51.372Z",
+        "gitHead": "d4f7e06446d21da3ed3165591aeb201288d71a29",
+        "node": "v24.22.3",
+        "platform": "linux",
+        "manifest": "docs/recognition-chord-corpus-validated-100-2026-11-25.json",
+        "manifestSha256": "3bc61bf3c8fa9ff31eb467244ad17008a4f2f412cc072e95811b0c23f9911a82",
+        "sourceSha256": {
+          "src/components/song-autofill/lyrics.ts": "5999ea7e617a5c6b67750a8498792c7af910889170d1da7b928c8e83d73615e5",
+          "src/screens/song/chords.ts": "54b71903e454be197688fc814d064c2543a59864551156cf1f83d3bb86ae6c18",
+          "src/screens/song/rhythms.ts": "2585216e3de308374e9b660c8f2f5c43fed9085667a2b8a6db0c1da984651459",
+          "src/components/song-autofill/chords-and-tabs.ts": "7101779c98a5ab0ed8f2473b1d9c301003634c245528ccccb249f7e19b58af16",
+          "src/components/song-autofill/sonidos.ts": "8f1bb2e3925e359a0a87e819f629a9597cac9898463f3178ea316a2eb2da8f73",
+          "src/components/song-autofill/weing-guitar.ts": "ff83fb26e893830f85c546401c5fd7bf597ca7596b0e57115b84e44bb46ba14d",
+          "src/components/song-autofill/akkords-fun.ts": "ce20f2859130e703407c1322a4346e948af7f64fc40e45254d4e27eaad3e382b",
+          "src/components/song-autofill/lalatracker.ts": "180a2a7242ed2437a6b8e412111f49ca7b3c080c58874b61fb7ea4fa8bab398c"
+        },
+        "timeoutMs": 60000,
+        "count": 1,
+        "corpusCount": 100,
+        "selectedIds": [
+          "010"
+        ],
+        "concurrency": "One song at a time in one process; application provider concurrency, crawl delay and cooldowns unchanged",
+        "successCriterion": "Provider-validated identity plus repeated title/artist field checks using production normalization and hasSongChordsAsync(content, signal, true)",
+        "lyricCorroboration": "Diagnostic-only unique normalized lyric-line overlap with identity-matching LRCLIB plainLyrics; does not change status",
+        "includesAudioRecognition": false,
+        "recordsLyrics": false
+      },
+      "summary": {
+        "kind": "summary",
+        "startedAt": "2026-11-25T05:49:51.372Z",
+        "updatedAt": "2026-11-25T05:50:09.051Z",
+        "finished": true,
+        "manifestSha256": "3bc61bf3c8fa9ff31eb467244ad17008a4f2f412cc072e95811b0c23f9911a82",
+        "sourceSha256": {
+          "src/components/song-autofill/lyrics.ts": "5999ea7e617a5c6b67750a8498792c7af910889170d1da7b928c8e83d73615e5",
+          "src/screens/song/chords.ts": "54b71903e454be197688fc814d064c2543a59864551156cf1f83d3bb86ae6c18",
+          "src/screens/song/rhythms.ts": "2585216e3de308374e9b660c8f2f5c43fed9085667a2b8a6db0c1da984651459",
+          "src/components/song-autofill/chords-and-tabs.ts": "7101779c98a5ab0ed8f2473b1d9c301003634c245528ccccb249f7e19b58af16",
+          "src/components/song-autofill/sonidos.ts": "8f1bb2e3925e359a0a87e819f629a9597cac9898463f3178ea316a2eb2da8f73",
+          "src/components/song-autofill/weing-guitar.ts": "ff83fb26e893830f85c546401c5fd7bf597ca7596b0e57115b84e44bb46ba14d",
+          "src/components/song-autofill/akkords-fun.ts": "ce20f2859130e703407c1322a4346e948af7f64fc40e45254d4e27eaad3e382b",
+          "src/components/song-autofill/lalatracker.ts": "180a2a7242ed2437a6b8e412111f49ca7b3c080c58874b61fb7ea4fa8bab398c"
+        },
+        "completed": 1,
+        "total": 1,
+        "byStatus": {
+          "lyrics_and_chords": 1
+        },
+        "byGroup": {
+          "ukrainian": {
+            "checked": 1,
+            "lyricsAndChords": 1
+          }
+        }
+      },
+      "songs": [
+        {
+          "kind": "song",
+          "id": "010",
+          "group": "ukrainian",
+          "language": "Russian",
+          "title": "Дежавю",
+          "artist": "Артем Пивоваров",
+          "status": "lyrics_and_chords",
+          "options": [
+            {
+              "title": "Дежавю",
+              "artist": "Артем Пивоваров",
+              "source": "LalaTracker",
+              "url": "https://lalatracker.com/chords/pivovarov_artem/5dcb15afe0231032482e9d1f-dezhavyu",
+              "contentLength": 1937,
+              "providerHasChords": true,
+              "lyricsAndChords": true,
+              "identityMatches": true,
+              "sourceArtist": "Пивоваров Артем",
+              "identityReference": {
+                "source": "LRCLIB",
+                "url": "https://lrclib.net/api/get/11161895",
+                "matchedLines": 19,
+                "candidateLines": 22
+              },
+              "lyricCorroboration": {
+                "matchedLineCount": 18,
+                "referenceLineCount": 23,
+                "candidateLineCount": 22,
+                "status": "overlap"
+              }
+            }
+          ],
+          "ms": 17671,
+          "requests": [
+            {
+              "url": "https://akkords.pro/?s=%D0%94%D0%B5%D0%B6%D0%B0%D0%B2%D1%8E+%D0%90%D1%80%D1%82%D0%B5%D0%BC+%D0%9F%D0%B8%D0%B2%D0%BE%D0%B2%D0%B0%D1%80%D0%BE%D0%B2",
+              "status": 200,
+              "ms": 3381
+            },
+            {
+              "url": "https://musicaccord.ru/?s=%D0%94%D0%B5%D0%B6%D0%B0%D0%B2%D1%8E+%D0%90%D1%80%D1%82%D0%B5%D0%BC+%D0%9F%D0%B8%D0%B2%D0%BE%D0%B2%D0%B0%D1%80%D0%BE%D0%B2",
+              "status": null,
+              "ms": 12001,
+              "error": "AbortError"
+            },
+            {
+              "url": "https://lrclib.net/api/search?track_name=%D0%94%D0%B5%D0%B6%D0%B0%D0%B2%D1%8E&artist_name=%D0%90%D1%80%D1%82%D0%B5%D0%BC+%D0%9F%D0%B8%D0%B2%D0%BE%D0%B2%D0%B0%D1%80%D0%BE%D0%B2",
+              "status": 200,
+              "ms": 2997
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=%D0%94%D0%B5%D0%B6%D0%B0%D0%B2%D1%8E+%D0%90%D1%80%D1%82%D0%B5%D0%BC+%D0%9F%D0%B8%D0%B2%D0%BE%D0%B2%D0%B0%D1%80%D0%BE%D0%B2",
+              "status": 200,
+              "ms": 5313
+            },
+            {
+              "url": "https://akkords.pro/?s=%D0%94%D0%B5%D0%B6%D0%B0%D0%B2%D1%8E",
+              "status": 200,
+              "ms": 516
+            },
+            {
+              "url": "https://pisennyk.com.ua/search?q=%D0%94%D0%B5%D0%B6%D0%B0%D0%B2%D1%8E",
+              "status": 200,
+              "ms": 4018
+            },
+            {
+              "url": "https://akkords.fun/rus/",
+              "status": 200,
+              "ms": 3067
+            },
+            {
+              "url": "https://lalatracker.com/search?name=%D0%94%D0%B5%D0%B6%D0%B0%D0%B2%D1%8E",
+              "status": 200,
+              "ms": 3057
+            },
+            {
+              "url": "https://lalatracker.com/chords/pivovarov_artem/5dcb15afe0231032482e9d1f-dezhavyu",
+              "status": 200,
+              "ms": 373
+            },
+            {
+              "url": "https://akkords.fun/rus/artyom-pivovarov/",
+              "status": 200,
+              "ms": 257
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "localVerification": {
+    "jestTests": 1200,
+    "jestSuites": 46,
+    "jest": "passed",
+    "typescript": "passed",
+    "eslint": "passed",
+    "sqlite": "passed",
+    "commit": "017635a2c5a325582d5c3e89179ddba646e6eea6"
+  },
+  "scope": "The focused probes cover only the seven previously failed queries, not a full100 run. Their recorded module hashes identify each intermediate checkpoint. The complete CI audit is reported separately. No raw lyric or chart bodies are stored here.",
+  "firstComplete100Audit": {
+    "sourceCommit": "017635a2c5a325582d5c3e89179ddba646e6eea6",
+    "runId": 45556572575,
+    "jobId": 139009943462,
+    "artifactId": 14996521823,
+    "runUrl": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45556572575",
+    "artifactZipSha256": "33219dd550832c91df3967b50771ac738e5a181c97331ed3b09fb00f9a3125c9",
+    "results": "recognition-chord-coverage-results-100-2026-11-25-017635a.jsonl",
+    "resultsSha256": "6531d19eea18652ed6ceb5c6d1fdf97ecd7c46fc6872e09bd1b791fcca9ba21e",
+    "summary": "recognition-chord-coverage-results-100-2026-11-25-017635a.summary.json",
+    "summarySha256": "5accf176bd864a100c9f09cee00352198434d78d12260d4ae339422fb3385cdb",
+    "result": {
+      "lyrics_and_chords": 100
+    },
+    "statusRegressions": 0,
+    "startedAt": "2026-11-25T05:52:52.104Z",
+    "finishedAt": "2026-11-25T06:05:35.727Z",
+    "songsWithOptionalLyricLineOverlap": 97,
+    "firstPassingOptionsWithOverlap": 95,
+    "verification": "Exactly 100 ordered identities equal the unchanged manifest; all recorded source hashes equal the published source. The artifact ZIP digest was independently checked. All identity and same-source lyrics-and-chords checks passed.",
+    "secondaryOptionDefect": {
+      "id": "101",
+      "url": "https://lalatracker.com/chords/grigoriy_leps/5b73464b5b45d41de036fd04-london__feat__timati_",
+      "issue": "The source labels the chart London, but its body is the different Leps/Timati song Ты чего такой серьёзный. This was a secondary option; the valid first Akkords.fun arrangement matched 50 reference lines.",
+      "exactLineMatches": 0,
+      "fiveWordSequenceMatches": 0,
+      "wrongContentSha256": "6d5871ec5756621bd4b0cb2ca05af7b0bf2dbb0bcf3ccca8f8f73f045c3084cd",
+      "fix": "Require the existing single-reference lyric corroboration for every LalaTracker candidate, including an exact artist-name match. The original valid first arrangement retains London coverage."
+    }
+  },
+  "postReviewFix": {
+    "commit": "e56339216041ad5fe190d56300938330ef9cf4a9",
+    "reason": "A matching page title and performer did not guarantee that the LalaTracker body belonged to that song. The existing corroboration is now mandatory for every LalaTracker candidate.",
+    "adapterAndTestsOnly": true,
+    "focusedTests": 42,
+    "directProof": {
+      "kind": "Direct production Lala adapter and existing LRCLIB lookup; no other providers or audio",
+      "at": "2026-11-25T06:14:47.825Z",
+      "sourceSha256": {
+        "src/components/song-autofill/lyrics.ts": "5999ea7e617a5c6b67750a8498792c7af910889170d1da7b928c8e83d73615e5",
+        "src/screens/song/chords.ts": "54b71903e454be197688fc814d064c2543a59864551156cf1f83d3bb86ae6c18",
+        "src/screens/song/rhythms.ts": "2585216e3de308374e9b660c8f2f5c43fed9085667a2b8a6db0c1da984651459",
+        "src/components/song-autofill/chords-and-tabs.ts": "7101779c98a5ab0ed8f2473b1d9c301003634c245528ccccb249f7e19b58af16",
+        "src/components/song-autofill/sonidos.ts": "8f1bb2e3925e359a0a87e819f629a9597cac9898463f3178ea316a2eb2da8f73",
+        "src/components/song-autofill/weing-guitar.ts": "ff83fb26e893830f85c546401c5fd7bf597ca7596b0e57115b84e44bb46ba14d",
+        "src/components/song-autofill/akkords-fun.ts": "ce20f2859130e703407c1322a4346e948af7f64fc40e45254d4e27eaad3e382b",
+        "src/components/song-autofill/lalatracker.ts": "2196d8cf940b0ce1b32b468fe7b3a90a8e0b556b11005d9afe1c58c3d7e88d05"
+      },
+      "results": [
+        {
+          "id": "010",
+          "title": "Дежавю",
+          "artist": "Артем Пивоваров",
+          "options": [
+            {
+              "id": 0,
+              "title": "Дежавю",
+              "artist": "Артем Пивоваров",
+              "sourceArtist": "Пивоваров Артем",
+              "identityReference": {
+                "source": "LRCLIB",
+                "url": "https://lrclib.net/api/get/11161895",
+                "matchedLines": 19,
+                "candidateLines": 22
+              },
+              "album": "",
+              "duration": null,
+              "source": "LalaTracker",
+              "url": "https://lalatracker.com/chords/pivovarov_artem/5dcb15afe0231032482e9d1f-dezhavyu",
+              "hasChords": true,
+              "contentLength": 1937,
+              "contentSha256": "9f8b46f9129a7920f46fa88e9f35a6485a61d197b6f9a3a23f7eae437c548dc7"
+            }
+          ],
+          "requests": [
+            {
+              "url": "https://lrclib.net/api/search?track_name=%D0%94%D0%B5%D0%B6%D0%B0%D0%B2%D1%8E&artist_name=%D0%90%D1%80%D1%82%D0%B5%D0%BC+%D0%9F%D0%B8%D0%B2%D0%BE%D0%B2%D0%B0%D1%80%D0%BE%D0%B2",
+              "status": 200,
+              "ms": 3831
+            },
+            {
+              "url": "https://lalatracker.com/search?name=%D0%94%D0%B5%D0%B6%D0%B0%D0%B2%D1%8E",
+              "status": 200,
+              "ms": 4555
+            },
+            {
+              "url": "https://lalatracker.com/chords/pivovarov_artem/5dcb15afe0231032482e9d1f-dezhavyu",
+              "status": 200,
+              "ms": 395
+            }
+          ]
+        },
+        {
+          "id": "101",
+          "title": "Лондон",
+          "artist": "Григорий Лепс & Timati",
+          "options": [],
+          "requests": [
+            {
+              "url": "https://lrclib.net/api/search?track_name=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD&artist_name=%D0%93%D1%80%D0%B8%D0%B3%D0%BE%D1%80%D0%B8%D0%B9+%D0%9B%D0%B5%D0%BF%D1%81+%26+Timati",
+              "status": 200,
+              "ms": 29
+            },
+            {
+              "url": "https://lalatracker.com/search?name=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD",
+              "status": 200,
+              "ms": 453
+            },
+            {
+              "url": "https://lalatracker.com/chords/grigoriy_leps/5b73464b5b45d41de036fd04-london__feat__timati_",
+              "status": 200,
+              "ms": 449
+            },
+            {
+              "url": "https://lrclib.net/api/search?q=%D0%9B%D0%BE%D0%BD%D0%B4%D0%BE%D0%BD",
+              "status": 200,
+              "ms": 3391
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "firstSourceCi": {
+    "validation": {
+      "runId": 45556572569,
+      "jobId": 139009943037,
+      "conclusion": "success",
+      "jestTests": 1200,
+      "jestSuites": 46
+    },
+    "native": {
+      "runId": 45556572570,
+      "jobIds": [
+        139009943530,
+        139009943169
+      ],
+      "conclusion": "success"
+    },
+    "iosApplication": {
+      "runId": 45556572573,
+      "jobId": 139009943495,
+      "conclusion": "success",
+      "simulatorApp": true,
+      "embeddedExtensions": [
+        "PlaybackBroadcast",
+        "RecognitionControl"
+      ],
+      "signedPhysicalDevice": false
+    },
+    "audioRecognition": {
+      "runId": 45556572676,
+      "jobId": 139009943222,
+      "conclusion": "success",
+      "positiveTrack": "I Will Survive",
+      "positiveArtist": "Gloria Gaynor",
+      "positiveHttpStatus": 200,
+      "additionalBeethovenNoMatches": 2
+    },
+    "commit": "017635a2c5a325582d5c3e89179ddba646e6eea6"
+  },
+  "sourceCi": {
+    "commit": "e56339216041ad5fe190d56300938330ef9cf4a9",
+    "validation": {
+      "runId": 45559336376,
+      "jobId": 139018978966,
+      "conclusion": "success",
+      "jestTests": 1202,
+      "jestSuites": 46,
+      "typescript": "passed",
+      "eslint": "passed",
+      "sqliteIntegration": "passed"
+    },
+    "native": {
+      "runId": 45559336344,
+      "jobIds": [
+        139018979015,
+        139018978630
+      ],
+      "conclusion": "success",
+      "androidKotlinCompilation": "passed",
+      "rustJniArchitectures": 3,
+      "iosProductionPcmFormats": 18,
+      "physicalDevices": false
+    },
+    "iosApplication": {
+      "runId": 45559336332,
+      "jobId": 139018979070,
+      "conclusion": "success",
+      "simulatorApp": true,
+      "embeddedExtensions": [
+        "PlaybackBroadcast",
+        "RecognitionControl"
+      ],
+      "unsignedIphoneReleaseStep": "skipped",
+      "signedPhysicalDevice": false
+    },
+    "audioRecognition": {
+      "runId": 45559336331,
+      "jobId": 139018978622,
+      "conclusion": "success",
+      "positiveTrack": "I Will Survive",
+      "positiveArtist": "Gloria Gaynor",
+      "positiveHttpStatus": 200,
+      "signatureBytes": 5965,
+      "additionalBeethovenNoMatches": 2
+    }
+  },
+  "boundedSourceReview": {
+    "at": "2026-11-25T06:23:11.351Z",
+    "proof": [
+      {
+        "id": "067",
+        "title": "Smells Like Teen Spirit",
+        "artist": "Nirvana",
+        "error": "LyricsServiceUnavailable",
+        "traces": [
+          {
+            "url": "https://www.guitaretab.com/n/nirvana/23957.html",
+            "status": 403
+          }
+        ]
+      },
+      {
+        "stop": "Source denied request; no retries or alternate paths/headers",
+        "unexamined": [
+          "080"
+        ]
+      }
+    ],
+    "interpretation": "Ordinary GuitareTab access returned HTTP 403 for 067, so the check stopped before 080 without retries or alternative access. This probe cannot classify the two zero-exact-line-overlap GuitareTab bodies as formatting differences or incorrect content. Both songs have independently corroborated Akkords.pro alternatives in the archived complete run."
+  },
+  "finalComplete100Audit": {
+    "sourceCommit": "e56339216041ad5fe190d56300938330ef9cf4a9",
+    "sourceTree": "cc56f93c5cd886c75552de5f0936bcc92fe05bfe",
+    "runId": 45559336274,
+    "jobId": 139018978207,
+    "artifactId": 14998535017,
+    "artifactBytes": 21546,
+    "runUrl": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45559336274",
+    "artifactZipSha256": "9501f00f56190e5c7db2d03524be25376cca338a13ecab9bd6130d03648efba1",
+    "results": "recognition-chord-coverage-results-100-2026-11-25.jsonl",
+    "resultsSha256": "c94bcd9d2153093726ba74d45415dfd3ef2e2551951130e1709bb90f5a2ba5b4",
+    "summary": "recognition-chord-coverage-results-100-2026-11-25.summary.json",
+    "summarySha256": "94c6befa3e50bd10b489c0f6cfc2f93faf2f5be22574f3561ff53264a9152487",
+    "result": {
+      "lyrics_and_chords": 100
+    },
+    "byGroup": {
+      "ukrainian": {
+        "checked": 30,
+        "lyricsAndChords": 30
+      },
+      "russian": {
+        "checked": 30,
+        "lyricsAndChords": 30
+      },
+      "english": {
+        "checked": 30,
+        "lyricsAndChords": 30
+      },
+      "other": {
+        "checked": 10,
+        "lyricsAndChords": 10
+      }
+    },
+    "recoveredIds": [
+      "010",
+      "012",
+      "101",
+      "089",
+      "096",
+      "099",
+      "100"
+    ],
+    "statusRegressions": 0,
+    "startedAt": "2026-11-25T06:16:26.375Z",
+    "finishedAt": "2026-11-25T06:29:20.563Z",
+    "songsWithOptionalLyricLineOverlap": 97,
+    "firstPassingOptionsWithOverlap": 96,
+    "firstPassingSourceCounts": {
+      "Akkords.pro": 46,
+      "Пісенник": 21,
+      "LalaTracker": 1,
+      "Akkords.fun": 2,
+      "Musicaccord.ru": 6,
+      "GuitareTab": 20,
+      "Chords & Tabs": 2,
+      "Sonidos": 1,
+      "WeingGuitar": 1
+    },
+    "mislabeledLalaLondonOptionReturned": false,
+    "verification": "Exactly 100 unique ordered identities match the unchanged frozen manifest. The downloaded ZIP digest matches GitHub metadata. Every recorded runtime-module hash matches both the published source commit and the local file. All returned arrangements satisfy provider, repeated identity and same-source lyrics/chord checks. All seven prior failures recovered and none of the previous 93 passes regressed.",
+    "limitations": "Fixed title/artist catalogue lookup only, not 100 audio recordings or physical-phone capture. Optional lyric overlap does not prove complete lyrics or harmony. Three identities have no usable lyric reference; two GuitareTab options have zero exact-line overlap but both songs also return corroborated Akkords.pro alternatives. Source order can change with response timing."
+  }
+}

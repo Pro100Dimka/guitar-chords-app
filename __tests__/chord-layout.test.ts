@@ -4,6 +4,7 @@ import {
   transposeSong,
   songContentFromEditor,
   createSongEditorState,
+  hasSongChordsAsync,
   songChordSequence
 } from "../src/screens/song/chords";
 import { importedSong } from "../src/components/library-files";
@@ -12,6 +13,148 @@ jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
 }));
 jest.mock("../src/locales", () => ({ t: String }));
+
+test.each([
+  ["[Am]Original words [G]with chords", true],
+  ["Am    G\nOriginal words with chords", true],
+  ["[Припев]\n[Am]Приклад тексту пісні", true],
+  ["Only example lyrics", false],
+  ["[Intro]\nAm G F C", false],
+  ["Вступление: см. табы и ноты\nAm G F C", false],
+  ["Verse:\n[Am] [G]\n{tempo: 100}\nCapo: 2", false],
+  ["[Am] [G]\ne|--0--2--3--|", false],
+  [
+    "Song: Example\nArtist: Example performer\nTabbed by: Example author\nAm C\ne|--0--1--|",
+    false
+  ],
+  [
+    "Song: Example\nArtist: Example performer\nTabbed by: Example author\nAm C\ne|--0--1--|\nOriginal words beside the river",
+    true
+  ]
+])(
+  "a playable recognition result requires lyrics and chords: %s",
+  async (content, expected) => {
+    await expect(
+      hasSongChordsAsync(content as string, undefined, true)
+    ).resolves.toBe(expected);
+  }
+);
+
+test("the existing chord-only parser still accepts an instrumental progression", async () => {
+  await expect(hasSongChordsAsync("Am G C F")).resolves.toBe(true);
+});
+
+test.each([
+  "Бой: шестёрка",
+  "Бій — шістка з приглушенням",
+  "Рекомендуемый Бой: Восьмерка",
+  "Рекомендую бой восьмерка",
+  "Бой:\nшестёрка с глушением",
+  "Бой:\n\nшестёрка",
+  "Strumming pattern:\nD D U U D U",
+  "Strum pattern\nD-DU-UDU",
+  "Batida: ↓ ↓ ↑ ↑ ↓ ↑",
+  "Ritmo:\nfour",
+  "Перебор:\nБ 3 2 1 2 3",
+  "Арпеджио: B3231323",
+  "Арпеджіо:\nБ₂ 3 Б 2 Б₂ 3 Б 2",
+  "Fingerpicking pattern:\n6-3-2-1-2-3 (6/8)",
+  "Picking pattern:\nB32123 (waltz)",
+  "Arpeggio: B32123 (3/4)",
+  "120 BPM",
+  "120–140 BPM",
+  "120 ударов в минуту",
+  "BPM:\n120 ударов в минуту",
+  "Темп\n120 уд/мин",
+  "Andamento 120",
+  "[Tempo = 120]",
+  "[Бой: шестёрка]",
+  "Темп: 120 неизвестных единиц",
+  "Темп:\n120 неизвестных единиц",
+  "Tempo:\n120 seconds",
+  "Бой: неизвестный рисунок"
+])(
+  "tempo and playing instructions cannot establish lyrics: %s",
+  async (instruction) => {
+    const content = `Am C\n${instruction}`;
+    await expect(hasSongChordsAsync(content, undefined, true)).resolves.toBe(
+      false
+    );
+    await expect(hasSongChordsAsync(content)).resolves.toBe(true);
+    await expect(
+      hasSongChordsAsync(
+        `${content}\nНастоящая строка песни продолжается дальше`,
+        undefined,
+        true
+      )
+    ).resolves.toBe(true);
+  }
+);
+
+test.each([
+  "Бой продолжается до утра",
+  "Бій триває до ранку",
+  "Strumming softly in the darkness",
+  "Strum my memories into song",
+  "Batida do coração me leva",
+  "Ritmo da vida me chama",
+  "Перебор случайностей привёл меня домой",
+  "Arpeggio of the morning settles",
+  "Tempo changes as we walk",
+  "BPM means nothing when you leave",
+  "120 BPM and the city comes alive",
+  "Бой:\nСолнце обещает новый день",
+  "Strumming pattern:\nOur story starts again",
+  "Strumming pattern:\n[Verse]\nfour",
+  "Tempo:\nRivers carry every memory"
+])("playing terms in actual lyrics remain valid: %s", async (line) => {
+  await expect(
+    hasSongChordsAsync(`Am C\n${line}`, undefined, true)
+  ).resolves.toBe(true);
+});
+
+test("strict lyric validation leaves instruction display and transposition intact", async () => {
+  const content = "Бой: шестёрка\n[Am]Настоящая строка песни [C]продолжается";
+  await expect(hasSongChordsAsync(content, undefined, true)).resolves.toBe(
+    true
+  );
+  expect(transposeSong(content, 2)).toBe(
+    "Бой: шестёрка\n[Bm]Настоящая строка песни [D]продолжается"
+  );
+});
+
+test.each([
+  "Song: Example",
+  "Title = Example",
+  "Artist - Example performer",
+  "Album: Example album",
+  "Tabbed by: Example author",
+  "Transcribed by = Example author",
+  "Arranged by: Example author",
+  "Tabbed by Example author",
+  "Transcribed by Example author",
+  "Arranged by Example author"
+])("explicit chart metadata is not a lyric line: %s", async (header) => {
+  const content = `${header}\nAm C\ne|--0--1--|`;
+  await expect(hasSongChordsAsync(content, undefined, true)).resolves.toBe(
+    false
+  );
+  await expect(hasSongChordsAsync(content)).resolves.toBe(true);
+});
+
+test.each([
+  "Song birds wake before the dawn",
+  "Title my dreams with the morning light",
+  "Artist of my heart, come home",
+  "Album pages carry all the years",
+  "Our melody was tabbed by the candlelight",
+  "Our story was transcribed by the rain",
+  "The stars were arranged by the wind"
+])("metadata words in ordinary lyrics remain valid: %s", async (line) => {
+  await expect(
+    hasSongChordsAsync(`Am C\n${line}`, undefined, true)
+  ).resolves.toBe(true);
+});
 
 test.each(["C x2", "C (x3)", "|: C :|", "[Verse] C"])(
   "editor round trip retains annotated chord row %s",

@@ -1,0 +1,5 @@
+<resources>
+    <string name="recognition_tile">Знайти акорди пісні</string>
+    <string name="recognition_playback_active">Слухаємо звук із цього телефона</string>
+    <string name="recognition_stop">Зупинити</string>
+</resources>

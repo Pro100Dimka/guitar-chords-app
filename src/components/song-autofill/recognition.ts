@@ -17,6 +17,8 @@ export interface RecognizedSong {
 }
 interface NativeRecognizer {
   recognizeMicrophone(): Promise<RecognizedSong | null>;
+  recognizePlayback?(): Promise<RecognizedSong | null>;
+  requestQuickSettingsTile?(): Promise<boolean>;
   recognizeFile(uri: string): Promise<RecognizedSong | null>;
   cancel(): Promise<void>;
 }
@@ -83,15 +85,42 @@ export async function recognizeMicrophone(
   const granted = await checkMicPermission(true);
   if (signal?.aborted) throw new Error("Cancelled");
   if (!granted) throw new Error("MicrophonePermissionDenied");
-  await cancellation;
-  if (signal?.aborted) throw new Error("Cancelled");
-  await waitForAppActive(signal);
-  return recognize((recognizer) => {
+  return recognize(async (recognizer) => {
+    // Cancellation can outlive an Activity pause; check foreground after it.
+    await waitForAppActive(signal);
     onCaptureReady?.();
     if (signal?.aborted) throw new Error("Cancelled");
     return recognizer.recognizeMicrophone();
   }, signal);
 }
+export const playbackRecognitionSupported = () =>
+  Platform.OS === "ios" ||
+  (Platform.OS === "android" && Number(Platform.Version) >= 29);
+
+export async function recognizePlayback(
+  signal?: AbortSignal
+): Promise<RecognizedSong | null> {
+  if (signal?.aborted) throw new Error("Cancelled");
+  if (!playbackRecognitionSupported() || !native().recognizePlayback)
+    throw new Error("PlaybackCaptureUnavailable");
+  // Android requires RECORD_AUDIO for playback capture too; ReplayKit does not
+  // use the microphone and presents its own explicit system consent on iOS.
+  if (Platform.OS === "android") {
+    const granted = await checkMicPermission(true);
+    if (signal?.aborted) throw new Error("Cancelled");
+    if (!granted) throw new Error("MicrophonePermissionDenied");
+  }
+  return recognize(async (recognizer) => {
+    await waitForAppActive(signal);
+    return recognizer.recognizePlayback!();
+  }, signal);
+}
+
+export async function requestQuickSettingsTile() {
+  if (Platform.OS !== "android" || Number(Platform.Version) < 33) return false;
+  return native().requestQuickSettingsTile?.() ?? false;
+}
+
 export async function waitForAppActive(signal?: AbortSignal) {
   while (AppState.currentState !== "active") {
     await new Promise<void>((resolve, reject) => {

@@ -4,12 +4,15 @@ import React
 import UIKit
 
 private final class RecognitionCapture {
+  let allowsBackground: Bool
   private let lock = NSLock()
   private var stopped = false
   private var samples = [Int16]()
   private var task: URLSessionDataTask?
   private var fileCoordinator: NSFileCoordinator?
   private var readExpired = false
+
+  init(allowsBackground: Bool = false) { self.allowsBackground = allowsBackground }
 
   var fileReadExpired: Bool {
     lock.lock(); defer { lock.unlock() }
@@ -100,7 +103,11 @@ final class SongRecognition: NSObject, RCTBridgeModule {
     super.init()
     for name in [AVAudioSession.interruptionNotification, UIApplication.didEnterBackgroundNotification] {
       observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
-        self?.control.async { [weak self] in self?.active?.cancel() }
+        self?.control.async { [weak self] in
+          guard let capture = self?.active else { return }
+          // ReplayKit owns the independent audio session while the user visits the player.
+          if !capture.allowsBackground { capture.cancel() }
+        }
       })
     }
   }
@@ -130,7 +137,8 @@ final class SongRecognition: NSObject, RCTBridgeModule {
       do {
         try self.check(capture)
         let session = AVAudioSession.sharedInstance()
-        try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .allowBluetooth])
+        // Keep the player's audio running and its stereo Bluetooth route available.
+        try session.setCategory(.playAndRecord, mode: .measurement, options: [.defaultToSpeaker, .mixWithOthers, .allowBluetoothA2DP])
         try session.setActive(true)
         sessionActivated = true
         let input = AVAudioEngine()
@@ -167,6 +175,69 @@ final class SongRecognition: NSObject, RCTBridgeModule {
       }
     }
   }
+
+  #if os(iOS)
+  @objc func consumeLaunchURL(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    DispatchQueue.main.async { resolve(RecognitionLaunch.consume()) }
+  }
+
+  @objc func recognizePlayback(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    guard active == nil else { reject("Busy", "RecognitionBusy", nil); return }
+    let store: PlaybackCaptureStore
+    let request: PlaybackCaptureStore.Request
+    do { store = try PlaybackCaptureStore.shared(); request = try store.begin() }
+    catch { reject("PlaybackCaptureUnavailable", "PlaybackCaptureUnavailable", error); return }
+    let capture = RecognitionCapture(allowsBackground: true)
+    active = capture
+    // The system requires the user's tap on its visible broadcast picker.
+    // The upload extension keeps recording while this app is suspended.
+    let sheet = DispatchQueue.main.sync { PlaybackCaptureViewController() }
+    DispatchQueue.main.async {
+      sheet.onCancel = { capture.cancel() }
+      guard !capture.cancelled,
+            let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first(where: { $0.activationState == .foregroundActive }),
+            var presenter = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { capture.cancel(); return }
+      while let next = presenter.presentedViewController { presenter = next }
+      presenter.present(sheet, animated: true)
+    }
+    worker.async {
+      var result: [String: Any]?
+      var failure: Error?
+      do {
+        var ready: PlaybackCaptureStore.Result?
+        while ready == nil {
+          try self.check(capture)
+          guard Date() < request.expires else { throw self.error("PlaybackCaptureTimeout") }
+          ready = try store.result(request)
+          if ready == nil {
+            Thread.sleep(forTimeInterval: 0.1)
+          }
+        }
+        if let code = ready?.error {
+          let known = ["PlaybackCaptureUnavailable", "PlaybackAudioUnavailable", "PlaybackCaptureFailed", "Cancelled"]
+          throw self.error(known.contains(code) ? code : "PlaybackCaptureFailed")
+        }
+        try self.check(capture)
+        let samples = try store.samples(request)
+        store.remove(request)
+        DispatchQueue.main.async { sheet.finish() }
+        result = try self.identify(samples, capture)
+      } catch { failure = error }
+      store.remove(request)
+      DispatchQueue.main.async { sheet.finish() }
+      self.control.async {
+        if self.active === capture { self.active = nil }
+        if capture.cancelled { reject("Cancelled", "Cancelled", nil) }
+        else if let failure = failure {
+          let code = (failure as NSError).domain
+          let known = ["PlaybackCaptureUnavailable", "PlaybackCaptureTimeout", "PlaybackAudioUnavailable", "PlaybackCaptureFailed", "Cancelled", "NetworkError", "RateLimited", "ServiceUnavailable", "AudioTooShort"]
+          let message = known.contains(code) ? code : "PlaybackCaptureFailed"
+          reject(message, message, failure)
+        } else { resolve(result) }
+      }
+    }
+  }
+  #endif
 
   @objc func recognizeFile(_ uri: String, resolver resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
     guard active == nil else { reject("Busy", "RecognitionBusy", nil); return }

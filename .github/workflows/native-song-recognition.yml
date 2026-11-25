@@ -20,6 +20,7 @@ on:
       - android/app/proguard-rules.pro
       - __tests__/native/**
       - test-native.ps1
+      - android/test-playback-capture.py
       - ios/**
       - test-ios-pitch.py
       - test-ios-capture.py
@@ -88,6 +89,7 @@ jobs:
         run: |
           KOTLIN_BIN=$(readlink -f "$(command -v kotlinc)")
           pwsh ./test-native.ps1 -KotlinLib "$(dirname "$KOTLIN_BIN")/../lib" -OutputDirectory "$RUNNER_TEMP/freetune-native-checks"
+          python3 android/test-playback-capture.py --kotlin-lib "$(dirname "$KOTLIN_BIN")/../lib"
       - name: Install JS dependencies
         run: npm ci
       - name: Compile Android Kotlin and all three Rust JNI architectures (no APK)

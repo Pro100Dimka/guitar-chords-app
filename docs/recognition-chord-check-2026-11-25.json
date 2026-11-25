@@ -1,0 +1,128 @@
+{
+  "checkedOn": "2026-11-25",
+  "baselineCommit": "e0fbc668f46f7d16682f0fc54b10d16c0977e177",
+  "method": {
+    "runtime": "Node.js 24.22.3 on Linux",
+    "entrypoint": "src/components/song-autofill/lyrics.ts:lookupSongContent",
+    "execution": "Actual TypeScript transpiled to CommonJS; live fetch; fresh process per run; same identity order",
+    "lookupCancellationAfterMs": 50000,
+    "includesAudioRecognition": false,
+    "physicalDeviceTest": false,
+    "afterChanges": [
+      "Bounded Pisennyk title-only retry after no verified combined-query result",
+      "Akkords.pro public search with result and page identity validation",
+      "Russian yo/e spelling normalization",
+      "Chord-provider results require lyrics as well as chords"
+    ]
+  },
+  "sample": {
+    "count": 8,
+    "beforeWithChords": 4,
+    "afterWithLyricsAndChords": 8
+  },
+  "results": [
+    {
+      "title": "Ліхтарі",
+      "artist": "O.Torvald",
+      "before": [
+        "Пісенник"
+      ],
+      "after": [
+        "Пісенник"
+      ],
+      "beforeMs": 12915,
+      "afterMs": 14280,
+      "url": "https://pisennyk.com.ua/o-torvald/lihtari"
+    },
+    {
+      "title": "Обійми",
+      "artist": "Океан Ельзи",
+      "before": [],
+      "after": [
+        "Akkords.pro"
+      ],
+      "beforeMs": 10456,
+      "afterMs": 6771,
+      "url": "https://akkords.pro/songs/okean-elzi/obiymi/"
+    },
+    {
+      "title": "Старі фотографії",
+      "artist": "Скрябін",
+      "before": [
+        "Пісенник"
+      ],
+      "after": [
+        "Пісенник"
+      ],
+      "beforeMs": 19546,
+      "afterMs": 22492,
+      "url": "https://pisennyk.com.ua/skryabin/stari-fotografiji"
+    },
+    {
+      "title": "Группа крови",
+      "artist": "Кино",
+      "before": [],
+      "after": [
+        "Akkords.pro"
+      ],
+      "beforeMs": 9240,
+      "afterMs": 6380,
+      "url": "https://akkords.pro/songs/kino/gruppa-krovi/"
+    },
+    {
+      "title": "Вахтерам",
+      "artist": "Бумбокс",
+      "before": [],
+      "after": [
+        "Akkords.pro"
+      ],
+      "beforeMs": 10777,
+      "afterMs": 2369,
+      "url": "https://akkords.pro/songs/bumboks/vaxteram/"
+    },
+    {
+      "title": "Broken",
+      "artist": "Seether",
+      "before": [
+        "Пісенник"
+      ],
+      "after": [
+        "Пісенник"
+      ],
+      "beforeMs": 20032,
+      "afterMs": 21579,
+      "url": "https://pisennyk.com.ua/seether/broken"
+    },
+    {
+      "title": "Wonderwall",
+      "artist": "Oasis",
+      "before": [
+        "Пісенник"
+      ],
+      "after": [
+        "Akkords.pro"
+      ],
+      "beforeMs": 20216,
+      "afterMs": 6280,
+      "url": "https://akkords.pro/songs/oasis/wonderwall/"
+    },
+    {
+      "title": "Hotel California",
+      "artist": "Eagles",
+      "before": [],
+      "after": [
+        "Akkords.pro"
+      ],
+      "beforeMs": 11454,
+      "afterMs": 2356,
+      "url": "https://akkords.pro/songs/eagles/hotel-california/"
+    }
+  ],
+  "limitations": [
+    "A bounded selected sample is not a catalog-wide success-rate estimate or a guarantee for every song.",
+    "The Hotel California source publishes only the first verse and chorus; the whole published chart was imported.",
+    "Network access and provider schemas can change; this does not verify Android or iPhone runtime behavior.",
+    "Timing excludes audio capture and recognition and includes provider crawl delays.",
+    "Only identity, URL, source and timing metadata are recorded; no lyric or chord-chart body is included."
+  ]
+}
