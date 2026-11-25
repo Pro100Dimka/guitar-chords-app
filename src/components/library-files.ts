@@ -790,6 +790,10 @@ export function requestSongDeletion(
   onRecordings: () => void
 ) {
   const fail = () => Alert.alert(t("DeleteSongError"));
+  if (!Number.isSafeInteger(songId) || songId <= 0) {
+    fail();
+    return;
+  }
   const remove = async (
     takes: Awaited<ReturnType<typeof performanceAudio.list>>
   ) => {

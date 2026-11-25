@@ -93,8 +93,9 @@ const SongDetail: React.FC = () => {
     target: preferences.position,
     endVisible: false
   });
+  const hasSong = !loading && song?.id === songId;
   const change = (patch: Partial<typeof preferences>) => {
-    if (deletedSong.current !== songId) updateSong(songId, patch);
+    if (hasSong && deletedSong.current !== songId) updateSong(songId, patch);
   };
   const savePosition = useCallback(() => {
     if (
@@ -121,6 +122,11 @@ const SongDetail: React.FC = () => {
   useFocusEffect(
     useCallback(() => {
       if (isEdit) return;
+      if (!Number.isSafeInteger(songId) || songId <= 0) {
+        setSong(undefined);
+        setLoading(false);
+        return;
+      }
       let active = true;
       metrics.current.restored = false;
       metrics.current.endVisible = false;
@@ -495,6 +501,7 @@ const SongDetail: React.FC = () => {
             preferences.favorite ? "FavoritesRemove" : "FavoritesAdd"
           )}
           selected={preferences.favorite}
+          disabled={!hasSong}
           onPress={() => change({ favorite: !preferences.favorite })}
         />
         <Action
@@ -509,8 +516,9 @@ const SongDetail: React.FC = () => {
           }}
         />
         <SongModal
+          disabled={!hasSong}
           setIsEdit={(edit) => {
-            if (edit && (loading || !song)) return;
+            if (edit && !hasSong) return;
             editorExitAllowed.current = false;
             setPlaying(false);
             setIsEdit(edit);
@@ -710,4 +718,10 @@ const styles = StyleSheet.create({
   tuner: { flex: 1, backgroundColor: palette.paper.background },
   returnBar: { padding: 12 }
 });
-export default SongDetail;
+// Navigation may reuse a route instance with a different song ID. Remount
+// the editor, recording controls and scroll state rather than carrying them
+// into the next song (a recording flag alone must not remount the screen).
+export default function SongScreen() {
+  const route = useRoute<RouteProp<RootStackParamList, "Song">>();
+  return <SongDetail key={route.params?.id ?? "missing"} />;
+}

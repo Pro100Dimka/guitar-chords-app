@@ -117,6 +117,7 @@ export const usePreferences = create<PreferencesStore>((set, get) => ({
     scheduleSave();
   },
   updateSong: (id, patch) => {
+    if (!Number.isSafeInteger(id) || id <= 0) return;
     const previous = get().songs[id];
     if (
       previous &&

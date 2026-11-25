@@ -18,9 +18,15 @@ interface ISongModalProps {
   setIsEdit: (_: boolean) => void;
   songId: number;
   onDeleted?: () => void;
+  disabled?: boolean;
 }
 
-const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId, onDeleted }) => {
+const SongModal: FC<ISongModalProps> = ({
+  setIsEdit,
+  songId,
+  onDeleted,
+  disabled = false
+}) => {
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
   const [menuVisible, setMenuVisible] = useState(false);
@@ -41,8 +47,12 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId, onDeleted }) => {
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={t("SongTools")}
-        onPress={() => setMenuVisible(true)}
-        style={styles.menuButton}
+        disabled={disabled}
+        accessibilityState={{ disabled }}
+        onPress={() => {
+          if (!disabled) setMenuVisible(true);
+        }}
+        style={[styles.menuButton, disabled && styles.disabled]}
       >
         <Ionicons
           name="ellipsis-vertical"
@@ -51,7 +61,7 @@ const SongModal: FC<ISongModalProps> = ({ setIsEdit, songId, onDeleted }) => {
         />
       </Pressable>
       <Modal
-        visible={menuVisible}
+        visible={menuVisible && !disabled}
         transparent
         animationType="fade"
         onRequestClose={() => setMenuVisible(false)}
@@ -101,6 +111,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     width: 220
   },
+  disabled: { opacity: 0.4 },
   menuItem: {
     color: palette.glass.ink,
     minHeight: 48,

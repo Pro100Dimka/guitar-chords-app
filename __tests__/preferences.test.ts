@@ -373,6 +373,16 @@ afterEach(() => {
   jest.resetAllMocks();
 });
 
+test.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+  "invalid song IDs never create preferences or schedule persistence: %s",
+  (id) => {
+    const previous = usePreferences.getState().songs;
+    usePreferences.getState().updateSong(id, { favorite: true });
+    expect(usePreferences.getState().songs).toBe(previous);
+    expect(jest.getTimerCount()).toBe(0);
+  }
+);
+
 test("song preferences and cover survive serialization and reload; failed commits remain visible", async () => {
   const saved = new Map<string, string>();
   let fail = true;

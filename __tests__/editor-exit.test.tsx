@@ -234,6 +234,45 @@ test("save-and-leave waits for successful persistence; failure preserves the edi
   expect(mockNavigation.dispatch).toHaveBeenCalledWith(action);
 });
 
+test.each(["missing", "0", "-1", "1.5", "999999"])(
+  "a missing or invalid song route cannot create orphan favorites: %s",
+  async (id) => {
+    await act(async () => screen.unmount());
+    mockParams = { id };
+    jest.mocked(getAllItems).mockResolvedValue([]);
+    const previous = usePreferences.getState().songs;
+    await act(async () => {
+      screen = Renderer.create(<Song />);
+    });
+    const favorite = screen.root.findAllByType(Action).find((node) =>
+      ["FavoritesAdd", "FavoritesRemove"].includes(node.props.accessibilityLabel)
+    )!;
+    expect(favorite.props.disabled).toBe(true);
+    expect(screen.root.findByType(Menu).props.disabled).toBe(true);
+    await act(async () => favorite.props.onPress());
+    expect(usePreferences.getState().songs).toBe(previous);
+    expect(JSON.stringify(screen.toJSON())).toContain("SongNotFound");
+  }
+);
+
+test("reusing a song route cannot carry a dirty editor into another song", async () => {
+  await act(async () => screen.unmount());
+  mockParams = { id: "1" };
+  jest.mocked(getAllItems).mockImplementation(async (query) => [
+    { id: Number(query.parameters?.[0]), title: "Song " + query.parameters?.[0], content: "Am\nWords" }
+  ]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  await act(async () => screen.root.findByType(Menu).props.setIsEdit(true));
+  await change();
+  expect(screen.root.findAllByType(Editor)).toHaveLength(1);
+  mockParams = { id: "2" };
+  await act(async () => screen.update(<Song />));
+  expect(screen.root.findAllByType(Editor)).toHaveLength(0);
+  expect(JSON.stringify(screen.toJSON())).toContain("Song 2");
+});
+
 test("confirmed header deletion of a dirty editor leaves without offering to save the deleted song", async () => {
   await act(async () => screen.unmount());
   mockParams = { id: "1" };
