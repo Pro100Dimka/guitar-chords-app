@@ -82,6 +82,11 @@ export const tabBarTicks = (tab: Tablature): number =>
   tab.beatsPerBar * tabBeatTicks(tab);
 export const tabNoteDuration = (note: TabNote): number =>
   note.duration ?? TAB_TICKS_PER_BEAT;
+// Version 3 stores time in exact 1/960-tick subdivisions. Round arithmetic
+// back to that grid before comparing musical event boundaries.
+export const roundTabTick = (tick: number) => Math.round(tick * 960) / 960;
+export const tabTickEnd = (tick: number, duration: number) =>
+  roundTabTick(tick + duration);
 export const tabNoteSymbols = (note: TabNote): string =>
   [
     ...(note.techniques ?? []).map((technique) => TAB_TECHNIQUES[technique]),
@@ -98,7 +103,7 @@ export const tabNoteSymbols = (note: TabNote): string =>
     .join(" ");
 
 export function tabNoteEnd(tab: Tablature, note: TabNote): number {
-  let end = note.tick + tabNoteDuration(note);
+  let end = tabTickEnd(note.tick, tabNoteDuration(note));
   if (!note.tie && !note.techniques?.includes("letRing")) return end;
   let current = note;
   const following = tab.notes.filter(
@@ -106,7 +111,7 @@ export function tabNoteEnd(tab: Tablature, note: TabNote): number {
   );
   for (const next of following) {
     if (!current.tie || next.tick !== end || next.fret !== note.fret) break;
-    end = next.tick + tabNoteDuration(next);
+    end = tabTickEnd(next.tick, tabNoteDuration(next));
     current = next;
   }
   if (note.techniques?.includes("letRing"))
@@ -145,8 +150,8 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     value.version === 3
       ? typeof tick === "number" &&
         Number.isFinite(tick) &&
-        tick >= min &&
-        tick <= max &&
+        Math.round(tick * 960) >= Math.round(min * 960) &&
+        Math.round(tick * 960) <= Math.round(max * 960) &&
         Math.abs(tick * 960 - Math.round(tick * 960)) < 0.00001
       : integer(tick, Math.max(0, min), max);
   const uniqueNotes = new Map<string, TabNote>();
@@ -279,7 +284,8 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     rests.some(
       (rest, index) =>
         index > 0 &&
-        rests[index - 1].tick + rests[index - 1].duration > rest.tick
+        tabTickEnd(rests[index - 1].tick, rests[index - 1].duration) >
+          rest.tick
     )
   )
     return undefined;
@@ -302,15 +308,16 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
       );
     // Store the physical release as well as using it for validation. Otherwise
     // deleting a later attack can revive an old hidden tail across a rest.
-    note.duration = Math.min(note.duration, next - note.tick);
-    const soundingEnd = note.tick + note.duration;
+    note.duration = roundTabTick(Math.min(note.duration, next - note.tick));
+    const soundingEnd = tabTickEnd(note.tick, note.duration);
     // Notes are visited backwards and rests do not overlap. Only the rest
     // covering the attack and the first rest after it can intersect its tail.
     while (restIndex >= 0 && rests[restIndex].tick > note.tick) restIndex--;
     const previousRest = rests[restIndex];
     const nextRest = rests[restIndex + 1];
     if (
-      (previousRest && previousRest.tick + previousRest.duration > note.tick) ||
+      (previousRest &&
+        tabTickEnd(previousRest.tick, previousRest.duration) > note.tick) ||
       (nextRest && nextRest.tick < soundingEnd)
     )
       return undefined;
@@ -350,9 +357,9 @@ export function tablatureLength(tab: Tablature): number {
   const barTicks = tabBarTicks(tab);
   let lastEnd = 0;
   for (const note of tab.notes)
-    lastEnd = Math.max(lastEnd, note.tick + tabNoteDuration(note));
+    lastEnd = Math.max(lastEnd, tabTickEnd(note.tick, tabNoteDuration(note)));
   for (const rest of tab.rests ?? [])
-    lastEnd = Math.max(lastEnd, rest.tick + rest.duration);
+    lastEnd = Math.max(lastEnd, tabTickEnd(rest.tick, rest.duration));
   return Math.max(
     (tab.barCount ?? 1) * barTicks,
     Math.ceil(lastEnd / barTicks) * barTicks,

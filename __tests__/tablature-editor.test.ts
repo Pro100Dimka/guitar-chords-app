@@ -265,6 +265,20 @@ test("bar coverage counts a six-string chord once and distinguishes missing dura
   ).toBe(true);
 });
 
+test("a tied string cannot hide overflow from a different string in the same chord", () => {
+  const tab = score({
+    version: 3,
+    notes: [
+      { string: 0, fret: 3, tick: 72, duration: 48, tie: true },
+      { string: 1, fret: 5, tick: 72, duration: 48 }
+    ]
+  });
+  expect(tabBarCoverage(tab, 0).overflow).toBe(true);
+  expect(
+    tabBarCoverage({ ...tab, notes: [tab.notes[0]] }, 0).overflow
+  ).toBe(false);
+});
+
 test("deleting a chord pitch retains the other strings and adds no global rest", () => {
   const tab = score({
     notes: [

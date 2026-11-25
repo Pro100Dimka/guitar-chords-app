@@ -5,6 +5,8 @@ import {
   TAB_TICKS_PER_BEAT,
   tabBarTicks,
   tabNoteDuration,
+  roundTabTick,
+  tabTickEnd,
   tablatureLength,
   TabNote,
   TabRest,
@@ -63,8 +65,10 @@ function result(value: Tablature): TabEditResult {
   if (
     value.notes.length + (value.rests?.length ?? 0) > TAB_MAX_NOTES ||
     (value.barCount ?? 1) > TAB_MAX_BARS ||
-    value.notes.some((note) => note.tick + tabNoteDuration(note) > maxEnd) ||
-    value.rests?.some((rest) => rest.tick + rest.duration > maxEnd)
+    value.notes.some(
+      (note) => tabTickEnd(note.tick, tabNoteDuration(note)) > maxEnd
+    ) ||
+    value.rests?.some((rest) => tabTickEnd(rest.tick, rest.duration) > maxEnd)
   )
     return { error: "TabEditLimit" };
   const expressive =
@@ -264,11 +268,13 @@ export function tabBarCoverage(tab: Tablature, bar: number) {
   const events = [
     ...tab.notes.map((note) => ({
       start: note.tick,
-      end: note.tick + tabNoteDuration(note)
+      end: tabTickEnd(note.tick, tabNoteDuration(note)),
+      tied: note.tie === true
     })),
     ...(tab.rests ?? []).map((rest) => ({
       start: rest.tick,
-      end: rest.tick + rest.duration
+      end: tabTickEnd(rest.tick, rest.duration),
+      tied: false
     }))
   ]
     .filter((event) => event.start < end && event.end > start)
@@ -282,13 +288,13 @@ export function tabBarCoverage(tab: Tablature, bar: number) {
     at = Math.max(at, to);
   }
   return {
-    covered,
+    covered: roundTabTick(covered),
     expected: size,
     overflow: events.some(
       (event) =>
         event.start >= start &&
         event.end > end &&
-        !tab.notes.some((note) => note.tick === event.start && note.tie)
+        !event.tied
     )
   };
 }
