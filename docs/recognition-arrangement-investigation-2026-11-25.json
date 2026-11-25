@@ -1,0 +1,844 @@
+{
+  "schemaVersion": 1,
+  "kind": "recognition_arrangement_metadata_investigation",
+  "verifiedAt": "2026-11-25T07:26:53.891872+00:00",
+  "repository": "Pro100Dimka/guitar-chords-app",
+  "pullRequest": "https://github.com/Pro100Dimka/guitar-chords-app/pull/13",
+  "source": {
+    "commit": "7a3b0cedabe18502fe38cc1fd444d18c1cf7a5ff",
+    "parentCommit": "37df256db53384fdc88362d71beab4b0e82da175",
+    "tree": "a0ee2abaf9885492eae26ec26bad4ddde9d8b7f7",
+    "changedSourceFileSha256": {
+      "__tests__/chord-layout.test.ts": "a16a85d7817b1d6f003e76c0b06ef98dd70e0d188a026c4b204015eb780eb001",
+      "__tests__/recognition-arrangement-save.test.tsx": "0899c8f021f6927cea7574396e1650c44addbcaf07cdddc9edd96bc7d705dc9f",
+      "__tests__/song-autofill-akkords-fun.test.ts": "9734dc7c96abf42d1e35b4fa07c152bfe5b55c8deb7f129d815a17b4257480f2",
+      "__tests__/song-autofill-chords-and-tabs.test.ts": "6922124922e93b62b774632aeb32842f2983e0ad54e716652055f7b94870b00e",
+      "__tests__/song-autofill-lalatracker.test.ts": "5ea8b1c34ffcb6ebae1a0ab81f8c476f99f9f0c390315db55cfbe3b474cdcc28",
+      "__tests__/song-autofill-musicaccord.test.ts": "361cc90a67fcbbc1be575c246bd18221e505a56a340098270d98d4b6952112a9",
+      "__tests__/song-autofill-sonidos.test.ts": "f9d6ae836de89aced7c30f01b8f9cb4842747c5c591161eba1a8a5e07495c0d1",
+      "__tests__/song-autofill-weing.test.ts": "32b081fa7616709998db7c11352c5e2410acf61416768c957e18783833529860",
+      "__tests__/song-autofill.test.ts": "369be979be26b541560f199846d1613306765f38f95a89f6479efd7f1ee5a5f4",
+      "__tests__/song-source-metadata.test.ts": "2fe87360f464f3fd2d88782d310db5b636bc64a50493c7410ece764d8119487c",
+      "__tests__/song-source-rhythm.test.ts": "be264b419bee447c9f48ab4b361e228fa3dc5e1aa938a9f246be73486a8be33b",
+      "scripts/check-chord-corpus.cjs": "57f573ad754776c0ad5cbb24da39746adf8f74338a4f4ee425b5210c290a5192",
+      "src/components/song-autofill/akkords-fun.ts": "dc55e2519cd15e732bae8f8d9a33bead92ef64fa467ddab082352ca2d8bcb137",
+      "src/components/song-autofill/chords-and-tabs.ts": "fbcc66bd1309e25dd995ff8a206396fb54230f97fedb58e45b771d99f7e308e5",
+      "src/components/song-autofill/lalatracker.ts": "0197083d8ede7d9cef1edfedffec9bb03c1ec26a2f2e300df9d9f7ee8dfc14da",
+      "src/components/song-autofill/lyrics.ts": "2fb6220d2359e6323716b215805cda8b5b3de05979c072533f08f38ec17a59c4",
+      "src/components/song-autofill/sonidos.ts": "3b85e1fc29db2f2cb77ea42d950f02708ecec048d28bf1a18bdddca921a812b3",
+      "src/components/song-autofill/source-metadata.ts": "8aaa2382c4822b7b6d88d0912357782a7272269bb66395f5951b8cd3fb8a8b9b",
+      "src/components/song-autofill/weing-guitar.ts": "f952c26e9859719425967935ec5617e3a1af569afcd5a2e2ff44d5cba38f2ac7",
+      "src/screens/recognize-song/index.tsx": "c539d658d7c57323c9ff63d8060553484e7119eb4f7e6f4fb2eb21d00303ac91",
+      "src/screens/song/chords.ts": "f7d31f7877f83ffe5f16f158e7481487206ededd0aa4f2294430ce1ae3f90c8f",
+      "src/screens/song/rhythms.ts": "d5951018d6e796677222117b86f269254faec0735c245e9bd1219d5ef261aa82"
+    }
+  },
+  "rootCauses": [
+    "Chart options carried no source tempo, and five provider paths omitted accompaniment metadata.",
+    "Numeric picking strings and supported annotated patterns were not matched without losing their literal meaning.",
+    "Recognition selected and switched chart content without applying chart-specific tempo; invalid native tempo could suppress the independent lookup.",
+    "Explicit playing instructions could falsely satisfy the strict lyric-text requirement on an otherwise chord-only chart."
+  ],
+  "behavior": {
+    "tempoRangeBpm": [
+      40,
+      200
+    ],
+    "tempoPriority": [
+      "selected chart explicit tempo",
+      "current attempt validated native or independent tempo"
+    ],
+    "unsetTempoPracticeDefault": 80,
+    "practiceDefaultIsMeasuredTempo": false,
+    "numericPickingStringsPreserved": true,
+    "explicitRestsPreserved": true,
+    "ambiguousMeterGuessed": false,
+    "sectionAssignmentsSaved": true,
+    "metadataOnlyChartAcceptedAsLyrics": false,
+    "newNetworkRequests": 0,
+    "audioAccompanimentInference": false
+  },
+  "regressionProof": {
+    "recognitionToSave": {
+      "test": "__tests__/recognition-arrangement-save.test.tsx",
+      "before": {
+        "snapshotSha256": "03b613b82214d5baf5ad1adfc33683c601dda91ed018008dbdefd4d29a5e277b",
+        "tests": 8,
+        "passed": 3,
+        "failed": 5,
+        "pending": 0,
+        "suites": 1,
+        "success": false,
+        "failedCases": [
+          "the chosen chart overrides recognized tempo and saves picking plus section rhythms",
+          "the chosen chart overrides looked up tempo and saves picking plus section rhythms",
+          "switching to Strummed restores its settings with external tempo 137",
+          "invalid native tempo NaN cannot replace the verified independent fallback",
+          "invalid native tempo 201 cannot replace the verified independent fallback"
+        ]
+      },
+      "after": {
+        "snapshotSha256": "ac295464772a1b7d35d6165e7b07f1256f8e08380afadd53f7ad9b022279fc08",
+        "tests": 8,
+        "passed": 8,
+        "failed": 0,
+        "pending": 0,
+        "suites": 1,
+        "success": true,
+        "failedCases": []
+      },
+      "realComponents": [
+        "recognition screen",
+        "creation editor",
+        "Formik submit",
+        "save handler",
+        "preference normalization"
+      ],
+      "fixtureBoundaries": [
+        "native recognition",
+        "content and tempo lookup",
+        "SQL I/O"
+      ]
+    },
+    "providerMetadata": {
+      "before": {
+        "snapshotSha256": "4432478eba72ba1557a3e2459e7a603498b68e81e87ecad3e6f59938255fea61",
+        "tests": 29,
+        "passed": 0,
+        "failed": 1,
+        "pending": 28,
+        "suites": 1,
+        "success": false,
+        "failedCases": [
+          "Musicaccord public chord provider imports tempo and picking from the selected chart without reading page controls"
+        ]
+      },
+      "after": {
+        "snapshotSha256": "5e4b50ce879b4204593740d9ffdd92818ff53eed2fd9780c5f3c5c9f9f7037ed",
+        "tests": 71,
+        "passed": 71,
+        "failed": 0,
+        "pending": 0,
+        "suites": 2,
+        "success": true,
+        "failedCases": []
+      }
+    },
+    "allLocalTests": {
+      "snapshotSha256": "4fdbbe4c7d94ba663bc7075acb1b4e8c2a4c144d12963f39ff94ec75026eef55",
+      "tests": 1370,
+      "passed": 1370,
+      "failed": 0,
+      "pending": 0,
+      "suites": 49,
+      "success": true,
+      "failedCases": []
+    },
+    "additionalLocalChecks": {
+      "typeScript": "passed",
+      "eslint": "passed",
+      "actualSQLite": "passed"
+    },
+    "developmentSnapshotNote": "Hashes identify development snapshots; the committed suites and successful source CI provide reproducible proof. Focused skipped cases are not counted as executed tests."
+  },
+  "sourceCI": [
+    {
+      "name": "song-autofill-checks",
+      "runId": 45566259196,
+      "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45566259196",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 139041683141,
+          "name": "validation",
+          "conclusion": "success",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run npm ci",
+              "conclusion": "success"
+            },
+            {
+              "name": "Live LRCLIB smoke test (public metadata only)",
+              "conclusion": "success"
+            },
+            {
+              "name": "SQLite integration",
+              "conclusion": "success"
+            },
+            {
+              "name": "Jest",
+              "conclusion": "success"
+            },
+            {
+              "name": "TypeScript",
+              "conclusion": "success"
+            },
+            {
+              "name": "ESLint",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "native-song-recognition",
+      "runId": 45566259239,
+      "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45566259239",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 139041683020,
+          "name": "ios",
+          "conclusion": "success",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@stable",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run Swatinem/rust-cache@v2",
+              "conclusion": "success"
+            },
+            {
+              "name": "Production iOS recognition and cancellation",
+              "conclusion": "success"
+            },
+            {
+              "name": "Production Swift pitch methods",
+              "conclusion": "success"
+            },
+            {
+              "name": "Production Swift capture route guards (fixtures)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Production Swift recording file methods with real AAC",
+              "conclusion": "success"
+            },
+            {
+              "name": "Production Swift instrument playback and lifecycle guards",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run Swatinem/rust-cache@v2",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        },
+        {
+          "id": 139041683290,
+          "name": "native",
+          "conclusion": "success",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-java@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run gradle/actions/setup-gradle@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@stable",
+              "conclusion": "success"
+            },
+            {
+              "name": "Android NDK setup",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install pinned official cargo-ndk binary",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run Swatinem/rust-cache@v2",
+              "conclusion": "success"
+            },
+            {
+              "name": "Native host fingerprint compilation",
+              "conclusion": "success"
+            },
+            {
+              "name": "Deterministic capture, recording stop and audio checks",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install JS dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Compile Android Kotlin and all three Rust JNI architectures (no APK)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run Swatinem/rust-cache@v2",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run gradle/actions/setup-gradle@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-java@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "ios-application",
+      "runId": 45566259379,
+      "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45566259379",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 139041683207,
+          "name": "ios-application",
+          "conclusion": "success",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@stable",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run ruby/setup-ruby@v1",
+              "conclusion": "success"
+            },
+            {
+              "name": "Identify compatible native build caches",
+              "conclusion": "success"
+            },
+            {
+              "name": "Cache locked Cargo downloads",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run npm ci",
+              "conclusion": "success"
+            },
+            {
+              "name": "Cache exact native dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Restore compatible Xcode and Rust build products",
+              "conclusion": "success"
+            },
+            {
+              "name": "Install native dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Verify incremental cache safety rules",
+              "conclusion": "success"
+            },
+            {
+              "name": "Restore timestamps only for identical native inputs",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build complete iOS simulator application",
+              "conclusion": "success"
+            },
+            {
+              "name": "Build unsigned iPhone Release package",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Verify embedded recognition extensions",
+              "conclusion": "success"
+            },
+            {
+              "name": "Record native input identity and cache footprint",
+              "conclusion": "success"
+            },
+            {
+              "name": "Save verified Xcode and Rust build products",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "conclusion": "skipped"
+            },
+            {
+              "name": "Run actions/upload-artifact@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Cache exact native dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Cache locked Cargo downloads",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/setup-node@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "shazam-real-audio-proof",
+      "runId": 45566259285,
+      "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45566259285",
+      "conclusion": "success",
+      "jobs": [
+        {
+          "id": 139041682853,
+          "name": "proof",
+          "conclusion": "success",
+          "steps": [
+            {
+              "name": "Set up job",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Run dtolnay/rust-toolchain@stable",
+              "conclusion": "success"
+            },
+            {
+              "name": "Restore native fingerprint dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Ensure audio decoder is available",
+              "conclusion": "success"
+            },
+            {
+              "name": "Decode known recognition fixture",
+              "conclusion": "success"
+            },
+            {
+              "name": "Send genuine native fingerprint to Shazam and assert track",
+              "conclusion": "success"
+            },
+            {
+              "name": "Download additional public-domain recordings (not committed)",
+              "conclusion": "success"
+            },
+            {
+              "name": "Probe additional public-domain recordings",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Restore native fingerprint dependencies",
+              "conclusion": "success"
+            },
+            {
+              "name": "Post Run actions/checkout@v4",
+              "conclusion": "success"
+            },
+            {
+              "name": "Complete job",
+              "conclusion": "success"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "liveAudit": {
+    "runId": 45566259163,
+    "jobId": 139041683080,
+    "url": "https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45566259163",
+    "artifact": {
+      "id": 15000816016,
+      "name": "chord-corpus-results",
+      "sizeInBytes": 22178,
+      "digest": "sha256:fee6a0200f904e82df3d3d54096dce92b9e6d17309175ac4c61b33fd5129059a",
+      "headSha": "7a3b0cedabe18502fe38cc1fd444d18c1cf7a5ff",
+      "runId": 45566259163,
+      "createdAt": "2026-11-25T07:25:23Z"
+    },
+    "manifest": {
+      "path": "docs/recognition-chord-corpus-validated-100-2026-11-25.json",
+      "sha256": "3bc61bf3c8fa9ff31eb467244ad17008a4f2f412cc072e95811b0c23f9911a82",
+      "unchangedIdentities": true
+    },
+    "raw": {
+      "path": "docs/recognition-arrangement-results-100-2026-11-25.jsonl",
+      "sha256": "11a5fa2782112a1d546e7261ce06f7a0b0c8624593e29fce2751e103b7bd32aa"
+    },
+    "summary": {
+      "path": "docs/recognition-arrangement-results-100-2026-11-25.summary.json",
+      "sha256": "18c175328c31c84ac1b14df8e2195fa491238c437fce1abaa6b267009bcd35e3"
+    },
+    "startedAt": "2026-11-25T07:12:26.843Z",
+    "finishedAt": "2026-11-25T07:25:22.042Z",
+    "total": 100,
+    "statusCounts": {
+      "lyrics_and_chords": 100
+    },
+    "statusRegressionsFromPrevious100": [],
+    "sourceMetadataCounts": {
+      "songsWithTempo": 0,
+      "songsWithRhythm": 11
+    },
+    "metadataSongs": [
+      {
+        "id": "021",
+        "artist": "KALUSH",
+        "title": "Зорі",
+        "options": [
+          {
+            "source": "Musicaccord.ru",
+            "url": "https://musicaccord.ru/songs/kalush-zori/",
+            "rhythm": {
+              "strum": "",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "",
+              "rhythmSections": {
+                "вступление": {
+                  "strum": "DUDUDUDU",
+                  "strumMeter": 4,
+                  "strumDivision": 2,
+                  "strumPreset": "eighth"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "031",
+        "artist": "Кино",
+        "title": "Группа крови",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/kino/gruppa-krovi/",
+            "rhythm": {
+              "strum": "",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "",
+              "rhythmSections": {
+                "вступление": {
+                  "strum": "D-U-D-U-",
+                  "strumMeter": 4,
+                  "strumDivision": 2,
+                  "strumPreset": "four"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "033",
+        "artist": "Кино",
+        "title": "Пачка сигарет",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/kino/pachka-sigaret/",
+            "rhythm": {
+              "strum": "D-U-D-U-",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "four",
+              "rhythmSections": {}
+            }
+          }
+        ]
+      },
+      {
+        "id": "038",
+        "artist": "Гражданская Оборона",
+        "title": "Всё идёт по плану",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/grob/vsyo-idyot-po-planu/",
+            "rhythm": {
+              "strum": "D-D-D-D-",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "quarter",
+              "rhythmSections": {}
+            }
+          }
+        ]
+      },
+      {
+        "id": "042",
+        "artist": "Сплин",
+        "title": "Моё сердце",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/splin/mojo-serdce/",
+            "rhythm": {
+              "strum": "",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "",
+              "rhythmSections": {
+                "куплет 1": {
+                  "strum": "D-DU-UDU",
+                  "strumMeter": 4,
+                  "strumDivision": 2,
+                  "strumPreset": "six"
+                },
+                "куплет 4": {
+                  "strum": "D-DU-UDU",
+                  "strumMeter": 4,
+                  "strumDivision": 2,
+                  "strumPreset": "six"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "043",
+        "artist": "Би-2",
+        "title": "Полковнику никто не пишет",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/bi-2/polkovniku-nikto-ne-pishet/",
+            "rhythm": {
+              "strum": "DDDDDDDD",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "rock",
+              "rhythmSections": {}
+            }
+          }
+        ]
+      },
+      {
+        "id": "045",
+        "artist": "Король и Шут",
+        "title": "Лесник",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/korol-i-shut/lesnik/",
+            "rhythm": {
+              "strum": "",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "",
+              "rhythmSections": {
+                "куплет 1": {
+                  "strum": "D-U-D-U-",
+                  "strumMeter": 4,
+                  "strumDivision": 2,
+                  "strumPreset": "four"
+                },
+                "припев": {
+                  "strum": "D-DU-UDU",
+                  "strumMeter": 4,
+                  "strumDivision": 2,
+                  "strumPreset": "six"
+                },
+                "куплет 2": {
+                  "strum": "D-U-D-U-",
+                  "strumMeter": 4,
+                  "strumDivision": 2,
+                  "strumPreset": "four"
+                },
+                "куплет 3": {
+                  "strum": "D-U-D-U-",
+                  "strumMeter": 4,
+                  "strumDivision": 2,
+                  "strumPreset": "four"
+                }
+              }
+            }
+          }
+        ]
+      },
+      {
+        "id": "046",
+        "artist": "Король и Шут",
+        "title": "Кукла колдуна",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/korol-i-shut/kukla-kolduna/",
+            "rhythm": {
+              "strum": "D-DU-UDU",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "six",
+              "rhythmSections": {}
+            }
+          }
+        ]
+      },
+      {
+        "id": "047",
+        "artist": "ДДТ",
+        "title": "Что такое осень",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/ddt/chto-takoe-osen/",
+            "rhythm": {
+              "strum": "D-DU-UDU",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "six",
+              "rhythmSections": {}
+            }
+          }
+        ]
+      },
+      {
+        "id": "048",
+        "artist": "ДДТ",
+        "title": "Просвистела",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/ddt/prosvistela/",
+            "rhythm": {
+              "strum": "D-DU-UDU",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "six",
+              "rhythmSections": {}
+            }
+          }
+        ]
+      },
+      {
+        "id": "103",
+        "artist": "Nervy",
+        "title": "Батареи",
+        "options": [
+          {
+            "source": "Akkords.pro",
+            "url": "https://akkords.pro/songs/nervy/batarei/",
+            "rhythm": {
+              "strum": "D-DU-UDU",
+              "strumMeter": 4,
+              "strumDivision": 2,
+              "strumPreset": "six",
+              "rhythmSections": {}
+            }
+          }
+        ]
+      }
+    ],
+    "metadataCountCriterion": "At least one returned option independently passes the audit identity and strict lyrics/chords checks and includes the field. These are availability counts, not a musical correctness score.",
+    "independentTempoLookupTested": false,
+    "includesAudioRecognition": false,
+    "sourcePatternAvailability": {
+      "songsWithStrumming": 11,
+      "songsWithPicking": 0,
+      "songsWithBoth": 0
+    },
+    "firstReturnedQualifyingChartMetadataCounts": {
+      "songsWithTempo": 0,
+      "songsWithRhythm": 11
+    },
+    "firstReturnedChartNote": "First returned qualifying option is a diagnostic ordering measure. The UI applies album/duration preference and asks the user to choose when multiple candidates remain."
+  },
+  "limits": [
+    "Missing, conflicting and unsupported source instructions remain unset.",
+    "Catalogue identities and lyric/chord content validation do not establish correct musical tempo, groove, tuning, harmony or fingering.",
+    "The 100-song audit does not test 100 recordings or physical Android/iPhone playback.",
+    "The source CI builds the iOS simulator app; the signed iPhone Release and physical device acceptance are not established.",
+    "One real-audio fixture identifies Gloria Gaynor — I Will Survive; the two optional Beethoven probes return no match.",
+    "Universal song availability and unrestricted internal-audio capture are not claimed."
+  ]
+}
