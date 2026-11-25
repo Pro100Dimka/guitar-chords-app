@@ -291,10 +291,7 @@ export function tabBarCoverage(tab: Tablature, bar: number) {
     covered: roundTabTick(covered),
     expected: size,
     overflow: events.some(
-      (event) =>
-        event.start >= start &&
-        event.end > end &&
-        !event.tied
+      (event) => event.start >= start && event.end > end && !event.tied
     )
   };
 }

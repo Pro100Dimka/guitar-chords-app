@@ -284,8 +284,7 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     rests.some(
       (rest, index) =>
         index > 0 &&
-        tabTickEnd(rests[index - 1].tick, rests[index - 1].duration) >
-          rest.tick
+        tabTickEnd(rests[index - 1].tick, rests[index - 1].duration) > rest.tick
     )
   )
     return undefined;

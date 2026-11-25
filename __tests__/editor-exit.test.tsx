@@ -196,9 +196,9 @@ test.each(["GO_BACK", "POP", "POP_TO_TOP"])(
 );
 test("failed video link validation remains visible even when optional fields are collapsed", async () => {
   await change();
-  await act(async () =>
-    values.setFieldValue("youtube_music", "https://example.com/no-video")
-  );
+  await act(async () => {
+    await values.setFieldValue("youtube_music", "https://example.com/no-video");
+  });
   const form = screen.root.findAll(
     (node) => node.props.formik && node.props.name === "title"
   )[0].props.formik;

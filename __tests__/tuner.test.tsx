@@ -14,6 +14,7 @@ import RequireMicAccess from "../src/screens/tuner";
 import Buttons from "../src/screens/tuner/buttons";
 import MicrophoneStream from "../src/screens/tuner/MicrophoneStream";
 import checkMicPermission from "../src/components/permissions";
+import { chromaticLayout } from "../src/screens/tuner/chromatic-layout";
 import * as guitarAudio from "../src/components/guitar-audio";
 import {
   calibratedNote,
@@ -126,9 +127,6 @@ test.each([
   [900, 255],
   [768, 900]
 ])("chromatic notes have aligned 44-point targets on %s × %s", (width, height) => {
-  const { chromaticLayout } = jest.requireActual<
-    typeof import("../src/screens/tuner/chormatic-wheel")
-  >("../src/screens/tuner/chormatic-wheel");
   const layout = chromaticLayout(width, height);
   expect((layout.panelWidth - 16) / layout.columns).toBeGreaterThanOrEqual(44);
   expect(layout.rowHeight).toBe(44);
