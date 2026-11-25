@@ -112,6 +112,7 @@ export async function recognizePlayback(
   }
   return recognize(async (recognizer) => {
     await waitForAppActive(signal);
+    if (signal?.aborted) throw new Error("Cancelled");
     return recognizer.recognizePlayback!();
   }, signal);
 }

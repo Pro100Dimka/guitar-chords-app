@@ -214,6 +214,35 @@ test("cancelling during Android playback permission cannot start later capture",
   ).not.toHaveBeenCalled();
 });
 
+test.each(["android", "ios"])(
+  "%s does not start playback capture after aborting on foreground resume",
+  async (platform) => {
+    jest.replaceProperty(Platform, "OS", platform as typeof Platform.OS);
+    AppState.currentState = "background";
+    let resume!: (state: AppStateStatus) => void;
+    jest
+      .spyOn(AppState, "addEventListener")
+      .mockImplementation((_event, listener) => {
+        resume = listener;
+        return { remove: jest.fn() };
+      });
+    const controller = new AbortController();
+    const pending = recognizePlayback(controller.signal).catch(
+      (error) => error
+    );
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    AppState.currentState = "active";
+    resume("active");
+    await Promise.resolve();
+    controller.abort();
+    expect(await pending).toEqual(new Error("Cancelled"));
+    expect(NativeModules.SongRecognition.cancel).toHaveBeenCalledTimes(1);
+    expect(
+      NativeModules.SongRecognition.recognizePlayback
+    ).not.toHaveBeenCalled();
+  }
+);
+
 test.each(["mic", "playback"])(
   "%s rechecks foreground after waiting for the previous capture to stop",
   async (mode) => {
