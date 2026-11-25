@@ -1,8 +1,7 @@
 export default function extractYoutubeId(url: string): string {
   try {
     const parsed = new URL(url.trim());
-    if (parsed.protocol !== "https:" && parsed.protocol !== "http:")
-      return "";
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return "";
     const host = parsed.hostname.toLowerCase();
     if (
       ![

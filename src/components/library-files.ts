@@ -750,7 +750,10 @@ export function finishPendingRecordingDeletions(): Promise<void> {
             for (const take of remaining.filter((take) =>
               names.includes(recordingFileName(take.path, songId))
             )) {
-              if (take.processing || !(await performanceAudio.remove(take.path)))
+              if (
+                take.processing ||
+                !(await performanceAudio.remove(take.path))
+              )
                 throw new Error("RecordingDeleteFailed");
             }
             const after = await performanceAudio.list(songId);
