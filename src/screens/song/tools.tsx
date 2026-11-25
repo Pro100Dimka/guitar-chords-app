@@ -1314,7 +1314,18 @@ function RhythmPlayer({
       stop();arrangements=config.arrangements||[];pattern=config.pattern;tempo=config.tempo;meter=config.meter;division=config.division||2;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
       wantsPlay=resume;if(resume&&!loading)play();
     };
-    button.onclick=()=>{if(playing||wantsPlay){stop();return;}if(loading){wantsPlay=true;return;}play();};
+    button.onclick=()=>{
+      if(playing||wantsPlay){stop();return;}
+      if(!loading){play();return;}
+      wantsPlay=true;
+      prepareAudio();
+      const token=playToken;
+      context.resume().catch(()=>{
+        if(token!==playToken)return;
+        stop();button.textContent=labels.error;button.setAttribute('aria-label',labels.error);
+        window.ReactNativeWebView?.postMessage('stopped');
+      });
+    };
     prepareAudio();window.ReactNativeWebView?.postMessage('ready');
     document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();window.ReactNativeWebView?.postMessage('stopped');}});
     window.addEventListener('pagehide',()=>{stop();context?.close().catch(()=>{});});
@@ -1383,7 +1394,7 @@ function RhythmPlayer({
           }
           scrollEnabled={false}
           javaScriptEnabled
-          mediaPlaybackRequiresUserAction={!autoplay}
+          mediaPlaybackRequiresUserAction={false}
           onMessage={({ nativeEvent }) => {
             if (nativeEvent.data.startsWith("{")) {
               try {
