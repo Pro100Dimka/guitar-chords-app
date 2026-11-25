@@ -24,7 +24,8 @@ export interface LyricsOption {
     | "E-Chords"
     | "Cifras"
     | "GuitareTab"
-    | "Akkords.pro";
+    | "Akkords.pro"
+    | "Musicaccord.ru";
   url?: string;
   hasChords?: boolean;
 }
@@ -42,7 +43,9 @@ const identityScript = (value: string) => {
     ? "Latin"
     : /^\p{Script=Cyrillic}+$/u.test(letters)
       ? "Cyrillic"
-      : undefined;
+      : /^[\p{Script=Latin}\p{Script=Cyrillic}]+$/u.test(letters)
+        ? "Mixed"
+        : undefined;
 };
 const transliteration: Record<string, string> = {
   а: "a",
@@ -89,15 +92,20 @@ const matchingScriptIdentity = (expected: string, actual: string) => {
   if (left === right) return true;
   const leftScript = identityScript(left),
     rightScript = identityScript(right);
-  // Compare exact transliterations only across scripts. Never fuzzy-match two
-  // names in the same script or infer an adopted alias such as Boombox.
-  if (!leftScript || !rightScript || leftScript === rightScript) return false;
-  const cyrillic = leftScript === "Cyrillic" ? left : right;
-  const latin = leftScript === "Latin" ? left : right;
+  // Published labels sometimes mix Cyrillic and Latin letters. Compare exact
+  // transliterations, preserving strict comparisons within either pure script.
+  if (
+    !leftScript ||
+    !rightScript ||
+    (leftScript === rightScript && leftScript !== "Mixed")
+  )
+    return false;
   return [transliteration, { ...transliteration, г: "h", и: "y" }].some(
-    (letters) =>
-      [...cyrillic].map((letter) => letters[letter] ?? letter).join("") ===
-      latin
+    (letters) => {
+      const transliterate = (value: string) =>
+        [...value].map((letter) => letters[letter] ?? letter).join("");
+      return transliterate(left) === transliterate(right);
+    }
   );
 };
 const trackTitle = (value: string) =>
@@ -249,10 +257,32 @@ export async function lookupLyrics(
 
 const artistKey = (value: string) =>
   normalize(value.replace(/\s*&\s*/g, " and ")).replace(/ /g, "");
-const sameArtist = (expected: string, actual: string) =>
-  artistCredits(expected).some((name) =>
-    matchingScriptIdentity(artistKey(name), artistKey(primaryArtist(actual)))
+export function publishedArtistNames(value: string) {
+  const name = primaryArtist(value);
+  const alias = /^([\p{Lu}]{2,8})\s*\(([\p{L}'’.\-\s]+)\)$/u.exec(name);
+  if (!alias) return [name];
+  const words = alias[2].trim().split(/\s+/);
+  if (
+    words.length < 2 ||
+    words.length > 8 ||
+    words.some((word) =>
+      /^(?:feat|ft|featuring|with|cover|version|remix|live|acoustic|instrumental|кавер|версія|версия|переклад|перевод)$/iu.test(
+        normalize(word)
+      )
+    ) ||
+    !matchingScriptIdentity(alias[1], words.map((word) => word[0]).join(""))
+  )
+    return [name];
+  return [name, alias[1], alias[2].trim()];
+}
+const sameArtist = (expected: string, actual: string) => {
+  const names = publishedArtistNames(actual);
+  return artistCredits(expected).some((name) =>
+    names.some((published) =>
+      matchingScriptIdentity(artistKey(name), artistKey(published))
+    )
   );
+};
 
 function chartRhythm(
   text: string,
@@ -779,6 +809,125 @@ async function lookupPisennyk(
   ];
 }
 
+async function lookupMusicAccord(
+  title: string,
+  artist: string,
+  signal?: AbortSignal
+): Promise<LyricsOption[]> {
+  const origin = "https://musicaccord.ru";
+  const songURL = /^https:\/\/musicaccord\.ru\/songs\/[a-z0-9-]+\/$/;
+  const hasClass =
+    (name: string) => (element: { attribs: Record<string, string> }) =>
+      (element.attribs.class ?? "").split(/\s+/).includes(name);
+  const pageTitle = (label: string, performer = artist) => {
+    if (label.length > 1000) return;
+    const parts = label
+      .replace(/:\s*аккорды на гитаре(?: без баррэ)?\s*$/i, "")
+      .split(/\s+-\s+/);
+    for (let split = 1; split < parts.length; split++) {
+      const name = parts.slice(split).join(" - ");
+      if (
+        sameArtist(performer, parts.slice(0, split).join(" - ")) &&
+        matchingIdentity(title, name)
+      )
+        return name;
+    }
+  };
+  const candidates = new Set<string>();
+  for (const query of [
+    `${trackTitle(title)} ${primaryArtist(artist)}`,
+    trackTitle(title)
+  ]) {
+    const html = await fetchSource(
+      `${origin}/?${new URLSearchParams({ s: query })}`,
+      signal
+    );
+    if (!html) continue;
+    const search = await parseSource(html, signal);
+    // Empty search pages still contain unrelated sidebar song links.
+    for (const article of DomUtils.getElementsByTagName(
+      "article",
+      search.children
+    )) {
+      if (!hasClass("grid-item")(article) || !hasClass("type-song")(article))
+        continue;
+      const heading = DomUtils.getElementsByTagName(
+        "h2",
+        article.children
+      ).find(hasClass("entry-title"));
+      if (!heading || !pageTitle(DomUtils.textContent(heading).trim()))
+        continue;
+      const link = DomUtils.getElementsByTagName("a", heading.children).find(
+        (element) => songURL.test(element.attribs.href ?? "")
+      );
+      if (link) candidates.add(link.attribs.href);
+      if (candidates.size === 3) break;
+    }
+    if (candidates.size) break;
+  }
+  for (const url of candidates) {
+    const html = await fetchSource(url, signal);
+    if (!html) continue;
+    const page = await parseSource(html, signal);
+    const article = DomUtils.getElementsByTagName(
+      "article",
+      page.children
+    ).find(hasClass("type-song"));
+    if (!article) continue;
+    const breadcrumbs = DomUtils.findOne(
+      (element) =>
+        element.name === "nav" && hasClass("song-breadcrumbs")(element),
+      article.children
+    );
+    const performer =
+      breadcrumbs &&
+      DomUtils.getElementsByTagName("a", breadcrumbs.children).find((element) =>
+        /^https:\/\/musicaccord\.ru\/artists\/[a-z0-9-]+\/$/.test(
+          element.attribs.href ?? ""
+        )
+      );
+    const foundArtist = performer ? DomUtils.textContent(performer).trim() : "";
+    if (!sameArtist(artist, foundArtist)) continue;
+    const heading = DomUtils.getElementsByTagName("h1", article.children).find(
+      hasClass("entry-title")
+    );
+    const foundTitle =
+      heading && pageTitle(DomUtils.textContent(heading).trim(), foundArtist);
+    if (!foundTitle) continue;
+    // Diagrams and the Article author's name cannot establish a song arrangement.
+    const body = DomUtils.findOne(
+      (element) =>
+        element.name === "div" && hasClass("musicaccord-song")(element),
+      article.children
+    );
+    if (!body) continue;
+    const content = await normalizeSourceText(
+      await sourceBody(body, false, signal),
+      signal
+    );
+    if (
+      !content ||
+      content.length > 200000 ||
+      !(await hasSongChordsAsync(content, signal, true))
+    )
+      continue;
+    return [
+      {
+        id: 0,
+        title: foundTitle,
+        artist: foundArtist,
+        content,
+        album: "",
+        duration: null,
+        source: "Musicaccord.ru",
+        url,
+        hasChords: true
+      }
+    ];
+  }
+  return [];
+}
+
 const chordSources = {
   "Cifra Club": { origin: "https://www.cifraclub.com", path: "" },
   "E-Chords": { origin: "https://www.e-chords.com", path: "/en/chords" },
@@ -803,41 +952,49 @@ async function lookupChordPage(
       sameArtist(artist, value.replace(/\s+\([^()]+\)\s*$/, "")));
   const provider = chordSources[source];
   if (source === "Akkords.pro" && !candidateUrl) {
-    const titleScript = identityScript(trackTitle(title));
-    const artistScript = identityScript(primaryArtist(artist));
-    const search = await fetchSource(
-      `${provider.origin}/?${new URLSearchParams({
-        s:
-          titleScript && artistScript && titleScript !== artistScript
-            ? trackTitle(title)
-            : `${trackTitle(title)} ${primaryArtist(artist)}`
-      })}`,
-      signal
-    );
-    if (!search) return [];
-    const document = await parseSource(search, signal);
     const candidates = new Set<string>();
-    for (const link of DomUtils.getElementsByTagName("a", document.children)) {
-      if (
-        !/^https:\/\/akkords\.pro\/songs\/[a-z0-9-]+\/[a-z0-9-]+\/$/.test(
-          link.attribs.href ?? ""
+    // Artist metadata is not always searchable. A bounded title-only retry
+    // also tolerates omitted terminal punctuation without changing song words.
+    for (const query of [
+      `${trackTitle(title)} ${primaryArtist(artist)}`,
+      trackTitle(title)
+        .replace(/[?!]+$/, "")
+        .trim()
+    ]) {
+      if (!query) continue;
+      const search = await fetchSource(
+        `${provider.origin}/?${new URLSearchParams({ s: query })}`,
+        signal
+      );
+      if (!search) return [];
+      const document = await parseSource(search, signal);
+      for (const link of DomUtils.getElementsByTagName(
+        "a",
+        document.children
+      )) {
+        if (
+          !/^https:\/\/akkords\.pro\/songs\/[a-z0-9-]+\/[a-z0-9-]+\/$/.test(
+            link.attribs.href ?? ""
+          )
         )
-      )
-        continue;
-      const label = (className: string) => {
-        const element = DomUtils.findOne(
-          (node) => (node.attribs.class ?? "").split(/\s+/).includes(className),
-          link.children
-        );
-        return element ? DomUtils.textContent(element).trim() : "";
-      };
-      if (
-        matchingIdentity(title, label("apx-top-songs__title")) &&
-        matchesArtist(label("apx-top-songs__artist"))
-      ) {
-        candidates.add(link.attribs.href);
-        if (candidates.size === 3) break;
+          continue;
+        const label = (className: string) => {
+          const element = DomUtils.findOne(
+            (node) =>
+              (node.attribs.class ?? "").split(/\s+/).includes(className),
+            link.children
+          );
+          return element ? DomUtils.textContent(element).trim() : "";
+        };
+        if (
+          matchingIdentity(title, label("apx-top-songs__title")) &&
+          matchesArtist(label("apx-top-songs__artist"))
+        ) {
+          candidates.add(link.attribs.href);
+          if (candidates.size === 3) break;
+        }
       }
+      if (candidates.size) break;
     }
     for (const url of candidates) {
       const options = await lookupChordPage(title, artist, source, signal, url);
@@ -1186,7 +1343,8 @@ export async function lookupSongContent(
           controller.signal
         )
       ),
-      lookupPisennyk(title, artist, controller.signal)
+      lookupPisennyk(title, artist, controller.signal),
+      lookupMusicAccord(title, artist, controller.signal)
     ];
     const requests = [
       ...chordRequests,

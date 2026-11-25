@@ -1,7 +1,7 @@
 // @ts-nocheck
 // Node-only audit, like verify-shazam.cjs; the app tsconfig supplies RN types.
 // Live, sequential content-lookup audit. Never writes lyric or chord-chart text.
-// Usage: node scripts/check-chord-corpus.cjs <manifest.json> <results.jsonl>
+// Usage: node scripts/check-chord-corpus.cjs <manifest.json> <results.jsonl> [id,id,...]
 const fs = require("node:fs");
 const path = require("node:path");
 const crypto = require("node:crypto");
@@ -33,6 +33,17 @@ if (
   )
 )
   throw new Error("Expected the complete frozen set of 100 unique identities");
+
+const selectedIds = process.argv[4]?.split(",");
+if (
+  selectedIds &&
+  (new Set(selectedIds).size !== selectedIds.length ||
+    selectedIds.some((id) => !songs.some((song) => song.id === id)))
+)
+  throw new Error("Selected IDs must be unique entries in the frozen manifest");
+const selectedSongs = selectedIds
+  ? songs.filter((song) => selectedIds.includes(song.id))
+  : songs;
 
 const sourceSha256 = {};
 require.extensions[".ts"] = (module, filename) => {
@@ -69,7 +80,9 @@ write({
   manifestSha256: sha256(manifestBytes),
   sourceSha256,
   timeoutMs,
-  count: songs.length,
+  count: selectedSongs.length,
+  corpusCount: songs.length,
+  selectedIds: selectedIds ?? null,
   concurrency:
     "One song at a time in one process; application provider concurrency, crawl delay and cooldowns unchanged",
   successCriterion:
@@ -105,7 +118,7 @@ function sameArtist(expected, actual, source) {
     primaryArtist(expected),
     ...expected.split(/\s+(?:&|feat\.?|ft\.?|featuring|with)\s+/i)
   ];
-  const names = [primaryArtist(actual)];
+  const names = api.publishedArtistNames(actual);
   if (source === "Akkords.pro")
     names.push(primaryArtist(actual).replace(/\s+\([^()]+\)\s*$/, ""));
   return credits.some((credit) =>
@@ -136,14 +149,14 @@ function summary(finished) {
     manifestSha256: sha256(manifestBytes),
     sourceSha256,
     completed: completed.length,
-    total: songs.length,
+    total: selectedSongs.length,
     byStatus,
     byGroup
   };
 }
 
 (async () => {
-  for (const song of songs) {
+  for (const song of selectedSongs) {
     const began = Date.now();
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
@@ -224,7 +237,7 @@ function summary(finished) {
     console.log(
       JSON.stringify({
         completed: completed.length,
-        total: songs.length,
+        total: selectedSongs.length,
         id: song.id,
         title: song.title,
         artist: song.artist,

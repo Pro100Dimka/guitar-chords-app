@@ -50,10 +50,13 @@ jest.mock("../src/components/database/crud", () => ({
 }));
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
-test("new chord-source attribution survives preference normalization", () => {
+test.each([
+  ["Akkords.pro", "https://akkords.pro/songs/kino/gruppa-krovi/"],
+  ["Musicaccord.ru", "https://musicaccord.ru/songs/tnmk-granuli/"]
+])("%s attribution survives preference normalization", (name, url) => {
   const contentSource = {
-    name: "Akkords.pro",
-    url: "https://akkords.pro/songs/kino/gruppa-krovi/"
+    name,
+    url
   };
   expect(normalizeSongPreferences({ contentSource }).contentSource).toEqual(
     contentSource
@@ -62,7 +65,10 @@ test("new chord-source attribution survives preference normalization", () => {
     normalizeSongPreferences({
       contentSource: {
         ...contentSource,
-        url: "https://akkords.pro.example.org/song"
+        url: url.replace(
+          new URL(url).hostname,
+          `${new URL(url).hostname}.example.org`
+        )
       }
     }).contentSource
   ).toBeUndefined();
