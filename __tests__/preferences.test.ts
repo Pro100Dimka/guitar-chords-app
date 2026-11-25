@@ -384,7 +384,7 @@ test("song preferences and cover survive serialization and reload; failed commit
 test.each([
   [undefined, 1],
   ["large", 1],
-  [0.2, 0.25],
+  [0.2, 1],
   [9, 1.5],
   [1.27, 1.27]
 ])(

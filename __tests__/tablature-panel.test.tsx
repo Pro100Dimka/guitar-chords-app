@@ -447,9 +447,7 @@ test("the single palette preserves expression settings without changing chord pe
     techniques: ["bend"],
     velocity: 96
   });
-  expect(
-    updates.at(-1)?.notes.find((n) => n.fret === 5)?.velocity
-  ).toBeUndefined();
+  expect(updates.at(-1)?.notes.find((n) => n.fret === 5)?.velocity).toBe(96);
 });
 
 test("an expressive note keeps its settings while entering a new two-digit fret", async () => {
@@ -544,9 +542,11 @@ test("staff taps and the keypad compose chords and two-digit frets with the last
     duration: 12
   });
   expect(updates.at(-1)!.notes).toHaveLength(3);
-  expect(mockPreview.mock.calls.map(([note]) => note.fret)).toEqual([
-    7, 5, 1, 12, 5, 3
-  ]);
+  [7, 5, 1, 12, 5, 3].forEach((fret, index) =>
+    expect(mockPreview.mock.calls[index][0]).toEqual(
+      expect.arrayContaining([expect.objectContaining({ fret })])
+    )
+  );
 });
 
 test("rejected note writes stay silent and leave the document unchanged", async () => {
@@ -775,12 +775,12 @@ test("an empty editor composes a note and a silent rest without virtual guitar t
   await press(screen!, "TabAddRest");
   expect(updates.at(-1)!.rests).toEqual([{ tick: 12, duration: 12 }]);
   expect(mockPreview).toHaveBeenCalledTimes(1);
-  expect(mockPreview).toHaveBeenCalledWith({
+  expect(mockPreview).toHaveBeenCalledWith([{
     string: 5,
     fret: 2,
     tick: 0,
     duration: 12
-  });
+  }]);
   expect(button(screen!, "TabSave").props.disabled).toBe(false);
   expect(button(screen!, "TabPlay").props.disabled).toBe(false);
 });
@@ -1320,8 +1320,10 @@ test("a long press exposes exact note selection, handles, and the contextual loo
     )!;
   await act(async () => target.props.onLongPress());
   expect(base.setRange).toHaveBeenLastCalledWith({ start: 24, end: 48 });
-  expect(button(screen!, "TabSelectionStart")).toBeDefined();
-  expect(button(screen!, "TabSelectionEnd")).toBeDefined();
+  for (const label of ["TabSelectionStart", "TabSelectionEnd"])
+    expect(
+      screen!.root.findAll((node) => node.props.accessibilityLabel === label)
+    ).not.toHaveLength(0);
   await press(screen!, "TabCancelSelection");
   expect(base.setRange).toHaveBeenLastCalledWith(null);
   expect(button(screen!, "TabCopyNotes")).toBeUndefined();

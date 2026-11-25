@@ -196,12 +196,9 @@ test.each([
   [240, 960],
   [844, 300],
   [900, 255]
-])("complete guitar fits at minimum zoom on %s x %s", (width, height) => {
-  const frame = guitarLayout(width, height, 0.25, true);
-  expect(frame.artwork.left).toBeGreaterThanOrEqual(0);
-  expect(frame.artwork.top).toBeGreaterThanOrEqual(0);
-  expect(frame.artwork.left + frame.artwork.width).toBeLessThanOrEqual(width);
-  expect(frame.artwork.top + frame.artwork.height).toBeLessThanOrEqual(height);
+])("original guitar does not zoom out on %s x %s", (width, height) => {
+  const frame = guitarLayout(width, height, 0.25);
+  expect(frame.zoom).toBe(1);
   expect(guitarStringSpan(frame, frame.stringTop)).toEqual({
     left: frame.stringTopLeft,
     width: frame.stringTopWidth

@@ -203,8 +203,7 @@ async function pluck(string: number) {
   const frame = guitarLayout(
     dimensions.width,
     dimensions.height,
-    screen!.root.findByType(Strings).props.zoom,
-    true
+    screen!.root.findByType(Strings).props.zoom
   );
   const y = Math.max(100, frame.stringTop + 100);
   const span = guitarStringSpan(frame, y);
@@ -221,6 +220,12 @@ async function pluck(string: number) {
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
+  jest.spyOn(require("react-native"), "useWindowDimensions").mockReturnValue({
+    width: 844,
+    height: 390,
+    scale: 1,
+    fontScale: 1
+  });
   usePreferences.setState({ songs: {}, saveError: false, playGuitarZoom: 1 });
   jest.mocked(readTablatureDraft).mockResolvedValue(null);
   jest.mocked(writeTablatureDraft).mockResolvedValue(undefined);
@@ -254,7 +259,7 @@ test("zoom changes artwork, strings and touch coordinates together and persists 
   const zoom = () => screen!.root.findByType(GuitarZoom);
   await act(async () => zoom().props.onInteractionChange(true));
   await act(async () => zoom().props.onChange(1.4));
-  const frame = guitarLayout(dimensions.width, dimensions.height, 1.4, true);
+  const frame = guitarLayout(dimensions.width, dimensions.height, 1.4);
   expect(screen!.root.findByType(Strings).props.zoom).toBe(1.4);
   expect(
     StyleSheet.flatten(screen!.root.findByType(Image).props.style)
@@ -311,7 +316,7 @@ test("fret overlays follow the zoomed string columns", async () => {
   await act(async () => {
     await jest.advanceTimersByTimeAsync(30);
   });
-  const frame = guitarLayout(dimensions.width, dimensions.height, 1.35, true);
+  const frame = guitarLayout(dimensions.width, dimensions.height, 1.35);
   const overlay = screen!.root.findAllByType(View).find((node) => {
     const style = StyleSheet.flatten(node.props.style);
     return (
@@ -326,36 +331,10 @@ test("fret overlays follow the zoomed string columns", async () => {
   );
 });
 
-test("screen-string touches record chosen frets and timing, save, and reopen the same tab", async () => {
+test("screen-string touches record timing, save, and reopen the same tab", async () => {
   await render();
   await panelAction("onRecord");
-  await act(async () =>
-    screen!.root
-      .findAll(
-        (node) =>
-          node.props.accessibilityLabel === "FreePlay" &&
-          typeof node.props.onPress === "function"
-      )[0]
-      .props.onPress()
-  );
-  const free = () =>
-    screen!.root
-      .findAllByType(Sheet)
-      .find((node) => node.props.title === "FreePlay")!;
-  await act(async () =>
-    free()
-      .findAllByType(Action)
-      .filter((node) => node.props.label === "+")[0]
-      .props.onPress()
-  );
-  await act(async () =>
-    free()
-      .findAllByType(Action)
-      .filter((node) => node.props.label === "+")[0]
-      .props.onPress()
-  );
-  await act(async () => free().props.onClose());
-  await pluck(0);
+  await pluck(1);
   await act(async () => {
     await jest.advanceTimersByTimeAsync(750);
   });
@@ -363,15 +342,15 @@ test("screen-string touches record chosen frets and timing, save, and reopen the
   await act(async () => transport().stopRecording());
   const recorded = transport().tab;
   expect(recorded.notes).toEqual([
-    { string: 0, fret: 2, tick: 0, duration: 24 },
-    { string: 4, fret: 0, tick: 24, duration: 24 }
+    { string: 1, fret: 0, tick: 0, duration: 24 },
+    { string: 4, fret: 1, tick: 24, duration: 24 }
   ]);
   expect(performanceAudio.guitarString).toHaveBeenCalledWith(
-    "440:42:string0",
-    0
+    "440:45:string1",
+    1
   );
   expect(performanceAudio.guitarString).toHaveBeenCalledWith(
-    "440:59:string4",
+    "440:60:string4",
     4
   );
   expect((await panel()).props.dirty).toBe(true);
@@ -788,15 +767,6 @@ test("recording count-in permits fingering changes but preserves the old tab whe
       .find((button) => button.text === "TabRecord")!.onPress!()
   );
   expect(transport().status).toBe("countingIn");
-  await act(async () =>
-    screen!.root
-      .findAll(
-        (node) =>
-          node.props.accessibilityLabel === "FreePlay" &&
-          typeof node.props.onPress === "function"
-      )[0]
-      .props.onPress()
-  );
   await pluck(0);
   expect(transport().status).toBe("countingIn");
   expect(transport().tab).toEqual(saved);

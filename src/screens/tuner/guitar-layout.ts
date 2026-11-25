@@ -73,7 +73,7 @@ export function guitarLayout(
         )
       : MAX_GUITAR_ZOOM;
   const effectiveZoom = Math.max(
-    complete ? MIN_GUITAR_ZOOM : 0.75,
+    MIN_GUITAR_ZOOM,
     Math.min(maximumZoom, Number.isFinite(zoom) ? zoom! : 1)
   );
   const scale = fittedScale * effectiveZoom;
