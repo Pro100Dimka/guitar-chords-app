@@ -1,6 +1,7 @@
 import { songFieldLimits } from "@/@interfaces";
 import type { FormValues } from "..";
 import * as Yup from "yup";
+import extractYoutubeId from "../../../components/utils/extract-youtube-id";
 
 export const validationSchema = (
   t: typeof import("i18next").t,
@@ -27,7 +28,7 @@ export const validationSchema = (
         (value) =>
           !value ||
           (!!previous && value === previous[key]) ||
-          Yup.string().url().isValidSync(value)
+          !!extractYoutubeId(value)
       );
   const requiredField = (key: "title" | "content") =>
     field(key, previous?.[key])

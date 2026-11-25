@@ -37,8 +37,7 @@ const getAllItems = <T = Record<string, unknown>>({
     )
       throw new Error("Invalid pagination");
     const offset = page && page > 0 && limit !== undefined ? page * limit : 0;
-    if (!Number.isSafeInteger(offset))
-      throw new Error("Invalid pagination");
+    if (!Number.isSafeInteger(offset)) throw new Error("Invalid pagination");
     let sql = `SELECT ${fields} FROM ${tableName}`;
     if (joins.length > 0) sql += " " + joins.join(" "); //  join если есть
     if (filters) sql += ` WHERE ${filters}`; //  фильтры
