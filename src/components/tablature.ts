@@ -3,6 +3,29 @@ export const TAB_TICKS_PER_BEAT = 24;
 export const TAB_MAX_NOTES = 2048;
 export const TAB_MAX_BARS = 128;
 export const TAB_TUNING = [40, 45, 50, 55, 59, 64] as const;
+export const TAB_TECHNIQUES = {
+  hammerOn: "h",
+  pullOff: "p",
+  slide: "/",
+  bend: "b",
+  vibrato: "~",
+  palmMute: "PM",
+  letRing: "l.r.",
+  harmonic: "◇",
+  tapping: "T",
+  tremolo: "///",
+  trill: "tr",
+  whammy: "↘",
+  grace: "♪",
+  slap: "S",
+  pop: "P",
+  rasgueado: "rasg.",
+  mordent: "mord.",
+  turn: "turn",
+  golpe: "G",
+  pickScrape: "scr."
+} as const;
+export type TabTechnique = keyof typeof TAB_TECHNIQUES;
 
 export interface TabNote {
   /** Zero is the low E string; five is the high e string. */
@@ -11,6 +34,20 @@ export interface TabNote {
   tick: number;
   /** Optional only for legacy callers. Normalized notes always have duration. */
   duration?: number;
+  velocity?: number;
+  techniques?: TabTechnique[];
+  bend?: number;
+  bendRelease?: boolean;
+  sourceFret?: number;
+  accent?: "accent" | "strong" | "staccato" | "ghost" | "dead";
+  fade?: "in" | "out" | "crescendo" | "diminuendo";
+  pick?: "down" | "up" | "downBrush" | "upBrush" | "arpeggio";
+  leftFinger?: number;
+  rightFinger?: "p" | "i" | "m" | "a" | "c";
+  voice?: number;
+  tie?: boolean;
+  fermata?: boolean;
+  tuplet?: { actual: number; normal: number; denominator: number };
 }
 
 export interface TabRest {
@@ -19,8 +56,8 @@ export interface TabRest {
 }
 
 export interface Tablature {
-  /** Version 1 is accepted for migration; normalization writes version 2. */
-  version: 1 | 2;
+  /** Version 3 adds expression and fractional ticks; old documents retain their timing. */
+  version: 1 | 2 | 3;
   /** Quarter notes per minute, also in meters with an eighth-note denominator. */
   tempo: number;
   beatsPerBar: number;
@@ -45,12 +82,45 @@ export const tabBarTicks = (tab: Tablature): number =>
   tab.beatsPerBar * tabBeatTicks(tab);
 export const tabNoteDuration = (note: TabNote): number =>
   note.duration ?? TAB_TICKS_PER_BEAT;
+export const tabNoteSymbols = (note: TabNote): string =>
+  [
+    ...(note.techniques ?? []).map((technique) => TAB_TECHNIQUES[technique]),
+    note.tie ? "⌒" : "",
+    note.fermata ? "𝄐" : "",
+    note.tuplet ? `${note.tuplet.actual}:${note.tuplet.normal}` : "",
+    note.accent
+      ? { accent: ">", strong: ">>", staccato: "·", ghost: "( )", dead: "×" }[
+          note.accent
+        ]
+      : ""
+  ]
+    .filter(Boolean)
+    .join(" ");
+
+export function tabNoteEnd(tab: Tablature, note: TabNote): number {
+  let end = note.tick + tabNoteDuration(note);
+  if (!note.tie && !note.techniques?.includes("letRing")) return end;
+  let current = note;
+  const following = tab.notes.filter(
+    (next) => next.string === note.string && next.tick > note.tick
+  );
+  for (const next of following) {
+    if (!current.tie || next.tick !== end || next.fret !== note.fret) break;
+    end = next.tick + tabNoteDuration(next);
+    current = next;
+  }
+  if (note.techniques?.includes("letRing"))
+    end =
+      following.find((next) => next.tick >= end)?.tick ?? tablatureLength(tab);
+  const rest = tab.rests?.find((entry) => entry.tick >= note.tick);
+  return Math.min(end, rest?.tick ?? end);
+}
 
 /** Reject a damaged document instead of silently losing individual events. */
 export function normalizeTablature(value: unknown): Tablature | undefined {
   if (
     !record(value) ||
-    ![1, 2].includes(value.version as number) ||
+    ![1, 2, 3].includes(value.version as number) ||
     !integer(value.tempo, 40, 200) ||
     !integer(value.beatsPerBar, 1, 8) ||
     (value.beatUnit !== undefined &&
@@ -67,25 +137,122 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
   const beatUnit = (value.beatUnit ?? 4) as 4 | 8;
   const barTicks = (value.beatsPerBar * TAB_TICKS_PER_BEAT * 4) / beatUnit;
   const end = TAB_MAX_BARS * barTicks;
+  const musicalTick = (
+    tick: unknown,
+    min: number,
+    max: number
+  ): tick is number =>
+    value.version === 3
+      ? typeof tick === "number" &&
+        Number.isFinite(tick) &&
+        tick >= min &&
+        tick <= max &&
+        Math.abs(tick * 960 - Math.round(tick * 960)) < 0.00001
+      : integer(tick, Math.max(0, min), max);
   const uniqueNotes = new Map<string, TabNote>();
   for (const note of value.notes) {
     if (
       !record(note) ||
       !integer(note.string, 0, 5) ||
       !integer(note.fret, 0, 24) ||
-      !integer(note.tick, 0, end - 1) ||
+      !musicalTick(note.tick, 0, end - (value.version === 3 ? 1 / 960 : 1)) ||
       (note.duration !== undefined &&
-        !integer(note.duration, 1, end - note.tick))
+        !musicalTick(
+          note.duration,
+          value.version === 3 ? 1 / 960 : 1,
+          end - note.tick
+        ))
     )
       return undefined;
-    uniqueNotes.set(`${note.tick}:${note.string}`, {
+    const normalized: TabNote = {
       string: note.string,
       fret: note.fret,
-      tick: note.tick,
+      tick: value.version === 3 ? Math.round(note.tick * 960) / 960 : note.tick,
       ...(note.duration !== undefined
-        ? { duration: note.duration as number }
+        ? {
+            duration:
+              value.version === 3
+                ? Math.round((note.duration as number) * 960) / 960
+                : (note.duration as number)
+          }
         : {})
-    });
+    };
+    const optional = <K extends keyof TabNote>(
+      key: K,
+      valid: (entry: unknown) => entry is TabNote[K]
+    ) => {
+      const entry = note[key];
+      if (entry === undefined) return true;
+      if (!valid(entry)) return false;
+      normalized[key] = entry;
+      return true;
+    };
+    const choice =
+      <T extends string>(choices: readonly T[]) =>
+      (entry: unknown): entry is T =>
+        typeof entry === "string" && choices.includes(entry as T);
+    if (
+      ![
+        optional("velocity", (entry): entry is number =>
+          integer(entry, 1, 127)
+        ),
+        optional(
+          "bend",
+          (entry): entry is number =>
+            typeof entry === "number" &&
+            Number.isFinite(entry) &&
+            entry >= 0 &&
+            entry <= 3
+        ),
+        optional("sourceFret", (entry): entry is number =>
+          integer(entry, 0, 24)
+        ),
+        optional("leftFinger", (entry): entry is number =>
+          integer(entry, 1, 4)
+        ),
+        optional("voice", (entry): entry is number => integer(entry, 1, 4)),
+        ...(["bendRelease", "tie", "fermata"] as const).map((key) =>
+          optional(key, (entry): entry is boolean => typeof entry === "boolean")
+        ),
+        optional(
+          "accent",
+          choice(["accent", "strong", "staccato", "ghost", "dead"] as const)
+        ),
+        optional(
+          "fade",
+          choice(["in", "out", "crescendo", "diminuendo"] as const)
+        ),
+        optional(
+          "pick",
+          choice(["down", "up", "downBrush", "upBrush", "arpeggio"] as const)
+        ),
+        optional("rightFinger", choice(["p", "i", "m", "a", "c"] as const)),
+        optional(
+          "tuplet",
+          (entry): entry is NonNullable<TabNote["tuplet"]> =>
+            record(entry) &&
+            integer(entry.actual, 2, 16) &&
+            integer(entry.normal, 1, 16) &&
+            typeof entry.denominator === "number" &&
+            [1, 2, 4, 8, 16, 32, 64, 128].includes(entry.denominator)
+        ),
+        optional(
+          "techniques",
+          (entry): entry is TabTechnique[] =>
+            Array.isArray(entry) &&
+            entry.length <= Object.keys(TAB_TECHNIQUES).length &&
+            entry.every(
+              (item) =>
+                typeof item === "string" && Object.hasOwn(TAB_TECHNIQUES, item)
+            )
+        )
+      ].every(Boolean)
+    )
+      return undefined;
+    if (normalized.techniques)
+      normalized.techniques = [...new Set(normalized.techniques)];
+    if (normalized.tuplet) normalized.tuplet = { ...normalized.tuplet };
+    uniqueNotes.set(`${normalized.tick}:${normalized.string}`, normalized);
   }
   const notes = [...uniqueNotes.values()].sort(
     (a, b) => a.tick - b.tick || a.string - b.string
@@ -94,11 +261,18 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
   for (const rest of inputRests) {
     if (
       !record(rest) ||
-      !integer(rest.tick, 0, end - 1) ||
-      !integer(rest.duration, 1, end - rest.tick)
+      !musicalTick(rest.tick, 0, end - (value.version === 3 ? 1 / 960 : 1)) ||
+      !musicalTick(
+        rest.duration,
+        value.version === 3 ? 1 / 960 : 1,
+        end - rest.tick
+      )
     )
       return undefined;
-    rests.push({ tick: rest.tick, duration: rest.duration });
+    rests.push({
+      tick: Math.round(rest.tick * 960) / 960,
+      duration: Math.round(rest.duration * 960) / 960
+    });
   }
   rests.sort((a, b) => a.tick - b.tick);
   if (
@@ -143,7 +317,7 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     nextByString.set(note.string, note.tick);
   }
   const tab: Tablature = {
-    version: 2,
+    version: value.version === 3 ? 3 : 2,
     tempo: value.tempo,
     beatsPerBar: value.beatsPerBar,
     beatUnit,
@@ -188,10 +362,12 @@ export function tablatureLength(tab: Tablature): number {
 
 const fraction = (numerator: number, denominator: number): string => {
   const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
-  const divisor = gcd(numerator, denominator);
-  return denominator === divisor
-    ? String(numerator / divisor)
-    : `${numerator / divisor}/${denominator / divisor}`;
+  const top = Math.round(numerator * 960);
+  const bottom = Math.round(denominator * 960);
+  const divisor = gcd(top, bottom);
+  return bottom === divisor
+    ? String(top / divisor)
+    : `${top / divisor}/${bottom / divisor}`;
 };
 const names = ["E", "A", "D", "G", "B", "e"];
 const beatPosition = (tick: number, start: number, beatTicks: number) => {

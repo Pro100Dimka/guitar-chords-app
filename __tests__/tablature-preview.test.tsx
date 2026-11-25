@@ -10,6 +10,7 @@ import { TAB_TUNING, TabNote } from "../src/components/tablature";
 import { useTablaturePreview } from "../src/screens/play/use-tablature-preview";
 
 jest.mock("../src/components/guitar-audio", () => ({
+  ...jest.requireActual("../src/components/guitar-audio"),
   warmGuitar: jest.fn()
 }));
 jest.mock("../src/components/performance-audio", () => ({
@@ -118,7 +119,8 @@ test("a cold or evicted note waits for its physical-string sample before soundin
     [48],
     440,
     expect.any(AbortSignal),
-    1
+    1,
+    undefined
   );
   expect(performanceAudio.guitarString).not.toHaveBeenCalled();
   await act(async () => ready.resolve());
@@ -304,7 +306,8 @@ test("legacy native modules await warmGuitar and invalid note data never starts 
     [48],
     440,
     expect.any(AbortSignal),
-    1
+    1,
+    undefined
   );
   expect(performanceAudio.guitarString).toHaveBeenCalledWith(
     "440:48:string1",

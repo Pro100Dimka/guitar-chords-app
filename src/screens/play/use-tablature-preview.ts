@@ -1,12 +1,16 @@
 import { useCallback, useLayoutEffect, useMemo, useRef } from "react";
 import { AppState } from "react-native";
-import { warmGuitar } from "../../components/guitar-audio";
+import {
+  guitarNoteKey,
+  tabNoteExpression,
+  warmGuitar
+} from "../../components/guitar-audio";
 import { performanceAudio } from "../../components/performance-audio";
 import { TAB_TUNING, TabNote } from "../../components/tablature";
 
 /** Audition successful note edits without changing the score or transport. */
-export function useTablaturePreview(enabled: boolean) {
-  const context = useMemo(() => ({ enabled }), [enabled]);
+export function useTablaturePreview(enabled: boolean, tempo = 80) {
+  const context = useMemo(() => ({ enabled, tempo }), [enabled, tempo]);
   const liveContext = useRef<typeof context | null>(null);
   const foreground = useRef(
     AppState.currentState !== "background" &&
@@ -79,7 +83,7 @@ export function useTablaturePreview(enabled: boolean) {
       const request = new AbortController();
       pending.current = request;
       const midi = TAB_TUNING[string] + fret;
-      const key = `440:${midi}:string${string}`;
+      const key = guitarNoteKey(note, tempo);
       const current = () =>
         !request.signal.aborted &&
         pending.current === request &&
@@ -92,7 +96,14 @@ export function useTablaturePreview(enabled: boolean) {
           performanceAudio.preparedFingeringSupported &&
           (await performanceAudio.prepareFingering(key, ""));
         if (!current()) return;
-        if (!ready) await warmGuitar([midi], 440, request.signal, string);
+        if (!ready)
+          await warmGuitar(
+            [midi],
+            440,
+            request.signal,
+            string,
+            tabNoteExpression(note, tempo)
+          );
         if (!current()) return;
         const previous = soundingString.current;
         if (previous !== null && previous !== string)
@@ -107,7 +118,7 @@ export function useTablaturePreview(enabled: boolean) {
           if (pending.current === request) pending.current = null;
         });
     },
-    [abortPending, context]
+    [abortPending, context, tempo]
   );
 
   return { preview, cancelPreview };

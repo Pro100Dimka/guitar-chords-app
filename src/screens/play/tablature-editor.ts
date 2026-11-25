@@ -21,22 +21,26 @@ export interface TabBarClipboard {
   rests: TabRest[];
 }
 
-export const durationChoices = [1, 2, 4, 8, 16] as const;
-export type DurationModifier = "plain" | "dotted" | "triplet";
-const modifiers: DurationModifier[] = ["plain", "dotted", "triplet"];
+export const durationChoices = [1, 2, 4, 8, 16, 32, 64, 128] as const;
+const modifiers = {
+  plain: 1,
+  dotted: 1.5,
+  doubleDotted: 1.75,
+  triplet: 2 / 3,
+  quintuplet: 4 / 5
+} as const;
+export type DurationModifier = keyof typeof modifiers;
 
 export function durationTicks(
   denominator: number,
   modifier: DurationModifier = "plain"
 ) {
   const base = (TAB_TICKS_PER_BEAT * 4) / denominator;
-  return (
-    base * (modifier === "dotted" ? 1.5 : modifier === "triplet" ? 2 / 3 : 1)
-  );
+  return Math.round(base * modifiers[modifier] * 960) / 960;
 }
 
 export function durationParts(ticks: number) {
-  for (const modifier of modifiers)
+  for (const modifier of Object.keys(modifiers) as DurationModifier[])
     for (const denominator of durationChoices)
       if (durationTicks(denominator, modifier) === ticks)
         return { denominator, modifier };
@@ -46,7 +50,7 @@ export function durationParts(ticks: number) {
 export function durationLabel(ticks: number) {
   const choice = durationParts(ticks);
   return choice
-    ? `1/${choice.denominator}${choice.modifier === "dotted" ? "." : choice.modifier === "triplet" ? " ×⅔" : ""}`
+    ? `1/${choice.denominator}${{ plain: "", dotted: ".", doubleDotted: "..", triplet: " ×⅔", quintuplet: " ×⅘" }[choice.modifier]}`
     : `${Number((ticks / TAB_TICKS_PER_BEAT).toFixed(2))} ♩`;
 }
 
@@ -62,7 +66,22 @@ function result(value: Tablature): TabEditResult {
     value.rests?.some((rest) => rest.tick + rest.duration > maxEnd)
   )
     return { error: "TabEditLimit" };
-  const tab = normalizeTablature(value);
+  const expressive =
+    value.notes.some(
+      (note) =>
+        Object.keys(note).some(
+          (key) => !["tick", "string", "fret", "duration"].includes(key)
+        ) ||
+        !Number.isInteger(note.tick) ||
+        !Number.isInteger(tabNoteDuration(note))
+    ) ||
+    value.rests?.some(
+      (rest) => !Number.isInteger(rest.tick) || !Number.isInteger(rest.duration)
+    );
+  const tab = normalizeTablature({
+    ...value,
+    version: expressive ? 3 : value.version
+  });
   return tab ? { tab } : { error: "TabRestCollision" };
 }
 

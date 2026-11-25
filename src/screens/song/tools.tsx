@@ -237,7 +237,11 @@ export function Sheet({
   landscapeOnly = false,
   maxWidth = 760,
   scrollable = true,
-  subtitle
+  subtitle,
+  toolbar,
+  footer,
+  dense = false,
+  scrollKey
 }: {
   title: string;
   onClose: () => void;
@@ -249,6 +253,10 @@ export function Sheet({
   maxWidth?: number;
   scrollable?: boolean;
   subtitle?: string;
+  toolbar?: React.ReactNode;
+  footer?: React.ReactNode;
+  dense?: boolean;
+  scrollKey?: string;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -299,7 +307,7 @@ export function Sheet({
             ]}
             style={StyleSheet.absoluteFillObject}
           />
-          <View style={styles.sheetHeader}>
+          <View style={[styles.sheetHeader, dense && styles.denseSheetHeader]}>
             <Text accessibilityRole="header" style={styles.sheetTitle}>
               {title}
             </Text>
@@ -310,12 +318,17 @@ export function Sheet({
             )}
             <Action compact icon="close" label={t("Close")} onPress={onClose} />
           </View>
+          {toolbar}
           {scrollable ? (
             <ScrollView
+              key={scrollKey}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="on-drag"
               style={compact ? styles.compactScroll : styles.musicScroll}
-              contentContainerStyle={styles.sheetContent}
+              contentContainerStyle={[
+                styles.sheetContent,
+                dense && styles.denseSheetContent
+              ]}
             >
               {children}
             </ScrollView>
@@ -324,6 +337,7 @@ export function Sheet({
               {children}
             </View>
           )}
+          {footer}
         </SafeAreaView>
       </KeyboardAvoidingView>
     </Modal>
@@ -1904,6 +1918,8 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: palette.glass.surfaceEdge
   },
+  denseSheetHeader: { paddingVertical: 2 },
+  denseSheetContent: { padding: 8, paddingBottom: 8 },
   sheetSubtitle: {
     flex: 2,
     fontSize: 12,

@@ -444,9 +444,17 @@ test("exported backup retains artist, lyrics, cover and chord shapes", async () 
   );
 });
 
+test("backup restores expressive score settings and short note values", () => {
+  const score = { ...tablature, version: 3, notes: [{ string: 5, fret: 5, tick: 0.75, duration: 1.5, velocity: 82, techniques: ["bend", "vibrato"], bend: 1.5, voice: 2 }] };
+  const restored = parseLibraryBackup(JSON.stringify({ format: "freetune-library", version: 2, songs: [{
+    title: "Riff", content: "Saved tab", band_name: "", youtube_music: "", youtobe_lesson: "", preferences: { tablature: score }
+  }] }));
+  expect(restored[0].preferences?.tablature).toEqual(score);
+});
+
 test.each([
   null,
-  { ...tablature, version: 3 },
+  { ...tablature, version: 4 },
   { ...tablature, notes: [{ string: 6, fret: 0, tick: 0 }] },
   { ...tablature, notes: [{ string: 0, fret: 0, tick: -1 }] }
 ])(
@@ -475,7 +483,7 @@ test.each([
 
 test("export refuses invalid tablature before reporting a successful backup", async () => {
   usePreferences.getState().updateSong(17, {
-    tablature: { ...tablature, version: 3 } as unknown as Tablature
+    tablature: { ...tablature, version: 4 } as unknown as Tablature
   });
   jest.mocked(getAllItems).mockResolvedValue([
     {

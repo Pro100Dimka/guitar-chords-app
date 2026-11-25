@@ -43,8 +43,8 @@ jest.mock("../src/screens/song/tools", () => {
         onPress,
         disabled
       }),
-    Sheet: ({ children }: any) =>
-      React.createElement(Native.View, {}, children),
+    Sheet: ({ children, toolbar, footer }: any) =>
+      React.createElement(Native.View, {}, toolbar, children, footer),
     TempoControl: ({
       value,
       onChange,
@@ -461,6 +461,58 @@ const pressNote = async (string: number, fret: number) => {
     )!;
   await act(async () => target.props.onPress());
 };
+
+test("the note sheet separates note, technique and dynamics controls and applies chord scope", async () => {
+  const initial = normalizeTablature({ ...emptyTablature(), notes: [
+    { string: 5, fret: 7, tick: 0, duration: 24 },
+    { string: 3, fret: 5, tick: 0, duration: 24 },
+    { string: 2, fret: 2, tick: 48, duration: 24 }
+  ] })!;
+  const { updates } = await editable(initial);
+  await pressNote(1, 7);
+  await press(screen!, "TabScore");
+  expect(button(screen!, "TabTechnique_bend")).toBeUndefined();
+  await press(screen!, "TabTechniqueTab");
+  await press(screen!, "TabScopeChord");
+  await press(screen!, "TabTechnique_bend");
+  await press(screen!, "1.5 TabTone");
+  expect(updates.at(-1)?.notes.filter((note) => note.tick === 0).every((note) => note.techniques?.includes("bend") && note.bend === 1.5)).toBe(true);
+  expect(updates.at(-1)?.notes.find((note) => note.tick === 48)?.techniques).toBeUndefined();
+  await press(screen!, "TabDynamics");
+  await press(screen!, "f");
+  expect(updates.at(-1)?.notes.filter((note) => note.tick === 0).every((note) => note.velocity === 82)).toBe(true);
+  await press(screen!, "TabClearEffects");
+  expect(updates.at(-1)?.notes.filter((note) => note.tick === 0).every((note) => !note.techniques && note.velocity === undefined)).toBe(true);
+});
+
+test("an expressive note keeps its settings while entering a new two-digit fret", async () => {
+  const initial = normalizeTablature({ ...emptyTablature(), version: 3, notes: [
+    { string: 5, fret: 7, tick: 0, duration: 12, velocity: 40, techniques: ["vibrato"] }
+  ] })!;
+  const { updates } = await editable(initial);
+  await pressNote(1, 7);
+  await press(screen!, "TabFret: 1");
+  await press(screen!, "TabFret: 2");
+  expect(updates.at(-1)?.notes[0]).toMatchObject({ fret: 12, velocity: 40, techniques: ["vibrato"], duration: 12 });
+});
+
+test("dragging attack commits one edit on release rather than every pointer movement", async () => {
+  const { updates } = await editable(example);
+  await pressNote(1, 7);
+  await press(screen!, "TabScore");
+  await press(screen!, "TabDynamics");
+  const slider = screen!.root.findAll((node) => node.props.accessibilityRole === "adjustable" && node.props.accessibilityLabel === "TabAttack")[0];
+  await act(async () => slider.props.onLayout({ nativeEvent: { layout: { width: 100 } } }));
+  await act(async () => {
+    slider.props.onResponderGrant({ nativeEvent: { locationX: 10 } });
+    slider.props.onResponderMove({ nativeEvent: { locationX: 50 } });
+    slider.props.onResponderMove({ nativeEvent: { locationX: 75 } });
+  });
+  expect(updates).toHaveLength(0);
+  await act(async () => slider.props.onResponderRelease());
+  expect(updates).toHaveLength(1);
+  expect(updates[0].notes.find((note) => note.fret === 7)?.velocity).toBe(96);
+});
 
 test("staff taps and the keypad compose chords and two-digit frets with the last duration", async () => {
   const { updates } = await editable();

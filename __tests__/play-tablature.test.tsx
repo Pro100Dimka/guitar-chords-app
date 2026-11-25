@@ -99,6 +99,7 @@ jest.mock("react-native-gesture-handler", () => ({
   }
 }));
 jest.mock("../src/components/guitar-audio", () => ({
+  ...jest.requireActual("../src/components/guitar-audio"),
   prepareGuitar: jest.fn(),
   warmGuitar: jest.fn().mockResolvedValue(undefined)
 }));

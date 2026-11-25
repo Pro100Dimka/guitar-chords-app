@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { warmGuitar } from "../../components/guitar-audio";
+import {
+  guitarNoteKey,
+  tabNoteExpression,
+  warmGuitar
+} from "../../components/guitar-audio";
 import { performanceAudio } from "../../components/performance-audio";
 import {
   emptyTablature,
@@ -7,6 +11,7 @@ import {
   tabBarTicks,
   tabBeatTicks,
   tabNoteDuration,
+  tabNoteEnd,
   tablatureLength,
   TAB_MAX_BARS,
   TAB_MAX_NOTES,
@@ -48,8 +53,6 @@ const clock = globalThis as typeof globalThis & {
   performance: { now: () => number };
 };
 const now = () => clock.performance.now();
-const keyFor = (note: TabNote) =>
-  `440:${TAB_TUNING[note.string] + note.fret}:string${note.string}`;
 // Native sample caches hold 32 keys. Leave space for the six live strings.
 const WINDOW_KEYS = 12;
 const HISTORY_LIMIT = 50;
@@ -100,6 +103,9 @@ export class TablatureTransport {
   private boundedTab: Tablature | undefined;
   private tabEnd = 0;
   private indexedTab: Tablature | undefined;
+  private indexedBpm = 0;
+  private fermataTab: Tablature | undefined;
+  private fermatas: Array<{ tick: number; duration: number }> = [];
   private notesByString = new Map<number, number[]>();
   private notesByKey = new Map<string, number[]>();
   private preparedWindow:
@@ -108,6 +114,7 @@ export class TablatureTransport {
         start: number;
         end: number;
         loop: boolean;
+        bpm: number;
       }
     | undefined;
   private active = false;
@@ -131,6 +138,9 @@ export class TablatureTransport {
   private completeLoop = true;
 
   constructor(private onNotes: (notes: TabNote[]) => void) {}
+  private keyFor(note: TabNote) {
+    return guitarNoteKey(note, this.state.practiceBpm);
+  }
 
   getSnapshot = () => this.state;
   getControlsSnapshot = () => this.controls;
@@ -166,8 +176,46 @@ export class TablatureTransport {
   }
   private currentPosition() {
     return this.state.status === "playing"
-      ? this.clock.tick + (now() - this.clock.time) * this.rate()
+      ? this.scoreTick(
+          this.performanceTick(this.clock.tick) +
+            (now() - this.clock.time) * this.rate()
+        )
       : this.position;
+  }
+  private updateFermatas() {
+    if (this.fermataTab === this.state.tab) return;
+    this.fermataTab = this.state.tab;
+    const holds = new Map<number, number>();
+    this.state.tab.notes.forEach((note) => {
+      if (!note.fermata) return;
+      const duration = tabNoteDuration(note);
+      const end = note.tick + duration;
+      holds.set(end, Math.max(holds.get(end) ?? 0, duration));
+    });
+    this.fermatas = [...holds]
+      .sort(([a], [b]) => a - b)
+      .map(([tick, duration]) => ({ tick, duration }));
+  }
+  private performanceTick(tick: number) {
+    this.updateFermatas();
+    return (
+      tick +
+      this.fermatas.reduce(
+        (hold, entry) => hold + (entry.tick <= tick ? entry.duration : 0),
+        0
+      )
+    );
+  }
+  private scoreTick(performance: number) {
+    this.updateFermatas();
+    let extra = 0;
+    for (const hold of this.fermatas) {
+      if (performance < hold.tick + extra) break;
+      if (performance < hold.tick + extra + hold.duration)
+        return Math.max(0, hold.tick - 1 / 960);
+      extra += hold.duration;
+    }
+    return performance - extra;
   }
   private cancel() {
     this.generation++;
@@ -203,17 +251,29 @@ export class TablatureTransport {
           this.gates.delete(note.string);
           performanceAudio.stopGuitarString(note.string);
         },
-        Math.max(0, (end - position) / this.rate())
+        Math.max(
+          0,
+          (this.performanceTick(end) - this.performanceTick(position)) /
+            this.rate()
+        )
       )
     };
     this.gates.set(note.string, gate);
   }
   private sound(note: TabNote, position: number, end: number) {
-    performanceAudio.guitarString(keyFor(note), note.string);
+    const previous = this.gates.get(note.string);
+    if (
+      !(
+        previous?.note.tie &&
+        previous.note.fret === note.fret &&
+        previous.end > position
+      )
+    )
+      performanceAudio.guitarString(this.keyFor(note), note.string);
     this.scheduleRelease(
       note,
       position,
-      Math.min(note.tick + tabNoteDuration(note), end)
+      Math.min(tabNoteEnd(this.state.tab, note), end)
     );
   }
   setActive = (active: boolean) => {
@@ -321,7 +381,7 @@ export class TablatureTransport {
     const bounds = this.bounds();
     this.position = Math.max(
       bounds.start,
-      Math.min(bounds.end, Math.floor(tick))
+      Math.min(bounds.end, Math.floor(tick * 960) / 960)
     );
     this.consumedTick = this.position - 1;
     this.lastBeat = Math.ceil(this.position / tabBeatTicks(this.state.tab)) - 1;
@@ -429,15 +489,20 @@ export class TablatureTransport {
   };
 
   private indexNotes() {
-    if (this.indexedTab === this.state.tab) return;
+    if (
+      this.indexedTab === this.state.tab &&
+      this.indexedBpm === this.state.practiceBpm
+    )
+      return;
     this.indexedTab = this.state.tab;
+    this.indexedBpm = this.state.practiceBpm;
     this.notesByString.clear();
     this.notesByKey.clear();
     this.state.tab.notes.forEach((note, index) => {
       const string = this.notesByString.get(note.string) ?? [];
       if (!string.length) this.notesByString.set(note.string, string);
       string.push(index);
-      const key = keyFor(note);
+      const key = this.keyFor(note);
       const occurrences = this.notesByKey.get(key) ?? [];
       if (!occurrences.length) this.notesByKey.set(key, occurrences);
       occurrences.push(index);
@@ -456,14 +521,14 @@ export class TablatureTransport {
   }
   private heldNotes(position: number, attacksFrom = position): TabNote[] {
     this.indexNotes();
-    const end = this.noteOffset(Math.floor(position) + 1);
+    const end = this.noteOffset(position + 1 / 960);
     const held: TabNote[] = [];
     for (const indices of this.notesByString.values()) {
       const index = indices[atOrAfter(indices, end) - 1];
       if (index === undefined) continue;
       const note = this.state.tab.notes[index];
       if (
-        note.tick + tabNoteDuration(note) > position &&
+        tabNoteEnd(this.state.tab, note) > position &&
         (note.tick < attacksFrom || note.tick <= this.consumedTick)
       )
         held.push(note);
@@ -472,7 +537,7 @@ export class TablatureTransport {
   }
   private restoreHeld(position: number, attacksFrom = position): boolean {
     const notes = this.heldNotes(position, attacksFrom);
-    if (notes.some((note) => !this.ready.has(keyFor(note)))) {
+    if (notes.some((note) => !this.ready.has(this.keyFor(note)))) {
       void this.begin(position);
       return false;
     }
@@ -492,7 +557,7 @@ export class TablatureTransport {
     const bounds = this.bounds();
     const desired = new Map<string, TabNote>();
     this.heldNotes(this.position).forEach((note) =>
-      desired.set(keyFor(note), note)
+      desired.set(this.keyFor(note), note)
     );
     const add = (start: number) => {
       // A repeated riff may never contain twelve distinct samples. Query the
@@ -515,7 +580,7 @@ export class TablatureTransport {
     if (this.state.loop && desired.size < WINDOW_KEYS) {
       for (const note of this.heldNotes(bounds.start)) {
         if (desired.size >= WINDOW_KEYS) break;
-        desired.set(keyFor(note), note);
+        desired.set(this.keyFor(note), note);
       }
       add(0);
     }
@@ -528,7 +593,8 @@ export class TablatureTransport {
       cursor: this.cursor,
       start: bounds.start,
       end: bounds.end,
-      loop: this.state.loop
+      loop: this.state.loop,
+      bpm: this.state.practiceBpm
     };
     const previous = this.preparedWindow;
     if (
@@ -536,7 +602,8 @@ export class TablatureTransport {
       previous.cursor === requested.cursor &&
       previous.start === requested.start &&
       previous.end === requested.end &&
-      previous.loop === requested.loop
+      previous.loop === requested.loop &&
+      previous.bpm === requested.bpm
     )
       return Promise.resolve();
     // With no new attacks, expiring held notes only free cache entries. They
@@ -553,7 +620,8 @@ export class TablatureTransport {
           [TAB_TUNING[note.string] + note.fret],
           440,
           signal,
-          note.string
+          note.string,
+          tabNoteExpression(note, requested.bpm)
         );
         if (signal.aborted || generation !== this.generation) return;
         this.ready.add(key);
@@ -756,14 +824,14 @@ export class TablatureTransport {
       const current = group.filter(
         (note) =>
           latestDue.get(note.string) === note.tick &&
-          Math.min(note.tick + tabNoteDuration(note), end) > position
+          Math.min(tabNoteEnd(this.state.tab, note), end) > position
       );
       if (current.length !== group.length) this.completeLoop = false;
       if (!current.length) {
         this.consumedTick = first.tick;
         continue;
       }
-      if (current.some((note) => !this.ready.has(keyFor(note)))) {
+      if (current.some((note) => !this.ready.has(this.keyFor(note)))) {
         if (sounded.length) this.onNotes(sounded);
         void this.begin(first.tick);
         return false;
@@ -796,7 +864,10 @@ export class TablatureTransport {
         return;
       }
       const boundaryTime =
-        this.clock.time + (bounds.end - this.clock.tick) / this.rate();
+        this.clock.time +
+        (this.performanceTick(bounds.end) -
+          this.performanceTick(this.clock.tick)) /
+          this.rate();
       const completedLoops =
         this.state.completedLoops + (this.completeLoop ? 1 : 0);
       this.completeLoop = true;
@@ -826,10 +897,12 @@ export class TablatureTransport {
         void this.begin(bounds.start, true);
         return;
       }
-      position =
-        bounds.start +
-        ((Math.max(0, now() - boundaryTime) * this.rate()) %
-          (bounds.end - bounds.start));
+      position = this.scoreTick(
+        this.performanceTick(bounds.start) +
+          ((Math.max(0, now() - boundaryTime) * this.rate()) %
+            (this.performanceTick(bounds.end) -
+              this.performanceTick(bounds.start)))
+      );
       this.clock = { time: now(), tick: position };
       this.position = position;
       if (!this.restoreHeld(position, bounds.start)) return;

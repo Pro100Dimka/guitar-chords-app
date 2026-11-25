@@ -18,6 +18,7 @@ import {
 } from "../src/components/tablature";
 
 jest.mock("../src/components/guitar-audio", () => ({
+  ...jest.requireActual("../src/components/guitar-audio"),
   warmGuitar: jest.fn().mockResolvedValue(undefined)
 }));
 jest.mock("../src/components/performance-audio", () => ({
@@ -48,6 +49,43 @@ afterEach(() => {
   transport.setActive(false);
   jest.restoreAllMocks();
   jest.useRealTimers();
+});
+
+test("a fermata holds the score and delays the following attack", async () => {
+  transport.setTab(normalizeTablature({ ...emptyTablature(), version: 3, notes: [
+    { string: 0, fret: 0, tick: 0, duration: 24, fermata: true },
+    { string: 0, fret: 3, tick: 24, duration: 24 }
+  ] })!);
+  await transport.play();
+  jest.advanceTimersByTime(1000);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  jest.advanceTimersByTime(600);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+});
+
+test("a tied note continues without a second string attack", async () => {
+  transport.setTab(normalizeTablature({ ...emptyTablature(), version: 3, notes: [
+    { string: 0, fret: 0, tick: 0, duration: 24, tie: true },
+    { string: 0, fret: 0, tick: 24, duration: 24 }
+  ] })!);
+  await transport.play();
+  jest.mocked(performanceAudio.stopGuitarString).mockClear();
+  jest.advanceTimersByTime(1000);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
+});
+
+test("changing practice speed refreshes time-dependent expression samples", async () => {
+  transport.setTab(normalizeTablature({ ...emptyTablature(), version: 3, notes: [
+    { string: 0, fret: 0, tick: 0, duration: 48, fade: "out" },
+    { string: 1, fret: 3, tick: 48, duration: 24, techniques: ["bend"] }
+  ] })!);
+  await transport.play();
+  transport.setSpeed(0.5);
+  await jest.advanceTimersByTimeAsync(50);
+  const expressions = jest.mocked(warmGuitar).mock.calls.map((call) => call[4]);
+  expect(expressions.some((expression) => expression?.seconds === 3)).toBe(true);
+  expect(expressions.some((expression) => expression?.seconds === 1.5)).toBe(true);
 });
 
 test("recording starts on the first touch and keeps string, fret and musical time", () => {
@@ -138,7 +176,8 @@ test("playback uses the recorded string sample and emits simultaneous notes toge
     [43],
     440,
     expect.any(AbortSignal),
-    0
+    0,
+    undefined
   );
   expect(performanceAudio.guitarString).toHaveBeenCalledWith(
     "440:43:string0",
@@ -682,7 +721,8 @@ test("a range and its loop restore a note attacked before the range starts", asy
     [43],
     440,
     expect.any(AbortSignal),
-    0
+    0,
+    undefined
   );
   expect(jest.mocked(performanceAudio.guitarString).mock.calls).toEqual([
     ["440:43:string0", 0]

@@ -8,6 +8,7 @@ import {
   TAB_TICKS_PER_BEAT,
   tabBarTicks,
   tabBeatTicks,
+  tabNoteEnd,
   tablatureLength,
   tablatureText
 } from "../src/components/tablature";
@@ -19,6 +20,54 @@ const example = () => ({
     { string: 5, fret: 12, tick: 0, duration: 48 },
     { string: 2, fret: 7, tick: 36, duration: 12 }
   ]
+});
+
+test("expressive notes survive a document round trip without mutating their settings", () => {
+  const note = {
+    string: 2, fret: 7, tick: 0, duration: 24,
+    velocity: 92, techniques: ["bend", "vibrato"], bend: 1.5,
+    bendRelease: true, accent: "strong", fade: "out", pick: "down",
+    leftFinger: 3, rightFinger: "m", voice: 2, tie: true, fermata: true,
+    tuplet: { actual: 7, normal: 5, denominator: 8 }
+  };
+  const input = { ...emptyTablature(), version: 3, notes: [note] };
+  const normalized = normalizeTablature(input);
+  expect(normalized?.notes[0]).toEqual(note);
+  expect(normalizeTablature(JSON.parse(JSON.stringify(normalized)))).toEqual(normalized);
+  expect(normalized?.notes[0]).not.toBe(note);
+});
+
+test("the new score format supports short and tuplet note values", () => {
+  const input = {
+    ...emptyTablature(), version: 3,
+    notes: [{ string: 5, fret: 5, tick: 0.75, duration: 0.5 }]
+  };
+  expect(normalizeTablature(input)?.notes).toEqual(input.notes);
+});
+
+test.each([
+  { velocity: 0 }, { velocity: 128 }, { voice: 0 }, { leftFinger: 5 },
+  { techniques: ["unknown"] }, { bend: NaN }, { bend: 4 },
+  { accent: "unknown" }, { fade: "unknown" }, { pick: "unknown" },
+  { tie: "true" }, { rightFinger: "z" }, { sourceFret: -1 },
+  { tuplet: { actual: 0, normal: 5, denominator: 4 } }
+])("rejects invalid note expression rather than discarding it: %j", (patch) => {
+  expect(normalizeTablature({ ...emptyTablature(), version: 3, notes: [
+    { string: 0, fret: 3, tick: 0, duration: 24, ...patch }
+  ] })).toBeUndefined();
+});
+
+test("ties and let-ring notes stop at the next physical attack or rest", () => {
+  const tied = normalizeTablature({ ...emptyTablature(), version: 3, notes: [
+    { string: 0, fret: 3, tick: 0, duration: 24, tie: true },
+    { string: 0, fret: 3, tick: 24, duration: 24 },
+    { string: 0, fret: 5, tick: 72, duration: 24 }
+  ] })!;
+  expect(tabNoteEnd(tied, tied.notes[0])).toBe(48);
+  tied.notes[0].techniques = ["letRing"];
+  expect(tabNoteEnd(tied, tied.notes[0])).toBe(72);
+  tied.rests = [{ tick: 60, duration: 12 }];
+  expect(tabNoteEnd(tied, tied.notes[0])).toBe(60);
 });
 
 test("normalization copies, orders and merges identical string onsets", () => {
@@ -72,7 +121,7 @@ test.each([
   null,
   [],
   {},
-  { ...example(), version: 3 },
+  { ...example(), version: 4 },
   { ...example(), tempo: 39 },
   { ...example(), tempo: 201 },
   { ...example(), tempo: 80.5 },
