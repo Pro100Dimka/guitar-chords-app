@@ -975,5 +975,19 @@
   "TabSoundOnShort": "Sound on",
   "TabSoundOffShort": "Sound off",
   "TabChooseStringMenu": "Select string",
-  "TabExtraTechniques": "More playing techniques"
+  "TabExtraTechniques": "More playing techniques",
+  "TabMutedShort": "Muted",
+  "TabDotShort": "Dot",
+  "TabDoubleDotShort": "2 dots",
+  "TabActionsMenu": "Tab actions",
+  "TabMeterShort": "Size",
+  "TabDuplet": "Duplet",
+  "TabPreviousPosition": "Previous position",
+  "TabSelectionActions": "Note actions",
+  "TabCancelSelection": "Clear selection",
+  "TabInvalidDuration": "Bar duration: {{actual}} / {{expected}} beats",
+  "TabVelocityValue": "Dynamics: {{value}}",
+  "TabSelectionStart": "Selection start",
+  "TabSelectionEnd": "Selection end",
+  "TabLastPosition": "Last bar"
 }

@@ -21,7 +21,10 @@ import {
   usePreferences
 } from "../src/components/preferences";
 import { Action, Sheet } from "../src/screens/song/tools";
-import { guitarLayout } from "../src/screens/tuner/guitar-layout";
+import {
+  guitarLayout,
+  guitarStringSpan
+} from "../src/screens/tuner/guitar-layout";
 import { performanceAudio } from "../src/components/performance-audio";
 import { warmGuitar } from "../src/components/guitar-audio";
 import {
@@ -200,12 +203,15 @@ async function pluck(string: number) {
   const frame = guitarLayout(
     dimensions.width,
     dimensions.height,
-    screen!.root.findByType(Strings).props.zoom
+    screen!.root.findByType(Strings).props.zoom,
+    true
   );
+  const y = Math.max(100, frame.stringTop + 100);
+  const span = guitarStringSpan(frame, y);
   const touch = {
     id: 1,
-    x: frame.stringLeft + (frame.stringWidth / 5) * string,
-    y: 100
+    x: span.left + (span.width / 5) * string,
+    y
   };
   await act(async () => {
     mockDown({ changedTouches: [touch] }, manager);
@@ -248,7 +254,7 @@ test("zoom changes artwork, strings and touch coordinates together and persists 
   const zoom = () => screen!.root.findByType(GuitarZoom);
   await act(async () => zoom().props.onInteractionChange(true));
   await act(async () => zoom().props.onChange(1.4));
-  const frame = guitarLayout(dimensions.width, dimensions.height, 1.4);
+  const frame = guitarLayout(dimensions.width, dimensions.height, 1.4, true);
   expect(screen!.root.findByType(Strings).props.zoom).toBe(1.4);
   expect(
     StyleSheet.flatten(screen!.root.findByType(Image).props.style)
@@ -305,7 +311,7 @@ test("fret overlays follow the zoomed string columns", async () => {
   await act(async () => {
     await jest.advanceTimersByTimeAsync(30);
   });
-  const frame = guitarLayout(dimensions.width, dimensions.height, 1.35);
+  const frame = guitarLayout(dimensions.width, dimensions.height, 1.35, true);
   const overlay = screen!.root.findAllByType(View).find((node) => {
     const style = StyleSheet.flatten(node.props.style);
     return (
@@ -314,7 +320,9 @@ test("fret overlays follow the zoomed string columns", async () => {
   });
   expect(overlay).toBeDefined();
   expect(StyleSheet.flatten(overlay!.props.style).left).toBeCloseTo(
-    frame.stringLeft + frame.stringWidth / 5 - 16
+    guitarStringSpan(frame, 88).left +
+      guitarStringSpan(frame, 88).width / 5 -
+      16
   );
 });
 

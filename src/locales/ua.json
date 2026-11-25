@@ -975,5 +975,19 @@
   "TabSoundOnShort": "Звук увімк.",
   "TabSoundOffShort": "Звук вимк.",
   "TabChooseStringMenu": "Вибір струни",
-  "TabExtraTechniques": "Додаткові прийоми"
+  "TabExtraTechniques": "Додаткові прийоми",
+  "TabMutedShort": "Глуха",
+  "TabDotShort": "Крапка",
+  "TabDoubleDotShort": "2 крапки",
+  "TabActionsMenu": "Дії з табами",
+  "TabMeterShort": "Розмір",
+  "TabDuplet": "Дуоль",
+  "TabPreviousPosition": "Попередня позиція",
+  "TabSelectionActions": "Дії з нотами",
+  "TabCancelSelection": "Зняти виділення",
+  "TabInvalidDuration": "Тривалість такту: {{actual}} / {{expected}} долей",
+  "TabVelocityValue": "Гучність: {{value}}",
+  "TabSelectionStart": "Початок виділення",
+  "TabSelectionEnd": "Кінець виділення",
+  "TabLastPosition": "Останній такт"
 }

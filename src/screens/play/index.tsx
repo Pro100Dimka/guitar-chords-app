@@ -30,7 +30,7 @@ import Text from "../../components/styled-text";
 import { Action, Diagram, Sheet } from "../song/tools";
 import Strings from "../tuner/strings";
 import guitar from "../tuner/config/guitar-classic";
-import { guitarLayout } from "../tuner/guitar-layout";
+import { guitarLayout, guitarStringSpan } from "../tuner/guitar-layout";
 import { noteNames } from "../tuner/tunings";
 import MicrophoneStream from "../tuner/MicrophoneStream";
 import { chordShapeOptions, guitarMidi } from "../song/chords";
@@ -165,17 +165,21 @@ export default function PlayGuitar() {
     running: false,
     wasPlaying: false,
     tempo: 0,
+    beats: 4,
     linkedMetronome: false
   });
   currentPitches.current = pitches;
   const frame = useMemo(
-    () => guitarLayout(layout.width, layout.height, zoom),
+    () => guitarLayout(layout.width, layout.height, zoom, true),
     [layout.width, layout.height, zoom]
   );
   const landscape = screenSize.width > screenSize.height;
-  const badgeTop = landscape
-    ? 78
-    : Math.max(90, Math.min(layout.height * 0.22, 160));
+  const badgeTop =
+    zoom < 0.6
+      ? 12
+      : landscape
+        ? 78
+        : Math.max(90, Math.min(layout.height * 0.22, 160));
   const badgeWidth = landscape
     ? Math.min(240, layout.width * 0.4)
     : Math.min(300, Math.max(220, layout.width - 60));
@@ -329,24 +333,25 @@ export default function PlayGuitar() {
     const update =
       enabled !== transport.metronome ||
       tempo !== transport.tempo ||
+      beats !== transport.beats ||
       (enabled && starting);
     transport.wasPlaying = playing;
     transport.tempo = tempo;
+    transport.beats = beats;
     transport.metronome = enabled;
     if (!update) return;
     let phase = 0;
     if (enabled) {
       if (transport.running && !starting) {
-        phase =
-          ((Date.now() - transport.origin) % (60000 / tempo)) / (60000 / tempo);
+        phase = ((Date.now() - transport.origin) / (60000 / tempo)) % beats;
       } else {
         transport.origin = Date.now();
         transport.step = -1;
       }
       transport.pulseOrigin = transport.origin;
     }
-    performanceAudio.metronome(tempo, enabled, phase);
-  }, [active, metronome, tempo, playing, tabOwnsAudio]);
+    performanceAudio.metronome(tempo, enabled, phase, beats);
+  }, [active, metronome, tempo, beats, playing, tabOwnsAudio]);
   useEffect(() => {
     prepared.current.clear();
     if (!active || tabPlayback) return;
@@ -497,14 +502,15 @@ export default function PlayGuitar() {
           }
           const tracked = { ...touches.value };
           const hit: number[] = [];
-          const spacing = frame.stringWidth / 5;
           for (const touch of event.changedTouches) {
-            const index = Math.round((touch.x - frame.stringLeft) / spacing);
+            const span = guitarStringSpan(frame, touch.y);
+            const spacing = span.width / 5;
+            const index = Math.round((touch.x - span.left) / spacing);
             tracked[touch.id] = { x: touch.x, first: index };
             if (
               active &&
               !zoomAdjusting &&
-              touch.y >= 65 &&
+              touch.y >= Math.max(65, frame.stringTop + 65) &&
               touch.y <= frame.stringBottom &&
               index >= 0 &&
               index < 6 &&
@@ -525,19 +531,20 @@ export default function PlayGuitar() {
         .onTouchesMove((event) => {
           const tracked = { ...touches.value };
           const hit: number[] = [];
-          const spacing = frame.stringWidth / 5;
           for (const touch of event.changedTouches) {
             const previous = tracked[touch.id];
             if (!previous) continue;
+            const span = guitarStringSpan(frame, touch.y);
+            const spacing = span.width / 5;
             const crossed: number[] = [];
             if (
               active &&
               !zoomAdjusting &&
-              touch.y >= 65 &&
+              touch.y >= Math.max(65, frame.stringTop + 65) &&
               touch.y <= frame.stringBottom
             ) {
               for (let index = 0; index < 6; index++) {
-                const x = frame.stringLeft + spacing * index;
+                const x = span.left + spacing * index;
                 if (
                   index !== previous.first &&
                   frets[index] !== null &&
@@ -553,9 +560,7 @@ export default function PlayGuitar() {
             tracked[touch.id] = {
               x: touch.x,
               first:
-                Math.abs(
-                  touch.x - frame.stringLeft - previous.first * spacing
-                ) >
+                Math.abs(touch.x - span.left - previous.first * spacing) >
                 spacing / 2
                   ? -1
                   : previous.first
@@ -733,11 +738,7 @@ export default function PlayGuitar() {
         {layout.width > 0 && (
           <>
             <Image
-              source={
-                layout.width > layout.height
-                  ? require("../../../assets/images/screen-background/tuner-grand-auditorium-landscape.webp")
-                  : require("../../../assets/images/screen-background/tuner-grand-auditorium.webp")
-              }
+              source={require("../../../assets/images/screen-background/play-grand-auditorium-full.webp")}
               style={[styles.artwork, frame.artwork]}
               resizeMode="stretch"
             />
@@ -758,6 +759,7 @@ export default function PlayGuitar() {
                   width={layout.width}
                   height={layout.height}
                   zoom={zoom}
+                  complete
                 />
               </Canvas>
             </GestureDetector>
@@ -769,8 +771,8 @@ export default function PlayGuitar() {
                     styles.tabFret,
                     {
                       left:
-                        frame.stringLeft +
-                        (frame.stringWidth / 5) * entry.string -
+                        guitarStringSpan(frame, 88).left +
+                        (guitarStringSpan(frame, 88).width / 5) * entry.string -
                         16
                     }
                   ]}
@@ -1324,7 +1326,7 @@ export default function PlayGuitar() {
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: palette.gold.ink },
+  root: { flex: 1, backgroundColor: palette.paper.background },
   stage: { flex: 1, overflow: "hidden" },
   topBar: {
     minHeight: 44,

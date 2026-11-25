@@ -52,10 +52,16 @@ afterEach(() => {
 });
 
 test("a fermata holds the score and delays the following attack", async () => {
-  transport.setTab(normalizeTablature({ ...emptyTablature(), version: 3, notes: [
-    { string: 0, fret: 0, tick: 0, duration: 24, fermata: true },
-    { string: 0, fret: 3, tick: 24, duration: 24 }
-  ] })!);
+  transport.setTab(
+    normalizeTablature({
+      ...emptyTablature(),
+      version: 3,
+      notes: [
+        { string: 0, fret: 0, tick: 0, duration: 24, fermata: true },
+        { string: 0, fret: 3, tick: 24, duration: 24 }
+      ]
+    })!
+  );
   await transport.play();
   jest.advanceTimersByTime(1000);
   expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
@@ -64,10 +70,16 @@ test("a fermata holds the score and delays the following attack", async () => {
 });
 
 test("a tied note continues without a second string attack", async () => {
-  transport.setTab(normalizeTablature({ ...emptyTablature(), version: 3, notes: [
-    { string: 0, fret: 0, tick: 0, duration: 24, tie: true },
-    { string: 0, fret: 0, tick: 24, duration: 24 }
-  ] })!);
+  transport.setTab(
+    normalizeTablature({
+      ...emptyTablature(),
+      version: 3,
+      notes: [
+        { string: 0, fret: 0, tick: 0, duration: 24, tie: true },
+        { string: 0, fret: 0, tick: 24, duration: 24 }
+      ]
+    })!
+  );
   await transport.play();
   jest.mocked(performanceAudio.stopGuitarString).mockClear();
   jest.advanceTimersByTime(1000);
@@ -76,16 +88,26 @@ test("a tied note continues without a second string attack", async () => {
 });
 
 test("changing practice speed refreshes time-dependent expression samples", async () => {
-  transport.setTab(normalizeTablature({ ...emptyTablature(), version: 3, notes: [
-    { string: 0, fret: 0, tick: 0, duration: 48, fade: "out" },
-    { string: 1, fret: 3, tick: 48, duration: 24, techniques: ["bend"] }
-  ] })!);
+  transport.setTab(
+    normalizeTablature({
+      ...emptyTablature(),
+      version: 3,
+      notes: [
+        { string: 0, fret: 0, tick: 0, duration: 48, fade: "out" },
+        { string: 1, fret: 3, tick: 48, duration: 24, techniques: ["bend"] }
+      ]
+    })!
+  );
   await transport.play();
   transport.setSpeed(0.5);
   await jest.advanceTimersByTimeAsync(50);
   const expressions = jest.mocked(warmGuitar).mock.calls.map((call) => call[4]);
-  expect(expressions.some((expression) => expression?.seconds === 3)).toBe(true);
-  expect(expressions.some((expression) => expression?.seconds === 1.5)).toBe(true);
+  expect(expressions.some((expression) => expression?.seconds === 3)).toBe(
+    true
+  );
+  expect(expressions.some((expression) => expression?.seconds === 1.5)).toBe(
+    true
+  );
 });
 
 test("recording starts on the first touch and keeps string, fret and musical time", () => {
@@ -1571,4 +1593,19 @@ test("advancing attacks searches sample occurrences without scanning the remaini
   expect(performanceAudio.guitarString).toHaveBeenCalledTimes(14);
   expect(warmGuitar).toHaveBeenCalledTimes(1);
   expect(reads).toBeLessThan(1500);
+});
+
+test("selection ranges preserve fractional tuplets and reject non-musical or nonfinite positions", () => {
+  transport.setTab(score([{ string: 5, fret: 3, tick: 0, duration: 24 }]));
+  transport.setRange({ start: 0.5, end: 12.5 });
+  expect(transport.getSnapshot().range).toEqual({ start: 0.5, end: 12.5 });
+  for (const range of [
+    { start: NaN, end: 12 },
+    { start: 0, end: Infinity },
+    { start: 0, end: 1 / 7 }
+  ]) {
+    transport.setRange(range);
+    expect(transport.getSnapshot().error).toBe("TabInvalidRange");
+    expect(transport.getSnapshot().range).toEqual({ start: 0.5, end: 12.5 });
+  }
 });

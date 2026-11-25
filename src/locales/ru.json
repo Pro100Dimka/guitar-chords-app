@@ -975,5 +975,19 @@
   "TabSoundOnShort": "Звук вкл.",
   "TabSoundOffShort": "Звук выкл.",
   "TabChooseStringMenu": "Выбор струны",
-  "TabExtraTechniques": "Дополнительные приёмы"
+  "TabExtraTechniques": "Дополнительные приёмы",
+  "TabMutedShort": "Глухая",
+  "TabDotShort": "Точка",
+  "TabDoubleDotShort": "2 точки",
+  "TabActionsMenu": "Действия с табами",
+  "TabMeterShort": "Размер",
+  "TabDuplet": "Дуоль",
+  "TabPreviousPosition": "Предыдущая позиция",
+  "TabSelectionActions": "Действия с нотами",
+  "TabCancelSelection": "Снять выделение",
+  "TabInvalidDuration": "Длительность такта: {{actual}} / {{expected}} долей",
+  "TabVelocityValue": "Громкость: {{value}}",
+  "TabSelectionStart": "Начало выделения",
+  "TabSelectionEnd": "Конец выделения",
+  "TabLastPosition": "Последний такт"
 }

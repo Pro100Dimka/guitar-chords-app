@@ -86,6 +86,7 @@ export interface INote {
 }
 export interface StringWithVibrationProps {
   x: number;
+  topX?: number;
   top: number;
   bottom: number;
   thickness: number;

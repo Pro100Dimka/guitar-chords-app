@@ -466,8 +466,10 @@ export class TablatureTransport {
   setRange = (range: TabRange | null) => {
     if (
       range &&
-      (!Number.isInteger(range.start) ||
-        !Number.isInteger(range.end) ||
+      (!Number.isFinite(range.start) ||
+        !Number.isFinite(range.end) ||
+        Math.abs(range.start * 960 - Math.round(range.start * 960)) > 0.00001 ||
+        Math.abs(range.end * 960 - Math.round(range.end * 960)) > 0.00001 ||
         range.start < 0 ||
         range.end > tablatureLength(this.state.tab) ||
         range.start >= range.end)

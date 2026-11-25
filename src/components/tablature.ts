@@ -61,7 +61,7 @@ export interface Tablature {
   /** Quarter notes per minute, also in meters with an eighth-note denominator. */
   tempo: number;
   beatsPerBar: number;
-  beatUnit?: 4 | 8;
+  beatUnit?: 2 | 4 | 8;
   /** Retains intentionally empty final bars. */
   barCount?: number;
   notes: TabNote[];
@@ -122,9 +122,9 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     !record(value) ||
     ![1, 2, 3].includes(value.version as number) ||
     !integer(value.tempo, 40, 200) ||
-    !integer(value.beatsPerBar, 1, 8) ||
+    !integer(value.beatsPerBar, 1, 32) ||
     (value.beatUnit !== undefined &&
-      ![4, 8].includes(value.beatUnit as number)) ||
+      ![2, 4, 8].includes(value.beatUnit as number)) ||
     (value.barCount !== undefined &&
       !integer(value.barCount, 1, TAB_MAX_BARS)) ||
     !Array.isArray(value.notes) ||
@@ -134,7 +134,7 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
 
   const inputRests = (value.rests ?? []) as unknown[];
   if (value.notes.length + inputRests.length > TAB_MAX_NOTES) return undefined;
-  const beatUnit = (value.beatUnit ?? 4) as 4 | 8;
+  const beatUnit = (value.beatUnit ?? 4) as 2 | 4 | 8;
   const barTicks = (value.beatsPerBar * TAB_TICKS_PER_BEAT * 4) / beatUnit;
   const end = TAB_MAX_BARS * barTicks;
   const musicalTick = (
@@ -332,12 +332,12 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
 export function emptyTablature(
   tempo = 80,
   beatsPerBar = 4,
-  beatUnit: 4 | 8 = 4
+  beatUnit: 2 | 4 | 8 = 4
 ): Tablature {
   return {
     version: 2,
     tempo: integer(tempo, 40, 200) ? tempo : 80,
-    beatsPerBar: integer(beatsPerBar, 1, 8) ? beatsPerBar : 4,
+    beatsPerBar: integer(beatsPerBar, 1, 32) ? beatsPerBar : 4,
     beatUnit: beatUnit === 8 ? 8 : 4,
     barCount: 1,
     notes: [],

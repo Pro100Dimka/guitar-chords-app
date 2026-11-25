@@ -354,6 +354,7 @@ export function Sheet({
             <Action
               compact
               notation={dense}
+              style={dense ? styles.notationClose : undefined}
               icon="close"
               label={t("Close")}
               onPress={onClose}
@@ -1962,7 +1963,14 @@ export const styles = StyleSheet.create({
   denseSheetHeader: { paddingVertical: 4, paddingHorizontal: 12, gap: 8 },
   denseSheetContent: { padding: 0, paddingBottom: 0 },
   notationScrim: { paddingTop: 2 },
-  notationTitle: { flex: 0, fontSize: 18, lineHeight: 22 },
+  notationClose: {
+    width: 40,
+    minWidth: 40,
+    height: 40,
+    minHeight: 40,
+    borderRadius: 20
+  },
+  notationTitle: { flex: 1, fontSize: 18, lineHeight: 22 },
   notationSubtitle: {
     flex: 1,
     fontSize: 10,
@@ -1979,11 +1987,11 @@ export const styles = StyleSheet.create({
   },
   notationAction: {
     flex: 0,
-    width: undefined,
-    height: 32,
-    minWidth: 0,
-    minHeight: 32,
-    paddingHorizontal: 6,
+    width: 48,
+    height: 40,
+    minWidth: 48,
+    minHeight: 40,
+    paddingHorizontal: 4,
     paddingVertical: 0,
     borderRadius: 7,
     backgroundColor: palette.notation.control,
@@ -1991,15 +1999,15 @@ export const styles = StyleSheet.create({
     gap: 1
   },
   notationLabeledAction: {
-    height: undefined,
-    minHeight: 32,
-    paddingVertical: 1,
+    height: 40,
+    minHeight: 40,
+    paddingVertical: 2,
     gap: 0
   },
-  notationIconAction: { width: 32 },
+  notationIconAction: { width: 48 },
   notationIcon: { lineHeight: 18 },
   notationText: { fontSize: 10, lineHeight: 13 },
-  notationCaption: { fontSize: 10, lineHeight: 12 },
+  notationCaption: { fontSize: 9, lineHeight: 10 },
   sheetSubtitle: {
     flex: 2,
     fontSize: 12,

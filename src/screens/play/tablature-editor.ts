@@ -27,6 +27,7 @@ const modifiers = {
   dotted: 1.5,
   doubleDotted: 1.75,
   triplet: 2 / 3,
+  duplet: 3 / 2,
   quintuplet: 4 / 5
 } as const;
 export type DurationModifier = keyof typeof modifiers;
@@ -50,7 +51,7 @@ export function durationParts(ticks: number) {
 export function durationLabel(ticks: number) {
   const choice = durationParts(ticks);
   return choice
-    ? `1/${choice.denominator}${{ plain: "", dotted: ".", doubleDotted: "..", triplet: " ×⅔", quintuplet: " ×⅘" }[choice.modifier]}`
+    ? `1/${choice.denominator}${{ plain: "", dotted: ".", doubleDotted: "..", triplet: " ×⅔", duplet: " ×³⁄₂", quintuplet: " ×⅘" }[choice.modifier]}`
     : `${Number((ticks / TAB_TICKS_PER_BEAT).toFixed(2))} ♩`;
 }
 
@@ -115,7 +116,7 @@ export function putTabRest(
 export function changeTabMeter(
   tab: Tablature,
   beatsPerBar: number,
-  beatUnit: 4 | 8
+  beatUnit: 2 | 4 | 8
 ): TabEditResult {
   const previousLength = tablatureLength(tab);
   const next = { ...tab, beatsPerBar, beatUnit };
@@ -251,6 +252,170 @@ export function pasteTabBar(
         .filter((rest) => rest.tick < start || rest.tick >= end)
         .map((rest) => (rest.tick < start ? clipRest(rest, start) : rest)),
       ...clipboard.rests.map((rest) => ({ ...rest, tick: rest.tick + start }))
+    ]
+  });
+}
+
+/** Rhythm coverage counts simultaneous chord notes once, including tied sustains. */
+export function tabBarCoverage(tab: Tablature, bar: number) {
+  const size = tabBarTicks(tab),
+    start = bar * size,
+    end = start + size;
+  const events = [
+    ...tab.notes.map((note) => ({
+      start: note.tick,
+      end: note.tick + tabNoteDuration(note)
+    })),
+    ...(tab.rests ?? []).map((rest) => ({
+      start: rest.tick,
+      end: rest.tick + rest.duration
+    }))
+  ]
+    .filter((event) => event.start < end && event.end > start)
+    .sort((a, b) => a.start - b.start);
+  let covered = 0,
+    at = start;
+  for (const event of events) {
+    const from = Math.max(start, event.start),
+      to = Math.min(end, event.end);
+    covered += Math.max(0, to - Math.max(at, from));
+    at = Math.max(at, to);
+  }
+  return {
+    covered,
+    expected: size,
+    overflow: events.some(
+      (event) =>
+        event.start >= start &&
+        event.end > end &&
+        !tab.notes.some((note) => note.tick === event.start && note.tie)
+    )
+  };
+}
+
+export function copyTabSelection(
+  tab: Tablature,
+  start: number,
+  end: number,
+  only?: Pick<TabNote, "tick" | "string">
+): TabBarClipboard {
+  return {
+    ticks: end - start,
+    notes: tab.notes
+      .filter(
+        (note) =>
+          note.tick >= start &&
+          note.tick < end &&
+          (!only || sameNote(only, note))
+      )
+      .map((note) => ({
+        ...note,
+        tick: note.tick - start,
+        duration: Math.min(tabNoteDuration(note), end - note.tick),
+        ...(note.techniques ? { techniques: [...note.techniques] } : {}),
+        ...(note.tuplet ? { tuplet: { ...note.tuplet } } : {})
+      })),
+    rests: only
+      ? []
+      : (tab.rests ?? [])
+          .filter(
+            (rest) => rest.tick < end && rest.tick + rest.duration > start
+          )
+          .map((rest) => ({
+            tick: Math.max(start, rest.tick) - start,
+            duration:
+              Math.min(end, rest.tick + rest.duration) -
+              Math.max(start, rest.tick)
+          }))
+  };
+}
+
+/** Deleting pitches preserves time; only silence unoccupied by other strings becomes a rest. */
+export function deleteTabSelection(
+  tab: Tablature,
+  removed: TabNote[],
+  range?: { start: number; end: number }
+): TabEditResult {
+  const notes = tab.notes.filter((note) => !removed.includes(note));
+  const rests = (tab.rests ?? []).map((rest) => ({ ...rest }));
+  const spans = range
+    ? [range]
+    : removed.map((note) => ({
+        start: note.tick,
+        end: note.tick + tabNoteDuration(note)
+      }));
+  for (const span of spans) {
+    let gaps = [{ ...span }];
+    const occupied = [
+      ...notes.map((note) => ({
+        start: note.tick,
+        end: note.tick + tabNoteDuration(note)
+      })),
+      ...rests.map((rest) => ({
+        start: rest.tick,
+        end: rest.tick + rest.duration
+      }))
+    ];
+    for (const block of occupied)
+      gaps = gaps.flatMap((gap) =>
+        block.end <= gap.start || block.start >= gap.end
+          ? [gap]
+          : [
+              ...(block.start > gap.start
+                ? [{ start: gap.start, end: block.start }]
+                : []),
+              ...(block.end < gap.end
+                ? [{ start: block.end, end: gap.end }]
+                : [])
+            ]
+      );
+    rests.push(
+      ...gaps
+        .filter((gap) => gap.end > gap.start)
+        .map((gap) => ({ tick: gap.start, duration: gap.end - gap.start }))
+    );
+  }
+  return result({ ...tab, notes, rests });
+}
+
+/** Paste is atomic and never overwrites an occupied string or a sounding rest. */
+export function pasteTabSelection(
+  tab: Tablature,
+  at: number,
+  clipboard: TabBarClipboard,
+  string?: number
+): TabEditResult {
+  const notes = clipboard.notes.map((note) => ({
+    ...note,
+    tick: at + note.tick,
+    string:
+      string !== undefined && clipboard.notes.length === 1
+        ? string
+        : note.string
+  }));
+  if (notes.some((note) => tab.notes.some((entry) => sameNote(note, entry))))
+    return { error: "TabNoteCollision" };
+  const end = at + clipboard.ticks;
+  const rests = (tab.rests ?? []).flatMap((rest) =>
+    rest.tick >= end || rest.tick + rest.duration <= at
+      ? [rest]
+      : [
+          ...(rest.tick < at
+            ? [{ tick: rest.tick, duration: at - rest.tick }]
+            : []),
+          ...(rest.tick + rest.duration > end
+            ? [{ tick: end, duration: rest.tick + rest.duration - end }]
+            : [])
+        ]
+  );
+  return result({
+    ...tab,
+    version: 3,
+    barCount: Math.max(tab.barCount ?? 1, Math.ceil(end / tabBarTicks(tab))),
+    notes: [...tab.notes, ...notes],
+    rests: [
+      ...rests,
+      ...clipboard.rests.map((rest) => ({ ...rest, tick: at + rest.tick }))
     ]
   });
 }

@@ -6,6 +6,10 @@ import {
 } from "../src/components/tablature";
 import {
   changeTabMeter,
+  tabBarCoverage,
+  copyTabSelection,
+  deleteTabSelection,
+  pasteTabSelection,
   copyTabBar,
   deleteTabBar,
   durationLabel,
@@ -191,4 +195,179 @@ test("combined note and rest capacity reports a limit without changing the sourc
   expect(insertTabBar(score({ barCount: 128 }), 128).error).toBe(
     "TabEditLimit"
   );
+});
+
+test("duplet and triplet durations fit their distinct rhythmic ratios", () => {
+  expect(durationTicks(8, "duplet")).toBe(18);
+  expect(durationTicks(8, "triplet")).toBe(8);
+  const duplet = putTabNote(score(), {
+    string: 5,
+    fret: 3,
+    tick: 0,
+    duration: 18,
+    tuplet: { actual: 2, normal: 3, denominator: 8 }
+  });
+  expect(duplet.tab?.notes[0].tuplet).toEqual({
+    actual: 2,
+    normal: 3,
+    denominator: 8
+  });
+});
+
+test.each([
+  [2, 2],
+  [2, 4],
+  [3, 4],
+  [4, 4],
+  [5, 4],
+  [6, 8],
+  [7, 8],
+  [12, 8]
+] as const)(
+  "approved time signature %s/%s preserves notes and remains serializable",
+  (beats, unit) => {
+    const original = score({
+      notes: [{ string: 5, fret: 3, tick: 0, duration: 12 }]
+    });
+    const changed = changeTabMeter(original, beats, unit).tab!;
+    expect(changed.notes).toEqual(original.notes);
+    expect(normalizeTablature(JSON.parse(JSON.stringify(changed)))).toEqual(
+      changed
+    );
+  }
+);
+
+test("bar coverage counts a six-string chord once and distinguishes missing duration from overflow", () => {
+  const full = score({
+    notes: Array.from({ length: 6 }, (_, string) => ({
+      string,
+      fret: 0,
+      tick: 0,
+      duration: 96
+    }))
+  });
+  expect(tabBarCoverage(full, 0)).toEqual({
+    covered: 96,
+    expected: 96,
+    overflow: false
+  });
+  expect(
+    tabBarCoverage(
+      score({ notes: [{ string: 5, fret: 3, tick: 0, duration: 24 }] }),
+      0
+    ).covered
+  ).toBe(24);
+  expect(
+    tabBarCoverage(
+      score({ notes: [{ string: 5, fret: 3, tick: 72, duration: 48 }] }),
+      0
+    ).overflow
+  ).toBe(true);
+});
+
+test("deleting a chord pitch retains the other strings and adds no global rest", () => {
+  const tab = score({
+    notes: [
+      { string: 5, fret: 3, tick: 0, duration: 24 },
+      { string: 4, fret: 2, tick: 0, duration: 24 }
+    ]
+  });
+  const next = deleteTabSelection(tab, [tab.notes[1]]).tab!;
+  expect(next.notes).toEqual([tab.notes[0]]);
+  expect(next.rests).toEqual([]);
+});
+
+test("deleting the last pitch fills only the silence not occupied by another sustaining string", () => {
+  const tab = score({
+    notes: [
+      { string: 5, fret: 3, tick: 0, duration: 48 },
+      { string: 4, fret: 2, tick: 0, duration: 24 }
+    ]
+  });
+  const next = deleteTabSelection(tab, [tab.notes[1]]).tab!;
+  expect(next.rests).toEqual([{ tick: 24, duration: 24 }]);
+  expect(next.notes).toEqual([tab.notes[0]]);
+  expect(tab.notes).toHaveLength(2);
+});
+
+test("range deletion preserves later events, existing pauses and total bar count", () => {
+  const tab = score({
+    barCount: 2,
+    notes: [
+      { string: 5, fret: 3, tick: 0, duration: 12 },
+      { string: 5, fret: 5, tick: 24, duration: 24 },
+      { string: 0, fret: 0, tick: 96, duration: 24 }
+    ],
+    rests: [{ tick: 12, duration: 12 }]
+  });
+  const next = deleteTabSelection(tab, tab.notes.slice(0, 2), {
+    start: 0,
+    end: 48
+  }).tab!;
+  expect(next.notes).toEqual([tab.notes[2]]);
+  expect(next.barCount).toBe(2);
+  expect(tabBarCoverage(next, 0).covered).toBe(48);
+  expect(next.rests!.reduce((sum, rest) => sum + rest.duration, 0)).toBe(48);
+});
+
+test("selection clipboard retains relative timing, rests, chord strings and expression without shared mutable metadata", () => {
+  const tab = score({
+    version: 3,
+    notes: [
+      {
+        string: 5,
+        fret: 3,
+        tick: 24,
+        duration: 12,
+        velocity: 48,
+        techniques: ["vibrato"],
+        tuplet: { actual: 3, normal: 2, denominator: 4 }
+      },
+      { string: 4, fret: 2, tick: 24, duration: 12 }
+    ],
+    rests: [{ tick: 36, duration: 12 }]
+  });
+  const copied = copyTabSelection(tab, 24, 48);
+  expect(copied.ticks).toBe(24);
+  expect(copied.notes.map((note) => note.tick)).toEqual([0, 0]);
+  expect(copied.rests).toEqual([{ tick: 12, duration: 12 }]);
+  expect(copied.notes[1].techniques).not.toBe(tab.notes[1].techniques);
+  const pasted = pasteTabSelection(tab, 96, copied).tab!;
+  expect(
+    pasted.notes.filter((note) => note.tick === 96).map((note) => note.string)
+  ).toEqual([4, 5]);
+  expect(pasted.rests).toContainEqual({ tick: 108, duration: 12 });
+  expect(pasted.barCount).toBe(2);
+});
+
+test("single-note clipboard never copies its chord peer, and insertion replaces a pause without erasing its remainder", () => {
+  const tab = score({
+    notes: [
+      { string: 5, fret: 3, tick: 0, duration: 12 },
+      { string: 4, fret: 2, tick: 0, duration: 12 }
+    ],
+    rests: [{ tick: 24, duration: 48 }]
+  });
+  const copied = copyTabSelection(tab, 0, 12, { tick: 0, string: 5 });
+  expect(copied.notes).toHaveLength(1);
+  const pasted = pasteTabSelection(tab, 36, copied, 3).tab!;
+  expect(pasted.notes).toContainEqual({
+    string: 3,
+    fret: 3,
+    tick: 36,
+    duration: 12
+  });
+  expect(pasted.rests).toEqual([
+    { tick: 24, duration: 12 },
+    { tick: 48, duration: 24 }
+  ]);
+});
+
+test("conflicting or oversized paste is atomic and leaves the original score unchanged", () => {
+  const tab = score({ notes: [{ string: 5, fret: 3, tick: 0, duration: 24 }] });
+  const before = JSON.stringify(tab),
+    copied = copyTabSelection(tab, 0, 24);
+  expect(pasteTabSelection(tab, 0, copied).error).toBe("TabNoteCollision");
+  expect(pasteTabSelection(tab, 128 * 96, copied).error).toBe("TabEditLimit");
+  expect(JSON.stringify(tab)).toBe(before);
 });

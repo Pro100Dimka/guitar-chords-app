@@ -24,45 +24,77 @@ const example = () => ({
 
 test("expressive notes survive a document round trip without mutating their settings", () => {
   const note = {
-    string: 2, fret: 7, tick: 0, duration: 24,
-    velocity: 92, techniques: ["bend", "vibrato"], bend: 1.5,
-    bendRelease: true, accent: "strong", fade: "out", pick: "down",
-    leftFinger: 3, rightFinger: "m", voice: 2, tie: true, fermata: true,
+    string: 2,
+    fret: 7,
+    tick: 0,
+    duration: 24,
+    velocity: 92,
+    techniques: ["bend", "vibrato"],
+    bend: 1.5,
+    bendRelease: true,
+    accent: "strong",
+    fade: "out",
+    pick: "down",
+    leftFinger: 3,
+    rightFinger: "m",
+    voice: 2,
+    tie: true,
+    fermata: true,
     tuplet: { actual: 7, normal: 5, denominator: 8 }
   };
   const input = { ...emptyTablature(), version: 3, notes: [note] };
   const normalized = normalizeTablature(input);
   expect(normalized?.notes[0]).toEqual(note);
-  expect(normalizeTablature(JSON.parse(JSON.stringify(normalized)))).toEqual(normalized);
+  expect(normalizeTablature(JSON.parse(JSON.stringify(normalized)))).toEqual(
+    normalized
+  );
   expect(normalized?.notes[0]).not.toBe(note);
 });
 
 test("the new score format supports short and tuplet note values", () => {
   const input = {
-    ...emptyTablature(), version: 3,
+    ...emptyTablature(),
+    version: 3,
     notes: [{ string: 5, fret: 5, tick: 0.75, duration: 0.5 }]
   };
   expect(normalizeTablature(input)?.notes).toEqual(input.notes);
 });
 
 test.each([
-  { velocity: 0 }, { velocity: 128 }, { voice: 0 }, { leftFinger: 5 },
-  { techniques: ["unknown"] }, { bend: NaN }, { bend: 4 },
-  { accent: "unknown" }, { fade: "unknown" }, { pick: "unknown" },
-  { tie: "true" }, { rightFinger: "z" }, { sourceFret: -1 },
+  { velocity: 0 },
+  { velocity: 128 },
+  { voice: 0 },
+  { leftFinger: 5 },
+  { techniques: ["unknown"] },
+  { bend: NaN },
+  { bend: 4 },
+  { accent: "unknown" },
+  { fade: "unknown" },
+  { pick: "unknown" },
+  { tie: "true" },
+  { rightFinger: "z" },
+  { sourceFret: -1 },
   { tuplet: { actual: 0, normal: 5, denominator: 4 } }
 ])("rejects invalid note expression rather than discarding it: %j", (patch) => {
-  expect(normalizeTablature({ ...emptyTablature(), version: 3, notes: [
-    { string: 0, fret: 3, tick: 0, duration: 24, ...patch }
-  ] })).toBeUndefined();
+  expect(
+    normalizeTablature({
+      ...emptyTablature(),
+      version: 3,
+      notes: [{ string: 0, fret: 3, tick: 0, duration: 24, ...patch }]
+    })
+  ).toBeUndefined();
 });
 
 test("ties and let-ring notes stop at the next physical attack or rest", () => {
-  const tied = normalizeTablature({ ...emptyTablature(), version: 3, notes: [
-    { string: 0, fret: 3, tick: 0, duration: 24, tie: true },
-    { string: 0, fret: 3, tick: 24, duration: 24 },
-    { string: 0, fret: 5, tick: 72, duration: 24 }
-  ] })!;
+  const tied = normalizeTablature({
+    ...emptyTablature(),
+    version: 3,
+    notes: [
+      { string: 0, fret: 3, tick: 0, duration: 24, tie: true },
+      { string: 0, fret: 3, tick: 24, duration: 24 },
+      { string: 0, fret: 5, tick: 72, duration: 24 }
+    ]
+  })!;
   expect(tabNoteEnd(tied, tied.notes[0])).toBe(48);
   tied.notes[0].techniques = ["letRing"];
   expect(tabNoteEnd(tied, tied.notes[0])).toBe(72);
@@ -127,7 +159,7 @@ test.each([
   { ...example(), tempo: 80.5 },
   { ...example(), tempo: "80" },
   { ...example(), beatsPerBar: 0 },
-  { ...example(), beatsPerBar: 9 },
+  { ...example(), beatsPerBar: 33 },
   { ...example(), beatsPerBar: 3.5 },
   { ...example(), beatUnit: 16 },
   { ...example(), beatUnit: "4" },
@@ -416,25 +448,32 @@ test("empty constructors validate defaults and text refuses invalid input", () =
 });
 
 test("rest collision sweep respects attacks, release boundaries and long earlier voices", () => {
-  const rests = [{ tick: 48, duration: 24 }, { tick: 144, duration: 24 }];
+  const rests = [
+    { tick: 48, duration: 24 },
+    { tick: 144, duration: 24 }
+  ];
   const notes = [
     { string: 0, fret: 0, tick: 0, duration: 48 },
     { string: 5, fret: 7, tick: 24, duration: 12 },
     { string: 2, fret: 2, tick: 72, duration: 72 },
     { string: 4, fret: 3, tick: 168, duration: 24 }
   ];
-  expect(normalizeTablature({ ...emptyTablature(), notes, rests })).toBeDefined();
+  expect(
+    normalizeTablature({ ...emptyTablature(), notes, rests })
+  ).toBeDefined();
   for (const note of [
     { ...notes[0], duration: 49 },
     { ...notes[2], tick: 71 },
     { ...notes[3], tick: 167 },
     { string: 1, fret: 0, tick: 0, duration: 200 }
   ]) {
-    expect(normalizeTablature({
-      ...emptyTablature(),
-      notes: [...notes.filter((entry) => entry.string !== note.string), note],
-      rests
-    })).toBeUndefined();
+    expect(
+      normalizeTablature({
+        ...emptyTablature(),
+        notes: [...notes.filter((entry) => entry.string !== note.string), note],
+        rests
+      })
+    ).toBeUndefined();
   }
 });
 

@@ -20,7 +20,7 @@ import {
 import { runOnJS } from "react-native-worklets";
 import { useParagraphBuilder } from "../paragraphs";
 import { INote, IString } from "@/@interfaces";
-import { guitarLayout } from "../guitar-layout";
+import { guitarLayout, guitarStringSpan } from "../guitar-layout";
 
 const primary = palette.guitarDial.note;
 
@@ -37,6 +37,7 @@ const Strings: FC<{
   width: number;
   height: number;
   zoom?: number;
+  complete?: boolean;
   onReady?: () => void;
 }> = (props) => {
   const {
@@ -50,6 +51,7 @@ const Strings: FC<{
     width,
     height,
     zoom,
+    complete = false,
     onReady
   } = props;
   const [currentNote, setCurrentNote] = useState<INote | null>(null);
@@ -90,28 +92,40 @@ const Strings: FC<{
     }
   );
   if (!stringNotes) return null;
+  const frame = guitarLayout(width, height, zoom, complete);
   const {
     stringLeft,
     stringWidth,
-    stringBottom: bottom
-  } = guitarLayout(width, height, zoom);
+    stringBottom: bottom,
+    stringTop: nutY,
+    stringTopLeft,
+    stringTopWidth
+  } = frame;
   const spacing = stringWidth / Math.max(1, stringNotes.length - 1);
-  const boxWidth = Math.min(NOTE_BOX_WIDTH, spacing - 4);
-  const nutY = Math.min(-height, bottom - stringWidth * 12);
   const top = 0;
-  const boxTop = 15;
+  const boxTop = complete ? Math.max(15, nutY + 8) : 15;
+  const labelSpan = guitarStringSpan(frame, boxTop);
+  const showLabels = !complete || labelSpan.width >= 150;
+  const boxWidth = Math.min(NOTE_BOX_WIDTH, labelSpan.width / 5 - 4);
   const stringClip = Skia.Path.Make();
-  stringClip.addRect({ x: 0, y: top, width, height: boxTop - top });
+  stringClip.addRect({
+    x: 0,
+    y: top,
+    width,
+    height: showLabels ? boxTop - top : height
+  });
   stringClip.addRect({
     x: 0,
     y: boxTop + 50,
     width,
-    height: bottom - boxTop - 50 + 12
+    height: Math.max(0, bottom - boxTop - 50 + 12)
   });
   return (
     <Group>
       {stringNotes.map((s, i) => {
         const x = stringLeft + spacing * i;
+        const topX = stringTopLeft + (stringTopWidth / 5) * i;
+        const labelX = labelSpan.left + (labelSpan.width / 5) * i;
         const curr = currString || currentNote;
         const active = s.name === curr?.name && s.octave === curr?.octave;
         return (
@@ -119,9 +133,13 @@ const Strings: FC<{
             <Group clip={stringClip}>
               <StringWithVibration
                 x={x}
+                topX={topX}
                 top={nutY}
                 bottom={bottom}
-                thickness={s.thickness || 1}
+                thickness={
+                  (s.thickness || 1) *
+                  (complete ? Math.max(0.3, frame.stringWidth / 267) : 1)
+                }
                 baseColor={s.baseColor || [0, 0, 0]}
                 active={active}
                 volume={stringVolume}
@@ -130,53 +148,57 @@ const Strings: FC<{
               />
             </Group>
 
-            <RoundedRect
-              x={x - boxWidth / 2}
-              y={boxTop}
-              width={boxWidth}
-              height={50}
-              r={10}
-              color={
-                width > height
-                  ? palette.glass.surface
-                  : active
-                    ? palette.colors.grayOpacity
-                    : palette.colors.blackOpacityTiny
-              }
-            />
-            <RoundedRect
-              x={x - boxWidth / 2}
-              y={boxTop}
-              width={boxWidth}
-              height={50}
-              r={10}
-              style="stroke"
-              strokeWidth={1}
-              color={
-                active ? palette.chromatic.brass : palette.chromatic.border
-              }
-            />
-            <StringFill
-              x={x - boxWidth / 2}
-              y={boxTop}
-              width={boxWidth}
-              noteKey={`${s.name}${s.octave}`}
-              fill={fill}
-              fillKey={fillKey}
-            />
-            <Paragraph
-              x={x - boxWidth / 2}
-              y={boxTop + 5}
-              width={boxWidth}
-              paragraph={labels?.[i].name ?? null}
-            />
+            {showLabels && (
+              <Group>
+                <RoundedRect
+                  x={labelX - boxWidth / 2}
+                  y={boxTop}
+                  width={boxWidth}
+                  height={50}
+                  r={10}
+                  color={
+                    width > height
+                      ? palette.glass.surface
+                      : active
+                        ? palette.colors.grayOpacity
+                        : palette.colors.blackOpacityTiny
+                  }
+                />
+                <RoundedRect
+                  x={labelX - boxWidth / 2}
+                  y={boxTop}
+                  width={boxWidth}
+                  height={50}
+                  r={10}
+                  style="stroke"
+                  strokeWidth={1}
+                  color={
+                    active ? palette.chromatic.brass : palette.chromatic.border
+                  }
+                />
+                <StringFill
+                  x={labelX - boxWidth / 2}
+                  y={boxTop}
+                  width={boxWidth}
+                  noteKey={`${s.name}${s.octave}`}
+                  fill={fill}
+                  fillKey={fillKey}
+                />
+                <Paragraph
+                  x={labelX - boxWidth / 2}
+                  y={boxTop + 5}
+                  width={boxWidth}
+                  paragraph={labels?.[i].name ?? null}
+                />
 
-            <Paragraph
-              x={x - boxWidth / 2}
-              y={boxTop + 30}
-              width={boxWidth}
-              paragraph={labels?.[i].number ?? null}
-            />
+                <Paragraph
+                  x={labelX - boxWidth / 2}
+                  y={boxTop + 30}
+                  width={boxWidth}
+                  paragraph={labels?.[i].number ?? null}
+                />
+              </Group>
+            )}
           </Group>
         );
       })}

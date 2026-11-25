@@ -2,7 +2,10 @@ import React, { useState } from "react";
 import Renderer, { act } from "react-test-renderer";
 import { View } from "react-native";
 import { GuitarZoom } from "../src/screens/play/guitar-zoom";
-import { guitarLayout } from "../src/screens/tuner/guitar-layout";
+import {
+  guitarLayout,
+  guitarStringSpan
+} from "../src/screens/tuner/guitar-layout";
 
 jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
 
@@ -13,7 +16,8 @@ test.each([
   [320, 560],
   [390, 640],
   [568, 220],
-  [844, 300]
+  [844, 300],
+  [900, 255]
 ])(
   "zoom keeps all six strings reachable on a %s × %s stage",
   (width, height) => {
@@ -185,4 +189,28 @@ test("unmounting a dragging control during rotation releases the play input lock
   expect(interaction).toHaveBeenLastCalledWith(false);
   expect(committed).toHaveBeenCalledTimes(1);
   expect(committed).toHaveBeenCalledWith(1.5);
+});
+
+test.each([
+  [390, 640],
+  [240, 960],
+  [844, 300],
+  [900, 255]
+])("complete guitar fits at minimum zoom on %s x %s", (width, height) => {
+  const frame = guitarLayout(width, height, 0.25, true);
+  expect(frame.artwork.left).toBeGreaterThanOrEqual(0);
+  expect(frame.artwork.top).toBeGreaterThanOrEqual(0);
+  expect(frame.artwork.left + frame.artwork.width).toBeLessThanOrEqual(width);
+  expect(frame.artwork.top + frame.artwork.height).toBeLessThanOrEqual(height);
+  expect(guitarStringSpan(frame, frame.stringTop)).toEqual({
+    left: frame.stringTopLeft,
+    width: frame.stringTopWidth
+  });
+  expect(guitarStringSpan(frame, frame.stringBottom)).toEqual({
+    left: frame.stringLeft,
+    width: frame.stringWidth
+  });
+  expect(
+    guitarStringSpan(frame, (frame.stringTop + frame.stringBottom) / 2).width
+  ).toBeCloseTo((frame.stringWidth + frame.stringTopWidth) / 2);
 });

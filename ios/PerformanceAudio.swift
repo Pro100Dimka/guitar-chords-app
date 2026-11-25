@@ -318,19 +318,29 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         cue?.play()
     }
     @objc func setMetronome(_ tempo: Double, enabled: Bool, phase: Double) {
+        setMetronomePattern(tempo, enabled: enabled, phase: phase, beats: 4)
+    }
+    @objc func setMetronomePattern(_ tempo: Double, enabled: Bool, phase: Double, beats: Double) {
         metronomeNode?.stop(); metronomeEngine?.stop()
         metronomeNode = nil; metronomeEngine = nil
-        guard enabled, canPlayInstrument, recorder == nil, tempo.isFinite, (40...200).contains(tempo) else { return }
+        guard enabled, canPlayInstrument, recorder == nil, tempo.isFinite, (40...200).contains(tempo), beats.isFinite else { return }
+        let count = Int(min(32, max(1, beats)))
         let rate = 22050.0
-        let frames = AVAudioFrameCount((rate * 60 / tempo).rounded())
-        let shift = phase.isFinite ? Int((Double(frames) * min(1, max(0, phase))).rounded()) % Int(frames) : 0
+        let beatFrames = Int((rate * 60 / tempo).rounded())
+        let frames = AVAudioFrameCount(beatFrames * count)
+        let normalizedPhase = phase.isFinite ? (phase.truncatingRemainder(dividingBy: Double(count)) + Double(count)).truncatingRemainder(dividingBy: Double(count)) : 0
+        let shift = Int((Double(beatFrames) * normalizedPhase).rounded()) % Int(frames)
         guard let format = AVAudioFormat(standardFormatWithSampleRate: rate, channels: 1),
               let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: frames),
               let samples = buffer.floatChannelData?[0] else { return }
         buffer.frameLength = frames
         for index in 0..<Int(frames) {
-            let time = Double((index + shift) % Int(frames)) / rate
-            samples[index] = time < 0.025 ? Float(0.09 * sin(2 * .pi * 1200 * time) * (1 - exp(-2000 * time)) * exp(-200 * time)) : 0
+            let position = (index + shift) % Int(frames)
+            let beat = position / beatFrames
+            let time = Double(position % beatFrames) / rate
+            let frequency = beat == 0 ? 1800.0 : 900.0
+            let level = beat == 0 ? 0.24 : 0.12
+            samples[index] = time < 0.03 ? Float(level * sin(2 * .pi * frequency * time) * (1 - exp(-3000 * time)) * exp(-180 * time) * (1 - time / 0.03)) : 0
         }
         let engine = AVAudioEngine()
         let node = AVAudioPlayerNode()
