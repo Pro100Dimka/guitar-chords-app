@@ -170,7 +170,7 @@ export default function PlayGuitar() {
   });
   currentPitches.current = pitches;
   const frame = useMemo(
-    () => guitarLayout(layout.width, layout.height, zoom, true),
+    () => guitarLayout(layout.width, layout.height, zoom),
     [layout.width, layout.height, zoom]
   );
   const landscape = screenSize.width > screenSize.height;
@@ -738,7 +738,11 @@ export default function PlayGuitar() {
         {layout.width > 0 && (
           <>
             <Image
-              source={require("../../../assets/images/screen-background/play-grand-auditorium-full.webp")}
+              source={
+                layout.width > layout.height
+                  ? require("../../../assets/images/screen-background/tuner-grand-auditorium-landscape.webp")
+                  : require("../../../assets/images/screen-background/tuner-grand-auditorium.webp")
+              }
               style={[styles.artwork, frame.artwork]}
               resizeMode="stretch"
             />
@@ -759,7 +763,6 @@ export default function PlayGuitar() {
                   width={layout.width}
                   height={layout.height}
                   zoom={zoom}
-                  complete
                 />
               </Canvas>
             </GestureDetector>
