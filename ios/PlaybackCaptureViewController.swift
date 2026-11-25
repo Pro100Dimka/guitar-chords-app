@@ -44,6 +44,8 @@ final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentat
       stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 32),
       stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -24),
       stack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -48),
+      title.widthAnchor.constraint(equalTo: stack.widthAnchor),
+      instructions.widthAnchor.constraint(equalTo: stack.widthAnchor),
       picker.widthAnchor.constraint(equalToConstant: 64), picker.heightAnchor.constraint(equalToConstant: 64),
       cancel.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
     ])

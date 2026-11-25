@@ -36,6 +36,70 @@ const normalize = (value: string) =>
     .replace(/['’]/g, "")
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
+const identityScript = (value: string) => {
+  const letters = value.replace(/[^\p{L}]/gu, "");
+  return /^\p{Script=Latin}+$/u.test(letters)
+    ? "Latin"
+    : /^\p{Script=Cyrillic}+$/u.test(letters)
+      ? "Cyrillic"
+      : undefined;
+};
+const transliteration: Record<string, string> = {
+  а: "a",
+  б: "b",
+  в: "v",
+  г: "g",
+  д: "d",
+  е: "e",
+  ж: "zh",
+  з: "z",
+  и: "i",
+  й: "y",
+  к: "k",
+  л: "l",
+  м: "m",
+  н: "n",
+  о: "o",
+  п: "p",
+  р: "r",
+  с: "s",
+  т: "t",
+  у: "u",
+  ф: "f",
+  х: "kh",
+  ц: "ts",
+  ч: "ch",
+  ш: "sh",
+  щ: "shch",
+  ъ: "",
+  ы: "y",
+  ь: "",
+  э: "e",
+  ю: "yu",
+  я: "ya",
+  і: "i",
+  ї: "yi",
+  є: "ye",
+  ґ: "g"
+};
+const matchingScriptIdentity = (expected: string, actual: string) => {
+  const left = normalize(expected),
+    right = normalize(actual);
+  if (!left) return false;
+  if (left === right) return true;
+  const leftScript = identityScript(left),
+    rightScript = identityScript(right);
+  // Compare exact transliterations only across scripts. Never fuzzy-match two
+  // names in the same script or infer an adopted alias such as Boombox.
+  if (!leftScript || !rightScript || leftScript === rightScript) return false;
+  const cyrillic = leftScript === "Cyrillic" ? left : right;
+  const latin = leftScript === "Latin" ? left : right;
+  return [transliteration, { ...transliteration, г: "h", и: "y" }].some(
+    (letters) =>
+      [...cyrillic].map((letter) => letters[letter] ?? letter).join("") ===
+      latin
+  );
+};
 const trackTitle = (value: string) =>
   value
     .replace(
@@ -57,8 +121,7 @@ const artistCredits = (value: string) => [
   )
 ];
 export const matchingIdentity = (expected: string, actual: string) =>
-  !!normalize(trackTitle(expected)) &&
-  normalize(trackTitle(expected)) === normalize(trackTitle(actual));
+  matchingScriptIdentity(trackTitle(expected), trackTitle(actual));
 
 export function preferredSongContent(
   options: LyricsOption[],
@@ -187,8 +250,8 @@ export async function lookupLyrics(
 const artistKey = (value: string) =>
   normalize(value.replace(/\s*&\s*/g, " and ")).replace(/ /g, "");
 const sameArtist = (expected: string, actual: string) =>
-  artistCredits(expected).some(
-    (name) => artistKey(name) === artistKey(primaryArtist(actual))
+  artistCredits(expected).some((name) =>
+    matchingScriptIdentity(artistKey(name), artistKey(primaryArtist(actual)))
   );
 
 function chartRhythm(
@@ -566,16 +629,29 @@ async function lookupPisennyk(
     const candidate = DomUtils.getElementsByTagName(
       "a",
       document.children
-    ).find(
-      (element) =>
-        sameArtist(
-          `${trackTitle(title)} ${primaryArtist(artist)}`,
-          trackTitle(DomUtils.textContent(element))
-        ) &&
-        /^https:\/\/pisennyk\.com\.ua\/[^/?#]+\/[^/?#]+$/.test(
+    ).find((element) => {
+      if (
+        !/^https:\/\/pisennyk\.com\.ua\/[^/?#]+\/[^/?#]+$/.test(
           element.attribs.href ?? ""
         )
-    );
+      )
+        return false;
+      const label = DomUtils.textContent(element).trim();
+      const parts = label.split(/\s+-\s+/);
+      return (
+        sameArtist(
+          `${trackTitle(title)} ${primaryArtist(artist)}`,
+          trackTitle(label)
+        ) ||
+        parts
+          .slice(1)
+          .some(
+            (_, index) =>
+              matchingIdentity(title, parts.slice(0, index + 1).join(" - ")) &&
+              sameArtist(artist, parts.slice(index + 1).join(" - "))
+          )
+      );
+    });
     if (candidate) {
       url = candidate.attribs.href;
       break;
@@ -727,9 +803,14 @@ async function lookupChordPage(
       sameArtist(artist, value.replace(/\s+\([^()]+\)\s*$/, "")));
   const provider = chordSources[source];
   if (source === "Akkords.pro" && !candidateUrl) {
+    const titleScript = identityScript(trackTitle(title));
+    const artistScript = identityScript(primaryArtist(artist));
     const search = await fetchSource(
       `${provider.origin}/?${new URLSearchParams({
-        s: `${trackTitle(title)} ${primaryArtist(artist)}`
+        s:
+          titleScript && artistScript && titleScript !== artistScript
+            ? trackTitle(title)
+            : `${trackTitle(title)} ${primaryArtist(artist)}`
       })}`,
       signal
     );
