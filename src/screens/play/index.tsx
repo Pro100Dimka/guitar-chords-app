@@ -87,9 +87,6 @@ export default function PlayGuitar() {
   const [picker, setPicker] = useState(false);
   const [settings, setSettings] = useState(false);
   const [edit, setEdit] = useState<number | null>(null);
-  const [free, setFree] = useState(false);
-  const [fretsSheet, setFretsSheet] = useState(false);
-  const [freeFrets, setFreeFrets] = useState([0, 0, 0, 0, 0, 0]);
   const [tabNotes, setTabNotes] = useState<TabNote[]>([]);
   const [practiceOpen, setPracticeOpen] = useState(false);
   const [audioInterruption, setAudioInterruption] = useState(0);
@@ -103,11 +100,8 @@ export default function PlayGuitar() {
   );
   const chord = progression[selected] ?? "";
   const frets = useMemo(
-    () =>
-      free
-        ? freeFrets
-        : (selectedChordShape(chord, shapes[chord])?.frets ?? freeFrets),
-    [free, freeFrets, chord, shapes]
+    () => selectedChordShape(chord, shapes[chord])?.frets ?? [0, 0, 0, 0, 0, 0],
+    [chord, shapes]
   );
   const fingering = useMemo(
     () =>
@@ -141,7 +135,6 @@ export default function PlayGuitar() {
   const selectChord = (index: number) => {
     if (!tabRecording) tablature.pause();
     setSelected(index);
-    setFree(false);
   };
   const pitches = useMemo(
     () =>
@@ -378,8 +371,7 @@ export default function PlayGuitar() {
     return () => controller.abort();
   }, [active, pitchKey, tabPlayback]);
   useEffect(() => {
-    if (!active || !playing || !progression.length || free || tabOwnsAudio)
-      return;
+    if (!active || !playing || !progression.length || tabOwnsAudio) return;
     const duration = 60000 / tempo / 2;
     const slots = beats * 2;
     const now = Date.now();
@@ -424,7 +416,6 @@ export default function PlayGuitar() {
     progression.length,
     tempo,
     beats,
-    free,
     pattern,
     tabOwnsAudio
   ]);
@@ -616,7 +607,6 @@ export default function PlayGuitar() {
                   [patternStep]: target
                 }));
               }
-              setFree(false);
               setPlaying(false);
               setPicker(false);
               setPatternStep(null);
@@ -677,25 +667,6 @@ export default function PlayGuitar() {
             {t(tabRecording ? "TabStopRecording" : "TabTitle")}
           </Text>
           {tabSession.dirty && <View style={styles.unsavedDot} />}
-        </Pressable>
-        <Pressable
-          accessibilityRole="button"
-          accessibilityLabel={t("FreePlay")}
-          accessibilityState={{ selected: free }}
-          onPress={() => {
-            if (!tabRecording) tablature.pause();
-            setPlaying(false);
-            setFree(true);
-            setFretsSheet(true);
-          }}
-          style={[styles.topControl, free && styles.topControlActive]}
-        >
-          <MaterialCommunityIcons
-            name="music-note-eighth"
-            size={20}
-            color={palette.glass.accent}
-          />
-          <Text style={styles.topLabel}>{t("FreePlay")}</Text>
         </Pressable>
         {landscape && zoomControl}
       </View>
@@ -807,23 +778,18 @@ export default function PlayGuitar() {
                 {direction === 1 && (
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={t(free ? "FreePlay" : "Fingering")}
-                    onPress={() =>
-                      free ? setFretsSheet(true) : openFingerings(chord)
-                    }
+                    accessibilityLabel={t("Fingering")}
+                    onPress={() => openFingerings(chord)}
                     style={styles.currentChord}
                   >
                     <Text
                       numberOfLines={1}
                       adjustsFontSizeToFit
-                      style={[
-                        styles.currentChordName,
-                        free && styles.freeChordName
-                      ]}
+                      style={styles.currentChordName}
                     >
-                      {free ? t("FreePlay") : chord}
+                      {chord}
                     </Text>
-                    {!free && <Diagram frets={frets} width={60} selected />}
+                    <Diagram frets={frets} width={60} selected />
                   </Pressable>
                 )}
                 <Pressable
@@ -831,7 +797,7 @@ export default function PlayGuitar() {
                   accessibilityLabel={t(
                     direction < 0 ? "PlayPreviousChord" : "PlayNextChord"
                   )}
-                  disabled={free || progression.length < 2}
+                  disabled={progression.length < 2}
                   onPress={() =>
                     selectChord(
                       (selected + direction + progression.length) %
@@ -843,9 +809,7 @@ export default function PlayGuitar() {
                   <MaterialCommunityIcons
                     name={direction < 0 ? "chevron-left" : "chevron-right"}
                     size={28}
-                    color={
-                      free ? palette.glass.muted : palette.finish.highlight
-                    }
+                    color={palette.finish.highlight}
                   />
                 </Pressable>
               </React.Fragment>
@@ -869,19 +833,16 @@ export default function PlayGuitar() {
                   key={index}
                   accessibilityRole="button"
                   accessibilityLabel={name}
-                  accessibilityState={{ selected: !free && selected === index }}
+                  accessibilityState={{ selected: selected === index }}
                   onPressIn={() => selectChord(index)}
                   onPress={() => selectChord(index)}
                   onLongPress={() => setEdit(index)}
-                  style={[
-                    styles.chip,
-                    !free && selected === index && styles.selected
-                  ]}
+                  style={[styles.chip, selected === index && styles.selected]}
                 >
                   <Text
                     style={[
                       styles.chipText,
-                      !free && selected === index && styles.selectedInk
+                      selected === index && styles.selectedInk
                     ]}
                   >
                     {name}
@@ -917,9 +878,9 @@ export default function PlayGuitar() {
               accessibilityLabel={t(playing ? "Pause" : "AutoChords")}
               accessibilityState={{
                 selected: playing,
-                disabled: !progression.length || free || tabRecording
+                disabled: !progression.length || tabRecording
               }}
-              disabled={!progression.length || free || tabRecording}
+              disabled={!progression.length || tabRecording}
               onPress={() => {
                 if (!tabRecording) tablature.pause();
                 if (playing) {
@@ -1004,7 +965,7 @@ export default function PlayGuitar() {
             </Pressable>
           </View>
         </View>
-        {tabToolsOpen && (
+        {tabToolsOpen && landscape && (
           <TablaturePanel
             standalone
             visible={!tabSession.dialog}
@@ -1038,6 +999,7 @@ export default function PlayGuitar() {
           <Sheet title={progression[edit]} onClose={() => setEdit(null)}>
             <Action
               label={t("Delete")}
+              disabled={progression.length === 1}
               onPress={() => {
                 const remaining = progression.filter(
                   (_, index) => index !== edit
@@ -1062,7 +1024,6 @@ export default function PlayGuitar() {
                   Math.min(selected, Math.max(0, remaining.length - 1))
                 );
                 setPlaying(false);
-                setFree(remaining.length === 0);
                 setEdit(null);
               }}
             />
@@ -1263,42 +1224,6 @@ export default function PlayGuitar() {
             )}
           </Sheet>
         )}
-        {fretsSheet && (
-          <Sheet title={t("FreePlay")} onClose={() => setFretsSheet(false)}>
-            {freeFrets.map((fret, index) => (
-              <View key={index} style={styles.controls}>
-                <Text style={styles.label}>
-                  {6 - index} · {noteNames[(guitarMidi[index] + fret) % 12]}
-                </Text>
-                <Action
-                  glass
-                  label="−"
-                  disabled={fret === 0}
-                  onPress={() =>
-                    setFreeFrets((values) =>
-                      values.map((value, string) =>
-                        string === index ? value - 1 : value
-                      )
-                    )
-                  }
-                />
-                <Text style={styles.label}>{t("PositionFret", { fret })}</Text>
-                <Action
-                  glass
-                  label="+"
-                  disabled={fret === 24}
-                  onPress={() =>
-                    setFreeFrets((values) =>
-                      values.map((value, string) =>
-                        string === index ? value + 1 : value
-                      )
-                    )
-                  }
-                />
-              </View>
-            ))}
-          </Sheet>
-        )}
       </View>
       {tabSession.dialog && (
         <TablatureLibrary
@@ -1416,7 +1341,6 @@ const styles = StyleSheet.create({
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
     flexShrink: 1
   },
-  freeChordName: { fontSize: 20, textAlign: "center" },
   chordArrow: {
     width: 36,
     minHeight: 72,

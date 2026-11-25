@@ -51,6 +51,7 @@ import {
 
 type Transport = ReturnType<typeof useTablature>;
 type Selection = Pick<TabNote, "string" | "tick">;
+const lineTechniques: TabTechnique[] = ["palmMute", "letRing"];
 const stringNames = ["E", "A", "D", "G", "B", "e"];
 const stringOrder = [5, 4, 3, 2, 1, 0];
 const meterChoices = [
@@ -476,6 +477,10 @@ const TablatureStaff = React.memo(function TablatureStaff({
   const staffOrigin = useRef(0);
   const scrollOffset = useRef(0);
   const rangeAnchor = useRef<number | null>(null);
+  const lastTap = useRef<{ tick: number; string: number; time: number } | null>(
+    null
+  );
+  const [draggingRange, setDraggingRange] = useState(false);
   const barTicks = tabBarTicks(tab);
   const beatTicks = tabBeatTicks(tab);
   const start = bar * barTicks;
@@ -572,9 +577,40 @@ const TablatureStaff = React.memo(function TablatureStaff({
         ? 18 * textScale
         : editingRowHeight;
   const rowStyle = { height: rowHeight };
+  const effectRuns = useMemo(
+    () =>
+      lineTechniques
+        .map((technique) => {
+          const spans: Array<{ start: number; end: number }> = [];
+          tab.notes
+            .filter(
+              (note) =>
+                note.techniques?.includes(technique) &&
+                note.tick < start + barTicks &&
+                note.tick + tabNoteDuration(note) > start
+            )
+            .sort((a, b) => a.tick - b.tick)
+            .forEach((note) => {
+              const first = Math.max(start, note.tick);
+              const last = Math.min(
+                start + barTicks,
+                note.tick + tabNoteDuration(note)
+              );
+              const previous = spans.at(-1);
+              if (previous && first <= previous.end)
+                previous.end = Math.max(previous.end, last);
+              else spans.push({ start: first, end: last });
+            });
+          return { technique, spans };
+        })
+        .filter(({ spans }) => spans.length),
+    [tab.notes, start, barTicks]
+  );
+  const effectHeight = effectRuns.length * 16;
   const barLineTop = readOnly
     ? 20 * readingScale
     : (dense ? 14 : 18) * textScale;
+  const stringsTop = barLineTop + effectHeight;
   const barLineHeight = rowHeight * 6;
   const showRests = readOnly || notes.size > 0 || rests.size > 0;
   const rhythmScale = readOnly ? readingScale : textScale;
@@ -607,16 +643,44 @@ const TablatureStaff = React.memo(function TablatureStaff({
   const invalidDuration =
     editable &&
     (coverage.covered < coverage.expected - 1 / 960 || coverage.overflow);
-  const beginRange = (position: number, noteDuration: number) => {
+  const beginRange = (
+    position: number,
+    noteDuration: number,
+    dragging = false
+  ) => {
     if (!onRange || disabled) return;
-    rangeAnchor.current = selectedRange?.start ?? position;
+    const anchor = selectedRange?.start ?? position;
+    rangeAnchor.current = dragging ? anchor : null;
+    setDraggingRange(dragging);
     onRange({
-      start: Math.min(rangeAnchor.current, position),
+      start: Math.min(anchor, position),
       end: Math.min(
-        start + barTicks,
-        Math.max(rangeAnchor.current + noteDuration, position + noteDuration)
+        tablatureLength(tab),
+        Math.max(
+          selectedRange?.end ?? 0,
+          anchor + noteDuration,
+          position + noteDuration
+        )
       )
     });
+  };
+  const pressNote = (note: TabNote) => {
+    const previous = lastTap.current;
+    const time = Date.now();
+    lastTap.current = { tick: note.tick, string: note.string, time };
+    if (
+      previous?.tick === note.tick &&
+      previous.string === note.string &&
+      time - previous.time < 350
+    ) {
+      beginRange(note.tick, tabNoteDuration(note));
+      lastTap.current = null;
+    } else if (selectedRange && onRange) {
+      onRange({
+        start: Math.min(selectedRange.start, note.tick),
+        end: Math.max(selectedRange.end, note.tick + tabNoteDuration(note))
+      });
+    } else onNote?.(note);
   };
   const moveRange = (pageX: number) => {
     if (rangeAnchor.current === null || !onRange || disabled) return;
@@ -662,9 +726,11 @@ const TablatureStaff = React.memo(function TablatureStaff({
       onResponderMove={(event) => moveRange(event.nativeEvent.pageX)}
       onResponderRelease={() => {
         rangeAnchor.current = null;
+        setDraggingRange(false);
       }}
       onResponderTerminate={() => {
         rangeAnchor.current = null;
+        setDraggingRange(false);
       }}
     >
       <View style={[styles.stringLabels, { width: labelWidth }]}>
@@ -676,6 +742,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
             readOnly && { height: 20 * readingScale }
           ]}
         />
+        {effectHeight > 0 && <View style={{ height: effectHeight }} />}
         {stringOrder.map((string) => (
           <View key={string} style={[styles.stringLabel, rowStyle]}>
             <Text
@@ -733,7 +800,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
           scrollOffset.current = event.nativeEvent.contentOffset.x;
         }}
         scrollEventThrottle={32}
-        scrollEnabled={rangeAnchor.current === null}
+        scrollEnabled={!draggingRange}
         showsHorizontalScrollIndicator={!compact}
         onScrollBeginDrag={onManualScroll}
         contentContainerStyle={styles.staffContent}
@@ -742,7 +809,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
           {selectedRange && (
             <View
               pointerEvents="box-none"
-              style={[StyleSheet.absoluteFillObject, { top: barLineTop }]}
+              style={[StyleSheet.absoluteFillObject, { top: stringsTop }]}
             >
               {columns.map((position, index) =>
                 position >= selectedRange.start &&
@@ -792,12 +859,39 @@ const TablatureStaff = React.memo(function TablatureStaff({
               </View>
             ))}
           </View>
+          {effectRuns.map(({ technique, spans }) => (
+            <View key={technique} style={styles.effectRow}>
+              {spans.map((span) => {
+                const first = Math.max(
+                  0,
+                  columns.findIndex((at) => at >= span.start)
+                );
+                const end = columns.findIndex((at) => at >= span.end);
+                const width =
+                  ((end < 0 ? columns.length : end) - first) * cellWidth;
+                return (
+                  <View
+                    key={span.start}
+                    style={[
+                      styles.effectSpan,
+                      { left: first * cellWidth, width }
+                    ]}
+                  >
+                    <Text style={styles.effectLabel}>
+                      {technique === "palmMute" ? "P.M." : "l.r."}
+                    </Text>
+                    <View style={styles.effectRule} />
+                  </View>
+                );
+              })}
+            </View>
+          ))}
           <View
             pointerEvents="none"
             style={[
               styles.barLines,
               {
-                top: barLineTop + rowHeight / 2,
+                top: stringsTop + rowHeight / 2,
                 height: barLineHeight - rowHeight
               }
             ]}
@@ -830,6 +924,14 @@ const TablatureStaff = React.memo(function TablatureStaff({
                 const continued = !!note && note.tick < start;
                 const cell = { string, tick: position };
                 const chosen = sameNote(selected, note ?? cell);
+                const symbol = note
+                  ? tabNoteSymbols({
+                      ...note,
+                      techniques: note.techniques?.filter(
+                        (technique) => !lineTechniques.includes(technique)
+                      )
+                    })
+                  : "";
                 return (
                   <View
                     key={position}
@@ -861,12 +963,21 @@ const TablatureStaff = React.memo(function TablatureStaff({
                               }
                         }
                         disabled={disabled || readOnly || !onNote}
-                        onPress={readOnly ? undefined : () => onNote?.(note)}
+                        onPress={readOnly ? undefined : () => pressNote(note)}
                         onLongPress={
                           readOnly || !onRange
                             ? undefined
-                            : () => beginRange(position, tabNoteDuration(note))
+                            : () =>
+                                beginRange(
+                                  position,
+                                  tabNoteDuration(note),
+                                  true
+                                )
                         }
+                        onPressOut={() => {
+                          rangeAnchor.current = null;
+                          setDraggingRange(false);
+                        }}
                         style={[
                           styles.note,
                           !compact && styles.editableCell,
@@ -948,12 +1059,12 @@ const TablatureStaff = React.memo(function TablatureStaff({
                                 ? `(${note.fret})`
                                 : note.fret}
                         </Text>
-                        {!!tabNoteSymbols(note) && (
+                        {!!symbol && (
                           <Text
                             numberOfLines={1}
                             style={[styles.noteSymbol, styles.noteMark]}
                           >
-                            {tabNoteSymbols(note)}
+                            {symbol}
                           </Text>
                         )}
                       </NoteTarget>
@@ -971,8 +1082,12 @@ const TablatureStaff = React.memo(function TablatureStaff({
                         onLongPress={
                           !onRange
                             ? undefined
-                            : () => beginRange(position, grid)
+                            : () => beginRange(position, grid, true)
                         }
+                        onPressOut={() => {
+                          rangeAnchor.current = null;
+                          setDraggingRange(false);
+                        }}
                         style={[
                           styles.emptyCell,
                           { width: cellWidth, height: editingRowHeight },
@@ -1103,15 +1218,20 @@ const TablatureStaff = React.memo(function TablatureStaff({
                       accessibilityLabel={t(handle.label)}
                       onPressIn={() => {
                         rangeAnchor.current = handle.anchor;
+                        setDraggingRange(true);
                       }}
-                      onPress={() => {
+                      onTouchMove={(event) =>
+                        moveRange(event.nativeEvent.pageX)
+                      }
+                      onPressOut={() => {
                         rangeAnchor.current = null;
+                        setDraggingRange(false);
                       }}
                       style={[
                         styles.rangeHandle,
                         {
-                          left: index * cellWidth - 14,
-                          top: barLineTop + barLineHeight - 14
+                          left: index * cellWidth - 18,
+                          top: stringsTop + barLineHeight - 18
                         }
                       ]}
                     >
@@ -1249,6 +1369,8 @@ export function TablaturePanel({
     [tab.rests, restSelection]
   );
   const hasEvents = tab.notes.length > 0 || !!tab.rests?.length;
+  const chordAt = (notes: TabNote[], at: number) =>
+    notes.filter((note) => note.tick === at);
   const cursor = selection ?? {
     string: 5,
     tick: restSelection ?? bar * barTicks
@@ -1299,7 +1421,7 @@ export function TablaturePanel({
     setRestSelection(null);
     setPage(Math.floor(note.tick / barTicks));
     setEditError(null);
-    preview(note);
+    preview(chordAt(tab.notes, note.tick));
   };
   const selectCell = (cell: Selection) => {
     setNoteRange(null);
@@ -1355,9 +1477,24 @@ export function TablaturePanel({
     return true;
   };
   const removeSelection = () => {
-    if (readOnly || (!scopedNotes.length && !noteRange)) return;
+    if (readOnly || (!scopedNotes.length && !noteRange && !selectedRest))
+      return;
     cancelPreview();
     fretInput.current = null;
+    if (selectedRest && !scopedNotes.length && !noteRange) {
+      if (
+        apply({
+          tab: {
+            ...tab,
+            rests: (tab.rests ?? []).filter((rest) => rest !== selectedRest)
+          }
+        })
+      ) {
+        setSelection({ ...cursor, tick: selectedRest.tick });
+        setRestSelection(null);
+      }
+      return;
+    }
     if (apply(deleteTabSelection(tab, scopedNotes, noteRange ?? undefined))) {
       setSelection(cursor);
       setRestSelection(null);
@@ -1405,8 +1542,9 @@ export function TablaturePanel({
               : [])
           ]
     );
-    if (!apply(putTabNote({ ...tab, rests }, next, selected))) return;
-    preview(next);
+    const result = putTabNote({ ...tab, rests }, next, selected);
+    if (!apply(result)) return;
+    preview(chordAt(result.tab!.notes, next.tick));
     setSelection(next);
     setRestSelection(null);
     fretInput.current = { ...cursor, fret, time };
@@ -1449,16 +1587,6 @@ export function TablaturePanel({
     setContextVisible(true);
     transport.setRange(bounded);
   };
-  const changeNote = (patch: Partial<TabNote>) => {
-    if (!selected || readOnly) return;
-    const next = { ...selected, ...patch };
-    if (apply(putTabNote(tab, next, selected))) {
-      if (next.fret !== selected.fret || next.string !== selected.string)
-        preview(next);
-      setSelection(next);
-      setPage(Math.floor(next.tick / barTicks));
-    }
-  };
   const noteSettings = selected ?? insertSettings;
   const scopedNotes = noteRange
     ? tab.notes.filter(
@@ -1473,18 +1601,16 @@ export function TablaturePanel({
       setInsertSettings((settings) => ({ ...settings, ...patch }));
       return;
     }
-    if (
-      apply({
-        tab: {
-          ...tab,
-          version: 3,
-          notes: tab.notes.map((note) =>
-            scopedNotes.includes(note) ? { ...note, ...patch } : note
-          )
-        }
-      })
-    )
-      preview({ ...selected, ...patch });
+    const next = {
+      ...tab,
+      version: 3 as const,
+      notes: tab.notes.map((note) =>
+        (noteRange ? scopedNotes.includes(note) : note.tick === selected.tick)
+          ? { ...note, ...patch }
+          : note
+      )
+    };
+    if (apply({ tab: next })) preview(chordAt(next.notes, selected.tick));
   };
   const toggleTechnique = (technique: TabTechnique) =>
     patchSettings({
@@ -1556,8 +1682,13 @@ export function TablaturePanel({
   const changeDuration = (next: number, tuplet?: TabNote["tuplet"]) => {
     if (readOnly) return;
     fretInput.current = null;
-    if (selected) changeNote({ duration: next, tuplet });
-    else if (selectedRest) changeRest({ duration: next });
+    if (selected) {
+      const notes = tab.notes.map((note) =>
+        note.tick === selected.tick ? { ...note, duration: next, tuplet } : note
+      );
+      if (apply({ tab: { ...tab, version: 3, notes } }))
+        setSelection({ string: selected.string, tick: selected.tick });
+    } else if (selectedRest) changeRest({ duration: next });
     else {
       setEditError(null);
       setInsertSettings((settings) => ({ ...settings, tuplet }));
@@ -2214,7 +2345,8 @@ export function TablaturePanel({
                     {
                       icon: "trash-can-outline",
                       label: "TabDeleteNote",
-                      disabled: !scopedNotes.length && !noteRange,
+                      disabled:
+                        !scopedNotes.length && !noteRange && !selectedRest,
                       action: removeSelection
                     },
                     {
@@ -2573,15 +2705,15 @@ const styles = StyleSheet.create({
   barGrid: { flexDirection: "row", flexWrap: "wrap" },
   rangeHandle: {
     position: "absolute",
-    width: 28,
-    height: 28,
+    width: 36,
+    height: 36,
     alignItems: "center",
     justifyContent: "center"
   },
   rangeHandleDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
     backgroundColor: palette.glass.accent
   },
   staffPrefix: { flexDirection: "row", alignItems: "center" },
@@ -2800,6 +2932,16 @@ const styles = StyleSheet.create({
   barStart: { left: 0 },
   barEnd: { right: 0 },
   beatRow: { height: 18, flexDirection: "row", alignItems: "center" },
+  effectRow: { height: 16 },
+  effectSpan: {
+    position: "absolute",
+    height: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingLeft: 3
+  },
+  effectLabel: { color: palette.glass.accent, fontSize: 10, marginRight: 4 },
+  effectRule: { flex: 1, height: 1, backgroundColor: palette.glass.accent },
   denseBeats: { height: 14 },
   beat: { color: palette.glass.muted, fontSize: 10, textAlign: "center" },
   activeBeat: { color: palette.glass.accent },
