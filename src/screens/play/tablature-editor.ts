@@ -147,7 +147,9 @@ export function copyTabBar(tab: Tablature, bar: number): TabBarClipboard {
         )
       })),
     rests: (tab.rests ?? [])
-      .filter((rest) => rest.tick < end && tabTickEnd(rest.tick, rest.duration) > start)
+      .filter(
+        (rest) => rest.tick < end && tabTickEnd(rest.tick, rest.duration) > start
+      )
       .map((rest) => ({
         tick: roundTabTick(Math.max(start, rest.tick) - start),
         duration: roundTabTick(
@@ -328,7 +330,8 @@ export function copyTabSelection(
       ? []
       : (tab.rests ?? [])
           .filter(
-            (rest) => rest.tick < end && tabTickEnd(rest.tick, rest.duration) > start
+            (rest) =>
+              rest.tick < end && tabTickEnd(rest.tick, rest.duration) > start
           )
           .map((rest) => ({
             tick: roundTabTick(Math.max(start, rest.tick) - start),
