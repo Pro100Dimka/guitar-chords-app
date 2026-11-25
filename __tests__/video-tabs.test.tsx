@@ -19,7 +19,7 @@ const song = {
 let screen: Renderer.ReactTestRenderer;
 const button = (label: string) =>
   screen.root.findAllByType(TouchableOpacity).find((node) =>
-    JSON.stringify(node.props.children).includes(`"${label}"`)
+    node.findAll((child) => child.props.children === label).length > 0
   )!;
 
 async function show(width: number) {
