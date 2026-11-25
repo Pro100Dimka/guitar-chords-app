@@ -69,7 +69,12 @@ export default function SongRecorder({
     if (mounted.current) setPlaying("");
   }, []);
   const reportListError = useCallback(() => {
-    if (mounted.current && activeRef.current && foreground.current)
+    if (
+      mounted.current &&
+      activeRef.current &&
+      visibleRef.current &&
+      foreground.current
+    )
       Alert.alert(t("RecordingError"));
   }, [t]);
   useEffect(() => {
@@ -376,6 +381,8 @@ export default function SongRecorder({
                           }
                           playingRef.current = take.path;
                           setPlaying(take.path);
+                        } catch (error) {
+                          if (!request.signal.aborted) throw error;
                         } finally {
                           if (playbackRequest.current === request)
                             playbackRequest.current = null;

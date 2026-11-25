@@ -6,7 +6,11 @@ import Router from "../src/router";
 import { initDatabase } from "../src/components/database";
 import { initLanguage } from "../src/locales";
 import SplashScreen from "react-native-splash-screen";
-import { Platform, Text } from "react-native";
+import { AppState, Platform, Text, type AppStateStatus } from "react-native";
+import {
+  flushPreferences,
+  loadPreferences
+} from "../src/components/preferences";
 jest.mock("@shopify/react-native-skia", () => {
   const fonts = {};
   return { useFonts: () => fonts };
@@ -147,4 +151,51 @@ test("initialization failure shows a retry that can recover", async () => {
   expect(screen!.root.findAllByType(Router)).toHaveLength(1);
   await ReactTestRenderer.act(async () => screen!.unmount());
   log.mockRestore();
+});
+
+test("backgrounding during a failed preference load never overwrites storage", async () => {
+  const listeners = new Set<(state: AppStateStatus) => void>();
+  const subscription = jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      listeners.add(listener);
+      return { remove: () => listeners.delete(listener) };
+    });
+  const log = jest.spyOn(console, "error").mockImplementation(() => {});
+  let rejectLoad!: (error: Error) => void;
+  jest.mocked(loadPreferences).mockReturnValueOnce(
+    new Promise((_resolve, reject) => {
+      rejectLoad = reject;
+    })
+  );
+  jest.mocked(flushPreferences).mockClear();
+  let screen: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(async () => {
+      screen = ReactTestRenderer.create(<App />);
+    });
+    await ReactTestRenderer.act(async () =>
+      listeners.forEach((listener) => listener("background"))
+    );
+    expect(flushPreferences).not.toHaveBeenCalled();
+    await ReactTestRenderer.act(async () =>
+      rejectLoad(new Error("PreferenceReadFailed"))
+    );
+    await ReactTestRenderer.act(async () =>
+      listeners.forEach((listener) => listener("background"))
+    );
+    expect(flushPreferences).not.toHaveBeenCalled();
+    expect(screen!.root.findAllByType(Router)).toHaveLength(0);
+    await ReactTestRenderer.act(async () =>
+      screen!.root.findByProps({ accessibilityRole: "button" }).props.onPress()
+    );
+    await ReactTestRenderer.act(async () =>
+      listeners.forEach((listener) => listener("background"))
+    );
+    expect(flushPreferences).toHaveBeenCalledTimes(1);
+  } finally {
+    if (screen) await ReactTestRenderer.act(async () => screen!.unmount());
+    subscription.mockRestore();
+    log.mockRestore();
+  }
 });

@@ -75,11 +75,13 @@ const App: FC = () => {
     };
   }, [attempt]);
   useEffect(() => {
+    // Never persist the empty startup store over unread or damaged data.
+    if (!ready) return;
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") flushPreferences();
     });
     return () => subscription.remove();
-  }, []);
+  }, [ready]);
   useEffect(() => {
     if (
       !launching ||

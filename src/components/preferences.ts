@@ -162,23 +162,30 @@ export function flushPreferences() {
     finish = resolve;
   });
   saving = result;
-  db.transaction(
-    (tx) => writePreferences(tx, state),
-    () => {
-      saving = undefined;
-      usePreferences.setState({ saveError: true });
-      finish();
-    },
-    () => {
-      saving = undefined;
-      savedRevision = savingRevision;
-      savedSongs = state.songs;
-      if (savingRevision === revision) {
-        usePreferences.setState({ saveError: false });
-        finish();
-      } else void flushPreferences().then(finish);
-    }
-  );
+  const failed = () => {
+    if (saving !== result) return;
+    saving = undefined;
+    usePreferences.setState({ saveError: true });
+    finish();
+  };
+  try {
+    db.transaction(
+      (tx) => writePreferences(tx, state),
+      failed,
+      () => {
+        if (saving !== result) return;
+        saving = undefined;
+        savedRevision = savingRevision;
+        savedSongs = state.songs;
+        if (savingRevision === revision) {
+          usePreferences.setState({ saveError: false });
+          finish();
+        } else void flushPreferences().then(finish);
+      }
+    );
+  } catch {
+    failed();
+  }
   return result;
 }
 export function writePreferences(tx: SQLTransaction, state: Preferences) {
@@ -338,6 +345,20 @@ export function normalizeRhythm(value: unknown): SongRhythm {
         : ""
   };
 }
+function readSavedSong(value: unknown): SongPreferences {
+  try {
+    if (!record(value)) throw new Error("PreferenceReadFailed");
+    const song = normalizeSongPreferences(value);
+    // Do not silently discard a damaged score during an otherwise successful
+    // startup or legacy migration. The stored document must remain recoverable.
+    if (value.tablature !== undefined && !song.tablature)
+      throw new Error("PreferenceReadFailed");
+    return song;
+  } catch {
+    usePreferences.setState({ saveError: true });
+    throw new Error("PreferenceReadFailed");
+  }
+}
 export async function loadPreferences() {
   const checkpoint = cooperativeWork();
   const [size] = await getAllItems<{ length: number }>({
@@ -369,7 +390,7 @@ export async function loadPreferences() {
   if (record(data.songs))
     for (const [id, song] of Object.entries(data.songs)) {
       if (record(song) && /^\d+$/.test(id))
-        songs[id] = normalizeSongPreferences(song);
+        songs[id] = readSavedSong(song);
       const pause = checkpoint();
       if (pause) await pause;
     }
@@ -395,7 +416,7 @@ export async function loadPreferences() {
       return part;
     }).join("");
     try {
-      songs[id] = normalizeSongPreferences(JSON.parse(text));
+      songs[id] = readSavedSong(JSON.parse(text));
     } catch {
       usePreferences.setState({ saveError: true });
       throw new Error("PreferenceReadFailed");
