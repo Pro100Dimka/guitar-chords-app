@@ -389,8 +389,7 @@ export async function loadPreferences() {
   const songs: Record<string, SongPreferences> = {};
   if (record(data.songs))
     for (const [id, song] of Object.entries(data.songs)) {
-      if (record(song) && /^\d+$/.test(id))
-        songs[id] = readSavedSong(song);
+      if (record(song) && /^\d+$/.test(id)) songs[id] = readSavedSong(song);
       const pause = checkpoint();
       if (pause) await pause;
     }

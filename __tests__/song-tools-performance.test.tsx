@@ -205,9 +205,9 @@ test("recording events are scoped to the active song without duplicate alerts", 
   const listeners = new Set<(event: PerformanceEvent) => void>();
   jest.spyOn(performanceAudio, "listen").mockImplementation((listener) => {
     listeners.add(listener);
-    return { remove: () => listeners.delete(listener) } as ReturnType<
-      typeof performanceAudio.listen
-    >;
+    return {
+      remove: () => { listeners.delete(listener); }
+    } as unknown as ReturnType<typeof performanceAudio.listen>;
   });
   const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
   await act(async () => {

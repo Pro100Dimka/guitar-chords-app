@@ -375,6 +375,9 @@ export default function SongRecorder({
                             !activeRef.current ||
                             AppState.currentState !== "active"
                           ) {
+                            // Native playTake starts on its serial queue before
+                            // resolving. A cancelled request has already issued
+                            // its stop; a late response must not stop new audio.
                             if (playbackRequest.current === request)
                               stopOwnedPlayback();
                             return;

@@ -2011,9 +2011,12 @@ test.each(["screen", "background"])(
         });
       }
     }
+    // Stop is issued when ownership is lost, before the native reply. A
+    // delayed reply must not stop audio that may now belong to another screen.
+    expect(performanceAudio.stopPlayback).toHaveBeenCalled();
     jest.mocked(performanceAudio.stopPlayback).mockClear();
     await act(async () => finish(20000));
-    expect(performanceAudio.stopPlayback).toHaveBeenCalled();
+    expect(performanceAudio.stopPlayback).not.toHaveBeenCalled();
     await act(async () =>
       screen!.root
         .findAllByType(Action)
