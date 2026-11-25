@@ -123,6 +123,40 @@ describe("Musicaccord public chord provider", () => {
     expect(await finish()).toEqual([]);
   });
 
+  it.each([false, true])(
+    "requires actual lyrics with mixed valid and malformed chord markers: %s",
+    async (hasLyrics) => {
+      const lyric = "Вигаданий рядок для перевірки";
+      const mixed = `<div class="musicaccord-song"><span class="ch" data-c="Am">Am</span> <span class="ch" data-c="Hm">Hm</span>${hasLyrics ? `<br>${lyric}` : ""}</div>`;
+      request.mockImplementation(async (input) => {
+        const url = String(input);
+        if (url === combined) return new Response(card());
+        if (url === candidate) return new Response(page(mixed));
+        return empty(url);
+      });
+      const options = await finish();
+      if (hasLyrics)
+        expect(options).toEqual([
+          expect.objectContaining({
+            hasChords: true,
+            content: `[Am] Hm\n${lyric}`
+          })
+        ]);
+      else expect(options).toEqual([]);
+    }
+  );
+
+  it("rejects malformed markers that leave the displayed chord row unparseable", async () => {
+    const malformed = `<div class="musicaccord-song"><span class="ch" data-c="Am">[</span>Am<br>Вигаданий рядок для перевірки</div>`;
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === combined) return new Response(card());
+      if (url === candidate) return new Response(page(malformed));
+      return empty(url);
+    });
+    expect(await finish()).toEqual([]);
+  });
+
   it("retries the title only after zero verified combined-query candidates", async () => {
     const wrong = `${origin}/songs/another-performer/`;
     request.mockImplementation(async (input) => {

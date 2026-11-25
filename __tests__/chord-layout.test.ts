@@ -22,7 +22,15 @@ test.each([
   ["[Intro]\nAm G F C", false],
   ["Вступление: см. табы и ноты\nAm G F C", false],
   ["Verse:\n[Am] [G]\n{tempo: 100}\nCapo: 2", false],
-  ["[Am] [G]\ne|--0--2--3--|", false]
+  ["[Am] [G]\ne|--0--2--3--|", false],
+  [
+    "Song: Example\nArtist: Example performer\nTabbed by: Example author\nAm C\ne|--0--1--|",
+    false
+  ],
+  [
+    "Song: Example\nArtist: Example performer\nTabbed by: Example author\nAm C\ne|--0--1--|\nOriginal words beside the river",
+    true
+  ]
 ])(
   "a playable recognition result requires lyrics and chords: %s",
   async (content, expected) => {
@@ -34,6 +42,39 @@ test.each([
 
 test("the existing chord-only parser still accepts an instrumental progression", async () => {
   await expect(hasSongChordsAsync("Am G C F")).resolves.toBe(true);
+});
+
+test.each([
+  "Song: Example",
+  "Title = Example",
+  "Artist - Example performer",
+  "Album: Example album",
+  "Tabbed by: Example author",
+  "Transcribed by = Example author",
+  "Arranged by: Example author",
+  "Tabbed by Example author",
+  "Transcribed by Example author",
+  "Arranged by Example author"
+])("explicit chart metadata is not a lyric line: %s", async (header) => {
+  const content = `${header}\nAm C\ne|--0--1--|`;
+  await expect(hasSongChordsAsync(content, undefined, true)).resolves.toBe(
+    false
+  );
+  await expect(hasSongChordsAsync(content)).resolves.toBe(true);
+});
+
+test.each([
+  "Song birds wake before the dawn",
+  "Title my dreams with the morning light",
+  "Artist of my heart, come home",
+  "Album pages carry all the years",
+  "Our melody was tabbed by the candlelight",
+  "Our story was transcribed by the rain",
+  "The stars were arranged by the wind"
+])("metadata words in ordinary lyrics remain valid: %s", async (line) => {
+  await expect(
+    hasSongChordsAsync(`Am C\n${line}`, undefined, true)
+  ).resolves.toBe(true);
 });
 
 test.each(["C x2", "C (x3)", "|: C :|", "[Verse] C"])(

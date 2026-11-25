@@ -61,9 +61,8 @@ require.extensions[".ts"] = (module, filename) => {
   );
 };
 const api = require(path.join(root, "src/components/song-autofill/lyrics.ts"));
-const { hasSongChordsAsync } = require(
-  path.join(root, "src/screens/song/chords.ts")
-);
+const { hasSongChordsAsync, isChordLine, chordNotationPattern, normalizeChord } =
+  require(path.join(root, "src/screens/song/chords.ts"));
 const timeoutMs = 60000;
 const startedAt = new Date().toISOString();
 const descriptor = fs.openSync(outputPath, "wx");
@@ -87,13 +86,16 @@ write({
   concurrency:
     "One song at a time in one process; application provider concurrency, crawl delay and cooldowns unchanged",
   successCriterion:
-    "Provider-validated identity plus independent title/artist comparison and hasSongChordsAsync(content, signal, true)",
+    "Provider-validated identity plus repeated title/artist field checks using production normalization and hasSongChordsAsync(content, signal, true)",
+  lyricCorroboration:
+    "Diagnostic-only unique normalized lyric-line overlap with identity-matching LRCLIB plainLyrics; does not change status",
   includesAudioRecognition: false,
   recordsLyrics: false
 });
 
 let requests = [];
 let searchMetadataJobs = [];
+let lyricReferenceState;
 const boundedLabel = (value, limit) =>
   value.replace(/[\u0000-\u001f\u007f\s]+/g, " ").trim().slice(0, limit);
 function guitareTabSearchMetadata(text) {
@@ -128,6 +130,7 @@ globalThis.fetch = async (url, options) => {
   const trace = { url: String(url), status: null, ms: null };
   requests.push(trace);
   const metadataJobs = searchMetadataJobs;
+  const references = lyricReferenceState;
   const began = Date.now();
   try {
     const response = await rawFetch(url, options);
@@ -164,6 +167,39 @@ globalThis.fetch = async (url, options) => {
         return text;
       };
     }
+    if (
+      response.status === 200 &&
+      /^https:\/\/lrclib\.net\/api\/search\?/.test(trace.url) &&
+      references
+    ) {
+      const readJson = response.json.bind(response);
+      response.json = async () => {
+        const data = await readJson();
+        try {
+          if (!references.closed && Array.isArray(data)) {
+            for (const item of data) {
+              if (references.lyrics.length === 20) break;
+              if (
+                item &&
+                !item.instrumental &&
+                typeof item.id === "number" &&
+                typeof item.trackName === "string" &&
+                typeof item.artistName === "string" &&
+                typeof item.plainLyrics === "string" &&
+                item.plainLyrics.length <= 200000 &&
+                item.plainLyrics.trim() &&
+                api.matchingIdentity(references.title, item.trackName) &&
+                sameArtist(references.artist, item.artistName, "LRCLIB")
+              )
+                references.lyrics.push(item.plainLyrics);
+            }
+          }
+        } catch {
+          references.failed = true;
+        }
+        return data;
+      };
+    }
     return response;
   } catch (error) {
     trace.error = error?.name || "Error";
@@ -190,6 +226,49 @@ function sameArtist(expected, actual, source) {
       api.matchingIdentity(artistKey(credit), artistKey(name))
     )
   );
+}
+
+const lyricLineKey = (line) =>
+  line.normalize("NFKC").toLowerCase().replace(/['’]/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+function lyricLines(content, title) {
+  const lines = new Set();
+  const titleKey = lyricLineKey(title);
+  for (const line of content.split(/\r?\n/)) {
+    if (isChordLine(line)) continue;
+    const plain = line.replace(/\[([^\[\]]+)\]/g, (marked, chord) =>
+      chordNotationPattern.test(normalizeChord(chord)) ? "" : marked
+    );
+    if (isChordLine(plain)) continue;
+    const key = lyricLineKey(plain);
+    if (
+      key !== titleKey &&
+      key.split(" ").filter((word) => /\p{L}/u.test(word)).length >= 3
+    )
+      lines.add(key);
+  }
+  return lines;
+}
+function corroborateLyrics(content, references) {
+  try {
+    const candidateLines = lyricLines(content, references.title);
+    references.lines ??= new Set(
+      references.lyrics.flatMap((lyrics) => [...lyricLines(lyrics, references.title)])
+    );
+    const matchedLineCount = [...candidateLines].filter((line) => references.lines.has(line)).length;
+    return {
+      matchedLineCount,
+      referenceLineCount: references.lines.size,
+      candidateLineCount: candidateLines.size,
+      status: references.failed ? "diagnostic_error"
+        : matchedLineCount ? "overlap"
+          : !references.lines.size ? "unknown_no_reference"
+            : !candidateLines.size ? "unknown_no_candidate_lines"
+              : "unknown_no_overlap"
+    };
+  } catch {
+    return { matchedLineCount: 0, referenceLineCount: 0, candidateLineCount: 0, status: "diagnostic_error" };
+  }
 }
 
 const completed = [];
@@ -226,6 +305,9 @@ function summary(finished) {
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     requests = [];
     searchMetadataJobs = [];
+    const references = (lyricReferenceState = {
+      title: song.title, artist: song.artist, lyrics: [], closed: false, failed: false
+    });
     const result = {
       kind: "song",
       id: song.id,
@@ -249,7 +331,7 @@ function summary(finished) {
         const lyricsAndChords =
           !!option.hasChords &&
           (await hasSongChordsAsync(option.content, controller.signal, true));
-        result.options.push({
+        const optionMetadata = {
           title: option.title,
           artist: option.artist,
           source: option.source,
@@ -258,7 +340,12 @@ function summary(finished) {
           providerHasChords: !!option.hasChords,
           lyricsAndChords,
           identityMatches
-        });
+        };
+        result.options.push(optionMetadata);
+        if (option.source !== "LRCLIB")
+          searchMetadataJobs.push(() => {
+            optionMetadata.lyricCorroboration = corroborateLyrics(option.content, references);
+          });
       }
       result.status = result.options.some(
         (option) => option.identityMatches && option.lyricsAndChords
@@ -292,8 +379,11 @@ function summary(finished) {
     }
     await new Promise(setImmediate);
     result.ms = Date.now() - began;
+    references.closed = true;
     // Parse after lookup timing, before serialization; retain no response bodies.
     for (const collect of searchMetadataJobs.splice(0)) collect();
+    references.lyrics.length = 0;
+    references.lines?.clear();
     result.requests = requests;
     completed.push(result);
     write(result);

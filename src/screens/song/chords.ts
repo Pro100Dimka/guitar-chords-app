@@ -1168,6 +1168,10 @@ function* hasSongChordsWork(
           !/^(?:capo|капо(?:дастр)?|tempo|bpm|темп|tuning|строй)\s*[:\d]/iu.test(
             words
           ) &&
+          !/^(?:song|title|artist|album)(?:\s*[:=]|\s+[-–—]\s)/iu.test(words) &&
+          !/^(?:tabbed|transcribed|arranged)\s+by(?:\s|[:=–—-])/iu.test(
+            words
+          ) &&
           !/^[eBGDAE]\s*[|:][\d\s|/\\().~xXhpb\-]+$/.test(words) &&
           /\p{L}{2}/u.test(words)
         )

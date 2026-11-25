@@ -63,6 +63,7 @@ describe("lyrics-only fallback", () => {
       ["ТДМЕ", "TDME (Там Де Ми Є) (UA Version)"],
       ["Дежавю", "Дежавю (UA Version)"],
       ["UV", "UV (UA Version)"],
+      ["IT", "IT (Italian Translation)"],
       ["RA", "RA (Remix Arrangement)"],
       ["CB", "CB (Cover Band)"],
       ["КВ", "КВ (Кавер Версия)"],
@@ -876,6 +877,113 @@ describe("content provider failover", () => {
     ).toBe("Am C\nOriginal example words");
   });
 
+  it.each([
+    [
+      "Shape of You",
+      "Ed Sheeran",
+      "Shape Of You tab",
+      "/e/ed-sheeran/389466.html"
+    ],
+    ["Caruso", "Lucio Dalla", "Caruso tab", "/l/lucio-dalla/33843.html"]
+  ])(
+    "checks the detail for a matching GuitareTab tab listing: %s",
+    async (track, performer, label, path) => {
+      const canonical = `https://www.guitaretab.com${path}`;
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.startsWith("https://www.guitaretab.com/fetch/?"))
+          return new Response(
+            `<div class="gt-list__row"><a href="${path.slice(0, path.lastIndexOf("/") + 1)}">${performer}</a><a href="${path}">${label}</a></div>`
+          );
+        if (value === canonical)
+          return new Response(
+            `<h1>${track}</h1><h2>${performer}</h2><pre>Am C\nOriginal synthetic example words</pre>`
+          );
+        return response(value);
+      });
+      const result = lookup(track, performer);
+      await jest.runAllTimersAsync();
+      expect(await result).toEqual([
+        expect.objectContaining({
+          source: "GuitareTab",
+          url: canonical,
+          hasChords: true
+        })
+      ]);
+      expect(request.mock.calls.some(([url]) => url === canonical)).toBe(true);
+    }
+  );
+
+  it.each([
+    ["tab-only", "e|--0--2--3--|\nB|--1--3--0--|"],
+    ["lyrics-only", "Original synthetic example words"]
+  ])(
+    "does not mark a GuitareTab %s detail as lyrics and chords",
+    async (_, body) => {
+      const canonical = "https://www.guitaretab.com/o/oasis/123.html";
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.startsWith("https://www.guitaretab.com/fetch/?"))
+          return new Response(
+            `<div class="gt-list__row"><a href="/o/oasis/">${artist}</a><a href="/o/oasis/123.html">${title} tab</a></div>`
+          );
+        if (value === canonical)
+          return new Response(
+            `<h1>${title}</h1><h2>${artist}</h2><pre>${body}</pre>`
+          );
+        return response(value);
+      });
+      const result = lookup(title, artist);
+      await jest.runAllTimersAsync();
+      expect(await result).toEqual([
+        expect.objectContaining({
+          source: "GuitareTab",
+          url: canonical,
+          hasChords: false
+        })
+      ]);
+    }
+  );
+
+  it.each([false, true])(
+    "limits GuitareTab tab fallback to three details and prefers any chords listing: %s",
+    async (hasChordListing) => {
+      const ids = [101, 102, 103, 104];
+      const search =
+        ids
+          .map(
+            (id) =>
+              `<div class="gt-list__row"><a href="/o/oasis/">${artist}</a><a href="/o/oasis/${id}.html">${title} tab (ver ${id})</a></div>`
+          )
+          .join("") +
+        (hasChordListing
+          ? `<div class="gt-list__row"><a href="/o/oasis/">${artist}</a><a href="/o/oasis/999.html">${title} chords</a></div>`
+          : "");
+      request.mockImplementation(async (url) => {
+        const value = String(url);
+        if (value.startsWith("https://www.guitaretab.com/fetch/?"))
+          return new Response(search);
+        if (/^https:\/\/www\.guitaretab\.com\/o\/oasis\/\d+\.html$/.test(value))
+          return new Response(chart);
+        return response(value);
+      });
+      const result = lookup(title, artist);
+      await jest.runAllTimersAsync();
+      expect((await result).every((option) => option.hasChords)).toBe(true);
+      expect(
+        request.mock.calls
+          .map(([url]) => String(url))
+          .filter((url) =>
+            /^https:\/\/www\.guitaretab\.com\/o\/oasis\/\d+\.html$/.test(url)
+          )
+      ).toEqual(
+        (hasChordListing ? [999] : ids.slice(0, 3)).map(
+          (id) => `https://www.guitaretab.com/o/oasis/${id}.html`
+        )
+      );
+    }
+  );
+
   it("tries another verified arrangement when the first version has no chords", async () => {
     const search = [123, 456]
       .map(
@@ -1161,14 +1269,19 @@ describe("content provider failover", () => {
     ).toBe(true);
   });
 
-  it.each(["different artist", "external link"])(
-    "rejects a GuitareTab %s instead of importing an unrelated chart",
-    async (failure) => {
+  it.each([
+    ["chords", "different artist"],
+    ["chords", "external link"],
+    ["tab", "different artist"],
+    ["tab", "external link"]
+  ])(
+    "rejects a GuitareTab %s %s instead of importing an unrelated chart",
+    async (kind, failure) => {
       request.mockImplementation(async (url) => {
         const value = String(url);
         if (value.startsWith("https://www.guitaretab.com/fetch/?"))
           return new Response(
-            `<div class="gt-list__row"><a href="/o/oasis/">Oasis</a><a href="${failure === "external link" ? "https://example.com/song" : "/o/oasis/123.html"}">${title} chords</a></div>`
+            `<div class="gt-list__row"><a href="/o/oasis/">Oasis</a><a href="${failure === "external link" ? "https://example.com/song" : "/o/oasis/123.html"}">${title} ${kind}</a></div>`
           );
         if (value === "https://www.guitaretab.com/o/oasis/123.html")
           return new Response(
@@ -1186,6 +1299,11 @@ describe("content provider failover", () => {
       expect(
         request.mock.calls.some(([url]) => String(url).includes("example.com"))
       ).toBe(false);
+      expect(
+        request.mock.calls.some(([url]) =>
+          String(url) === "https://www.guitaretab.com/o/oasis/123.html"
+        )
+      ).toBe(failure === "different artist");
     }
   );
 

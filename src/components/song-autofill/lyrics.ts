@@ -270,7 +270,7 @@ function publishedAbbreviationNames(name: string, title = false) {
     words.length < 2 ||
     words.length > 8 ||
     words.some((word) =>
-      /^(?:feat|ft|featuring|with|cover|version|remix|live|acoustic|instrumental|кавер|версія|версия|переклад|перевод)$/iu.test(
+      /^(?:feat|ft|featuring|with|cover|version|translation|remix|live|acoustic|instrumental|кавер|версія|версия|переклад|перевод)$/iu.test(
         normalize(word)
       )
     ) ||
@@ -913,6 +913,7 @@ async function lookupMusicAccord(
     );
     if (!body) continue;
     const checkpoint = sourceWork(signal);
+    const invalidSpans = [];
     // Keep the site's explicit chord anchors beside footnotes such as Em*.
     for (const span of DomUtils.getElementsByTagName("span", body.children)) {
       const chord = span.attribs["data-c"],
@@ -926,26 +927,45 @@ async function lookupMusicAccord(
         text.data === chord
       )
         text.data = `[${chord}]`;
+      else if (hasClass("ch")(span)) invalidSpans.push(span);
       const pause = checkpoint();
       if (pause) await pause;
     }
-    let content = await normalizeSourceText(
-      await sourceBody(body, false, signal),
-      signal
-    );
-    if (!content || content.length > 200000) continue;
-    const lines: string[] = [];
-    for (const line of content.split("\n")) {
-      const plain = line.replace(/\[([^\[\]]+)\]/g, (marked, chord: string) =>
-        chordNotationPattern.test(chord) ? chord : marked
+    const chartText = async () => {
+      const content = await normalizeSourceText(
+        await sourceBody(body, false, signal),
+        signal
       );
-      // Plain chord rows retain their alignment and cannot count as lyrics.
-      lines.push(isChordLine(plain) ? plain : line);
-      const pause = checkpoint();
-      if (pause) await pause;
+      if (!content || content.length > 200000) return "";
+      const lines: string[] = [];
+      for (const line of content.split("\n")) {
+        const plain = line.replace(
+          /\[([^\[\]]+)\]/g,
+          (marked, chord: string) =>
+            chordNotationPattern.test(chord) ? chord : marked
+        );
+        // Plain chord rows retain their alignment and cannot count as lyrics.
+        lines.push(isChordLine(plain) ? plain : line);
+        const pause = checkpoint();
+        if (pause) await pause;
+      }
+      return lines.join("\n");
+    };
+    const content = await chartText();
+    if (!content || !(await hasSongChordsAsync(content, signal, true)))
+      continue;
+    // Keep the source text for display, but unsupported chord markers cannot
+    // establish lyrics (for example, the Hm in an otherwise chord-only row).
+    if (invalidSpans.length) {
+      for (const span of invalidSpans) {
+        span.children = [];
+        const pause = checkpoint();
+        if (pause) await pause;
+      }
+      const validationContent = await chartText();
+      if (!(await hasSongChordsAsync(validationContent, signal, true)))
+        continue;
     }
-    content = lines.join("\n");
-    if (!(await hasSongChordsAsync(content, signal, true))) continue;
     return [
       {
         id: 0,
@@ -1074,25 +1094,32 @@ async function lookupChordPage(
       (await parseSource(search, signal)).children
     );
     const paths = new Set<string>();
-    for (const row of rows) {
-      const links = DomUtils.getElementsByTagName("a", row.children);
-      if (!links.some((link) => sameArtist(artist, DomUtils.textContent(link))))
-        continue;
-      const candidate = links.find((link) => {
-        const label = DomUtils.textContent(link).trim();
-        return (
-          / chords(?: \(ver \d+\))?$/i.test(label) &&
-          matchingIdentity(
-            title,
-            label.replace(/ chords(?: \(ver \d+\))?$/i, "")
-          ) &&
-          /^\/[a-z0-9]\/[a-z0-9-]+\/\d+\.html$/.test(link.attribs.href ?? "")
-        );
-      });
-      if (candidate) {
-        paths.add(candidate.attribs.href);
-        if (paths.size === 3) break;
+    // Some matching arrangements are listed as tabs; their detail still has
+    // to establish identity and lyrics with chords before counting as success.
+    for (const suffix of [
+      / chords(?: \(ver \d+\))?$/i,
+      / tab(?: \(ver \d+\))?$/i
+    ]) {
+      for (const row of rows) {
+        const links = DomUtils.getElementsByTagName("a", row.children);
+        if (
+          !links.some((link) => sameArtist(artist, DomUtils.textContent(link)))
+        )
+          continue;
+        const candidate = links.find((link) => {
+          const label = DomUtils.textContent(link).trim();
+          return (
+            suffix.test(label) &&
+            matchingIdentity(title, label.replace(suffix, "")) &&
+            /^\/[a-z0-9]\/[a-z0-9-]+\/\d+\.html$/.test(link.attribs.href ?? "")
+          );
+        });
+        if (candidate) {
+          paths.add(candidate.attribs.href);
+          if (paths.size === 3) break;
+        }
       }
+      if (paths.size) break;
     }
     const results = await Promise.allSettled(
       [...paths].map((path) =>
