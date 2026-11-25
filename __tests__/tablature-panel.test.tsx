@@ -352,15 +352,14 @@ test("selected note can change fret and string, then be deleted without changing
       node.props.accessibilityLabel?.includes('"string":1,"fret":7')
     )!;
   await act(async () => note.props.onPress());
-  await press(screen!, "TabFret: +");
+  await press(screen!, "TabFret: 8");
   expect(updates.at(-1)!.notes).toContainEqual({
     string: 5,
     fret: 8,
     tick: 24,
     duration: 24
   });
-  await press(screen!, "TabChooseStringMenu");
-  await press(screen!, 'TabChooseString:{"string":2}');
+  await press(screen!, "TabString ↓");
   expect(updates.at(-1)!.notes).toContainEqual({
     string: 4,
     fret: 8,
@@ -374,14 +373,6 @@ test("selected note can change fret and string, then be deleted without changing
     [5, 8],
     [4, 8]
   ]);
-  await press(screen!, 'TabGridValue:{"value":"1/16"}');
-  await press(screen!, "TabNoteLater");
-  expect(updates.at(-1)!.notes).toContainEqual({
-    string: 4,
-    fret: 8,
-    tick: 30,
-    duration: 24
-  });
   await press(screen!, "TabDeleteNote");
   expect(updates.at(-1)!.notes).toEqual([example.notes[0], example.notes[2]]);
   expect(mockPreview).toHaveBeenCalledTimes(3);
@@ -405,8 +396,7 @@ test("moving onto an occupied string and time preserves both notes", async () =>
       node.props.accessibilityLabel?.includes('"string":1,"fret":7')
     )!;
   await act(async () => note.props.onPress());
-  await press(screen!, "TabChooseStringMenu");
-  await press(screen!, 'TabChooseString:{"string":2}');
+  await press(screen!, "TabString ↓");
   expect(transport.setTab).not.toHaveBeenCalled();
   expect(mockPreview).toHaveBeenCalledTimes(1);
   expect(JSON.stringify(screen!.toJSON())).toContain("TabNoteCollision");
@@ -501,15 +491,12 @@ test("an expressive note keeps its settings while entering a new two-digit fret"
   expect(updates.at(-1)?.notes[0]).toMatchObject({ fret: 12, velocity: 40, techniques: ["vibrato"], duration: 12 });
 });
 
-test("rapid fret increments accumulate before inserting a note", async () => {
-  const { updates } = await editable();
+test("the note sheet omits position controls while retaining rhythm settings", async () => {
+  await editable();
   await press(screen!, "TabScore");
-  const increment = button(screen!, "TabFret: +");
-  await act(async () => {
-    for (let index = 0; index < 5; index++) increment.props.onPress();
-  });
-  await press(screen!, "TabAddNote");
-  expect(updates.at(-1)?.notes[0].fret).toBe(5);
+  for (const label of ["TabChooseStringMenu", "TabFret: +", "TabFret: −", "TabNoteEarlier", "TabNoteLater"])
+    expect(button(screen!, label)).toBeUndefined();
+  expect(button(screen!, 'TabDurationChoice:{"denominator":4}')).toBeDefined();
 });
 
 test("dragging attack commits one edit on release rather than every pointer movement", async () => {
@@ -707,7 +694,7 @@ test("playing locks hidden note edits but preserves pause and playback preferenc
   });
   await press(screen!, "TabScore");
   await press(screen!, "TabMoreOptions");
-  for (const label of ["TabFret: +", "TabDeleteNote", "TabUndo"])
+  for (const label of ["TabAddNote", "TabDeleteNote", "TabUndo"])
     expect(button(screen!, label).props.disabled).toBe(true);
   expect(button(screen!, "Pause").props.disabled).not.toBe(true);
   expect(button(screen!, "TabRewind").props.disabled).not.toBe(true);
@@ -774,8 +761,7 @@ test("moving a retrigger to another string preserves the original release before
   })!;
   const { updates } = await editable(initial);
   await pressNote(1, 7);
-  await press(screen!, "TabChooseStringMenu");
-  await press(screen!, 'TabChooseString:{"string":2}');
+  await press(screen!, "TabString ↓");
   expect(updates).toHaveLength(1);
   expect(updates[0].notes).toEqual([
     { string: 5, fret: 3, tick: 0, duration: 24 },
@@ -786,12 +772,11 @@ test("moving a retrigger to another string preserves the original release before
 test("an empty editor composes a note and a silent rest without virtual guitar touches", async () => {
   const { updates } = await editable();
   await press(screen!, 'TabDurationChoice:{"denominator":8}');
-  await press(screen!, "TabFret: +");
-  await press(screen!, "TabFret: +");
-  await press(screen!, "TabAddNote");
+  await press(screen!, "TabFret: 2");
   expect(updates.at(-1)!.notes).toEqual([
     { string: 5, fret: 2, tick: 0, duration: 12 }
   ]);
+  await press(screen!, "TabNextPosition");
   await press(screen!, "TabAddRest");
   expect(updates.at(-1)!.rests).toEqual([{ tick: 12, duration: 12 }]);
   expect(mockPreview).toHaveBeenCalledTimes(1);
@@ -817,7 +802,7 @@ test("chord entry stays at one onset when advance is off and another string is c
   ]);
 });
 
-test("selected notes support dotted values, triplets and matching movement grid", async () => {
+test("selected notes support dotted values and triplets", async () => {
   const { updates } = await editable(example);
   await pressNote(1, 7);
   await press(screen!, 'TabDurationChoice:{"denominator":8}');
@@ -829,12 +814,7 @@ test("selected notes support dotted values, triplets and matching movement grid"
   expect(updates.at(-1)!.notes.find((note) => note.fret === 7)?.duration).toBe(
     8
   );
-  await press(screen!, 'TabGridValue:{"value":"1/8 ×⅔"}');
-  await press(screen!, "TabNoteLater");
-  expect(updates.at(-1)!.notes.find((note) => note.fret === 7)).toMatchObject({
-    tick: 32,
-    duration: 8
-  });
+
 });
 
 test("a conflicting rest does not erase or truncate a sounding note", async () => {
@@ -917,7 +897,7 @@ test("history controls call transport undo and redo, and all editing locks while
     );
   });
   for (const [section, labels] of [
-    ["TabScore", ["TabUndo", "TabRedo", "TabFret: +", "TabTriplet"]],
+    ["TabScore", ["TabUndo", "TabRedo", "TabAddNote", "TabTriplet"]],
     ["TabBars", ["TabDuplicateBar", 'TabMeterValue:{"beats":6,"unit":8}']],
     ["TabLoopShort", ["TabQuarterTempo: +"]]
   ] as const) {

@@ -1980,9 +1980,9 @@ export const styles = StyleSheet.create({
   notationAction: {
     flex: 0,
     width: undefined,
-    height: 24,
+    height: 32,
     minWidth: 0,
-    minHeight: 24,
+    minHeight: 32,
     paddingHorizontal: 6,
     paddingVertical: 0,
     borderRadius: 7,
@@ -1996,10 +1996,10 @@ export const styles = StyleSheet.create({
     paddingVertical: 1,
     gap: 0
   },
-  notationIconAction: { width: 24 },
+  notationIconAction: { width: 32 },
   notationIcon: { lineHeight: 18 },
   notationText: { fontSize: 10, lineHeight: 13 },
-  notationCaption: { fontSize: 8, lineHeight: 10 },
+  notationCaption: { fontSize: 10, lineHeight: 12 },
   sheetSubtitle: {
     flex: 2,
     fontSize: 12,

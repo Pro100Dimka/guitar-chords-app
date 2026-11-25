@@ -683,7 +683,6 @@ export function TablaturePanel({
   const [clipboard, setClipboard] = useState<TabBarClipboard | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [noteDetails, setNoteDetails] = useState(false);
-  const [showStringChoices, setShowStringChoices] = useState(false);
   const [moreTechniques, setMoreTechniques] = useState(false);
   const [noteTab, setNoteTab] = useState<"note" | "technique" | "dynamics">(
     "note"
@@ -1080,14 +1079,6 @@ export function TablaturePanel({
       setInsertSettings((settings) => ({ ...settings, tuplet }));
     }
     setInsertDuration(next);
-  };
-  const shiftPosition = (next: number) => {
-    if (selected) changeNote({ tick: next });
-    else if (selectedRest) changeRest({ tick: next });
-    else {
-      selectCell({ ...cursor, tick: next });
-      setPage(Math.floor(next / barTicks));
-    }
   };
   const insert = (
     result: TabEditResult,
@@ -1685,7 +1676,9 @@ export function TablaturePanel({
                         <Action
                           notation
                           style={styles.notationFooterButton}
-                          label={`↶ ${t("TabUndo")}`}
+                          icon="undo-variant"
+                          showLabel
+                          label={t("TabUndo")}
                           accessibilityLabel={t("TabUndo")}
                           disabled={readOnly || !transport.canUndo}
                           onPress={() => {
@@ -1696,7 +1689,9 @@ export function TablaturePanel({
                         <Action
                           notation
                           style={styles.notationFooterButton}
-                          label={`↷ ${t("TabRedo")}`}
+                          icon="redo-variant"
+                          showLabel
+                          label={t("TabRedo")}
                           accessibilityLabel={t("TabRedo")}
                           disabled={readOnly || !transport.canRedo}
                           onPress={() => {
@@ -1708,7 +1703,13 @@ export function TablaturePanel({
                       <View style={styles.notationFooterGroup}>
                         <Action
                           notation
-                          label={`${previewEnabled ? "◖" : "◌"} ${t(previewEnabled ? "TabSoundOnShort" : "TabSoundOffShort")}`}
+                          icon={previewEnabled ? "volume-high" : "volume-off"}
+                          showLabel
+                          label={t(
+                            previewEnabled
+                              ? "TabSoundOnShort"
+                              : "TabSoundOffShort"
+                          )}
                           accessibilityLabel={t("TabSoundOn")}
                           onPress={() => {
                             cancelPreview();
@@ -1717,7 +1718,9 @@ export function TablaturePanel({
                         />
                         <Action
                           notation
-                          label={`▶ ${t("TabPreviewNote")}`}
+                          icon="play"
+                          showLabel
+                          label={t("TabPreviewNote")}
                           accessibilityLabel={t("TabPreviewNote")}
                           disabled={
                             readOnly || !!selectedRest || !previewEnabled
@@ -1736,7 +1739,9 @@ export function TablaturePanel({
                         notation
                         primary
                         style={styles.notationDone}
-                        label={`✓ ${t("Done")}`}
+                        icon="check"
+                        showLabel
+                        label={t("Done")}
                         accessibilityLabel={t("Done")}
                         onPress={() => setEditorSection("score")}
                       />
@@ -1765,118 +1770,10 @@ export function TablaturePanel({
                               styles.notationPrimary
                             ]}
                           >
-                            <Text style={styles.notationHeading}>
-                              {t("TabNoteRhythm")}
-                            </Text>
                             <View style={styles.notationRow}>
                               <Action
                                 notation
-                                label="‹"
-                                accessibilityLabel={t("TabNoteEarlier")}
-                                style={styles.notationArrow}
-                                disabled={readOnly || position === 0}
-                                onPress={() =>
-                                  shiftPosition(Math.max(0, position - grid))
-                                }
-                              />
-                              <Action
-                                notation
-                                label={`${t("TabString")} ${6 - cursor.string} ⌄`}
-                                accessibilityLabel={t("TabChooseStringMenu")}
                                 style={styles.notationFlex}
-                                selected={showStringChoices}
-                                disabled={readOnly || !!selectedRest}
-                                onPress={() =>
-                                  setShowStringChoices(!showStringChoices)
-                                }
-                              />
-                              <View style={styles.notationFret}>
-                                <Action
-                                  notation
-                                  label="−"
-                                  accessibilityLabel={`${t("TabFret")}: −`}
-                                  style={styles.notationSmall}
-                                  disabled={
-                                    readOnly ||
-                                    !!selectedRest ||
-                                    (selected?.fret ?? insertFret) === 0
-                                  }
-                                  onPress={() =>
-                                    selected
-                                      ? changeNote({ fret: selected.fret - 1 })
-                                      : setInsertFret((fret) =>
-                                          Math.max(0, fret - 1)
-                                        )
-                                  }
-                                />
-                                <Text
-                                  numberOfLines={1}
-                                  style={styles.notationText}
-                                >
-                                  {t("TabFret")} {selected?.fret ?? insertFret}
-                                </Text>
-                                <Action
-                                  notation
-                                  label="+"
-                                  accessibilityLabel={`${t("TabFret")}: +`}
-                                  style={styles.notationSmall}
-                                  disabled={
-                                    readOnly ||
-                                    !!selectedRest ||
-                                    (selected?.fret ?? insertFret) === 24
-                                  }
-                                  onPress={() =>
-                                    selected
-                                      ? changeNote({ fret: selected.fret + 1 })
-                                      : setInsertFret((fret) =>
-                                          Math.min(24, fret + 1)
-                                        )
-                                  }
-                                />
-                              </View>
-                              <Action
-                                notation
-                                label="›"
-                                accessibilityLabel={t("TabNoteLater")}
-                                style={styles.notationArrow}
-                                disabled={
-                                  readOnly ||
-                                  position + grid >= tablatureLength(tab)
-                                }
-                                onPress={() => shiftPosition(position + grid)}
-                              />
-                            </View>
-                            {showStringChoices && (
-                              <View style={styles.notationRow}>
-                                {[1, 2, 3, 4, 5, 6].map((value) => (
-                                  <Action
-                                    key={value}
-                                    notation
-                                    style={styles.notationFlex}
-                                    label={String(value)}
-                                    accessibilityLabel={t("TabChooseString", {
-                                      string: value
-                                    })}
-                                    selected={6 - cursor.string === value}
-                                    disabled={readOnly}
-                                    onPress={() => {
-                                      if (selected)
-                                        changeNote({ string: 6 - value });
-                                      else
-                                        selectCell({
-                                          ...cursor,
-                                          string: 6 - value
-                                        });
-                                      setShowStringChoices(false);
-                                    }}
-                                  />
-                                ))}
-                              </View>
-                            )}
-                            <View style={styles.notationRow}>
-                              <Action
-                                notation
-                                style={styles.notationShortFlex}
                                 label={t("TabNoteTab")}
                                 accessibilityLabel={t("TabAddNote")}
                                 selected={
@@ -1888,7 +1785,7 @@ export function TablaturePanel({
                               />
                               <Action
                                 notation
-                                style={styles.notationShortFlex}
+                                style={styles.notationFlex}
                                 label={`𝄽 ${t("TabRestShort")}`}
                                 accessibilityLabel={t("TabAddRest")}
                                 selected={!!selectedRest}
@@ -1897,7 +1794,7 @@ export function TablaturePanel({
                               />
                               <Action
                                 notation
-                                style={styles.notationShortFlex}
+                                style={styles.notationFlex}
                                 label="×"
                                 accessibilityLabel={t("TabDeadNote")}
                                 selected={noteSettings.accent === "dead"}
@@ -2092,7 +1989,7 @@ export function TablaturePanel({
                             <View style={styles.notationRow}>
                               <Action
                                 notation
-                                style={styles.notationShortFlex}
+                                style={styles.notationFlex}
                                 label={`${t("TabTie")} ⌒`}
                                 accessibilityLabel={t("TabTie")}
                                 selected={!!noteSettings.tie}
@@ -2103,7 +2000,7 @@ export function TablaturePanel({
                               />
                               <Action
                                 notation
-                                style={styles.notationShortFlex}
+                                style={styles.notationFlex}
                                 label={`${t("TabFermata")} 𝄐`}
                                 accessibilityLabel={t("TabFermata")}
                                 selected={!!noteSettings.fermata}
@@ -3066,7 +2963,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: palette.notation.divider
   },
-  notationTab: { width: 112, flexDirection: "row", gap: 6 },
+  notationTab: { width: 112 },
   notationGroups: { flex: 1, flexDirection: "row", gap: 8 },
   notationPrimary: { flex: 1.35 },
   notationColumns: { flexDirection: "row", alignItems: "stretch" },
@@ -3086,48 +2983,19 @@ const styles = StyleSheet.create({
     fontWeight: "600"
   },
   notationLabel: { color: palette.notation.label, fontSize: 9, lineHeight: 12 },
-  notationText: {
-    color: palette.notation.text,
-    fontSize: 9,
-    lineHeight: 12,
-    flexShrink: 1
-  },
   notationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
   notationWrap: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
   notationFlex: { flex: 1, minWidth: 0, width: undefined },
-  notationShortFlex: {
-    flex: 1,
-    minWidth: 0,
-    width: undefined,
-    height: 20,
-    minHeight: 20
-  },
   notationMiniFlex: {
     flex: 1,
     minWidth: 0,
     width: undefined,
-    height: 18,
-    minHeight: 18,
     paddingHorizontal: 2
   },
   notationSmall: {
-    width: 20,
+    width: 32,
     minWidth: 0,
-    paddingHorizontal: 0,
-    height: 22,
-    minHeight: 22
-  },
-  notationArrow: { width: 20, minWidth: 0, paddingHorizontal: 0 },
-  notationFret: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    width: 80,
-    gap: 1,
-    borderWidth: 1,
-    borderColor: palette.notation.edge,
-    borderRadius: 7,
-    backgroundColor: palette.notation.control
+    paddingHorizontal: 0
   },
   notationDurationGrid: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
   notationDurationChoice: { flexBasis: "10%", flexGrow: 1, minWidth: 32 },
@@ -3143,19 +3011,17 @@ const styles = StyleSheet.create({
   notationGlyphSelected: { color: palette.gold.ink },
   notationDynamicMark: {
     color: palette.notation.text,
-    fontSize: 9,
-    lineHeight: 12,
+    fontSize: 10,
+    lineHeight: 13,
     textAlign: "center"
   },
   notationDynamic: {
     flex: 1,
     minWidth: 0,
     width: undefined,
-    height: 22,
-    minHeight: 22,
     paddingHorizontal: 0
   },
-  notationScope: { flexDirection: "row", width: 182, gap: 0 },
+  notationScope: { flexDirection: "row", width: 182, gap: 4 },
   notationBend: {
     width: "100%",
     maxWidth: 420,
@@ -3199,7 +3065,7 @@ const styles = StyleSheet.create({
   },
   notationFooterGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
   notationFooterButton: { minWidth: 68 },
-  notationDone: { minWidth: 86, height: 26, minHeight: 26 },
+  notationDone: { minWidth: 86 },
   expressionSlider: { flexDirection: "row", alignItems: "center", gap: 6 },
   expressionLabel: {
     color: palette.notation.label,
