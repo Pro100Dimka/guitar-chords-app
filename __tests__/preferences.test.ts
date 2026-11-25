@@ -52,7 +52,12 @@ jest.mock("../src/components/database/crud", () => ({
 const cover = "data:image/jpeg;base64,/9j/2Q==";
 test.each([
   ["Akkords.pro", "https://akkords.pro/songs/kino/gruppa-krovi/"],
-  ["Musicaccord.ru", "https://musicaccord.ru/songs/tnmk-granuli/"]
+  ["Musicaccord.ru", "https://musicaccord.ru/songs/tnmk-granuli/"],
+  ["Chords & Tabs", "https://www.chords-and-tabs.net/song/name/example-song"],
+  ["Sonidos", "https://www.sonidos.com.br/example-performer/example-song"],
+  ["WeingGuitar", "https://guitar.weingchicken.com/scores/1"],
+  ["Akkords.fun", "https://akkords.fun/eng/example-performer/example-song/"],
+  ["LalaTracker", "https://lalatracker.com/chords/example_performer/example-song"]
 ])("%s attribution survives preference normalization", (name, url) => {
   const contentSource = {
     name,

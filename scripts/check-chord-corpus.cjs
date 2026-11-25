@@ -341,6 +341,8 @@ function summary(finished) {
           lyricsAndChords,
           identityMatches
         };
+        if (option.sourceArtist) optionMetadata.sourceArtist = option.sourceArtist;
+        if (option.identityReference) optionMetadata.identityReference = option.identityReference;
         result.options.push(optionMetadata);
         if (option.source !== "LRCLIB")
           searchMetadataJobs.push(() => {

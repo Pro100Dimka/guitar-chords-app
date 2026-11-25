@@ -6,6 +6,12 @@ import {
 } from "../../screens/song/chords";
 import { Parser, DomHandler, DomUtils } from "htmlparser2";
 import { sourceArrangement } from "../../screens/song/rhythms";
+import { lookupChordsAndTabs } from "./chords-and-tabs";
+import { lookupSonidos } from "./sonidos";
+import { lookupWeingGuitar } from "./weing-guitar";
+import { lookupAkkordsFun } from "./akkords-fun";
+import { lookupLalaTracker } from "./lalatracker";
+import type { ChordProviderContext } from "./chord-provider-context";
 export { hasSongChordsAsync };
 
 export interface LyricsOption {
@@ -18,6 +24,13 @@ export interface LyricsOption {
   capo?: number;
   tuning?: string;
   rhythm?: ReturnType<typeof sourceArrangement>;
+  sourceArtist?: string;
+  identityReference?: {
+    source: "LRCLIB";
+    url: string;
+    matchedLines: number;
+    candidateLines: number;
+  };
   source:
     | "LRCLIB"
     | "Пісенник"
@@ -27,7 +40,12 @@ export interface LyricsOption {
     | "Cifras"
     | "GuitareTab"
     | "Akkords.pro"
-    | "Musicaccord.ru";
+    | "Musicaccord.ru"
+    | "Chords & Tabs"
+    | "Sonidos"
+    | "WeingGuitar"
+    | "Akkords.fun"
+    | "LalaTracker";
   url?: string;
   hasChords?: boolean;
 }
@@ -1367,6 +1385,18 @@ async function lookupOvh(
   ];
 }
 
+const providerContext: ChordProviderContext = {
+  fetchSource,
+  parseSource,
+  sourceBody,
+  normalizeSourceText,
+  sourceWork,
+  matchingIdentity,
+  sameArtist,
+  trackTitle,
+  primaryArtist
+};
+
 export async function lookupSongContent(
   title: string,
   artist: string,
@@ -1396,7 +1426,7 @@ export async function lookupSongContent(
     const sources = Object.keys(chordSources).filter(
       (source) => source === "Akkords.pro" || latinIdentity
     );
-    const chordRequests = [
+    const primaryRequests = [
       ...sources.map((source) =>
         lookupChordPage(
           title,
@@ -1408,10 +1438,61 @@ export async function lookupSongContent(
       lookupPisennyk(title, artist, controller.signal),
       lookupMusicAccord(title, artist, controller.signal)
     ];
-    const requests = [
-      ...chordRequests,
-      lookupLyrics(title, artist, controller.signal)
+    const primaryCompleted = Promise.allSettled(primaryRequests);
+    const lyricRequest = lookupLyrics(title, artist, controller.signal);
+    // Consult extra catalogues only after the existing providers cannot find
+    // a playable arrangement. Successful lookups retain their request path.
+    const fallbackProviders: Array<
+      (
+        name: string,
+        performer: string,
+        abortSignal: AbortSignal | undefined,
+        context: ChordProviderContext
+      ) => Promise<LyricsOption[]>
+    > = [
+      ...(latinIdentity ? [lookupChordsAndTabs, lookupSonidos] : []),
+      ...(/^[\p{Script=Latin}\p{Script=Cyrillic}]/u.test(primaryArtist(artist))
+        ? [lookupAkkordsFun]
+        : []),
+      ...(/\p{Script=Hangul}/u.test(`${title} ${artist}`)
+        ? [lookupWeingGuitar]
+        : []),
+      ...(/\p{Script=Cyrillic}/u.test(`${title} ${artist}`)
+        ? [
+            (
+              name: string,
+              performer: string,
+              abortSignal: AbortSignal | undefined,
+              context: ChordProviderContext
+            ) =>
+              lookupLalaTracker(
+                name,
+                performer,
+                abortSignal,
+                context,
+                lyricRequest
+              )
+          ]
+        : [])
     ];
+    const chordRequests = [
+      ...primaryRequests,
+      ...fallbackProviders.map((lookup) =>
+        primaryCompleted.then((results) => {
+          if (
+            results.some(
+              (result) =>
+                result.status === "fulfilled" &&
+                result.value.some((option) => option.hasChords)
+            )
+          )
+            return [];
+          if (controller.signal.aborted) throw new Error("Cancelled");
+          return lookup(title, artist, controller.signal, providerContext);
+        })
+      )
+    ];
+    const requests = [...chordRequests, lyricRequest];
     const collected: LyricsOption[] = [];
     let foundChords: (options: LyricsOption[]) => void = () => {};
     const firstChords = new Promise<LyricsOption[]>((resolve) => {
