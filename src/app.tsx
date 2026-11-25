@@ -28,11 +28,14 @@ import {
   useNavigationContainerRef
 } from "@react-navigation/native";
 import { TunerReadyContext } from "./components/startup";
+import { createRecognitionLinking } from "./components/song-autofill/links";
 import {
   flushPreferences,
   loadPreferences,
   usePreferences
 } from "./components/preferences";
+
+const linking = createRecognitionLinking();
 
 const App: FC = () => {
   const saveError = usePreferences((state) => state.saveError);
@@ -163,7 +166,7 @@ const App: FC = () => {
                   setNavigationReady(true);
                 }}
                 fallback={<View style={styles.flex} />}
-                linking={{ enabled: "auto", prefixes: ["freetune://"] }}
+                linking={linking}
               />
             )}
             {ready && saveError && (

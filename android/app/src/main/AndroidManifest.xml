@@ -2,6 +2,8 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
 
     <application
       android:name=".MainApplication"
@@ -22,6 +24,21 @@
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
         </intent-filter>
+        <intent-filter>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.DEFAULT" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="freetune" android:host="recognize" />
+        </intent-filter>
       </activity>
+      <service android:name=".PlaybackCaptureService"
+        android:exported="false" android:foregroundServiceType="mediaProjection" />
+      <service android:name=".RecognitionTileService"
+        android:exported="true" android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+        android:icon="@drawable/ic_recognize_song" android:label="@string/recognition_tile">
+        <intent-filter>
+            <action android:name="android.service.quicksettings.action.QS_TILE" />
+        </intent-filter>
+      </service>
     </application>
 </manifest>

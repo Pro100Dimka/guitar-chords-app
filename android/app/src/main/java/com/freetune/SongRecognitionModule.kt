@@ -1,8 +1,13 @@
 package com.freetune
 
 import android.Manifest
+import android.app.StatusBarManager
+import android.content.ComponentName
 import android.content.pm.PackageManager
+import android.graphics.drawable.Icon
+import android.media.AudioAttributes
 import android.media.AudioFormat
+import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
 import android.media.MediaCodec
 import android.media.MediaExtractor
@@ -39,6 +44,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     private val fileWorkers = ThreadPoolExecutor(2, 2, 0, TimeUnit.SECONDS, ArrayBlockingQueue(2))
     private val fileCancellation = ThreadPoolExecutor(1, 1, 0, TimeUnit.SECONDS, ArrayBlockingQueue(2))
     private val fileRead = AtomicReference<AudioFileRead?>()
+    private val playbackCapture = AtomicReference<PlaybackAudioCapture?>()
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var connection: HttpURLConnection? = null
     @Volatile private var rateLimitedUntil = 0L
@@ -48,6 +54,52 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
 
     @ReactMethod
     fun recognizeMicrophone(promise: Promise) = start(promise) { captureMicrophone() }
+
+    @ReactMethod
+    fun recognizePlayback(promise: Promise) = start(promise) {
+        if (Build.VERSION.SDK_INT < 29) throw IllegalStateException("PlaybackCaptureUnavailable")
+        if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
+            throw SecurityException("MicrophonePermissionDenied")
+        val capture = PlaybackAudioCapture(context) {
+            try { recorder?.stop() } catch (_: Exception) {}
+            connection?.disconnect()
+        }
+        playbackCapture.set(capture)
+        val projection = capture.awaitProjection { ensureActive() }
+        ensureActive()
+        val configuration = AudioPlaybackCaptureConfiguration.Builder(projection)
+            .addMatchingUsage(AudioAttributes.USAGE_MEDIA)
+            .addMatchingUsage(AudioAttributes.USAGE_GAME)
+            .addMatchingUsage(AudioAttributes.USAGE_UNKNOWN)
+            .excludeUid(android.os.Process.myUid())
+            .build()
+        val format = AudioFormat.Builder().setSampleRate(16_000)
+            .setChannelMask(AudioFormat.CHANNEL_IN_MONO)
+            .setEncoding(AudioFormat.ENCODING_PCM_16BIT).build()
+        val minimum = AudioRecord.getMinBufferSize(16_000,
+            AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
+        if (minimum <= 0) throw IllegalStateException("PlaybackCaptureFailed")
+        val record = AudioRecord.Builder().setAudioPlaybackCaptureConfig(configuration)
+            .setAudioFormat(format).setBufferSizeInBytes(maxOf(minimum, 4096)).build()
+        captureAudio(record, playback = true)
+    }
+
+    @ReactMethod
+    fun requestQuickSettingsTile(promise: Promise) {
+        if (Build.VERSION.SDK_INT < 33) { promise.resolve(false); return }
+        val activity = context.currentActivity
+        if (activity == null) { promise.reject("PlaybackCaptureUnavailable", "Activity unavailable"); return }
+        activity.runOnUiThread {
+            try {
+                activity.getSystemService(StatusBarManager::class.java).requestAddTileService(
+                    ComponentName(context, RecognitionTileService::class.java),
+                    context.getString(R.string.recognition_tile),
+                    Icon.createWithResource(context, R.drawable.ic_recognize_song), activity.mainExecutor
+                ) { result -> promise.resolve(result == StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ADDED ||
+                    result == StatusBarManager.TILE_ADD_REQUEST_RESULT_TILE_ALREADY_ADDED) }
+            } catch (error: Exception) { promise.reject("PlaybackCaptureUnavailable", error) }
+        }
+    }
 
     @ReactMethod
     fun recognizeFile(uri: String, promise: Promise) = start(promise) {
@@ -71,6 +123,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     fun cancel(promise: Promise) {
         session.cancel({
             fileRead.get()?.cancel()
+            playbackCapture.get()?.close()
             try { recorder?.stop() } catch (_: Exception) {}
             connection?.disconnect()
         }, { promise.resolve(null) })
@@ -126,18 +179,21 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
             } catch (error: LinkageError) {
                 promise.reject("RecognitionUnsupported", "Audio recognition is unavailable for this device", error)
             } catch (error: Exception) {
-                val categories = setOf("Busy", "FileReadTimeout", "AudioTooShort", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "AudioDecodeFailed", "MicrophonePermissionDenied", "AudioDeviceUnavailable", "MicrophoneReadFailed", "RateLimited")
+                val failure = runCatching { playbackCapture.get()?.ensureAvailable() }.exceptionOrNull() ?: error
+                val categories = setOf("Busy", "FileReadTimeout", "AudioTooShort", "FileUnavailable", "NoAudioTrack", "UnsupportedPcmFormat", "UnsupportedAudio", "AudioDecodeFailed", "MicrophonePermissionDenied", "AudioDeviceUnavailable", "MicrophoneReadFailed", "RateLimited", "PlaybackCaptureUnavailable", "PlaybackCaptureCancelled", "PlaybackCaptureTimeout", "PlaybackAudioUnavailable", "PlaybackCaptureFailed")
                 val code = when {
                     session.cancelled.get() -> "Cancelled"
-                    error.message in categories -> error.message!!
-                    error.message?.startsWith("ServiceHttp") == true -> "ServiceUnavailable"
-                    error is java.io.IOException -> "NetworkError"
+                    failure.message in categories -> failure.message!!
+                    failure.message?.startsWith("ServiceHttp") == true -> "ServiceUnavailable"
+                    failure is java.io.IOException -> "NetworkError"
+                    playbackCapture.get() != null -> "PlaybackCaptureFailed"
                     else -> "RecognitionFailed"
                 }
-                promise.reject(code, error.message ?: "Recognition failed", error)
+                promise.reject(code, failure.message ?: "Recognition failed", failure)
             } finally {
                 try { recorder?.release() } catch (_: Exception) {}
                 recorder = null
+                playbackCapture.getAndSet(null)?.close()
                 connection?.disconnect()
                 connection = null
                 session.finish()
@@ -148,6 +204,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     private fun ensureActive() {
         if (session.cancelled.get() || Thread.currentThread().isInterrupted)
             throw IllegalStateException("Cancelled")
+        playbackCapture.get()?.ensureAvailable()
     }
 
     private fun identify(samples: ShortArray): JSONObject? {
@@ -166,8 +223,13 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
         if (minBuffer <= 0) throw IllegalStateException("AudioDeviceUnavailable")
         val record = AudioRecord(MediaRecorder.AudioSource.MIC, 16_000,
             AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(minBuffer, 4096))
+        return captureAudio(record)
+    }
+
+    private fun captureAudio(record: AudioRecord, playback: Boolean = false): JSONObject? {
         recorder = record
-        if (record.state != AudioRecord.STATE_INITIALIZED) throw IllegalStateException("AudioDeviceUnavailable")
+        if (record.state != AudioRecord.STATE_INITIALIZED)
+            throw IllegalStateException(if (playback) "PlaybackCaptureFailed" else "AudioDeviceUnavailable")
         val collected = ShortArray(20 * 16_000)
         val count = AtomicInteger(0)
         val done = AtomicBoolean(false)
@@ -181,7 +243,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
                     ensureActive()
                     val offset = count.get()
                     val n = record.read(buffer, 0, min(buffer.size, collected.size - offset), AudioRecord.READ_NON_BLOCKING)
-                    if (n < 0) throw IllegalStateException("MicrophoneReadFailed")
+                    if (n < 0) throw IllegalStateException(if (playback) "PlaybackCaptureFailed" else "MicrophoneReadFailed")
                     if (n == 0) { Thread.sleep(10); continue }
                     buffer.copyInto(collected, offset, 0, n)
                     count.addAndGet(n)
@@ -194,6 +256,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
         }
         try {
             var previousCount = 0
+            var hasPlaybackAudio = false
             for (seconds in intArrayOf(3, 7, 12, 20)) {
                 if (seconds * 16_000 <= previousCount) continue
                 while (count.get() < seconds * 16_000 && !capture.isDone && SystemClock.elapsedRealtime() < deadline) {
@@ -206,9 +269,14 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
                 if (available < 32_000 || available <= previousCount) continue
                 val snapshot = collected.copyOfRange(maxOf(0, available - 12 * 16_000), available)
                 previousCount = available
+                if (playback) {
+                    if (snapshot.none { it != 0.toShort() }) continue
+                    hasPlaybackAudio = true
+                }
                 val result = identify(snapshot)
                 if (result != null) return result
             }
+            if (playback && !hasPlaybackAudio) throw IllegalStateException("PlaybackAudioUnavailable")
             return null
         } finally {
             done.set(true)
@@ -384,6 +452,7 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
     override fun invalidate() {
         session.cancelled.set(true)
         fileRead.get()?.cancel()
+        playbackCapture.get()?.close()
         fileWorkers.shutdownNow()
         fileCancellation.shutdown()
         try { recorder?.stop() } catch (_: Exception) {}

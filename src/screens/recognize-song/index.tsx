@@ -5,6 +5,7 @@ import {
   Animated,
   AppState,
   Image,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -28,6 +29,8 @@ import {
   cancelRecognition,
   recognizeAudioFile,
   recognizeMicrophone,
+  recognizePlayback,
+  requestQuickSettingsTile,
   RecognizedSong
 } from "../../components/song-autofill/recognition";
 import { Action, Sheet } from "../song/tools";
@@ -50,9 +53,16 @@ import { applyRecognitionDraft } from "../../components/song-autofill/draft";
 export default function RecognizeSong() {
   const { params } = useRoute<RouteProp<RootStackParamList, "recognizeSong">>();
   const mode =
-    params?.mode && ["mic", "file", "text"].includes(params.mode)
+    params?.mode && ["mic", "playback", "file", "text"].includes(params.mode)
       ? params.mode
       : "mic";
+  const autoStart =
+    params?.autoStart === true && ["mic", "playback"].includes(params.mode);
+  const launchRequest = `${mode}:${params?.requestId ?? "initial"}`;
+  const handledLaunch = useRef<string | undefined>(undefined);
+  const launch = useRef({ autoStart, launchRequest });
+  launch.current = { autoStart, launchRequest };
+  const focused = useRef(false);
   const navigation = useNavigation<NavigationProp>();
   const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
@@ -76,6 +86,8 @@ export default function RecognizeSong() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState("");
   const [found, setFound] = useState<RecognizedSong | null>(null);
+  const [retrySong, setRetrySong] = useState<RecognizedSong | null>(null);
+  const [tileMessage, setTileMessage] = useState("");
   const [draft, setDraft] = useState<FormValues | null>(null);
   const draftReady = useRef(false);
   const [lyricsNotice, setLyricsNotice] = useState<
@@ -164,224 +176,270 @@ export default function RecognizeSong() {
     });
     return () => subscription.remove();
   }, [mode, stop, t]);
-  const start = useCallback(async () => {
-    if (running.current) return;
-    running.current = true;
-    const request = ++generation.current;
-    const abort = new AbortController();
-    controller.current = abort;
-    setBusy(true);
-    setFound(null);
-    setDraft(null);
-    draftReady.current = false;
-    setLyricsNotice("AddSongNoLyrics");
-    setMessage(
-      t(
-        {
-          mic: "AutofillListening",
-          file: "AutofillIdentifying",
-          text: "FileLoading"
-        }[mode]
-      )
-    );
-    try {
-      if (mode === "text") {
-        const file = await readLibraryFile("song", abort.signal);
-        const imported = importedSong(file.text, file.name);
-        if (request === generation.current)
-          navigation.replace("createSong", {
-            draft: { ...initialValues, ...imported }
-          });
-        return;
-      }
-      awaitingMicStart.current = mode === "mic";
-      const result = await (mode === "mic"
-        ? recognizeMicrophone(abort.signal, () => {
-            awaitingMicStart.current = false;
-          })
-        : recognizeAudioFile(abort.signal));
-      if (request !== generation.current) return;
-      if (!result) {
-        setMessage(t("AutofillNoAudioMatch"));
-        return;
-      }
-      setFound(result);
-      setMessage(t("AddSongPreparing"));
-      let next = applyRecognitionDraft(
-        initialValues,
-        result.title,
-        result.artist,
-        result.lyrics,
-        result.tempo
+  const start = useCallback(
+    async (identified?: RecognizedSong) => {
+      if (running.current) return;
+      running.current = true;
+      const request = ++generation.current;
+      const abort = new AbortController();
+      controller.current = abort;
+      setBusy(true);
+      setFound(null);
+      setRetrySong(null);
+      setAvailableVersions([]);
+      setDraft(null);
+      draftReady.current = false;
+      setLyricsNotice("AddSongNoLyrics");
+      setMessage(
+        t(
+          identified
+            ? "AddSongPreparing"
+            : {
+                mic: "AutofillListening",
+                playback: "AutofillListeningPlayback",
+                file: "AutofillIdentifying",
+                text: "FileLoading"
+              }[mode]
+        )
       );
-      if (next.content && result.url?.startsWith("https://www.shazam.com/")) {
+      try {
+        if (mode === "text") {
+          const file = await readLibraryFile("song", abort.signal);
+          const imported = importedSong(file.text, file.name);
+          if (request === generation.current)
+            navigation.replace("createSong", {
+              draft: { ...initialValues, ...imported }
+            });
+          return;
+        }
+        awaitingMicStart.current = !identified && mode === "mic";
+        const result =
+          identified ??
+          (await (mode === "mic"
+            ? recognizeMicrophone(abort.signal, () => {
+                awaitingMicStart.current = false;
+              })
+            : mode === "playback"
+              ? recognizePlayback(abort.signal)
+              : recognizeAudioFile(abort.signal)));
+        if (request !== generation.current) return;
+        if (!result) {
+          setMessage(t("AutofillNoAudioMatch"));
+          return;
+        }
+        setFound(result);
+        setMessage(t("AddSongPreparing"));
+        let next = applyRecognitionDraft(
+          initialValues,
+          result.title,
+          result.artist,
+          result.lyrics,
+          result.tempo
+        );
+        if (next.content && result.url?.startsWith("https://www.shazam.com/")) {
+          next = {
+            ...next,
+            contentSource: {
+              name: "Shazam",
+              url: result.url,
+              credit: result.lyricsCredit
+            }
+          };
+        }
+        setLyricsNotice(
+          next.content ? "AddSongLyricsNotice" : "AddSongLyricsUnavailable"
+        );
+        const [lyrics, cover, tempo] = await Promise.all([
+          lookupSongContent(result.title, result.artist, abort.signal).then(
+            (options) => ({ options, failed: false }),
+            () => ({ options: [], failed: true })
+          ),
+          readRemoteSongCover(result.cover ?? "", abort.signal).catch(() => ""),
+          result.tempo !== undefined
+            ? Promise.resolve(result.tempo)
+            : lookupSongTempo(
+                result.title,
+                result.artist,
+                result.url ?? "",
+                abort.signal
+              ).catch(() => undefined)
+        ]);
+        if (request !== generation.current) return;
+        const playable: LyricsOption[] = [];
+        for (const option of lyrics.options) {
+          if (
+            option.hasChords &&
+            (await hasSongChordsAsync(option.content, abort.signal, true))
+          )
+            playable.push({ ...option, hasChords: true });
+        }
+        if (request !== generation.current) return;
+        const candidates = preferredSongContent(
+          playable,
+          result.album,
+          result.duration
+        );
+        setAvailableVersions(candidates);
+        if (!candidates.length) {
+          setFound(null);
+          setDraft(null);
+          setRetrySong(result);
+          setMessage(
+            t(lyrics.failed ? "AddSongLyricsUnavailable" : "AddSongNoLyrics")
+          );
+          return;
+        }
+        const selected =
+          candidates.length > 1
+            ? await new Promise<LyricsOption | undefined>((resolve) => {
+                versionResolver.current = resolve;
+                setVersions(candidates);
+              })
+            : candidates[0];
+        if (request !== generation.current) return;
+        if (!selected) {
+          setFound(null);
+          setDraft(null);
+          setMessage(t("AutofillSearchCancelled"));
+          return;
+        }
         next = {
           ...next,
-          contentSource: {
-            name: "Shazam",
-            url: result.url,
-            credit: result.lyricsCredit
-          }
+          cover,
+          ...(tempo !== undefined ? { tempo } : {}),
+          capo: selected?.capo,
+          rhythm: selected?.rhythm,
+          sourceTuning: selected?.tuning,
+          content: selected?.content ?? next.content,
+          contentSource: selected
+            ? selected.url
+              ? { name: selected.source, url: selected.url }
+              : undefined
+            : next.contentSource
         };
+        const notice = selected?.hasChords
+          ? "AddSongChordsNotice"
+          : next.content
+            ? "AddSongLyricsNotice"
+            : lyrics.failed
+              ? "AddSongLyricsUnavailable"
+              : "AddSongNoLyrics";
+        setLyricsNotice(notice);
+        draftReady.current = true;
+        setDraft(next);
+        setMessage(t("AddSongTapResult"));
+        if (mode === "file")
+          navigation.replace("createSong", {
+            draft: next,
+            notice
+          });
+      } catch (error) {
+        if (request !== generation.current) return;
+        if (!draftReady.current) setFound(null);
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        const categories: Record<string, string> = {
+          AudioTooShort: "AutofillAudioTooShort",
+          FileUnavailable: "AutofillFileUnavailable",
+          FileReadTimeout: "AutofillFileReadTimeout",
+          NoAudioTrack: "AutofillNoAudioTrack",
+          UnsupportedPcmFormat: "AutofillUnsupportedAudio",
+          UnsupportedAudio: "AutofillUnsupportedAudio",
+          AudioDecodeFailed: "AutofillUnsupportedAudio",
+          NetworkError: "AutofillNetworkError",
+          ServiceUnavailable: "AutofillServiceUnavailable",
+          Busy: "AutofillBusy",
+          MicrophonePermissionDenied: "AutofillMicDenied",
+          AudioDeviceUnavailable: "AutofillAudioDeviceError",
+          MicrophoneReadFailed: "AutofillAudioDeviceError",
+          PlaybackCaptureUnavailable: "AutofillPlaybackUnavailable",
+          PlaybackCaptureCancelled: "AutofillSearchCancelled",
+          PlaybackCaptureTimeout: "AutofillPlaybackTimeout",
+          PlaybackAudioUnavailable: "AutofillPlaybackNoAudio",
+          PlaybackCaptureFailed: "AutofillPlaybackFailed"
+        };
+        const code =
+          typeof error === "object" && error !== null && "code" in error
+            ? String(error.code)
+            : "";
+        const category =
+          categories[code] ??
+          categories[
+            Object.keys(categories).find((key) => errorMessage.includes(key)) ??
+              ""
+          ];
+        const key =
+          category ??
+          [
+            {
+              matches:
+                fileCanceled(error) || errorMessage.includes("Cancelled"),
+              key: "AutofillSearchCancelled"
+            },
+            {
+              matches: errorMessage.includes("RateLimited"),
+              key: "AutofillRecognitionRateLimited"
+            },
+            {
+              matches: errorMessage.includes("PermissionDenied"),
+              key: "AutofillMicDenied"
+            },
+            {
+              matches: [
+                "FileFormatError",
+                "FileTooLarge",
+                "FileEncodingError"
+              ].includes(errorMessage),
+              key: errorMessage
+            }
+          ].find((item) => item.matches)?.key ??
+          (mode === "text" ? "FileReadError" : "AutofillRecognitionError");
+        setMessage(t(key));
+      } finally {
+        if (request === generation.current) {
+          awaitingMicStart.current = false;
+          running.current = false;
+          setBusy(false);
+        }
       }
-      setLyricsNotice(
-        next.content ? "AddSongLyricsNotice" : "AddSongLyricsUnavailable"
-      );
-      const [lyrics, cover, tempo] = await Promise.all([
-        lookupSongContent(result.title, result.artist, abort.signal).then(
-          (options) => ({ options, failed: false }),
-          () => ({ options: [], failed: true })
-        ),
-        readRemoteSongCover(result.cover ?? "", abort.signal).catch(() => ""),
-        result.tempo !== undefined
-          ? Promise.resolve(result.tempo)
-          : lookupSongTempo(
-              result.title,
-              result.artist,
-              result.url ?? "",
-              abort.signal
-            ).catch(() => undefined)
-      ]);
-      if (request !== generation.current) return;
-      const playable: LyricsOption[] = [];
-      for (const option of lyrics.options) {
-        if (
-          option.hasChords &&
-          (await hasSongChordsAsync(option.content, abort.signal))
-        )
-          playable.push({ ...option, hasChords: true });
-      }
-      if (request !== generation.current) return;
-      const candidates = preferredSongContent(
-        playable,
-        result.album,
-        result.duration
-      );
-      setAvailableVersions(candidates);
-      if (!candidates.length) {
-        setFound(null);
-        setDraft(null);
-        setMessage(t("AddSongNoLyrics"));
-        return;
-      }
-      const selected =
-        candidates.length > 1
-          ? await new Promise<LyricsOption | undefined>((resolve) => {
-              versionResolver.current = resolve;
-              setVersions(candidates);
-            })
-          : candidates[0];
-      if (request !== generation.current) return;
-      if (!selected) {
-        setFound(null);
-        setDraft(null);
-        setMessage(t("AutofillSearchCancelled"));
-        return;
-      }
-      next = {
-        ...next,
-        cover,
-        ...(tempo !== undefined ? { tempo } : {}),
-        capo: selected?.capo,
-        rhythm: selected?.rhythm,
-        sourceTuning: selected?.tuning,
-        content: selected?.content ?? next.content,
-        contentSource: selected
-          ? selected.url
-            ? { name: selected.source, url: selected.url }
-            : undefined
-          : next.contentSource
-      };
-      const notice = selected?.hasChords
-        ? "AddSongChordsNotice"
-        : next.content
-          ? "AddSongLyricsNotice"
-          : lyrics.failed
-            ? "AddSongLyricsUnavailable"
-            : "AddSongNoLyrics";
-      setLyricsNotice(notice);
-      draftReady.current = true;
-      setDraft(next);
-      setMessage(t("AddSongTapResult"));
-      if (mode === "file")
-        navigation.replace("createSong", {
-          draft: next,
-          notice
-        });
-    } catch (error) {
-      if (request !== generation.current) return;
-      if (!draftReady.current) setFound(null);
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
-      const categories: Record<string, string> = {
-        AudioTooShort: "AutofillAudioTooShort",
-        FileUnavailable: "AutofillFileUnavailable",
-        FileReadTimeout: "AutofillFileReadTimeout",
-        NoAudioTrack: "AutofillNoAudioTrack",
-        UnsupportedPcmFormat: "AutofillUnsupportedAudio",
-        UnsupportedAudio: "AutofillUnsupportedAudio",
-        AudioDecodeFailed: "AutofillUnsupportedAudio",
-        NetworkError: "AutofillNetworkError",
-        ServiceUnavailable: "AutofillServiceUnavailable",
-        Busy: "AutofillBusy",
-        MicrophonePermissionDenied: "AutofillMicDenied",
-        AudioDeviceUnavailable: "AutofillAudioDeviceError",
-        MicrophoneReadFailed: "AutofillAudioDeviceError"
-      };
-      const code =
-        typeof error === "object" && error !== null && "code" in error
-          ? String(error.code)
-          : "";
-      const category =
-        categories[code] ??
-        categories[
-          Object.keys(categories).find((key) => errorMessage.includes(key)) ??
-            ""
-        ];
-      const key =
-        category ??
-        [
-          {
-            matches: fileCanceled(error) || errorMessage.includes("Cancelled"),
-            key: "AutofillSearchCancelled"
-          },
-          {
-            matches: errorMessage.includes("RateLimited"),
-            key: "AutofillRecognitionRateLimited"
-          },
-          {
-            matches: errorMessage.includes("PermissionDenied"),
-            key: "AutofillMicDenied"
-          },
-          {
-            matches: [
-              "FileFormatError",
-              "FileTooLarge",
-              "FileEncodingError"
-            ].includes(errorMessage),
-            key: errorMessage
-          }
-        ].find((item) => item.matches)?.key ??
-        (mode === "text" ? "FileReadError" : "AutofillRecognitionError");
-      setMessage(t(key));
-    } finally {
-      if (request === generation.current) {
-        awaitingMicStart.current = false;
-        running.current = false;
-        setBusy(false);
-      }
-    }
-  }, [mode, navigation, t]);
+    },
+    [mode, navigation, t]
+  );
   useFocusEffect(
     useCallback(() => {
-      if (mode !== "mic") void start();
+      focused.current = true;
+      let activeFocus = true;
+      const pending = launch.current;
+      const shouldStart =
+        mode === "file" ||
+        mode === "text" ||
+        (pending.autoStart && handledLaunch.current !== pending.launchRequest);
+      if (shouldStart) {
+        handledLaunch.current = pending.launchRequest;
+        void (cancellation.current ?? Promise.resolve()).then(() => {
+          if (activeFocus) void start();
+        });
+      }
       return () => {
+        activeFocus = false;
+        focused.current = false;
         void stop();
       };
     }, [mode, start, stop])
   );
+  useEffect(() => {
+    if (
+      !autoStart ||
+      !focused.current ||
+      handledLaunch.current === launchRequest
+    )
+      return;
+    handledLaunch.current = launchRequest;
+    if (!running.current) void start();
+  }, [autoStart, launchRequest, start]);
   const icon = {
     mic: "microphone",
+    playback: "cellphone-sound",
     file: "file-music-outline",
     text: "file-document-outline"
   }[mode];
@@ -390,7 +448,13 @@ export default function RecognizeSong() {
       {!found && (
         <>
           <Text accessibilityRole="header" style={styles.title}>
-            {t(mode === "mic" ? "AddSongListenTitle" : "AddSongFileTitle")}
+            {t(
+              mode === "playback"
+                ? "AddSongPlaybackTitle"
+                : mode === "mic"
+                  ? "AddSongListenTitle"
+                  : "AddSongFileTitle"
+            )}
           </Text>
           <View style={[styles.orbit, { width: size + 54, height: size + 54 }]}>
             <Animated.View
@@ -449,6 +513,62 @@ export default function RecognizeSong() {
           <Text accessibilityLiveRegion="polite" style={styles.status}>
             {message || t("AddSongStart")}
           </Text>
+          {mode === "playback" && (
+            <Text style={styles.hint}>
+              {t(
+                Platform.OS === "ios"
+                  ? "AddSongPlaybackIOSHint"
+                  : "AddSongPlaybackAndroidHint"
+              )}
+            </Text>
+          )}
+          {!!retrySong && !busy && (
+            <>
+              <Text style={styles.hint}>
+                {t("AutofillRecognized", {
+                  artist: retrySong.artist,
+                  title: retrySong.title
+                })}
+              </Text>
+              <Action
+                label={t("AddSongRetryChords")}
+                icon="refresh"
+                onPress={() => void start(retrySong)}
+              />
+            </>
+          )}
+          {mode === "playback" && !busy && (
+            <>
+              {Platform.OS === "android" && Number(Platform.Version) >= 33 ? (
+                <Action
+                  label={t("AddSongQuickTile")}
+                  icon="view-grid-plus-outline"
+                  onPress={() => {
+                    void requestQuickSettingsTile().then(
+                      (added) =>
+                        setTileMessage(
+                          t(
+                            added
+                              ? "AddSongQuickTileAdded"
+                              : "AddSongQuickTileHint"
+                          )
+                        ),
+                      () => setTileMessage(t("AddSongQuickTileHint"))
+                    );
+                  }}
+                />
+              ) : (
+                <Text style={styles.hint}>
+                  {t(
+                    Platform.OS === "ios"
+                      ? "AddSongControlCenterHint"
+                      : "AddSongQuickTileHint"
+                  )}
+                </Text>
+              )}
+              {!!tileMessage && <Text style={styles.hint}>{tileMessage}</Text>}
+            </>
+          )}
         </>
       )}
       {found && (

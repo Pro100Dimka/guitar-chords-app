@@ -1,8 +1,27 @@
-# FreeTune song autofill: Android native recognition
+# FreeTune song recognition and lyrics with chords
+
+## Phone audio and quick launch, 25 November 2026
+
+Branch: `fix/recognition-chords-and-device-audio`. The chord-search investigation and the same-song before/after evidence are recorded below. Recognition exposes a prepared result only when a verified arrangement contains both lyrics and chords. When chord lookup fails, the identified song remains available for retry without recording it again.
+
+| Platform | Phone audio | Quick launch |
+| --- | --- | --- |
+| Android 10+ | System-approved AudioPlaybackCapture, without requesting audio focus or recording microphone input. A foreground notification provides Stop. | FreeTune tile in Quick Settings; Android 13+ can show the system add-tile prompt from the recognition screen. |
+| iPhone, iOS 15.1+ | Explicit ReplayKit broadcast confirmation, then return to the player and back to FreeTune. Only app-audio buffers are processed. | Phone-audio and microphone controls in Control Center on iOS 18+. |
+
+Library → Add includes **Recognize phone audio** on supported systems. Android before API 29 retains microphone/file recognition; its Quick Settings tile opens the microphone path. On iOS, microphone recognition now mixes with other playing audio instead of interrupting it. Phone-audio capture stays active while the user visits the player; navigation cancellation, system revocation, failed consent and timeouts release it. A notification reopening an active Android request does not start another request or cancel the existing one.
+
+Android retains bounded audio in memory. The iOS broadcast captures at most 12 seconds of audio within a 20-second window and uses a request-specific temporary PCM file; video and microphone buffers are discarded. Captured audio is fingerprinted locally. Playback privacy text and instructions are translated into English, Russian and Ukrainian. Both systems can withhold protected audio or audio from players that disallow capture; these paths cannot guarantee capture from every app.
+
+The existing iOS scheme builds and embeds `PlaybackBroadcast` and `RecognitionControl`. Physical installation requires App Group provisioning for the app and broadcast extension; see [iPhone setup, cleanup and device verification](../ios/playback-recognition.md). A complete Xcode build is distinct from proving actual capture on a signed phone.
+
+Local integration verification passed **959 Jest tests in 39 suites**, TypeScript, ESLint and actual SQLite integration. The regression suite covers lyrics-only and chord-only rejection, retry without recapture, permission/cancellation races, background playback, and cold/warm/repeated shortcut delivery. The required CI native job compiles Android against actual dependencies and runs `android/test-playback-capture.py`; iOS fixtures exercise production PCM conversion and request ownership, and the full application job verifies both embedded extensions. Physical Android and iPhone capture remain a device acceptance step.
+
+## Historical Android delivery, 14 November 2026
 
 Branch: `feature/song-autofill`. Android phone APKs with versionCode 10 were built on 2026-11-14 and include the recognition-lyrics and chord-provider fallback fixes described below, plus the updated guide and prepared string/fingering playback. Earlier source-only notes record the state before this build. No new Android App Bundle is claimed.
 
-## Current implementation
+## Original Android implementation
 
 - **On device**: Android AudioRecord captures up to 20 seconds, checking 3, 7, 12 and 20-second checkpoints with fingerprints of at most 12 seconds, or MediaExtractor/MediaCodec reads a bounded 12-second section of an audio document via `content://` / `file://`. Decode runs on a dedicated executor, not the React Native UI thread. Input is converted to 16kHz mono PCM16 with bounded averaging/resampling. File selection reads the original provider URI directly; original audio is not changed or deleted.
 - **Fingerprint**: JNI links a Rust library built with `cargo ndk` for `arm64-v8a` and `armeabi-v7a`. The source of the signal-processing and signature encoder is shazamio-core 2.1.0 pinned to `63f9583ee9729c95b9e9f10af6f2006d13df6fb2`, adapted for a direct PCM entrypoint without PyO3/Python.

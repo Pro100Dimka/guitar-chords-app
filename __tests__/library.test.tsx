@@ -87,7 +87,7 @@ test.each(["Favorites", "RecentSongs"])(
   }
 );
 
-test("iPhone offers microphone and audio-file recognition in the add menu", async () => {
+test("iPhone offers microphone, phone audio and audio-file recognition in the add menu", async () => {
   jest.replaceProperty(Platform, "OS", "ios");
   jest.mocked(getAllItems).mockResolvedValue(songs);
   await act(async () => {
@@ -104,7 +104,29 @@ test("iPhone offers microphone and audio-file recognition in the add menu", asyn
       (node) => node.props.accessibilityLabel === "AutofillRecognizeFile"
     ).length
   ).toBeGreaterThan(0);
+  expect(
+    screen.root.findAll(
+      (node) => node.props.accessibilityLabel === "AutofillRecognizePlayback"
+    ).length
+  ).toBeGreaterThan(0);
 });
+
+test.each([28, 29])(
+  "Android API %s offers phone audio only when supported",
+  async (version) => {
+    jest.replaceProperty(Platform, "OS", "android");
+    jest.spyOn(Platform, "Version", "get").mockReturnValue(version);
+    jest.mocked(getAllItems).mockResolvedValue(songs);
+    await act(async () => {
+      screen = Renderer.create(<Library />);
+    });
+    await act(async () => screen.root.findByType(SearchBar).props.onAdd());
+    const options = screen.root.findAll(
+      (node) => node.props.accessibilityLabel === "AutofillRecognizePlayback"
+    );
+    expect(options.length > 0).toBe(version >= 29);
+  }
+);
 
 test("legacy recent preference aliases retain the first position without duplicate rows", async () => {
   const previous = usePreferences.getState().songs;

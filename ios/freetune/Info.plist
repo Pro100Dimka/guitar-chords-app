@@ -30,6 +30,15 @@
 	<string>????</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.freetune</string>
+			<key>CFBundleURLSchemes</key>
+			<array><string>freetune</string></array>
+		</dict>
+	</array>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>ITSAppUsesNonExemptEncryption</key>
@@ -42,7 +51,7 @@
 		<true/>
 	</dict>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>FreeTune uses the microphone to tune your instrument and, when you tap Record, save your performance on this device.</string>
+	<string>FreeTune uses the microphone to tune your instrument, recognize a song to find its chords, and record your performance when you choose.</string>
 	<key>RCTNewArchEnabled</key>
 	<true/>
 	<key>UIAppFonts</key>
