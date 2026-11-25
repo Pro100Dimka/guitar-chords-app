@@ -45,6 +45,21 @@ test.each([
   expect(db.transaction).not.toHaveBeenCalled();
 });
 
+test.each([Number.NaN, Number.POSITIVE_INFINITY, Number.NEGATIVE_INFINITY])(
+  "rejects non-finite SQLite query parameter %s before opening SQLite",
+  async (value) => {
+    jest.mocked(db.transaction).mockClear();
+    await expect(
+      getAllItems({
+        tableName: "songs",
+        filters: "id = ?",
+        parameters: [value]
+      })
+    ).rejects.toThrow("Invalid database query");
+    expect(db.transaction).not.toHaveBeenCalled();
+  }
+);
+
 test("record selection cannot inject SQL or target a table without an id column", async () => {
   jest.mocked(db.transaction).mockClear();
   await expect(
