@@ -53,6 +53,27 @@ describe("lyrics-only fallback", () => {
       expect(matchingIdentity(expected, actual)).toBe(false);
   });
 
+  it("accepts only explicitly published title acronyms with matching initials", () => {
+    const published = "TDME (Там Де Ми Є)";
+    for (const expected of ["ТДМЕ", "TDME", "Там Де Ми Є"])
+      expect(matchingIdentity(expected, published)).toBe(true);
+    for (const [expected, actual] of [
+      ["ТДМЕ", "TDME (Там Де Ми Разом)"],
+      ["ТДМЕ", "TDME (UA Version)"],
+      ["ТДМЕ", "TDME (Там Де Ми Є) (UA Version)"],
+      ["Дежавю", "Дежавю (UA Version)"],
+      ["UV", "UV (UA Version)"],
+      ["RA", "RA (Remix Arrangement)"],
+      ["CB", "CB (Cover Band)"],
+      ["КВ", "КВ (Кавер Версия)"],
+      ["Там Де Ми Є", "ABCD (Там Де Ми Є)"],
+      ["Там Де Ми Е", published],
+      ["ТДМЄ", published],
+      ["Є", "Е"]
+    ])
+      expect(matchingIdentity(expected, actual)).toBe(false);
+  });
+
   it("rejects different performers and preserves exact lyrics line breaks", async () => {
     globalThis.fetch = jest.fn().mockResolvedValue({
       ok: true,
@@ -257,6 +278,41 @@ describe("content provider failover", () => {
         expect(await pending).toEqual([
           expect.objectContaining({
             source: "Пісенник",
+            artist: pageArtist,
+            hasChords: true
+          })
+        ]);
+      else expect(await pending).toEqual([]);
+    }
+  );
+
+  it.each([
+    ["TDME (Там Де Ми Є)", "Антитіла", true],
+    ["TDME (Там Де Ми Разом)", "Антитіла", false],
+    ["TDME (UA Version)", "Антитіла", false],
+    ["TDME (Там Де Ми Є)", "Інший гурт", false]
+  ])(
+    "verifies the published title acronym %s and page performer %s",
+    async (pageTitle, pageArtist, matches) => {
+      const candidate = "https://pisennyk.com.ua/antitila/tdme-tam-de-mi-ye";
+      request.mockImplementation(async (url) =>
+        String(url).startsWith("https://pisennyk.com.ua/search")
+          ? new Response(
+              `<a href="${candidate}">TDME (Там Де Ми Є) - Антитіла</a>`
+            )
+          : String(url) === candidate
+            ? new Response(
+                `<script type="application/ld+json">${JSON.stringify({ "@type": "MusicRecording", name: pageTitle, byArtist: { name: pageArtist } })}</script><p class="interpretation-content"><code data-chord="Am">Am</code>Тестовий рядок для перевірки</p>`
+              )
+            : response(String(url))
+      );
+      const pending = lookup("ТДМЕ", "Антитіла");
+      await jest.runAllTimersAsync();
+      if (matches)
+        expect(await pending).toEqual([
+          expect.objectContaining({
+            source: "Пісенник",
+            title: pageTitle,
             artist: pageArtist,
             hasChords: true
           })

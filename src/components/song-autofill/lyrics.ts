@@ -1,5 +1,7 @@
 import {
+  chordNotationPattern,
   hasSongChordsAsync,
+  isChordLine,
   transposeSongAsync
 } from "../../screens/song/chords";
 import { Parser, DomHandler, DomUtils } from "htmlparser2";
@@ -129,7 +131,9 @@ const artistCredits = (value: string) => [
   )
 ];
 export const matchingIdentity = (expected: string, actual: string) =>
-  matchingScriptIdentity(trackTitle(expected), trackTitle(actual));
+  publishedAbbreviationNames(trackTitle(actual), true).some((name) =>
+    matchingScriptIdentity(trackTitle(expected), name)
+  );
 
 export function preferredSongContent(
   options: LyricsOption[],
@@ -257,11 +261,11 @@ export async function lookupLyrics(
 
 const artistKey = (value: string) =>
   normalize(value.replace(/\s*&\s*/g, " and ")).replace(/ /g, "");
-export function publishedArtistNames(value: string) {
-  const name = primaryArtist(value);
+function publishedAbbreviationNames(name: string, title = false) {
   const alias = /^([\p{Lu}]{2,8})\s*\(([\p{L}'’.\-\s]+)\)$/u.exec(name);
   if (!alias) return [name];
   const words = alias[2].trim().split(/\s+/);
+  const initials = words.map((word) => word[0]).join("");
   if (
     words.length < 2 ||
     words.length > 8 ||
@@ -270,11 +274,18 @@ export function publishedArtistNames(value: string) {
         normalize(word)
       )
     ) ||
-    !matchingScriptIdentity(alias[1], words.map((word) => word[0]).join(""))
+    !matchingScriptIdentity(
+      alias[1],
+      // Published Ukrainian title acronyms may use E for the initial Є.
+      // The complete names still use the unchanged identity comparison.
+      title ? initials.replace(/є/gi, "е") : initials
+    )
   )
     return [name];
   return [name, alias[1], alias[2].trim()];
 }
+export const publishedArtistNames = (value: string) =>
+  publishedAbbreviationNames(primaryArtist(value));
 const sameArtist = (expected: string, actual: string) => {
   const names = publishedArtistNames(actual);
   return artistCredits(expected).some((name) =>
@@ -901,16 +912,40 @@ async function lookupMusicAccord(
       article.children
     );
     if (!body) continue;
-    const content = await normalizeSourceText(
+    const checkpoint = sourceWork(signal);
+    // Keep the site's explicit chord anchors beside footnotes such as Em*.
+    for (const span of DomUtils.getElementsByTagName("span", body.children)) {
+      const chord = span.attribs["data-c"],
+        text = span.children[0];
+      if (
+        hasClass("ch")(span) &&
+        chord &&
+        chordNotationPattern.test(chord) &&
+        span.children.length === 1 &&
+        DomUtils.isText(text) &&
+        text.data === chord
+      )
+        text.data = `[${chord}]`;
+      const pause = checkpoint();
+      if (pause) await pause;
+    }
+    let content = await normalizeSourceText(
       await sourceBody(body, false, signal),
       signal
     );
-    if (
-      !content ||
-      content.length > 200000 ||
-      !(await hasSongChordsAsync(content, signal, true))
-    )
-      continue;
+    if (!content || content.length > 200000) continue;
+    const lines: string[] = [];
+    for (const line of content.split("\n")) {
+      const plain = line.replace(/\[([^\[\]]+)\]/g, (marked, chord: string) =>
+        chordNotationPattern.test(chord) ? chord : marked
+      );
+      // Plain chord rows retain their alignment and cannot count as lyrics.
+      lines.push(isChordLine(plain) ? plain : line);
+      const pause = checkpoint();
+      if (pause) await pause;
+    }
+    content = lines.join("\n");
+    if (!(await hasSongChordsAsync(content, signal, true))) continue;
     return [
       {
         id: 0,

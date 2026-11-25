@@ -83,6 +83,46 @@ describe("Musicaccord public chord provider", () => {
     }
   );
 
+  it("keeps marked chords when the source adds a footnote or an ellipsis", async () => {
+    const annotated = `<div class="musicaccord-song"><p> <span class="ch" data-c="Am">Am</span>          <span class="ch" data-c="Em">Em</span>          <span class="ch" data-c="F">F</span>             <span class="ch" data-c="Em">Em</span>* …<br>Вигаданий рядок для перевірки акордового мотиву<br>Ще один вигаданий рядок</p></div>`;
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === combined) return new Response(card());
+      if (url === candidate) return new Response(page(annotated));
+      return empty(url);
+    });
+    const options = await finish();
+    expect(options).toHaveLength(1);
+    expect(options[0]).toMatchObject({
+      hasChords: true,
+      source: "Musicaccord.ru",
+      content:
+        "[Am]          [Em]          [F]             [Em]* …\nВигаданий рядок для перевірки акордового мотиву\nЩе один вигаданий рядок"
+    });
+  });
+
+  it.each([
+    '<span class="ch" data-c="Hm">Hm</span>',
+    '<span class="ch" data-c="Am]">Am</span>',
+    '<span class="ch" data-c="Am">Em</span>',
+    '<span class="ch">Am</span>',
+    '<span class="diagram" data-c="Am">Am</span>',
+    '<span class="ch" data-c="Am"><b>Am</b></span>'
+  ])("does not invent anchors from malformed markers: %s", async (marker) => {
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      if (url === combined) return new Response(card());
+      if (url === candidate)
+        return new Response(
+          page(
+            `<div class="musicaccord-song">${marker}* …<br>Вигаданий рядок без підтверджених акордів</div>`
+          )
+        );
+      return empty(url);
+    });
+    expect(await finish()).toEqual([]);
+  });
+
   it("retries the title only after zero verified combined-query candidates", async () => {
     const wrong = `${origin}/songs/another-performer/`;
     request.mockImplementation(async (input) => {
@@ -145,6 +185,13 @@ describe("Musicaccord public chord provider", () => {
       () =>
         page(
           `<div class="musicaccord-song"><span class="ch" data-c="Am">Am</span> C Dm G</div>`
+        )
+    ],
+    [
+      "annotated chords without lyrics",
+      () =>
+        page(
+          `<div class="musicaccord-song"><span class="ch" data-c="Am">Am</span> <span class="ch" data-c="Em">Em</span>* …</div>`
         )
     ]
   ])(

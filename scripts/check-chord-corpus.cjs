@@ -7,6 +7,7 @@ const path = require("node:path");
 const crypto = require("node:crypto");
 const { execFileSync } = require("node:child_process");
 const ts = require("typescript");
+const { Parser, DomHandler, DomUtils } = require("htmlparser2");
 
 const root = path.resolve(__dirname, "..");
 const manifestPath = path.resolve(root, process.argv[2] || "");
@@ -92,14 +93,77 @@ write({
 });
 
 let requests = [];
+let searchMetadataJobs = [];
+const boundedLabel = (value, limit) =>
+  value.replace(/[\u0000-\u001f\u007f\s]+/g, " ").trim().slice(0, limit);
+function guitareTabSearchMetadata(text) {
+  const handler = new DomHandler();
+  new Parser(handler).end(text);
+  const rows = DomUtils.findAll(
+    (element) =>
+      (element.attribs.class ?? "").split(/\s+/).includes("gt-list__row"),
+    handler.root.children
+  );
+  const metadata = {
+    status: "parsed",
+    bodyChars: text.length,
+    rowCount: rows.length,
+    rows: rows.slice(0, 15).map((row) => ({
+      links: DomUtils.getElementsByTagName("a", row.children)
+        .slice(0, 6)
+        .map((link) => ({
+          label: boundedLabel(DomUtils.textContent(link), 160),
+          href: boundedLabel(link.attribs.href ?? "", 500)
+        }))
+    }))
+  };
+  if (!rows.length) {
+    const title = DomUtils.getElementsByTagName("title", handler.root.children)[0];
+    metadata.pageTitle = title ? boundedLabel(DomUtils.textContent(title), 160) : "";
+  }
+  return metadata;
+}
 const rawFetch = globalThis.fetch;
 globalThis.fetch = async (url, options) => {
   const trace = { url: String(url), status: null, ms: null };
   requests.push(trace);
+  const metadataJobs = searchMetadataJobs;
   const began = Date.now();
   try {
     const response = await rawFetch(url, options);
     trace.status = response.status;
+    if (
+      response.status === 200 &&
+      /^https:\/\/www\.guitaretab\.com\/fetch\/\?/.test(trace.url)
+    ) {
+      // Observe the production read; cloning would leave a second body stream.
+      const readText = response.text.bind(response);
+      trace.guitareTabContentType = boundedLabel(
+        response.headers.get("content-type") ?? "",
+        160
+      );
+      trace.guitareTabSearch = { status: "not_read" };
+      response.text = async () => {
+        const text = await readText();
+        try {
+          if (text.length > 2000000 || Buffer.byteLength(text, "utf8") > 2000000) {
+            trace.guitareTabSearch = { status: "too_large" };
+          } else {
+            trace.guitareTabSearch = { status: "pending" };
+            metadataJobs.push(() => {
+              try {
+                trace.guitareTabSearch = guitareTabSearchMetadata(text);
+              } catch {
+                trace.guitareTabSearch = { status: "parse_failed" };
+              }
+            });
+          }
+        } catch {
+          trace.guitareTabSearch = { status: "capture_failed" };
+        }
+        return text;
+      };
+    }
     return response;
   } catch (error) {
     trace.error = error?.name || "Error";
@@ -161,6 +225,7 @@ function summary(finished) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), timeoutMs);
     requests = [];
+    searchMetadataJobs = [];
     const result = {
       kind: "song",
       id: song.id,
@@ -227,6 +292,8 @@ function summary(finished) {
     }
     await new Promise(setImmediate);
     result.ms = Date.now() - began;
+    // Parse after lookup timing, before serialization; retain no response bodies.
+    for (const collect of searchMetadataJobs.splice(0)) collect();
     result.requests = requests;
     completed.push(result);
     write(result);
