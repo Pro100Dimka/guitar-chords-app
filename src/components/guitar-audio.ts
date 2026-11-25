@@ -127,7 +127,10 @@ function* renderGuitar(
   const techniques = new Set(expression?.techniques);
   const tremolo = techniques.has("tremolo");
   const rasgueado = techniques.has("rasgueado");
-  const repeatPeriod = Math.max(1, Math.round(rate * (tremolo ? expression?.repeatSeconds ?? 0.1 : 0.045)));
+  const repeatPeriod = Math.max(
+    1,
+    Math.round(rate * (tremolo ? (expression?.repeatSeconds ?? 0.1) : 0.045))
+  );
   const accentGain = expression?.accent
     ? { accent: 1.15, strong: 1.35, staccato: 1, ghost: 0.45, dead: 0.6 }[
         expression.accent
@@ -246,7 +249,9 @@ function* renderGuitar(
           value *= Math.min(
             1,
             attackFrame / (rate * 0.003),
-            tremolo || time < 0.135 ? (repeatPeriod - attackFrame) / (rate * 0.006) : 1
+            tremolo || time < 0.135
+              ? (repeatPeriod - attackFrame) / (rate * 0.006)
+              : 1
           );
         if (expression.accent === "dead")
           value =

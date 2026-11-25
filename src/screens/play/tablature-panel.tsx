@@ -3,6 +3,7 @@ import {
   Modal,
   Pressable,
   ScrollView,
+  StatusBar,
   StyleSheet,
   useWindowDimensions,
   View
@@ -14,7 +15,6 @@ import { useTranslation } from "react-i18next";
 import Text from "../../components/styled-text";
 import {
   TAB_MAX_BARS,
-  TAB_TECHNIQUES,
   tabBarTicks,
   tabBeatTicks,
   tabNoteDuration,
@@ -51,16 +51,41 @@ type Transport = ReturnType<typeof useTablature>;
 type Selection = Pick<TabNote, "string" | "tick">;
 const stringNames = ["E", "A", "D", "G", "B", "e"];
 const stringOrder = [5, 4, 3, 2, 1, 0];
-const durationIcons = {
-  1: "music-note-whole",
-  2: "music-note-half",
-  4: "music-note-quarter",
-  8: "music-note-eighth",
-  16: "music-note-sixteenth",
-  32: "music-note-thirty-second",
-  64: "music-note-thirty-second",
-  128: "music-note-thirty-second"
-} as const;
+function DurationGlyph({
+  denominator,
+  selected
+}: {
+  denominator: number;
+  selected: boolean;
+}) {
+  const color = selected ? palette.gold.ink : palette.notation.text;
+  const whole = denominator === 1;
+  const flags = Math.max(0, Math.log2(denominator) - 2);
+  return (
+    <Svg width={18} height={18} viewBox="0 0 24 24" accessible={false}>
+      <Ellipse
+        cx={whole ? 12 : 8}
+        cy={whole ? 15 : 19}
+        rx={whole ? 5 : 4.5}
+        ry={3}
+        transform={`rotate(-18 ${whole ? 12 : 8} ${whole ? 15 : 19})`}
+        fill={[1, 2].includes(denominator) ? "none" : color}
+        stroke={color}
+        strokeWidth={1.5}
+      />
+      {!whole && <Path d="M12 18V2" stroke={color} strokeWidth={1.5} />}
+      {Array.from({ length: flags }, (_, index) => (
+        <Path
+          key={index}
+          d={`M12 ${2 + index * 3}C14 ${7 + index * 3} 23 ${5 + index * 3} 18 ${10 + index * 3}`}
+          fill="none"
+          stroke={color}
+          strokeWidth={1.4}
+        />
+      ))}
+    </Svg>
+  );
+}
 const sameNote = (a: Selection | null, b: Selection) =>
   a?.string === b.string && a.tick === b.tick;
 
@@ -164,35 +189,6 @@ function ExpressionSlider({
       </View>
       <Text style={styles.sliderValue}>{display}</Text>
     </View>
-  );
-}
-
-function TripletIcon({ selected = false }: { selected?: boolean }) {
-  const color = selected ? palette.gold.ink : palette.glass.ink;
-  return (
-    <Svg width={26} height={26} viewBox="0 0 28 28" accessible={false}>
-      <Path
-        d="M3 9V6H9M19 6H25V9M7 22V13H24V22M15.5 22V13"
-        fill="none"
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinecap="round"
-        strokeLinejoin="round"
-      />
-      <SvgText
-        x={14}
-        y={9}
-        fill={color}
-        fontSize={10}
-        fontWeight="700"
-        textAnchor="middle"
-      >
-        3
-      </SvgText>
-      {[4.5, 13, 21.5].map((cx) => (
-        <Ellipse key={cx} cx={cx} cy={22} rx={3} ry={2} fill={color} />
-      ))}
-    </Svg>
   );
 }
 
@@ -687,9 +683,8 @@ export function TablaturePanel({
   const [clipboard, setClipboard] = useState<TabBarClipboard | null>(null);
   const [editError, setEditError] = useState<string | null>(null);
   const [noteDetails, setNoteDetails] = useState(false);
-  const [noteTab, setNoteTab] = useState<"note" | "technique" | "dynamics">(
-    "note"
-  );
+  const [showStringChoices, setShowStringChoices] = useState(false);
+  const [moreTechniques, setMoreTechniques] = useState(false);
   const [editScope, setEditScope] = useState<"note" | "chord" | "bar">("note");
   const [insertSettings, setInsertSettings] = useState<NoteSettings>({});
   const [noteClipboard, setNoteClipboard] = useState<TabNote[] | null>(null);
@@ -1015,6 +1010,43 @@ export function TablaturePanel({
       tie: undefined,
       fermata: undefined
     });
+  const convertToRest = () => {
+    if (readOnly || selectedRest) return;
+    const notes = tab.notes.filter((note) => !scopedNotes.includes(note));
+    const at = selected && editScope === "bar" ? bar * barTicks : position;
+    const restDuration =
+      selected && editScope === "bar"
+        ? barTicks
+        : Math.max(duration, ...scopedNotes.map(tabNoteDuration));
+    if (
+      apply(putTabRest({ ...tab, notes }, { tick: at, duration: restDuration }))
+    ) {
+      cancelPreview();
+      setSelection(null);
+      setRestSelection(at);
+    }
+  };
+  const addOrSelectNote = () => {
+    if (readOnly || selected) return;
+    const next = { ...insertSettings, ...cursor, fret: insertFret, duration };
+    if (selectedRest) {
+      if (
+        apply(
+          putTabNote(
+            {
+              ...tab,
+              rests: (tab.rests ?? []).filter((rest) => rest !== selectedRest)
+            },
+            next
+          )
+        )
+      ) {
+        setSelection(next);
+        setRestSelection(null);
+        preview(next);
+      }
+    } else insert(putTabNote(tab, next), cursor.tick, insertDuration);
+  };
   const changeRest = (patch: Partial<TabRest>) => {
     if (!selectedRest || readOnly) return;
     const next = { ...selectedRest, ...patch };
@@ -1558,11 +1590,10 @@ export function TablaturePanel({
               <Sheet
                 compact
                 dense={editorSection === "note"}
-                scrollKey={editorSection === "note" ? noteTab : undefined}
                 landscapeOnly
                 subtitle={
                   editorSection === "note"
-                    ? `${selectedRest ? t("TabEditRest") : `${t("TabString")}: ${6 - cursor.string} · ${t("TabFret")}: ${selected?.fret ?? insertFret}`} · ${t("TabNotePosition", { bar: Math.floor(position / barTicks) + 1, beat: Number((1 + (position % barTicks) / beatTicks).toFixed(2)) })}`
+                    ? `${t("TabNotePosition", { bar: Math.floor(position / barTicks) + 1, beat: Number((1 + (position % barTicks) / beatTicks).toFixed(2)) })} · ${selectedRest ? t("TabEditRest") : `${t("TabString")}: ${6 - cursor.string} · ${t("TabFret")}: ${selected?.fret ?? insertFret}`}`
                     : undefined
                 }
                 maxWidth={editorSection === "note" ? 1100 : 600}
@@ -1570,73 +1601,51 @@ export function TablaturePanel({
                   sections.find((section) => section.key === editorSection)!
                     .label
                 )}
-                toolbar={
+                headerAccessory={
                   editorSection === "note" && (
-                    <View style={styles.noteSheetNavigation}>
-                      <View style={styles.noteTabs}>
-                        {(
-                          [
-                            {
-                              key: "note",
-                              label: "TabNoteTab",
-                              icon: "music-note"
-                            },
-                            {
-                              key: "technique",
-                              label: "TabTechniqueTab",
-                              icon: "guitar-pick-outline"
-                            },
-                            {
-                              key: "dynamics",
-                              label: "TabDynamics",
-                              icon: "tune-vertical"
-                            }
-                          ] as const
-                        ).map(({ key, label, icon }) => (
-                          <View key={key} style={styles.noteTabChoice}>
-                            <Action
-                              glass
-                              compact
-                              showLabel
-                              icon={icon}
-                              label={t(label)}
-                              selected={noteTab === key}
-                              onPress={() => setNoteTab(key)}
-                            />
-                          </View>
-                        ))}
-                      </View>
-                      <View style={styles.expressionRow}>
-                        {(
-                          [
-                            { key: "note", label: "TabScopeNote" },
-                            { key: "chord", label: "TabScopeChord" },
-                            { key: "bar", label: "TabScopeBar" }
-                          ] as const
-                        ).map(({ key, label }) => (
-                          <Action
-                            key={key}
-                            glass
-                            compact
-                            label={t(label)}
-                            selected={editScope === key}
-                            disabled={readOnly || !!selectedRest}
-                            onPress={() => setEditScope(key)}
-                          />
-                        ))}
-                      </View>
+                    <View style={styles.notationScope}>
+                      {(
+                        [
+                          {
+                            key: "note",
+                            label: "TabNoteTab",
+                            accessible: "TabScopeNote"
+                          },
+                          {
+                            key: "chord",
+                            label: "TabScopeChord",
+                            accessible: "TabScopeChord"
+                          },
+                          {
+                            key: "bar",
+                            label: "TabScopeSelection",
+                            accessible: "TabScopeSelection"
+                          }
+                        ] as const
+                      ).map(({ key, label, accessible }) => (
+                        <Action
+                          key={key}
+                          notation
+                          style={styles.notationFlex}
+                          label={t(label)}
+                          accessibilityLabel={t(accessible)}
+                          selected={editScope === key}
+                          disabled={readOnly || !!selectedRest}
+                          onPress={() => setEditScope(key)}
+                        />
+                      ))}
                     </View>
                   )
                 }
                 footer={
                   editorSection === "note" && (
-                    <View style={styles.noteSheetFooter}>
-                      <View style={styles.expressionRow}>
+                    <View style={styles.notationFooter}>
+                      <View style={styles.notationFooterGroup}>
                         <Action
-                          glass
-                          compact
-                          icon="undo"
-                          label={t("TabUndo")}
+                          notation
+                          style={styles.notationFooterButton}
+                          label={`↶ ${t("TabUndo")}`}
+                          accessibilityLabel={t("TabUndo")}
                           disabled={readOnly || !transport.canUndo}
                           onPress={() => {
                             cancelPreview();
@@ -1644,10 +1653,10 @@ export function TablaturePanel({
                           }}
                         />
                         <Action
-                          glass
-                          compact
-                          icon="redo"
-                          label={t("TabRedo")}
+                          notation
+                          style={styles.notationFooterButton}
+                          label={`↷ ${t("TabRedo")}`}
+                          accessibilityLabel={t("TabRedo")}
                           disabled={readOnly || !transport.canRedo}
                           onPress={() => {
                             cancelPreview();
@@ -1655,24 +1664,20 @@ export function TablaturePanel({
                           }}
                         />
                       </View>
-                      <View style={styles.previewActions}>
+                      <View style={styles.notationFooterGroup}>
                         <Action
-                          glass
-                          compact
-                          icon={previewEnabled ? "volume-high" : "volume-off"}
-                          label={t("TabSoundOn")}
-                          selected={previewEnabled}
+                          notation
+                          label={`${previewEnabled ? "◖" : "◌"} ${t(previewEnabled ? "TabSoundOnShort" : "TabSoundOffShort")}`}
+                          accessibilityLabel={t("TabSoundOn")}
                           onPress={() => {
                             cancelPreview();
                             setPreviewEnabled(!previewEnabled);
                           }}
                         />
                         <Action
-                          glass
-                          compact
-                          showLabel
-                          icon="play"
-                          label={t("TabPreviewNote")}
+                          notation
+                          label={`▶ ${t("TabPreviewNote")}`}
+                          accessibilityLabel={t("TabPreviewNote")}
                           disabled={
                             readOnly || !!selectedRest || !previewEnabled
                           }
@@ -1686,24 +1691,22 @@ export function TablaturePanel({
                           }
                         />
                       </View>
-                      <View style={styles.doneAction}>
-                        <Action
-                          glass
-                          compact
-                          primary
-                          showLabel
-                          icon="check"
-                          label={t("Done")}
-                          onPress={() => setEditorSection("score")}
-                        />
-                      </View>
+                      <Action
+                        notation
+                        primary
+                        style={styles.notationDone}
+                        label={`✓ ${t("Done")}`}
+                        accessibilityLabel={t("Done")}
+                        onPress={() => setEditorSection("score")}
+                      />
                     </View>
                   )
                 }
                 onClose={() => setEditorSection("score")}
               >
                 {editorSection === "note" && (
-                  <View style={styles.noteEditor}>
+                  <>
+                    <StatusBar hidden />
                     {editError && (
                       <Text
                         accessibilityLiveRegion="polite"
@@ -1712,638 +1715,711 @@ export function TablaturePanel({
                         {t(editError)}
                       </Text>
                     )}
-                    {noteTab === "note" && (
-                      <>
-                        <View style={styles.expressionColumns}>
-                          <View style={styles.expressionCard}>
-                            <Text style={styles.expressionHeading}>
-                              {t("TabDuration")}
-                            </Text>
-                            <View style={styles.durationGrid}>
-                              {durationChoices.map((denominator) => (
-                                <View
-                                  key={denominator}
-                                  style={styles.durationChoice}
-                                >
-                                  <Action
-                                    glass
-                                    compact
-                                    showLabel
-                                    icon={durationIcons[denominator]}
-                                    label={`1/${denominator}`}
-                                    accessibilityLabel={t("TabDurationChoice", {
-                                      denominator
-                                    })}
-                                    selected={
-                                      parts?.denominator === denominator
-                                    }
-                                    disabled={readOnly}
-                                    onPress={() =>
-                                      changeDuration(
-                                        durationTicks(
-                                          denominator,
-                                          parts?.modifier ?? "plain"
-                                        )
-                                      )
-                                    }
-                                  />
-                                </View>
-                              ))}
-                            </View>
-                            <View style={styles.expressionRow}>
-                              {(
-                                [
-                                  {
-                                    key: "dotted",
-                                    label: "TabDotted",
-                                    text: "·"
-                                  },
-                                  {
-                                    key: "doubleDotted",
-                                    label: "TabDoubleDotted",
-                                    text: "··"
-                                  },
-                                  {
-                                    key: "triplet",
-                                    label: "TabTriplet",
-                                    text: "3:2"
-                                  },
-                                  {
-                                    key: "quintuplet",
-                                    label: "TabQuintuplet",
-                                    text: "5:4"
-                                  }
-                                ] as const
-                              ).map(({ key, label, text }) => (
-                                <Action
-                                  key={key}
-                                  glass
-                                  compact
-                                  label={text}
-                                  icon={
-                                    key === "triplet" ? (
-                                      <TripletIcon
-                                        selected={parts?.modifier === key}
-                                      />
-                                    ) : undefined
-                                  }
-                                  showLabel
-                                  accessibilityLabel={t(label)}
-                                  selected={parts?.modifier === key}
-                                  disabled={readOnly}
-                                  onPress={() =>
-                                    changeDuration(
-                                      durationTicks(
-                                        parts?.denominator ?? 4,
-                                        parts?.modifier === key ? "plain" : key
-                                      )
+                    <View style={styles.notationColumns}>
+                      <View style={styles.notationColumn}>
+                        <Text style={styles.notationHeading}>
+                          {t("TabNoteRhythm")}
+                        </Text>
+                        <View style={styles.notationRow}>
+                          <Action
+                            notation
+                            label="‹"
+                            accessibilityLabel={t("TabNoteEarlier")}
+                            style={styles.notationArrow}
+                            disabled={readOnly || position === 0}
+                            onPress={() =>
+                              shiftPosition(Math.max(0, position - grid))
+                            }
+                          />
+                          <Action
+                            notation
+                            label={`${t("TabString")} ${6 - cursor.string} ⌄`}
+                            accessibilityLabel={t("TabChooseStringMenu")}
+                            style={styles.notationFlex}
+                            selected={showStringChoices}
+                            disabled={readOnly || !!selectedRest}
+                            onPress={() =>
+                              setShowStringChoices(!showStringChoices)
+                            }
+                          />
+                          <View style={styles.notationFret}>
+                            <Action
+                              notation
+                              label="−"
+                              accessibilityLabel={`${t("TabFret")}: −`}
+                              style={styles.notationSmall}
+                              disabled={
+                                readOnly ||
+                                !!selectedRest ||
+                                (selected?.fret ?? insertFret) === 0
+                              }
+                              onPress={() =>
+                                selected
+                                  ? changeNote({ fret: selected.fret - 1 })
+                                  : setInsertFret((fret) =>
+                                      Math.max(0, fret - 1)
                                     )
-                                  }
-                                />
-                              ))}
-                              <Action
-                                glass
-                                compact
-                                icon="tune-vertical"
-                                label={t("TabMoreOptions")}
-                                selected={noteDetails}
-                                onPress={() => setNoteDetails(!noteDetails)}
-                              />
-                              <Action
-                                glass
-                                compact
-                                showLabel
-                                icon="call-merge"
-                                label={t("TabTie")}
-                                selected={!!noteSettings.tie}
-                                disabled={readOnly || !!selectedRest}
-                                onPress={() =>
-                                  patchSettings({ tie: !noteSettings.tie })
-                                }
-                              />
-                              <Action
-                                glass
-                                compact
-                                showLabel
-                                icon="music-note-whole"
-                                label={t("TabFermata")}
-                                selected={!!noteSettings.fermata}
-                                disabled={readOnly || !!selectedRest}
-                                onPress={() =>
-                                  patchSettings({
-                                    fermata: !noteSettings.fermata
-                                  })
-                                }
-                              />
-                            </View>
-                            <Text style={styles.expressionHeading}>
-                              {t("TabPitchPosition")}
+                              }
+                            />
+                            <Text numberOfLines={1} style={styles.notationText}>
+                              {t("TabFret")} {selected?.fret ?? insertFret}
                             </Text>
-                            <View style={styles.expressionRow}>
-                              {!selectedRest && (
-                                <View style={styles.pitchControl}>
-                                  <Stepper
-                                    label={t("TabString")}
-                                    value={6 - cursor.string}
-                                    min={1}
-                                    max={6}
-                                    disabled={readOnly}
-                                    onChange={(value) =>
-                                      selected
-                                        ? changeNote({ string: 6 - value })
-                                        : selectCell({
-                                            ...cursor,
-                                            string: 6 - value
-                                          })
-                                    }
-                                  />
-                                </View>
-                              )}
-                              {!selectedRest && (
-                                <View style={styles.pitchControl}>
-                                  <Stepper
-                                    label={t("TabFret")}
-                                    value={selected?.fret ?? insertFret}
-                                    min={0}
-                                    max={24}
-                                    disabled={readOnly}
-                                    onChange={(fret) =>
-                                      selected
-                                        ? changeNote({ fret })
-                                        : setInsertFret(fret)
-                                    }
-                                  />
-                                </View>
-                              )}
-                              <View style={styles.expressionRow}>
-                                <Action
-                                  glass
-                                  compact
-                                  icon="chevron-left"
-                                  label={t("TabNoteEarlier")}
-                                  disabled={readOnly || position === 0}
-                                  onPress={() =>
-                                    shiftPosition(Math.max(0, position - grid))
-                                  }
-                                />
-                                <Text style={styles.caption}>
-                                  {t("TabNotePosition", {
-                                    bar: Math.floor(position / barTicks) + 1,
-                                    beat: Number(
-                                      (
-                                        1 +
-                                        (position % barTicks) / beatTicks
-                                      ).toFixed(2)
+                            <Action
+                              notation
+                              label="+"
+                              accessibilityLabel={`${t("TabFret")}: +`}
+                              style={styles.notationSmall}
+                              disabled={
+                                readOnly ||
+                                !!selectedRest ||
+                                (selected?.fret ?? insertFret) === 24
+                              }
+                              onPress={() =>
+                                selected
+                                  ? changeNote({ fret: selected.fret + 1 })
+                                  : setInsertFret((fret) =>
+                                      Math.min(24, fret + 1)
                                     )
-                                  })}
-                                </Text>
-                                <Action
-                                  glass
-                                  compact
-                                  icon="chevron-right"
-                                  label={t("TabNoteLater")}
-                                  disabled={
-                                    readOnly ||
-                                    position + grid >= tablatureLength(tab)
-                                  }
-                                  onPress={() => shiftPosition(position + grid)}
-                                />
-                              </View>
-                            </View>
-                            <View style={styles.expressionRow}>
+                              }
+                            />
+                          </View>
+                          <Action
+                            notation
+                            label="›"
+                            accessibilityLabel={t("TabNoteLater")}
+                            style={styles.notationArrow}
+                            disabled={
+                              readOnly ||
+                              position + grid >= tablatureLength(tab)
+                            }
+                            onPress={() => shiftPosition(position + grid)}
+                          />
+                        </View>
+                        {showStringChoices && (
+                          <View style={styles.notationRow}>
+                            {[1, 2, 3, 4, 5, 6].map((value) => (
                               <Action
-                                glass
-                                compact
-                                showLabel
-                                icon="music-note"
-                                label={t("TabAddNote")}
-                                selected={!!selected}
-                                disabled={readOnly || !!selectedRest}
-                                onPress={() => {
-                                  if (!selected)
-                                    insert(
-                                      putTabNote(tab, {
-                                        ...insertSettings,
-                                        ...cursor,
-                                        fret: insertFret,
-                                        duration: insertDuration
-                                      }),
-                                      cursor.tick,
-                                      insertDuration
-                                    );
-                                }}
-                              />
-                              <Action
-                                glass
-                                compact
-                                showLabel
-                                icon="music-rest-quarter"
-                                label={t("TabAddRest")}
-                                selected={!!selectedRest}
+                                key={value}
+                                notation
+                                style={styles.notationFlex}
+                                label={String(value)}
+                                accessibilityLabel={t("TabChooseString", {
+                                  string: value
+                                })}
+                                selected={6 - cursor.string === value}
                                 disabled={readOnly}
                                 onPress={() => {
-                                  const notes = tab.notes.filter(
-                                    (note) => !scopedNotes.includes(note)
-                                  );
-                                  const at =
-                                    selected && editScope === "bar"
-                                      ? bar * barTicks
-                                      : position;
-                                  const restDuration =
-                                    selected && editScope === "bar"
-                                      ? barTicks
-                                      : Math.max(
-                                          duration,
-                                          ...scopedNotes.map(tabNoteDuration)
-                                        );
-                                  const result = putTabRest(
-                                    { ...tab, notes },
-                                    { tick: at, duration: restDuration },
-                                    selectedRest?.tick
-                                  );
-                                  if (apply(result)) {
-                                    cancelPreview();
-                                    setSelection(null);
-                                    setRestSelection(at);
-                                  }
+                                  if (selected)
+                                    changeNote({ string: 6 - value });
+                                  else
+                                    selectCell({
+                                      ...cursor,
+                                      string: 6 - value
+                                    });
+                                  setShowStringChoices(false);
                                 }}
                               />
+                            ))}
+                          </View>
+                        )}
+                        <View style={styles.notationRow}>
+                          <Action
+                            notation
+                            style={styles.notationShortFlex}
+                            label={t("TabNoteTab")}
+                            accessibilityLabel={t("TabAddNote")}
+                            selected={
+                              !selectedRest && noteSettings.accent !== "dead"
+                            }
+                            disabled={readOnly}
+                            onPress={addOrSelectNote}
+                          />
+                          <Action
+                            notation
+                            style={styles.notationShortFlex}
+                            label={`𝄽 ${t("TabRestShort")}`}
+                            accessibilityLabel={t("TabAddRest")}
+                            selected={!!selectedRest}
+                            disabled={readOnly}
+                            onPress={convertToRest}
+                          />
+                          <Action
+                            notation
+                            style={styles.notationShortFlex}
+                            label="×"
+                            accessibilityLabel={t("TabDeadNote")}
+                            selected={noteSettings.accent === "dead"}
+                            disabled={readOnly || !!selectedRest}
+                            onPress={() =>
+                              patchSettings({
+                                accent:
+                                  noteSettings.accent === "dead"
+                                    ? undefined
+                                    : "dead"
+                              })
+                            }
+                          />
+                        </View>
+                        <View style={styles.notationDurationGrid}>
+                          {durationChoices.map((denominator) => (
+                            <Action
+                              key={denominator}
+                              notation
+                              showLabel
+                              icon={
+                                <DurationGlyph
+                                  denominator={denominator}
+                                  selected={parts?.denominator === denominator}
+                                />
+                              }
+                              style={styles.notationDurationChoice}
+                              label={`1/${denominator}`}
+                              accessibilityLabel={t("TabDurationChoice", {
+                                denominator
+                              })}
+                              selected={parts?.denominator === denominator}
+                              disabled={readOnly}
+                              onPress={() =>
+                                changeDuration(
+                                  durationTicks(
+                                    denominator,
+                                    parts?.modifier ?? "plain"
+                                  )
+                                )
+                              }
+                            />
+                          ))}
+                        </View>
+                        <View style={styles.notationRow}>
+                          <Text style={styles.notationLabel}>
+                            {t("TabRhythmShort")}
+                          </Text>
+                          {(
+                            [
+                              { key: "dotted", label: "TabDotted", text: "·" },
+                              {
+                                key: "doubleDotted",
+                                label: "TabDoubleDotted",
+                                text: "··"
+                              },
+                              {
+                                key: "triplet",
+                                label: "TabTriplet",
+                                text: "3:2"
+                              },
+                              {
+                                key: "quintuplet",
+                                label: "TabQuintuplet",
+                                text: "5:4"
+                              }
+                            ] as const
+                          ).map(({ key, label, text }) => (
+                            <Action
+                              key={key}
+                              notation
+                              style={styles.notationMiniFlex}
+                              label={text}
+                              accessibilityLabel={t(label)}
+                              selected={parts?.modifier === key}
+                              disabled={readOnly}
+                              onPress={() =>
+                                changeDuration(
+                                  durationTicks(
+                                    parts?.denominator ?? 4,
+                                    parts?.modifier === key ? "plain" : key
+                                  )
+                                )
+                              }
+                            />
+                          ))}
+                          <Action
+                            notation
+                            label="⋯"
+                            accessibilityLabel={t("TabMoreOptions")}
+                            style={styles.notationSmall}
+                            selected={noteDetails}
+                            onPress={() => setNoteDetails(!noteDetails)}
+                          />
+                        </View>
+                        {noteDetails && (
+                          <View style={styles.notationAdvanced}>
+                            <Text style={styles.notationLabel}>
+                              {t("TabCustomTuplet")}
+                            </Text>
+                            <View style={styles.notationRow}>
                               <Action
-                                glass
-                                compact
-                                showLabel
-                                icon="close"
-                                label={t("TabDeadNote")}
-                                selected={noteSettings.accent === "dead"}
+                                notation
+                                label={`${tupletActual}:${tupletNormal}`}
+                                style={styles.notationFlex}
+                                onPress={() =>
+                                  setTupletActual(
+                                    tupletActual === 16 ? 2 : tupletActual + 1
+                                  )
+                                }
+                              />
+                              <Action
+                                notation
+                                label={`${t("TabTupletNormal")}: ${tupletNormal}`}
+                                style={styles.notationFlex}
+                                onPress={() =>
+                                  setTupletNormal(
+                                    tupletNormal === 16 ? 1 : tupletNormal + 1
+                                  )
+                                }
+                              />
+                              <Action
+                                notation
+                                label={t("Apply")}
+                                style={styles.notationFlex}
+                                disabled={readOnly}
+                                onPress={() =>
+                                  changeDuration(
+                                    Math.round(
+                                      ((durationTicks(
+                                        selected?.tuplet?.denominator ??
+                                          parts?.denominator ??
+                                          4
+                                      ) *
+                                        tupletNormal) /
+                                        tupletActual) *
+                                        960
+                                    ) / 960,
+                                    {
+                                      actual: tupletActual,
+                                      normal: tupletNormal,
+                                      denominator:
+                                        selected?.tuplet?.denominator ??
+                                        parts?.denominator ??
+                                        4
+                                    }
+                                  )
+                                }
+                              />
+                            </View>
+                            <Text style={styles.notationLabel}>
+                              {t("TabGrid")}
+                            </Text>
+                            <View style={styles.notationWrap}>
+                              {[24, 12, 6, 3, 1.5, 0.75, 8, 4].map((step) => (
+                                <Action
+                                  key={step}
+                                  notation
+                                  label={durationLabel(step)}
+                                  accessibilityLabel={t("TabGridValue", {
+                                    value: durationLabel(step)
+                                  })}
+                                  selected={grid === step}
+                                  disabled={readOnly}
+                                  onPress={() => setGrid(step)}
+                                />
+                              ))}
+                            </View>
+                            <Action
+                              notation
+                              label={t("TabAdvanceCursor")}
+                              selected={advanceCursor}
+                              disabled={readOnly}
+                              onPress={() => setAdvanceCursor(!advanceCursor)}
+                            />
+                          </View>
+                        )}
+                        <View style={styles.notationRow}>
+                          <Action
+                            notation
+                            style={styles.notationShortFlex}
+                            label={`${t("TabTie")} ⌒`}
+                            accessibilityLabel={t("TabTie")}
+                            selected={!!noteSettings.tie}
+                            disabled={readOnly || !!selectedRest}
+                            onPress={() =>
+                              patchSettings({ tie: !noteSettings.tie })
+                            }
+                          />
+                          <Action
+                            notation
+                            style={styles.notationShortFlex}
+                            label={`${t("TabFermata")} 𝄐`}
+                            accessibilityLabel={t("TabFermata")}
+                            selected={!!noteSettings.fermata}
+                            disabled={readOnly || !!selectedRest}
+                            onPress={() =>
+                              patchSettings({ fermata: !noteSettings.fermata })
+                            }
+                          />
+                        </View>
+                        <View style={styles.notationRow}>
+                          <Text style={styles.notationLabel}>
+                            {t("TabVoice")}
+                          </Text>
+                          {[1, 2, 3, 4].map((voice) => (
+                            <Action
+                              key={voice}
+                              notation
+                              style={styles.notationMiniFlex}
+                              label={String(voice)}
+                              accessibilityLabel={t("TabVoiceChoice", {
+                                voice
+                              })}
+                              selected={(noteSettings.voice ?? 1) === voice}
+                              disabled={readOnly || !!selectedRest}
+                              onPress={() => patchSettings({ voice })}
+                            />
+                          ))}
+                        </View>
+                        <Text style={styles.notationHeading}>
+                          {t("TabPickingFingering")}
+                        </Text>
+                        <View style={styles.notationRow}>
+                          {(
+                            [
+                              { key: "down", symbol: "Π" },
+                              { key: "up", symbol: "V" },
+                              { key: "downBrush", symbol: "↓" },
+                              { key: "upBrush", symbol: "↑" },
+                              { key: "arpeggio", symbol: "⌒" }
+                            ] as const
+                          ).map(({ key, symbol }) => (
+                            <Action
+                              key={key}
+                              notation
+                              showLabel
+                              style={styles.notationFlex}
+                              icon={
+                                <Text
+                                  style={[
+                                    styles.notationGlyph,
+                                    noteSettings.pick === key &&
+                                      styles.notationGlyphSelected
+                                  ]}
+                                >
+                                  {symbol}
+                                </Text>
+                              }
+                              label={t(`TabPick_${key}`)}
+                              selected={noteSettings.pick === key}
+                              disabled={readOnly || !!selectedRest}
+                              onPress={() =>
+                                patchSettings({
+                                  pick:
+                                    noteSettings.pick === key ? undefined : key
+                                })
+                              }
+                            />
+                          ))}
+                        </View>
+                        <View style={styles.notationRow}>
+                          <Text style={styles.notationLabel}>
+                            {t("TabLeftShort")}
+                          </Text>
+                          {[1, 2, 3, 4].map((finger) => (
+                            <Action
+                              key={finger}
+                              notation
+                              style={styles.notationMiniFlex}
+                              label={String(finger)}
+                              selected={noteSettings.leftFinger === finger}
+                              disabled={readOnly || !!selectedRest}
+                              onPress={() =>
+                                patchSettings({
+                                  leftFinger:
+                                    noteSettings.leftFinger === finger
+                                      ? undefined
+                                      : finger
+                                })
+                              }
+                            />
+                          ))}
+                        </View>
+                        <View style={styles.notationRow}>
+                          <Text style={styles.notationLabel}>
+                            {t("TabRightShort")}
+                          </Text>
+                          {(["p", "i", "m", "a", "c"] as const).map(
+                            (finger) => (
+                              <Action
+                                key={finger}
+                                notation
+                                style={styles.notationMiniFlex}
+                                label={finger}
+                                selected={noteSettings.rightFinger === finger}
                                 disabled={readOnly || !!selectedRest}
                                 onPress={() =>
                                   patchSettings({
-                                    accent:
-                                      noteSettings.accent === "dead"
+                                    rightFinger:
+                                      noteSettings.rightFinger === finger
                                         ? undefined
-                                        : "dead"
+                                        : finger
                                   })
                                 }
                               />
-                            </View>
-                            {noteDetails && (
-                              <View style={styles.noteDetails}>
-                                <Text style={styles.expressionHeading}>
-                                  {t("TabCustomTuplet")}
-                                </Text>
-                                <View style={styles.expressionRow}>
-                                  <Stepper
-                                    label={t("TabTupletActual")}
-                                    value={tupletActual}
-                                    min={2}
-                                    max={16}
-                                    disabled={readOnly}
-                                    onChange={setTupletActual}
-                                  />
-                                  <Stepper
-                                    label={t("TabTupletNormal")}
-                                    value={tupletNormal}
-                                    min={1}
-                                    max={16}
-                                    disabled={readOnly}
-                                    onChange={setTupletNormal}
-                                  />
-                                  <Action
-                                    glass
-                                    compact
-                                    label={t("Apply")}
-                                    disabled={readOnly}
-                                    onPress={() =>
-                                      changeDuration(
-                                        Math.round(
-                                          ((durationTicks(
-                                            parts?.denominator ?? 4
-                                          ) *
-                                            tupletNormal) /
-                                            tupletActual) *
-                                            960
-                                        ) / 960,
-                                        {
-                                          actual: tupletActual,
-                                          normal: tupletNormal,
-                                          denominator:
-                                            selected?.tuplet?.denominator ??
-                                            parts?.denominator ??
-                                            4
-                                        }
-                                      )
-                                    }
-                                  />
-                                </View>
-                                <Text style={styles.expressionHeading}>
-                                  {t("TabGrid")}
-                                </Text>
-                                <View style={styles.expressionRow}>
-                                  {[24, 12, 6, 3, 1.5, 0.75, 8, 4].map(
-                                    (step) => (
-                                      <Action
-                                        key={step}
-                                        glass
-                                        compact
-                                        label={durationLabel(step)}
-                                        accessibilityLabel={t("TabGridValue", {
-                                          value: durationLabel(step)
-                                        })}
-                                        selected={grid === step}
-                                        disabled={readOnly}
-                                        onPress={() => setGrid(step)}
-                                      />
-                                    )
-                                  )}
-                                </View>
-                                <Action
-                                  glass
-                                  compact
-                                  showLabel
-                                  icon="arrow-right-circle-outline"
-                                  label={t("TabAdvanceCursor")}
-                                  selected={advanceCursor}
-                                  disabled={readOnly}
-                                  onPress={() =>
-                                    setAdvanceCursor(!advanceCursor)
-                                  }
-                                />
-                              </View>
-                            )}
-                          </View>
-                          <View style={styles.expressionCard}>
-                            <Text style={styles.expressionHeading}>
-                              {t("TabPickingFingering")}
-                            </Text>
-                            <View style={styles.expressionRow}>
-                              {(
-                                [
-                                  { key: "down", icon: "arrow-down" },
-                                  { key: "up", icon: "arrow-up" },
-                                  {
-                                    key: "downBrush",
-                                    icon: "arrow-collapse-down"
-                                  },
-                                  { key: "upBrush", icon: "arrow-collapse-up" },
-                                  { key: "arpeggio", icon: "sine-wave" }
-                                ] as const
-                              ).map(({ key, icon }) => (
-                                <Action
-                                  key={key}
-                                  glass
-                                  compact
-                                  showLabel
-                                  icon={icon}
-                                  label={t(`TabPick_${key}`)}
-                                  selected={noteSettings.pick === key}
-                                  disabled={readOnly || !!selectedRest}
-                                  onPress={() =>
-                                    patchSettings({
-                                      pick:
-                                        noteSettings.pick === key
-                                          ? undefined
-                                          : key
-                                    })
-                                  }
-                                />
-                              ))}
-                            </View>
-                            <View style={styles.expressionRow}>
-                              <Text style={styles.expressionLabel}>
-                                {t("TabLeftHand")}
-                              </Text>
-                              {[1, 2, 3, 4].map((finger) => (
-                                <Action
-                                  key={finger}
-                                  glass
-                                  compact
-                                  label={String(finger)}
-                                  selected={noteSettings.leftFinger === finger}
-                                  disabled={readOnly || !!selectedRest}
-                                  onPress={() =>
-                                    patchSettings({
-                                      leftFinger:
-                                        noteSettings.leftFinger === finger
-                                          ? undefined
-                                          : finger
-                                    })
-                                  }
-                                />
-                              ))}
-                            </View>
-                            <View style={styles.expressionRow}>
-                              <Text style={styles.expressionLabel}>
-                                {t("TabRightHand")}
-                              </Text>
-                              {(["p", "i", "m", "a", "c"] as const).map(
-                                (finger) => (
-                                  <Action
-                                    key={finger}
-                                    glass
-                                    compact
-                                    label={finger}
-                                    selected={
-                                      noteSettings.rightFinger === finger
-                                    }
-                                    disabled={readOnly || !!selectedRest}
-                                    onPress={() =>
-                                      patchSettings({
-                                        rightFinger:
-                                          noteSettings.rightFinger === finger
-                                            ? undefined
-                                            : finger
-                                      })
-                                    }
-                                  />
-                                )
-                              )}
-                            </View>
-                            <View style={styles.expressionRow}>
-                              <Text style={styles.expressionLabel}>
-                                {t("TabVoice")}
-                              </Text>
-                              {[1, 2, 3, 4].map((voice) => (
-                                <Action
-                                  key={voice}
-                                  glass
-                                  compact
-                                  label={String(voice)}
-                                  selected={(noteSettings.voice ?? 1) === voice}
-                                  disabled={readOnly || !!selectedRest}
-                                  onPress={() => patchSettings({ voice })}
-                                />
-                              ))}
-                            </View>
-                            <Text style={styles.expressionHeading}>
-                              {t("TabEditSelection")}
-                            </Text>
-                            <View style={styles.expressionRow}>
-                              {[
-                                {
-                                  icon: "content-copy",
-                                  label: "TabCopyNotes",
-                                  action: () => saveNotesToClipboard(),
-                                  disabled: !scopedNotes.length
-                                },
-                                {
-                                  icon: "content-cut",
-                                  label: "TabCutNotes",
-                                  action: () => saveNotesToClipboard(true),
-                                  disabled: !scopedNotes.length
-                                },
-                                {
-                                  icon: "content-paste",
-                                  label: "TabPasteNotes",
-                                  action: () => pasteNotes(),
-                                  disabled: !noteClipboard?.length
-                                },
-                                {
-                                  icon: "content-duplicate",
-                                  label: "TabDuplicateNotes",
-                                  action: () => pasteNotes(true),
-                                  disabled: !scopedNotes.length
-                                }
-                              ].map(
-                                ({
-                                  icon,
-                                  label,
-                                  action,
-                                  disabled: unavailable
-                                }) => (
-                                  <Action
-                                    key={label}
-                                    glass
-                                    compact
-                                    showLabel
-                                    icon={icon}
-                                    label={t(label)}
-                                    disabled={readOnly || unavailable}
-                                    onPress={action}
-                                  />
-                                )
-                              )}
-                              <Action
-                                glass
-                                compact
-                                showLabel
-                                icon="delete-outline"
-                                label={t("TabDeleteNote")}
-                                disabled={
-                                  readOnly || (!selected && !selectedRest)
-                                }
-                                onPress={removeSelection}
-                              />
-                            </View>
-                            <View style={styles.expressionRow}>
-                              <Text style={styles.expressionLabel}>
-                                {t("Transpose")}
-                              </Text>
-                              {[-1, 1].map((step) => (
-                                <Action
-                                  key={step}
-                                  glass
-                                  compact
-                                  label={step > 0 ? "+1" : "−1"}
-                                  disabled={readOnly || !scopedNotes.length}
-                                  onPress={() => transposeNotes(step)}
-                                />
-                              ))}
-                              <Action
-                                glass
-                                compact
-                                showLabel
-                                icon="eraser"
-                                label={t("TabClearEffects")}
-                                disabled={readOnly || !!selectedRest}
-                                onPress={clearNoteEffects}
-                              />
-                            </View>
-                          </View>
-                        </View>
-                      </>
-                    )}
-                    {noteTab === "technique" && (
-                      <>
-                        <View style={styles.techniqueGrid}>
-                          {(Object.keys(TAB_TECHNIQUES) as TabTechnique[]).map(
-                            (technique) => (
-                              <View
-                                key={technique}
-                                style={styles.techniqueChoice}
-                              >
-                                <Action
-                                  glass
-                                  compact
-                                  showLabel
-                                  icon={techniqueIcons[technique]}
-                                  label={t(`TabTechnique_${technique}`)}
-                                  selected={noteSettings.techniques?.includes(
-                                    technique
-                                  )}
-                                  disabled={readOnly || !!selectedRest}
-                                  onPress={() => toggleTechnique(technique)}
-                                />
-                              </View>
                             )
                           )}
                         </View>
+                      </View>
+                      <View style={styles.notationColumn}>
+                        <View style={styles.notationRow}>
+                          <Text
+                            style={[
+                              styles.notationHeading,
+                              styles.notationFlex
+                            ]}
+                          >
+                            {t("TabPlayingTechniques")}
+                          </Text>
+                          <Action
+                            notation
+                            style={styles.notationSmall}
+                            label="⋯"
+                            accessibilityLabel={t("TabExtraTechniques")}
+                            selected={moreTechniques}
+                            onPress={() => setMoreTechniques(!moreTechniques)}
+                          />
+                        </View>
+                        <View style={styles.notationTechniqueGrid}>
+                          {(
+                            [
+                              "hammerOn",
+                              "pullOff",
+                              "slide",
+                              "bend",
+                              "vibrato",
+                              "palmMute",
+                              "letRing",
+                              "harmonic",
+                              "tapping",
+                              "tremolo",
+                              "trill",
+                              "whammy",
+                              "grace",
+                              "slap",
+                              "rasgueado"
+                            ] as const
+                          ).map((technique) => {
+                            const chosen =
+                              technique === "slap"
+                                ? noteSettings.techniques?.some((entry) =>
+                                    ["slap", "pop"].includes(entry)
+                                  )
+                                : noteSettings.techniques?.includes(technique);
+                            const symbol = {
+                              hammerOn: "H",
+                              pullOff: "P",
+                              slide: "↗",
+                              bend: "⤴",
+                              vibrato: "∿",
+                              palmMute: "♧",
+                              letRing: "∞",
+                              harmonic: "◇",
+                              tapping: "T",
+                              tremolo: "///",
+                              trill: "tr",
+                              whammy: "↝",
+                              grace: "♪",
+                              slap: "♧",
+                              rasgueado: "⇈"
+                            }[technique];
+                            return (
+                              <Action
+                                key={technique}
+                                notation
+                                showLabel
+                                style={styles.notationTechniqueChoice}
+                                icon={
+                                  ["palmMute", "slap"].includes(technique) ? (
+                                    techniqueIcons[technique]
+                                  ) : (
+                                    <Text
+                                      style={[
+                                        styles.notationGlyph,
+                                        chosen && styles.notationGlyphSelected
+                                      ]}
+                                    >
+                                      {symbol}
+                                    </Text>
+                                  )
+                                }
+                                label={
+                                  technique === "slap"
+                                    ? t(
+                                        noteSettings.techniques?.includes("pop")
+                                          ? "TabTechnique_pop"
+                                          : noteSettings.techniques?.includes(
+                                                "slap"
+                                              )
+                                            ? "TabTechnique_slap"
+                                            : "TabSlapPop"
+                                      )
+                                    : t(`TabTechnique_${technique}`)
+                                }
+                                accessibilityLabel={t(
+                                  `TabTechnique_${technique}`
+                                )}
+                                selected={chosen}
+                                disabled={readOnly || !!selectedRest}
+                                onPress={() => {
+                                  if (technique !== "slap") {
+                                    toggleTechnique(technique);
+                                    return;
+                                  }
+                                  const base = (
+                                    noteSettings.techniques ?? []
+                                  ).filter(
+                                    (entry) => !["slap", "pop"].includes(entry)
+                                  );
+                                  patchSettings({
+                                    techniques:
+                                      noteSettings.techniques?.includes("slap")
+                                        ? [...base, "pop"]
+                                        : noteSettings.techniques?.includes(
+                                              "pop"
+                                            )
+                                          ? base
+                                          : [...base, "slap"]
+                                  });
+                                }}
+                              />
+                            );
+                          })}
+                        </View>
                         {noteSettings.techniques?.includes("bend") && (
-                          <View style={styles.expressionCard}>
-                            <Text style={styles.expressionHeading}>
-                              {t("TabTechnique_bend")}
-                            </Text>
-                            <View style={styles.expressionRow}>
-                              {[0.5, 1, 1.5, 2, 2.5, 3].map((bend) => (
+                          <View style={styles.notationBend}>
+                            <View style={styles.notationRow}>
+                              <Text style={styles.notationHeading}>
+                                {t("TabTechnique_bend")}
+                              </Text>
+                              {([0.5, 1, 1.5] as const).map((bend) => (
                                 <Action
                                   key={bend}
-                                  glass
-                                  compact
-                                  label={`${bend} ${t("TabTone")}`}
+                                  notation
+                                  style={styles.notationFlex}
+                                  label={`${{ 0.5: "½", 1: "1", 1.5: "1½" }[bend]} ${t("TabTone")}`}
+                                  accessibilityLabel={`${bend} ${t("TabTone")}`}
                                   selected={(noteSettings.bend ?? 1) === bend}
                                   disabled={readOnly}
                                   onPress={() => patchSettings({ bend })}
                                 />
                               ))}
-                              <Action
-                                glass
-                                compact
-                                showLabel
-                                icon="undo"
-                                label={t("TabBendRelease")}
-                                selected={!!noteSettings.bendRelease}
-                                disabled={readOnly}
-                                onPress={() =>
-                                  patchSettings({
-                                    bendRelease: !noteSettings.bendRelease
-                                  })
-                                }
-                              />
                             </View>
-                            <Svg
-                              width="100%"
-                              height={58}
-                              viewBox="0 0 500 58"
-                              preserveAspectRatio="none"
-                              accessible
-                              accessibilityLabel={t("TabBendCurve")}
+                            <Pressable
+                              accessibilityRole="button"
+                              accessibilityLabel={t("TabBendRelease")}
+                              accessibilityState={{
+                                selected: !!noteSettings.bendRelease,
+                                disabled: readOnly
+                              }}
+                              disabled={readOnly}
+                              onPress={() =>
+                                patchSettings({
+                                  bendRelease: !noteSettings.bendRelease
+                                })
+                              }
                             >
-                              <Path
-                                d="M8 48H492M8 10V48"
-                                stroke={palette.glass.edge}
-                                fill="none"
-                                strokeWidth={1}
+                              <Text style={styles.notationLabel}>
+                                {t("TabBendRelease")}
+                              </Text>
+                              <Svg
+                                width="100%"
+                                height={42}
+                                viewBox="0 0 300 50"
+                                accessible
+                                accessibilityLabel={t("TabBendCurve")}
+                              >
+                                <Path
+                                  d="M22 28H292M22 8V46"
+                                  stroke={palette.notation.plotLine}
+                                  fill="none"
+                                  strokeWidth={1}
+                                />
+                                <SvgText
+                                  x={2}
+                                  y={14}
+                                  fill={palette.notation.muted}
+                                  fontSize={9}
+                                >
+                                  +1
+                                </SvgText>
+                                <SvgText
+                                  x={4}
+                                  y={31}
+                                  fill={palette.notation.muted}
+                                  fontSize={9}
+                                >
+                                  0
+                                </SvgText>
+                                <SvgText
+                                  x={2}
+                                  y={46}
+                                  fill={palette.notation.muted}
+                                  fontSize={9}
+                                >
+                                  −1
+                                </SvgText>
+                                <Path
+                                  d={
+                                    noteSettings.bendRelease
+                                      ? "M22 28C90 28 112 10 158 10S226 28 292 28"
+                                      : "M22 28C90 28 112 10 158 10H292"
+                                  }
+                                  stroke={palette.notation.plotGold}
+                                  fill="none"
+                                  strokeWidth={2}
+                                />
+                                {[
+                                  { x: 22, y: 28 },
+                                  { x: 158, y: 10 },
+                                  {
+                                    x: 292,
+                                    y: noteSettings.bendRelease ? 28 : 10
+                                  }
+                                ].map(({ x, y }) => (
+                                  <Ellipse
+                                    key={x}
+                                    cx={x}
+                                    cy={y}
+                                    rx={3.5}
+                                    ry={3.5}
+                                    fill={palette.notation.plotGold}
+                                  />
+                                ))}
+                              </Svg>
+                            </Pressable>
+                          </View>
+                        )}
+
+                        {moreTechniques && (
+                          <View style={styles.notationWrap}>
+                            {(
+                              [
+                                "mordent",
+                                "turn",
+                                "golpe",
+                                "pickScrape"
+                              ] as const
+                            ).map((technique) => (
+                              <Action
+                                key={technique}
+                                notation
+                                icon={techniqueIcons[technique]}
+                                showLabel
+                                label={t(`TabTechnique_${technique}`)}
+                                selected={noteSettings.techniques?.includes(
+                                  technique
+                                )}
+                                disabled={readOnly || !!selectedRest}
+                                onPress={() => toggleTechnique(technique)}
                               />
-                              <Path
-                                d={
-                                  noteSettings.bendRelease
-                                    ? "M8 48C100 48 160 10 250 10S400 48 492 48"
-                                    : "M8 48C100 48 150 10 250 10H492"
-                                }
-                                stroke={palette.glass.accent}
-                                fill="none"
-                                strokeWidth={3}
-                              />
-                            </Svg>
+                            ))}
+                            {noteSettings.techniques?.includes("bend") &&
+                              [2, 2.5, 3].map((bend) => (
+                                <Action
+                                  key={bend}
+                                  notation
+                                  label={`${bend} ${t("TabTone")}`}
+                                  selected={noteSettings.bend === bend}
+                                  disabled={readOnly}
+                                  onPress={() => patchSettings({ bend })}
+                                />
+                              ))}
                           </View>
                         )}
                         {noteSettings.techniques?.some((technique) =>
@@ -2351,176 +2427,275 @@ export function TablaturePanel({
                             technique
                           )
                         ) && (
-                          <Stepper
-                            label={t("TabSourceFret")}
-                            value={
-                              noteSettings.sourceFret ??
-                              Math.max(0, (selected?.fret ?? insertFret) - 2)
-                            }
-                            min={0}
-                            max={24}
-                            disabled={readOnly}
-                            onChange={(sourceFret) =>
-                              patchSettings({ sourceFret })
-                            }
-                          />
+                          <View style={styles.notationRow}>
+                            <Text style={styles.notationLabel}>
+                              {t("TabSourceFret")}:{" "}
+                              {noteSettings.sourceFret ??
+                                Math.max(0, (selected?.fret ?? insertFret) - 2)}
+                            </Text>
+                            {[-1, 1].map((delta) => (
+                              <Action
+                                key={delta}
+                                notation
+                                label={delta > 0 ? "+" : "−"}
+                                disabled={readOnly || !!selectedRest}
+                                onPress={() =>
+                                  patchSettings({
+                                    sourceFret: Math.max(
+                                      0,
+                                      Math.min(
+                                        24,
+                                        (noteSettings.sourceFret ??
+                                          Math.max(
+                                            0,
+                                            (selected?.fret ?? insertFret) - 2
+                                          )) + delta
+                                      )
+                                    )
+                                  })
+                                }
+                              />
+                            ))}
+                          </View>
                         )}
-                      </>
-                    )}
-                    {noteTab === "dynamics" && (
-                      <View style={styles.expressionColumns}>
-                        <View style={styles.expressionCard}>
-                          <Text style={styles.expressionHeading}>
-                            {t("TabDynamics")}
-                          </Text>
-                          <View style={styles.dynamicGrid}>
-                            {[
-                              { name: "ppp", value: 16 },
-                              { name: "pp", value: 28 },
-                              { name: "p", value: 40 },
-                              { name: "mp", value: 52 },
-                              { name: "mf", value: 64 },
-                              { name: "f", value: 82 },
-                              { name: "ff", value: 104 },
-                              { name: "fff", value: 127 }
-                            ].map(({ name, value }) => (
-                              <View style={styles.dynamicChoice} key={name}>
-                                <Action
-                                  glass
-                                  compact
-                                  label={name}
-                                  icon={
-                                    <Text
-                                      numberOfLines={1}
-                                      style={[
-                                        styles.dynamicMark,
-                                        (noteSettings.velocity ?? 64) ===
-                                          value && styles.dynamicMarkSelected
-                                      ]}
-                                    >
-                                      {name}
-                                    </Text>
-                                  }
-                                  selected={
-                                    (noteSettings.velocity ?? 64) === value
-                                  }
-                                  disabled={readOnly || !!selectedRest}
-                                  onPress={() =>
-                                    patchSettings({ velocity: value })
-                                  }
-                                />
-                              </View>
-                            ))}
-                          </View>
-                          <ExpressionSlider
-                            label={t("TabAttack")}
-                            value={noteSettings.velocity ?? 64}
-                            min={1}
-                            max={127}
-                            disabled={readOnly || !!selectedRest}
-                            onChange={(velocity) => patchSettings({ velocity })}
-                          />
-                          <View style={styles.expressionRow}>
-                            {(
-                              [
-                                {
-                                  key: "accent",
-                                  icon: "chevron-right",
-                                  label: "TabAccent"
-                                },
-                                {
-                                  key: "strong",
-                                  icon: "chevron-double-right",
-                                  label: "TabStrongAccent"
-                                },
-                                {
-                                  key: "staccato",
-                                  icon: "circle-small",
-                                  label: "TabStaccato"
-                                },
-                                {
-                                  key: "ghost",
-                                  icon: "music-note-outline",
-                                  label: "TabGhostNote"
-                                }
-                              ] as const
-                            ).map(({ key, icon, label }) => (
-                              <Action
-                                key={key}
-                                glass
-                                compact
-                                showLabel
-                                icon={icon}
-                                label={t(label)}
-                                selected={noteSettings.accent === key}
-                                disabled={readOnly || !!selectedRest}
-                                onPress={() =>
-                                  patchSettings({
-                                    accent:
-                                      noteSettings.accent === key
-                                        ? undefined
-                                        : key
-                                  })
-                                }
-                              />
-                            ))}
-                          </View>
-                        </View>
-                        <View style={styles.expressionCard}>
-                          <Text style={styles.expressionHeading}>
-                            {t("TabExpression")}
-                          </Text>
-                          <View style={styles.expressionRow}>
-                            {(
-                              [
-                                {
-                                  key: "crescendo",
-                                  icon: "arrow-expand-horizontal"
-                                },
-                                {
-                                  key: "diminuendo",
-                                  icon: "arrow-collapse-horizontal"
-                                },
-                                { key: "in", icon: "volume-plus" },
-                                { key: "out", icon: "volume-minus" }
-                              ] as const
-                            ).map(({ key, icon }) => (
-                              <Action
-                                key={key}
-                                glass
-                                compact
-                                showLabel
-                                icon={icon}
-                                label={t(`TabFade_${key}`)}
-                                selected={noteSettings.fade === key}
-                                disabled={readOnly || !!selectedRest}
-                                onPress={() =>
-                                  patchSettings({
-                                    fade:
-                                      noteSettings.fade === key
-                                        ? undefined
-                                        : key
-                                  })
-                                }
-                              />
-                            ))}
-                          </View>
-                          <View style={styles.singleExpressionAction}>
-                            {" "}
+                      </View>
+                      <View
+                        style={[
+                          styles.notationColumn,
+                          styles.notationLastColumn
+                        ]}
+                      >
+                        <Text style={styles.notationHeading}>
+                          {t("TabDynamics")}
+                        </Text>
+                        <View style={styles.notationRow}>
+                          {[
+                            { name: "ppp", value: 16 },
+                            { name: "pp", value: 28 },
+                            { name: "p", value: 40 },
+                            { name: "mp", value: 52 },
+                            { name: "mf", value: 64 },
+                            { name: "f", value: 82 },
+                            { name: "ff", value: 104 },
+                            { name: "fff", value: 127 }
+                          ].map(({ name, value }) => (
                             <Action
-                              glass
-                              compact
-                              showLabel
-                              icon="eraser"
-                              label={t("TabClearEffects")}
+                              key={name}
+                              notation
+                              style={styles.notationDynamic}
+                              label={name}
+                              icon={
+                                <Text
+                                  numberOfLines={1}
+                                  style={[
+                                    styles.notationDynamicMark,
+                                    (noteSettings.velocity ?? 64) === value &&
+                                      styles.notationGlyphSelected
+                                  ]}
+                                >
+                                  {name}
+                                </Text>
+                              }
+                              selected={(noteSettings.velocity ?? 64) === value}
                               disabled={readOnly || !!selectedRest}
-                              onPress={clearNoteEffects}
+                              onPress={() => patchSettings({ velocity: value })}
                             />
+                          ))}
+                        </View>
+                        <ExpressionSlider
+                          label={t("TabAttack")}
+                          value={noteSettings.velocity ?? 64}
+                          min={1}
+                          max={127}
+                          disabled={readOnly || !!selectedRest}
+                          onChange={(velocity) => patchSettings({ velocity })}
+                        />
+                        <View style={styles.notationTechniqueGrid}>
+                          {(
+                            [
+                              {
+                                key: "accent",
+                                label: "TabAccent",
+                                symbol: ">"
+                              },
+                              {
+                                key: "strong",
+                                label: "TabStrongAccent",
+                                symbol: ">>"
+                              },
+                              {
+                                key: "staccato",
+                                label: "TabStaccato",
+                                symbol: "•"
+                              },
+                              {
+                                key: "ghost",
+                                label: "TabGhostNote",
+                                symbol: "(♪)"
+                              }
+                            ] as const
+                          ).map(({ key, label, symbol }) => (
+                            <Action
+                              key={key}
+                              notation
+                              showLabel
+                              style={styles.notationTechniqueChoice}
+                              icon={
+                                <Text
+                                  style={[
+                                    styles.notationGlyph,
+                                    noteSettings.accent === key &&
+                                      styles.notationGlyphSelected
+                                  ]}
+                                >
+                                  {symbol}
+                                </Text>
+                              }
+                              label={t(label)}
+                              selected={noteSettings.accent === key}
+                              disabled={readOnly || !!selectedRest}
+                              onPress={() =>
+                                patchSettings({
+                                  accent:
+                                    noteSettings.accent === key
+                                      ? undefined
+                                      : key
+                                })
+                              }
+                            />
+                          ))}
+                          {(
+                            [
+                              { key: "crescendo", symbol: "<" },
+                              { key: "diminuendo", symbol: ">" }
+                            ] as const
+                          ).map(({ key, symbol }) => (
+                            <Action
+                              key={key}
+                              notation
+                              showLabel
+                              style={styles.notationTechniqueChoice}
+                              icon={
+                                <Text
+                                  style={[
+                                    styles.notationGlyph,
+                                    noteSettings.fade === key &&
+                                      styles.notationGlyphSelected
+                                  ]}
+                                >
+                                  {symbol}
+                                </Text>
+                              }
+                              label={t(`TabFade_${key}`)}
+                              selected={noteSettings.fade === key}
+                              disabled={readOnly || !!selectedRest}
+                              onPress={() =>
+                                patchSettings({
+                                  fade:
+                                    noteSettings.fade === key ? undefined : key
+                                })
+                              }
+                            />
+                          ))}
+                        </View>
+                        <View style={styles.notationRow}>
+                          {(["in", "out"] as const).map((fade) => (
+                            <Action
+                              key={fade}
+                              notation
+                              style={styles.notationFlex}
+                              label={`${fade === "in" ? "▁▂▃" : "▃▂▁"} ${t(`TabFade_${fade}`)}`}
+                              selected={noteSettings.fade === fade}
+                              disabled={readOnly || !!selectedRest}
+                              onPress={() =>
+                                patchSettings({
+                                  fade:
+                                    noteSettings.fade === fade
+                                      ? undefined
+                                      : fade
+                                })
+                              }
+                            />
+                          ))}
+                        </View>
+                        <Text
+                          style={[
+                            styles.notationHeading,
+                            styles.notationEditHeading
+                          ]}
+                        >
+                          {t("TabEditSelection")}
+                        </Text>
+                        <View style={styles.notationTechniqueGrid}>
+                          {[
+                            {
+                              label: "TabCopyNotes",
+                              action: () => saveNotesToClipboard(),
+                              disabled: !scopedNotes.length
+                            },
+                            {
+                              label: "TabCutNotes",
+                              action: () => saveNotesToClipboard(true),
+                              disabled: !scopedNotes.length
+                            },
+                            {
+                              label: "TabPasteNotes",
+                              action: () => pasteNotes(),
+                              disabled: !noteClipboard?.length
+                            },
+                            {
+                              label: "TabDuplicateNotes",
+                              action: () => pasteNotes(true),
+                              disabled: !scopedNotes.length
+                            },
+                            {
+                              label: "TabToRest",
+                              action: convertToRest,
+                              disabled: !selected
+                            },
+                            {
+                              label: "TabDeleteNote",
+                              action: removeSelection,
+                              disabled: !selected && !selectedRest
+                            }
+                          ].map(({ label, action, disabled: unavailable }) => (
+                            <Action
+                              key={label}
+                              notation
+                              style={styles.notationTechniqueChoice}
+                              label={t(label)}
+                              disabled={readOnly || unavailable}
+                              onPress={action}
+                            />
+                          ))}
+                        </View>
+                        <View style={styles.notationRow}>
+                          <View style={styles.notationTranspose}>
+                            <Text style={styles.notationLabel}>
+                              {t("Transpose")}
+                            </Text>
+                            {[-1, 1].map((delta) => (
+                              <Action
+                                key={delta}
+                                notation
+                                label={delta > 0 ? "+1" : "−1"}
+                                disabled={readOnly || !scopedNotes.length}
+                                onPress={() => transposeNotes(delta)}
+                              />
+                            ))}
                           </View>
+                          <Action
+                            notation
+                            style={styles.notationFlex}
+                            label={`◇ ${t("TabClearEffects")}`}
+                            accessibilityLabel={t("TabClearEffects")}
+                            disabled={readOnly || !!selectedRest}
+                            onPress={clearNoteEffects}
+                          />
                         </View>
                       </View>
-                    )}
-                  </View>
+                    </View>
+                  </>
                 )}
                 {editorSection === "bars" && (
                   <View style={[styles.editor, styles.noteEditor]}>
@@ -2776,121 +2951,179 @@ const styles = StyleSheet.create({
   },
   workspace: { flex: 1 },
   noteEditor: { padding: 0, gap: 10, borderWidth: 0 },
-  noteSheetNavigation: {
-    paddingHorizontal: 16,
-    paddingBottom: 6,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: palette.glass.edge
-  },
-  noteTabs: { flexDirection: "row", gap: 6, flexGrow: 1, maxWidth: 460 },
-  noteTabChoice: { flex: 1, height: 44 },
-  previewActions: {
-    flexDirection: "row",
-    alignItems: "center",
+  notationColumns: { flexDirection: "row", alignItems: "stretch" },
+  notationColumn: {
     flex: 1,
-    maxWidth: 220,
-    gap: 8,
-    height: 44
+    minWidth: 0,
+    paddingHorizontal: 9,
+    paddingTop: 5,
+    paddingBottom: 7,
+    gap: 3,
+    borderRightWidth: 1,
+    borderRightColor: palette.notation.divider,
+    backgroundColor: palette.notation.background
   },
-  doneAction: { width: 110, height: 44 },
-  pitchControl: { flex: 1, minWidth: 145 },
-  noteSheetFooter: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-    padding: 6,
-    borderTopWidth: 1,
-    borderTopColor: palette.glass.edge,
-    backgroundColor: palette.glass.card
-  },
-  expressionColumns: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "flex-start",
-    gap: 12
-  },
-  expressionCard: {
-    flexGrow: 1,
-    flexBasis: 330,
-    padding: 10,
-    gap: 8,
-    borderRadius: 16,
-    backgroundColor: palette.glass.card,
-    borderWidth: 1,
-    borderColor: palette.glass.edge
-  },
-  expressionRow: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
-    gap: 8
-  },
-  expressionHeading: {
-    color: palette.glass.accent,
-    fontSize: 14,
+  notationLastColumn: { borderRightWidth: 0 },
+  notationHeading: {
+    color: palette.notation.gold,
+    fontSize: 12,
+    lineHeight: 15,
     fontWeight: "600"
   },
-  expressionLabel: { color: palette.glass.muted, fontSize: 13 },
-  durationGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
-  durationChoice: { flexGrow: 1, flexBasis: "20%" },
-  techniqueGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  techniqueChoice: { flexGrow: 1, flexBasis: "17%" },
-  dynamicMark: { color: palette.glass.ink, fontSize: 14, fontStyle: "italic" },
-  dynamicMarkSelected: { color: palette.gold.ink },
-  singleExpressionAction: {
-    height: 44,
-    minWidth: 140,
-    alignSelf: "flex-start"
+  notationLabel: { color: palette.notation.label, fontSize: 9, lineHeight: 12 },
+  notationText: {
+    color: palette.notation.text,
+    fontSize: 9,
+    lineHeight: 12,
+    flexShrink: 1
   },
-  dynamicGrid: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
-  dynamicChoice: { flexGrow: 1, flexBasis: "10%" },
-  expressionSlider: { flexDirection: "row", alignItems: "center", gap: 12 },
+  notationRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  notationWrap: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
+  notationFlex: { flex: 1, minWidth: 0, width: undefined },
+  notationShortFlex: {
+    flex: 1,
+    minWidth: 0,
+    width: undefined,
+    height: 20,
+    minHeight: 20
+  },
+  notationMiniFlex: {
+    flex: 1,
+    minWidth: 0,
+    width: undefined,
+    height: 18,
+    minHeight: 18,
+    paddingHorizontal: 2
+  },
+  notationSmall: {
+    width: 20,
+    minWidth: 0,
+    paddingHorizontal: 0,
+    height: 22,
+    minHeight: 22
+  },
+  notationArrow: { width: 20, minWidth: 0, paddingHorizontal: 0 },
+  notationFret: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: 80,
+    gap: 1,
+    borderWidth: 1,
+    borderColor: palette.notation.edge,
+    borderRadius: 7,
+    backgroundColor: palette.notation.control
+  },
+  notationDurationGrid: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
+  notationDurationChoice: { flexBasis: "22%", flexGrow: 1, minWidth: 0 },
+  notationTechniqueGrid: { flexDirection: "row", flexWrap: "wrap", gap: 4 },
+  notationTechniqueChoice: { flexBasis: "30%", flexGrow: 1, minWidth: 0 },
+  notationGlyph: {
+    color: palette.notation.text,
+    fontSize: 17,
+    lineHeight: 18,
+    textAlign: "center"
+  },
+  notationGlyphSelected: { color: palette.gold.ink },
+  notationDynamicMark: {
+    color: palette.notation.text,
+    fontSize: 9,
+    lineHeight: 12,
+    textAlign: "center"
+  },
+  notationDynamic: {
+    flex: 1,
+    minWidth: 0,
+    width: undefined,
+    height: 22,
+    minHeight: 22,
+    paddingHorizontal: 0
+  },
+  notationScope: { flexDirection: "row", width: 182, gap: 0 },
+  notationBend: {
+    padding: 5,
+    gap: 4,
+    marginTop: 1,
+    borderWidth: 1,
+    borderColor: palette.notation.edge,
+    borderRadius: 8,
+    backgroundColor: palette.notation.raised
+  },
+  notationAdvanced: {
+    gap: 4,
+    paddingVertical: 4,
+    borderTopWidth: 1,
+    borderTopColor: palette.notation.edge
+  },
+  notationEditHeading: { marginTop: 7, marginBottom: 1 },
+  notationTranspose: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-evenly",
+    gap: 2,
+    borderWidth: 1,
+    borderColor: palette.notation.edge,
+    borderRadius: 7,
+    paddingHorizontal: 2
+  },
+  notationFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    backgroundColor: palette.notation.header,
+    borderTopWidth: 1,
+    borderTopColor: palette.notation.border
+  },
+  notationFooterGroup: { flexDirection: "row", alignItems: "center", gap: 6 },
+  notationFooterButton: { minWidth: 68 },
+  notationDone: { minWidth: 86, height: 26, minHeight: 26 },
+  expressionSlider: { flexDirection: "row", alignItems: "center", gap: 6 },
+  expressionLabel: {
+    color: palette.notation.label,
+    fontSize: 9,
+    lineHeight: 12
+  },
   sliderTouch: {
     flex: 1,
-    height: 44,
+    height: 24,
     justifyContent: "center",
-    marginHorizontal: 8
+    marginHorizontal: 4
   },
   sliderTrack: {
-    height: 4,
+    height: 3,
     borderRadius: 2,
-    backgroundColor: palette.glass.edge
+    backgroundColor: palette.notation.track
   },
   sliderFill: {
-    height: 4,
+    height: 3,
     borderRadius: 2,
-    backgroundColor: palette.glass.accent
+    backgroundColor: palette.notation.trackGold
   },
   sliderThumb: {
     position: "absolute",
-    top: -7,
-    marginLeft: -9,
-    height: 18,
-    width: 18,
-    borderRadius: 9,
-    backgroundColor: palette.glass.accent
+    top: -4,
+    marginLeft: -6,
+    height: 12,
+    width: 12,
+    borderRadius: 6,
+    backgroundColor: palette.notation.thumb
   },
   sliderValue: {
-    minWidth: 32,
+    minWidth: 34,
+    height: 20,
     textAlign: "center",
-    color: palette.glass.ink,
-    fontSize: 15,
-    fontWeight: "600"
+    color: palette.notation.text,
+    fontSize: 10,
+    lineHeight: 17,
+    borderWidth: 1,
+    borderColor: palette.notation.edge,
+    borderRadius: 6
   },
   noteSymbol: { color: palette.glass.accent, fontSize: 9, lineHeight: 11 },
-  noteDetails: {
-    gap: 12,
-    marginTop: 4,
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: palette.glass.edge
-  },
   entryWorkspace: { flex: 1, flexDirection: "row" },
   workspaceContent: { padding: 8, gap: 8 },
   sectionSelector: {

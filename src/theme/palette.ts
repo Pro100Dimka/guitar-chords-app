@@ -43,6 +43,26 @@ const TUNER = {
   centerTuple: [120, 255, 0]
 };
 const palette = {
+  notation: {
+    goldColors: ["#ffe79a", "#e9c05d", "#d7a83e"],
+    locations: [0, 0.5, 1],
+    background: "#101513",
+    control: "#171b19",
+    raised: "#191e1b",
+    header: "#151a17",
+    edge: "#373b32",
+    divider: "#30352e",
+    border: "#34382f",
+    text: "#e1e3db",
+    label: "#d5d8d0",
+    muted: "#b9bcb1",
+    gold: "#e9c566",
+    plotGold: "#f1cb68",
+    plotLine: "#55594f",
+    track: "#4c5045",
+    trackGold: "#e6c260",
+    thumb: "#edca68"
+  },
   splash: { background: "#080D12", shade: "rgba(4,10,16,0.24)" },
   typography: { body: "Manrope-Regular", strong: "Manrope-SemiBold" },
   finish: {

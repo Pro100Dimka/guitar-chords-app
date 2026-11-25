@@ -17,9 +17,11 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StyleProp,
   StyleSheet,
   useWindowDimensions,
-  View
+  View,
+  ViewStyle
 } from "react-native";
 import Text from "../../components/styled-text";
 import {
@@ -76,7 +78,9 @@ export function Action({
   icon,
   primary = false,
   compact = false,
-  showLabel = false
+  showLabel = false,
+  notation = false,
+  style
 }: {
   label: string;
   onPress: () => void;
@@ -88,7 +92,11 @@ export function Action({
   primary?: boolean;
   compact?: boolean;
   showLabel?: boolean;
+  notation?: boolean;
+  style?: StyleProp<ViewStyle>;
 }) {
+  const finish =
+    selected || primary ? (notation ? palette.notation : palette.finish) : null;
   return (
     <Pressable
       accessibilityRole="button"
@@ -107,6 +115,11 @@ export function Action({
         !!icon && compact && styles.compactIconAction,
         !!icon && showLabel && styles.labeledAction,
         !!icon && showLabel && compact && styles.compactLabeledAction,
+        notation && styles.notationAction,
+        notation && !!icon && showLabel && styles.notationLabeledAction,
+        notation && !!icon && !showLabel && styles.notationIconAction,
+        notation && (selected || primary) && styles.notationSelected,
+        style,
         pressed && styles.pressed,
         disabled && styles.dim
       ]}
@@ -114,29 +127,35 @@ export function Action({
       <LinearGradient
         pointerEvents="none"
         colors={
-          selected || primary
-            ? palette.finish.goldColors
-            : ["rgba(255,255,255,0.06)", "rgba(255,255,255,0)"]
+          finish?.goldColors ?? [
+            "rgba(255,255,255,0.06)",
+            "rgba(255,255,255,0)"
+          ]
         }
         style={[
           styles.actionGradient,
           !!icon && styles.iconGradient,
-          !!icon && showLabel && styles.labeledGradient
+          !!icon && showLabel && styles.labeledGradient,
+          notation && styles.notationGradient
         ]}
-        locations={selected || primary ? palette.finish.locations : [0, 1]}
+        locations={finish?.locations ?? [0, 1]}
       />
       {typeof icon === "string" ? (
         <MaterialCommunityIcons
           name={icon}
-          size={21}
+          size={notation ? 17 : 21}
+          style={notation ? styles.notationIcon : undefined}
           color={selected || primary ? palette.gold.ink : palette.glass.ink}
         />
       ) : (
         (icon ?? (
           <Text
+            numberOfLines={notation ? 1 : undefined}
+            adjustsFontSizeToFit={notation}
             style={[
               styles.actionText,
               compact && styles.compactActionText,
+              notation && styles.notationText,
               glass && styles.glassText,
               (selected || primary) && styles.goldText
             ]}
@@ -152,6 +171,7 @@ export function Action({
           minimumFontScale={0.8}
           style={[
             styles.actionCaption,
+            notation && styles.notationCaption,
             (selected || primary) && styles.goldText
           ]}
         >
@@ -241,7 +261,8 @@ export function Sheet({
   toolbar,
   footer,
   dense = false,
-  scrollKey
+  scrollKey,
+  headerAccessory
 }: {
   title: string;
   onClose: () => void;
@@ -257,6 +278,7 @@ export function Sheet({
   footer?: React.ReactNode;
   dense?: boolean;
   scrollKey?: string;
+  headerAccessory?: React.ReactNode;
 }) {
   const { t } = useTranslation();
   const { width } = useWindowDimensions();
@@ -275,7 +297,11 @@ export function Sheet({
     >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={[styles.scrim, { paddingTop: insets.top + 8 }]}
+        style={[
+          styles.scrim,
+          { paddingTop: insets.top + 8 },
+          dense && styles.notationScrim
+        ]}
       >
         <Pressable
           style={styles.backdrop}
@@ -308,15 +334,28 @@ export function Sheet({
             style={StyleSheet.absoluteFillObject}
           />
           <View style={[styles.sheetHeader, dense && styles.denseSheetHeader]}>
-            <Text accessibilityRole="header" style={styles.sheetTitle}>
+            <Text
+              accessibilityRole="header"
+              style={[styles.sheetTitle, dense && styles.notationTitle]}
+            >
               {title}
             </Text>
             {!!subtitle && (
-              <Text numberOfLines={1} style={styles.sheetSubtitle}>
+              <Text
+                numberOfLines={1}
+                style={[styles.sheetSubtitle, dense && styles.notationSubtitle]}
+              >
                 {subtitle}
               </Text>
             )}
-            <Action compact icon="close" label={t("Close")} onPress={onClose} />
+            {headerAccessory}
+            <Action
+              compact
+              notation={dense}
+              icon="close"
+              label={t("Close")}
+              onPress={onClose}
+            />
           </View>
           {toolbar}
           {scrollable ? (
@@ -1918,8 +1957,47 @@ export const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: palette.glass.surfaceEdge
   },
-  denseSheetHeader: { paddingVertical: 2 },
-  denseSheetContent: { padding: 8, paddingBottom: 8 },
+  denseSheetHeader: { paddingVertical: 4, paddingHorizontal: 12, gap: 8 },
+  denseSheetContent: { padding: 0, paddingBottom: 0 },
+  notationScrim: { paddingTop: 2 },
+  notationTitle: { flex: 0, fontSize: 18, lineHeight: 22 },
+  notationSubtitle: {
+    flex: 1,
+    fontSize: 10,
+    marginHorizontal: 4,
+    borderLeftWidth: 1,
+    borderLeftColor: palette.notation.divider,
+    paddingLeft: 10
+  },
+  notationGradient: { borderRadius: 6 },
+  notationSelected: {
+    borderColor: palette.notation.gold,
+    borderTopColor: palette.notation.gold,
+    borderBottomColor: palette.notation.gold
+  },
+  notationAction: {
+    flex: 0,
+    width: undefined,
+    height: 24,
+    minWidth: 0,
+    minHeight: 24,
+    paddingHorizontal: 6,
+    paddingVertical: 0,
+    borderRadius: 7,
+    backgroundColor: palette.notation.control,
+    borderColor: palette.notation.edge,
+    gap: 1
+  },
+  notationLabeledAction: {
+    height: undefined,
+    minHeight: 32,
+    paddingVertical: 1,
+    gap: 0
+  },
+  notationIconAction: { width: 24 },
+  notationIcon: { lineHeight: 18 },
+  notationText: { fontSize: 10, lineHeight: 13 },
+  notationCaption: { fontSize: 8, lineHeight: 10 },
   sheetSubtitle: {
     flex: 2,
     fontSize: 12,
