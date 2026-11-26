@@ -114,9 +114,6 @@ const SongDetail: React.FC = () => {
     if (!focused || tuner || tools || chord || isEdit || loading)
       setAccompaniment(false);
   }, [focused, tuner, tools, chord, isEdit, loading]);
-  useEffect(() => {
-    if (!accompaniment) setActiveLine(null);
-  }, [accompaniment]);
   const change = (patch: Partial<typeof preferences>) => {
     if (hasSong && deletedSong.current !== songId) updateSong(songId, patch);
   };
@@ -451,6 +448,28 @@ const SongDetail: React.FC = () => {
     },
     [preferences, playbackPosition, t]
   );
+  useEffect(() => {
+    if (accompaniment) return;
+    if (preferences.playOnLineSelect === false)
+      playbackPosition(playbackStart.index);
+    else setActiveLine(null);
+  }, [
+    accompaniment,
+    preferences.playOnLineSelect,
+    playbackStart.index,
+    playbackPosition
+  ]);
+  const selectPlaybackLine = useCallback(
+    (index: number) => {
+      if (preferences.playOnLineSelect !== false) {
+        startAccompaniment(index);
+        return;
+      }
+      setAccompaniment(false);
+      setPlaybackStart((previous) => ({ ...previous, index }));
+    },
+    [preferences.playOnLineSelect, startAccompaniment]
+  );
   const content = useMemo(() => {
     const renderChord = (displayed: string, key: number) => {
       return (
@@ -483,8 +502,12 @@ const SongDetail: React.FC = () => {
         ...(start >= 0
           ? {
               accessibilityRole: "button" as const,
-              accessibilityHint: t("SongPlayFromLine"),
-              onPress: () => startAccompaniment(start)
+              accessibilityHint: t(
+                preferences.playOnLineSelect === false
+                  ? "SongSelectPlaybackLine"
+                  : "SongPlayFromLine"
+              ),
+              onPress: () => selectPlaybackLine(start)
             }
           : {}),
         onLayout: paired
@@ -617,7 +640,8 @@ const SongDetail: React.FC = () => {
     activeLine,
     playhead,
     playbackLines,
-    startAccompaniment
+    preferences.playOnLineSelect,
+    selectPlaybackLine
   ]);
   useEffect(() => {
     if (activeLine === null) return;
@@ -864,7 +888,7 @@ const SongDetail: React.FC = () => {
                   setAccompaniment(false);
                   return;
                 }
-                startAccompaniment();
+                startAccompaniment(playbackStart.index);
               }}
             />
             <Action

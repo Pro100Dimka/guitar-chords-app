@@ -17,6 +17,7 @@ import {
 
 export interface SongPreferences {
   accompaniment?: "tabs" | "pattern";
+  playOnLineSelect?: boolean;
   tablature?: Tablature;
   tabPractice?: TabPracticeSettings;
   backupId?: string;
@@ -43,6 +44,7 @@ export type SongRhythm = Pick<
   "strum" | "strumMeter" | "strumDivision" | "strumPreset"
 >;
 export const defaultSongPreferences: SongPreferences = {
+  playOnLineSelect: true,
   fontSize: 20,
   transpose: 0,
   capo: 0,
@@ -245,6 +247,7 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
     });
   return {
     tablature: normalizeTablature(song.tablature),
+    playOnLineSelect: song.playOnLineSelect !== false,
     accompaniment: (["tabs", "pattern"] as const).find(
       (mode) => mode === song.accompaniment
     ),

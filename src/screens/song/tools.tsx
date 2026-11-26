@@ -19,6 +19,7 @@ import {
   ScrollView,
   StyleProp,
   StyleSheet,
+  Switch,
   useWindowDimensions,
   View,
   ViewStyle
@@ -813,6 +814,18 @@ export function SongTools({
           </Pressable>
         ))}
       </View>
+      {tab === "rhythm" && (
+        <View style={styles.controlRow}>
+          <Text style={styles.label}>{t("SongPlayOnLineSelect")}</Text>
+          <Switch
+            accessibilityLabel={t("SongPlayOnLineSelect")}
+            value={value.playOnLineSelect !== false}
+            onValueChange={(playOnLineSelect) => onChange({ playOnLineSelect })}
+            trackColor={{ false: palette.glass.edge, true: palette.glass.accent }}
+            thumbColor={palette.glass.ink}
+          />
+        </View>
+      )}
       {tab === "rhythm" && !!value.tablature?.notes.length && (
         <>
           <Text style={styles.label}>{t("AccompanimentSource")}</Text>
@@ -1459,7 +1472,7 @@ function RhythmPlayer({
   const preview = useMemo(
     () => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{background:transparent}body{margin:0;background:transparent;font-family:system-ui;color:${palette.glass.ink}}button{width:100%;height:48px;border:1px solid ${palette.glass.edge};border-radius:14px;background:${palette.glass.play};color:${palette.gold.ink};box-shadow:0 0 12px #ffb00077,inset 0 1px 1px #fff9c9;border-color:#ffe59b;background:linear-gradient(#fff2a6,#ffd65a 16%,#ffbc08 48%,#ffaa00 52%,#ffd34a);font:600 19px system-ui}#count{height:28px;line-height:28px;text-align:center;font-size:13px}${compact ? "button{width:44px;height:44px;border-radius:50%;margin:2px;box-shadow:0 0 2px #ffb00077,inset 0 1px 1px #fff9c9}#count{display:none}" : ""}</style></head><body><button id="play"></button><div id="count"></div><script>
     let context,engine,timer,playing=false,step=0,next=0,start=0,preparing=Promise.resolve(),playToken=0,lastChord=-1,singleStroke=false,activeFingering=0,loading=true,wantsPlay=false,instrumentToken=0,lastPosition=-1;
-    let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false,arrangements=[],initialBar=0,bar=0,slot=0,patternStep=0,planKey='',scheduled=[];
+    let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false,arrangements=[],initialBar=0,bar=0,slot=0,scheduled=[];
     let chords=[],frequencies=[],incomingToken=0,incomingChunks=[];
     const beatCounts=${JSON.stringify(rhythmCounts)};
     const labels=${labels};
@@ -1478,10 +1491,8 @@ function RhythmPlayer({
         const plan=arrangements[chordIndex]||{strum:pattern,strumMeter:meter,strumDivision:division};
         const beats=plan.strumMeter||meter,parts=plan.strumDivision||division;
         const raw=plan.strum||'-'.repeat(beats*parts),activePattern=raw.padEnd(Math.ceil(raw.length/(beats*parts))*beats*parts,'-');
-        const key=activePattern+':'+beats+':'+parts;
-        if(key!==planKey){patternStep=0;planKey=key;}
-        const index=patternStep++%activePattern.length,hit=activePattern[index];
-        scheduled.push({when:next,chordIndex,patternIndex:index,fraction:slot/(beats*parts),barSeconds:60/tempo*beats,beat:slot%parts===0?String(Math.floor(slot/parts)+1):beatCounts[parts][slot%parts]});
+        const index=slot,hit=activePattern[index];
+        scheduled.push({when:next,chordIndex,patternIndex:index,fraction:slot/activePattern.length,barSeconds:60/tempo/parts*activePattern.length,beat:slot%parts===0?String(Math.floor(slot/parts)%beats+1):beatCounts[parts][slot%parts]});
         step++;
         if(hit!=='-'){
           const end=engine.stroke(frequencies[chordIndex],hit,next,index,lastChord!==-1&&chords[lastChord]!==chords[chordIndex],activePattern);
@@ -1489,7 +1500,7 @@ function RhythmPlayer({
           if(singleStroke){timer=setTimeout(()=>{stop();},Math.max(0,(end||next+1)-context.currentTime)*1000);return;}
         }
         next+=60/tempo/parts;
-        if(++slot>=beats*parts){slot=0;bar++;}
+        if(++slot>=activePattern.length){slot=0;bar++;}
       }
       while(scheduled.length>1&&scheduled[1].when<=now)scheduled.shift();
       const current=scheduled[0],elapsed=Math.max(0,now-start);
@@ -1516,7 +1527,7 @@ function RhythmPlayer({
         if(window.navigator?.audioSession)window.navigator.audioSession.type='playback';
         const prepared=prepareAudio();await context.resume();await prepared;
         if(token!==playToken||document.hidden)return;
-        step=0;bar=Math.min(initialBar,chords.length-1);slot=0;patternStep=0;planKey='';scheduled=[];lastChord=-1;lastPosition=-1;start=context.currentTime+.015;next=start;playing=true;
+        step=0;bar=Math.min(initialBar,chords.length-1);slot=0;scheduled=[];lastChord=-1;lastPosition=-1;start=context.currentTime+.015;next=start;playing=true;
         button.textContent=${compact ? JSON.stringify("❚❚") : "labels.stop"};button.setAttribute('aria-label',labels.stop);tick();window.ReactNativeWebView?.postMessage('started');
       }catch(e){audioError(e);}
       finally{if(token===playToken||!playing)button.disabled=false;}
