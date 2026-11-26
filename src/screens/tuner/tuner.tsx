@@ -146,7 +146,9 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   useEffect(() => {
     // Missing font/image callbacks must not leave a permanently invisible tuner.
     if (!active || renderError || (painted && backgroundReady)) return;
-    const timeout = setTimeout(() => setRenderError(true), 8000);
+    // Cold native shader compilation can outlast several seconds, especially
+    // on a simulator or an older device. Keep the actual frame check intact.
+    const timeout = setTimeout(() => setRenderError(true), 30000);
     return () => clearTimeout(timeout);
   }, [active, backgroundReady, painted, renderAttempt, renderError]);
   useEffect(() => {
@@ -161,7 +163,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       return;
     let mounted = true;
     let frame = 0;
-    let attempts = 0;
+    let retry: ReturnType<typeof setTimeout> | undefined;
     const capture = async () => {
       try {
         if (!canvas.current) throw new Error("Tuner canvas unavailable");
@@ -193,8 +195,9 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         if (mounted) setPainted(true);
       } catch {
         if (!mounted) return;
-        if (++attempts < 3) frame = requestAnimationFrame(() => void capture());
-        else setRenderError(true);
+        // Three adjacent frames are not enough for a cold GPU pipeline.
+        // Retry at a bounded rate until the startup watchdog expires.
+        retry = setTimeout(() => void capture(), 250);
       }
     };
     frame = requestAnimationFrame(() => {
@@ -203,6 +206,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     return () => {
       mounted = false;
       cancelAnimationFrame(frame);
+      if (retry !== undefined) clearTimeout(retry);
     };
   }, [
     active,

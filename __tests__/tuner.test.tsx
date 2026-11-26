@@ -135,11 +135,18 @@ test.each([
   }
 });
 
-test("first-frame validation reads one opaque pixel instead of copying the full canvas", async () => {
+test.each([
+  { delay: 0, emptyFrames: 0 },
+  { delay: 12000, emptyFrames: 0 },
+  { delay: 0, emptyFrames: 4 }
+])("first-frame validation waits for a real painted pixel: %j", async ({ delay, emptyFrames }) => {
   jest.useFakeTimers();
   const previous = usePreferences.getState().instrument;
   usePreferences.setState({ instrument: "guitar" });
   const readPixels = jest.fn(() => new Uint8Array([2, 3, 3, 255]));
+  for (let i = 0; i < emptyFrames; i++) {
+    readPixels.mockReturnValueOnce(new Uint8Array([0, 0, 0, 0]));
+  }
   const dispose = jest.fn();
   try {
     await act(async () => {
@@ -147,12 +154,15 @@ test("first-frame validation reads one opaque pixel instead of copying the full 
         createNodeMock: (element) =>
           element.type === "Canvas"
             ? {
-                makeImageSnapshotAsync: async () => ({
-                  width: () => 1000,
-                  height: () => 2000,
-                  readPixels,
-                  dispose
-                })
+                makeImageSnapshotAsync: async () => {
+                  if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+                  return {
+                    width: () => 1000,
+                    height: () => 2000,
+                    readPixels,
+                    dispose
+                  };
+                }
               }
             : null
       });
@@ -170,14 +180,20 @@ test("first-frame validation reads one opaque pixel instead of copying the full 
         .props.onReady();
       screen.root.findByType(Buttons).props.onReady();
     });
-    await act(async () => jest.advanceTimersByTimeAsync(50));
-    expect(readPixels.mock.calls.length).toBe(1);
+    await act(async () =>
+      jest.advanceTimersByTimeAsync(delay + emptyFrames * 250 + 100)
+    );
+    expect(readPixels).toHaveBeenCalledTimes(emptyFrames + 1);
     expect(jest.mocked(readPixels).mock.calls[0]).toEqual([
       expect.any(Number),
       expect.any(Number),
       { width: 1, height: 1, colorType: 4, alphaType: 3 }
     ]);
-    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(dispose).toHaveBeenCalledTimes(emptyFrames + 1);
+    expect(screen.root.findAll((node) =>
+      node.props.accessibilityElementsHidden === false &&
+      node.props.pointerEvents === "auto"
+    ).length).toBeGreaterThan(0);
   } finally {
     await act(async () => usePreferences.setState({ instrument: previous }));
   }
