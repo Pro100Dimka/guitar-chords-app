@@ -524,10 +524,7 @@ export class TablatureTransport {
     let high = notes.length;
     while (low < high) {
       const middle = (low + high) >>> 1;
-      if (
-        notes[middle].tick < tick ||
-        (after && notes[middle].tick === tick)
-      )
+      if (notes[middle].tick < tick || (after && notes[middle].tick === tick))
         low = middle + 1;
       else high = middle;
     }

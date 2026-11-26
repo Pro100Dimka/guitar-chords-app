@@ -202,6 +202,7 @@ test("backgrounding during a failed preference load never overwrites storage", a
 
 test("missing splash art and tuner callbacks cannot block an initialized application forever", async () => {
   jest.useFakeTimers();
+  jest.spyOn(AppState, "addEventListener").mockReturnValue({ remove: jest.fn() });
   const originalOS = Platform.OS;
   Platform.OS = "android";
   jest.mocked(SplashScreen.hide).mockClear();
@@ -222,6 +223,7 @@ test("missing splash art and tuner callbacks cannot block an initialized applica
   } finally {
     if (screen) await ReactTestRenderer.act(async () => screen!.unmount());
     Platform.OS = originalOS;
+    jest.restoreAllMocks();
     jest.useRealTimers();
   }
 });
