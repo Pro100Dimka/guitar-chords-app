@@ -31,7 +31,7 @@ export type RootStackParamList = {
       }
     | undefined;
   recognizeSong: {
-    mode: "mic" | "playback" | "file" | "text";
+    mode: "auto" | "mic" | "playback" | "result";
     autoStart?: boolean;
     requestId?: string;
   };

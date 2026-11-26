@@ -241,7 +241,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			productReference = 13B07F961A680F5B00A75B9A /* freetune.app */;
 			productType = "com.apple.product-type.application";
 		};
-		AAC40000000000000000005A /* PlaybackBroadcast */ = {isa = PBXNativeTarget; buildConfigurationList = AAC40000000000000000005E; buildPhases = (AAC400000000000000000046, AAC400000000000000000047, AAC400000000000000000048, ); buildRules = (); dependencies = (); name = PlaybackBroadcast; productName = PlaybackBroadcast; productReference = AAC40000000000000000001E; productType = "com.apple.product-type.app-extension"; };
+		AAC40000000000000000005A /* PlaybackBroadcast */ = {isa = PBXNativeTarget; buildConfigurationList = AAC40000000000000000005E; buildPhases = (AAC500000000000000000001, AAC400000000000000000046, AAC400000000000000000047, AAC400000000000000000048, ); buildRules = (); dependencies = (); name = PlaybackBroadcast; productName = PlaybackBroadcast; productReference = AAC40000000000000000001E; productType = "com.apple.product-type.app-extension"; };
 		AAC40000000000000000005B /* RecognitionControl */ = {isa = PBXNativeTarget; buildConfigurationList = AAC40000000000000000005F; buildPhases = (AAC400000000000000000049, AAC40000000000000000004A, AAC40000000000000000004B, ); buildRules = (); dependencies = (); name = RecognitionControl; productName = RecognitionControl; productReference = AAC40000000000000000001F; productType = "com.apple.product-type.app-extension"; };
 /* End PBXNativeTarget section */
 
@@ -300,6 +300,17 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
+		AAC500000000000000000001 /* Build playback fingerprint */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			alwaysOutOfDate = 1;
+			name = "Build playback fingerprint";
+			inputPaths = ();
+			outputPaths = ("$(BUILT_PRODUCTS_DIR)/fingerprint-playback/libfreetune_song_fingerprint.a");
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "FINGERPRINT_OUTPUT_DIR=\"${BUILT_PRODUCTS_DIR}/fingerprint-playback\" bash \"${PROJECT_DIR}/build-fingerprint.sh\"";
+		};
 		00DD1BFF1BD5951E006B06BC /* Bundle React Native code and images */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
@@ -687,6 +698,9 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PlaybackBroadcast/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "freetune-Bridging-Header.h";
+				LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)/fingerprint-playback");
+				OTHER_LDFLAGS = ("$(inherited)", "-lc++", "-lfreetune_song_fingerprint");
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
 				MARKETING_VERSION = 1.0;
@@ -713,6 +727,9 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = PlaybackBroadcast/Info.plist;
+				SWIFT_OBJC_BRIDGING_HEADER = "freetune-Bridging-Header.h";
+				LIBRARY_SEARCH_PATHS = ("$(inherited)", "$(BUILT_PRODUCTS_DIR)/fingerprint-playback");
+				OTHER_LDFLAGS = ("$(inherited)", "-lc++", "-lfreetune_song_fingerprint");
 				IPHONEOS_DEPLOYMENT_TARGET = 15.1;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
 				MARKETING_VERSION = 1.0;
@@ -738,6 +755,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RecognitionControl/Info.plist;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) RECOGNITION_CONTROL";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
 				MARKETING_VERSION = 1.0;
@@ -763,6 +781,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				DEVELOPMENT_TEAM = "";
 				GENERATE_INFOPLIST_FILE = NO;
 				INFOPLIST_FILE = RecognitionControl/Info.plist;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "$(inherited) RECOGNITION_CONTROL";
 				IPHONEOS_DEPLOYMENT_TARGET = 18.0;
 				LD_RUNPATH_SEARCH_PATHS = ("$(inherited)", "@executable_path/Frameworks", "@executable_path/../../Frameworks", );
 				MARKETING_VERSION = 1.0;

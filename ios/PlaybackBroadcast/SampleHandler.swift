@@ -4,6 +4,7 @@ import ReplayKit
 /// ReplayKit provides other apps' allowed audio. Video and microphone buffers are ignored.
 final class SampleHandler: RPBroadcastSampleHandler {
   private let captureQueue = DispatchQueue(label: "freetune.playback.capture")
+  private let recognitionQueue = DispatchQueue(label: "freetune.playback.recognition", qos: .userInitiated)
   private var store: PlaybackCaptureStore?
   private var request: PlaybackCaptureStore.Request?
   private var timer: DispatchSourceTimer?
@@ -91,19 +92,31 @@ final class SampleHandler: RPBroadcastSampleHandler {
     guard !finished else { return }
     finished = true
     timer?.cancel(); timer = nil
-    var status = error
-    if let store = store, let request = request, store.isCurrent(request) {
-      do { try store.complete(request, samples: samples, error: error) }
-      catch { status = "PlaybackCaptureFailed"; try? store.complete(request, samples: [], error: status) }
-    } else { status = error ?? "Cancelled" }
+    let captured = samples
     samples.removeAll(keepingCapacity: false)
-    if stopBroadcast {
-      // ReplayKit's extension API ends a broadcast via its completion/error callback.
-      let message = status == nil
-        ? NSLocalizedString("Audio captured. Return to FreeTune to find chords.", comment: "ReplayKit capture complete")
-        : NSLocalizedString("Audio capture stopped. Return to FreeTune.", comment: "ReplayKit capture ended")
-      let completion = NSError(domain: "FreeTunePlaybackCapture", code: status == nil ? 0 : 1, userInfo: [NSLocalizedDescriptionKey: message])
-      DispatchQueue.main.async { self.finishBroadcastWithError(completion) }
+    recognitionQueue.async {
+      var status = error
+      var song: [String: Any]?
+      if let store = self.store, let request = self.request, store.isCurrent(request) {
+        if error == nil {
+          do {
+            song = try SongFingerprintRecognizer().identify(captured, cancelled: { !store.isCurrent(request) })
+          } catch { status = (error as NSError).domain }
+        }
+        do {
+          try store.complete(request, samples: [], error: status, song: song, identified: true)
+          if status != "Cancelled" { RecognitionNotice.show(song, requestId: request.id.uuidString, error: status) }
+        } catch { status = "Cancelled" }
+      } else { status = error ?? "Cancelled" }
+      if stopBroadcast {
+        let message = status != nil
+          ? RecognitionNotice.text("Recognition failed. Check the connection and audio access.", "Не удалось распознать. Проверьте подключение и доступ к звуку.", "Не вдалося розпізнати. Перевірте з’єднання та доступ до звуку.")
+          : song == nil
+          ? RecognitionNotice.text("Song not found", "Песня не найдена", "Пісню не знайдено")
+          : RecognitionNotice.text("Song found. Open the notification to find chords.", "Песня найдена. Откройте уведомление для поиска аккордов.", "Пісню знайдено. Відкрийте сповіщення для пошуку акордів.")
+        let completion = NSError(domain: "FreeTunePlaybackCapture", code: status == nil ? 0 : 1, userInfo: [NSLocalizedDescriptionKey: message])
+        DispatchQueue.main.async { self.finishBroadcastWithError(completion) }
+      }
     }
   }
 }

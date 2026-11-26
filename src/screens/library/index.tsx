@@ -25,7 +25,6 @@ import { usePreferences } from "@/components/preferences";
 import MaterialCommunityIcons from "react-native-vector-icons/MaterialCommunityIcons";
 import { Sheet, Action } from "../song/tools";
 import { NavigationProp } from "@/router";
-import { playbackRecognitionSupported } from "../../components/song-autofill/recognition";
 import {
   libraryQuery,
   recentSongPage,
@@ -238,45 +237,18 @@ const Library: React.FC = () => {
             ...(["android", "ios"].includes(Platform.OS)
               ? [
                   {
-                    label: "AutofillRecognizeMic",
-                    hint: "AddSongMicHint",
-                    icon: "microphone",
-                    onPress: () =>
-                      navigation.navigate("recognizeSong", { mode: "mic" })
-                  }
-                ]
-              : []),
-            ...(playbackRecognitionSupported()
-              ? [
-                  {
-                    label: "AutofillRecognizePlayback",
-                    hint: "AddSongPlaybackHint",
-                    icon: "cellphone-sound",
+                    label: "AutofillRecognize",
+                    hint: "AddSongRecognizeHint",
+                    icon: "music-note-search",
                     onPress: () =>
                       navigation.navigate("recognizeSong", {
-                        mode: "playback"
+                        mode: "auto",
+                        autoStart: true,
+                        requestId: String(Date.now())
                       })
                   }
                 ]
-              : []),
-            ...(["android", "ios"].includes(Platform.OS)
-              ? [
-                  {
-                    label: "AutofillRecognizeFile",
-                    hint: "AddSongFileHint",
-                    icon: "file-music-outline",
-                    onPress: () =>
-                      navigation.navigate("recognizeSong", { mode: "file" })
-                  }
-                ]
-              : []),
-            {
-              label: "ImportSong",
-              hint: "AddSongTextHint",
-              icon: "file-document-outline",
-              onPress: () =>
-                navigation.navigate("recognizeSong", { mode: "text" })
-            }
+              : [])
           ].map((item) => (
             <Pressable
               key={item.label}

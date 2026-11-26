@@ -6,6 +6,7 @@ import android.content.ComponentName
 import android.content.pm.PackageManager
 import android.graphics.drawable.Icon
 import android.media.AudioAttributes
+import android.media.AudioManager
 import android.media.AudioFormat
 import android.media.AudioPlaybackCaptureConfiguration
 import android.media.AudioRecord
@@ -82,6 +83,12 @@ class SongRecognitionModule(private val context: ReactApplicationContext) :
         val record = AudioRecord.Builder().setAudioPlaybackCaptureConfig(configuration)
             .setAudioFormat(format).setBufferSizeInBytes(maxOf(minimum, 4096)).build()
         captureAudio(record, playback = true)
+    }
+
+    @ReactMethod
+    fun getRecognitionSource(promise: Promise) {
+        val audio = context.getSystemService(android.content.Context.AUDIO_SERVICE) as AudioManager
+        promise.resolve(if (Build.VERSION.SDK_INT >= 29 && audio.isMusicActive) "playback" else "mic")
     }
 
     @ReactMethod

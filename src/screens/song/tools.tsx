@@ -1184,6 +1184,7 @@ function RhythmPlayer({
     return progression.map((chord) => byChord.get(chord)!);
   }, [progression, distinctChords, shapesKey, fingeringsKey, capo]);
   const fingeringPreview = stroke !== undefined;
+  const nativePreview = !!previewKeys?.length;
   const instrumentSpec = useMemo<AcousticInstrument>(
     () => ({
       chords: progression,
@@ -1268,7 +1269,8 @@ function RhythmPlayer({
       if(current&&current.when<=now)count.textContent=chords[current.chordIndex]+' · '+current.beat+(practice?' · '+Math.max(0,60-Math.floor(elapsed))+' '+labels.seconds:'');
       timer=setTimeout(tick,20);
     }
-    function prepareAudio(){if(!context){context=new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'});engine=createAcousticPlayer(context);}return preparing;}
+    function prepareAudio(){if(!context){context=${nativePreview ? "new OfflineAudioContext(2,1,44100)" : "new(window.AudioContext||window.webkitAudioContext)({latencyHint:'interactive'})"};engine=createAcousticPlayer(context);}return preparing;}
+    function audioError(error){stop();button.textContent=labels.error;button.setAttribute('aria-label',labels.error);window.ReactNativeWebView?.postMessage(JSON.stringify({type:'audioError',message:String(error)}));}
     async function prepareFingerings(data,token){
       const remaining=new Set(data.previewKeys.map((_,index)=>index));
       while(remaining.size&&token===instrumentToken){
@@ -1287,7 +1289,7 @@ function RhythmPlayer({
         if(token!==playToken||document.hidden)return;
         step=0;bar=0;slot=0;patternStep=0;planKey='';scheduled=[];lastChord=-1;start=context.currentTime+.015;next=start;playing=true;
         button.textContent=${compact ? JSON.stringify("❚❚") : "labels.stop"};button.setAttribute('aria-label',labels.stop);tick();window.ReactNativeWebView?.postMessage('started');
-      }catch(e){stop();window.ReactNativeWebView?.postMessage('stopped');button.textContent=${compact ? JSON.stringify("!") : "labels.error"};button.setAttribute('aria-label',labels.error);}
+      }catch(e){audioError(e);}
       finally{if(token===playToken||!playing)button.disabled=false;}
     }
     window.invalidateInstrument=()=>{
@@ -1301,7 +1303,7 @@ function RhythmPlayer({
       if(token!==incomingToken)return;
       const encoded=incomingChunks.join('');incomingChunks=[];
       try{window.loadInstrument(JSON.parse(encoded));}
-      catch(error){stop();loading=true;button.textContent=labels.error;window.ReactNativeWebView?.postMessage('stopped');}
+      catch(error){loading=true;audioError(error);}
     };
     window.loadInstrument=data=>{
       const resume=playing||wantsPlay,token=++instrumentToken;
@@ -1309,9 +1311,9 @@ function RhythmPlayer({
       prepareAudio();preparing=engine.loadBank(data.bank);
       preparing.then(()=>{
         if(token!==instrumentToken)return;loading=false;
-        if(data.previewKeys.length)prepareFingerings(data,token).catch(()=>window.ReactNativeWebView?.postMessage('stopped'));
+        if(data.previewKeys.length)prepareFingerings(data,token).catch(audioError);
         if(wantsPlay)play();
-      }).catch(()=>{if(token!==instrumentToken)return;loading=false;stop();window.ReactNativeWebView?.postMessage('stopped');});
+      }).catch(error=>{if(token!==instrumentToken)return;loading=false;audioError(error);});
     };
     window.configurePlayer=config=>{
       const resume=config.requested===null?(playing||wantsPlay):config.requested;
@@ -1334,7 +1336,7 @@ function RhythmPlayer({
     document.addEventListener('visibilitychange',()=>{if(document.hidden){stop();window.ReactNativeWebView?.postMessage('stopped');}});
     window.addEventListener('pagehide',()=>{stop();context?.close().catch(()=>{});});
   </script></body></html>`,
-    [labels, compact]
+    [labels, compact, nativePreview]
   );
   useEffect(() => {
     setReady(false);
@@ -1372,9 +1374,7 @@ function RhythmPlayer({
     (_, index) => !frequencies[index]?.length
   );
   if (preparationError)
-    return autoplay ? null : (
-      <Text style={styles.description}>{t("RhythmAudioError")}</Text>
-    );
+    return <Text style={styles.description}>{t("RhythmAudioError")}</Text>;
   if (unavailable.length)
     return autoplay ? null : (
       <Text style={styles.description}>
@@ -1399,10 +1399,17 @@ function RhythmPlayer({
           scrollEnabled={false}
           javaScriptEnabled
           mediaPlaybackRequiresUserAction={false}
+          allowsInlineMediaPlayback
+          ignoreSilentHardwareSwitch={!nativePreview}
           onMessage={({ nativeEvent }) => {
             if (nativeEvent.data.startsWith("{")) {
               try {
                 const message = JSON.parse(nativeEvent.data);
+                if (message.type === "audioError") {
+                  console.warn("Rhythm audio failed", message.message);
+                  setPreparationError(true);
+                  onStopped?.();
+                }
                 if (
                   message.type === "fingering" &&
                   typeof message.key === "string" &&

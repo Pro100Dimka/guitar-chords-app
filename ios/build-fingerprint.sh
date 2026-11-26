@@ -13,9 +13,10 @@ for arch in ${ARCHS}; do
   cargo build --locked --release --lib --target "$target" --manifest-path "${PROJECT_DIR}/../android/song-fingerprint/Cargo.toml"
   libraries+=("${CARGO_TARGET_DIR}/${target}/release/libfreetune_song_fingerprint.a")
 done
-mkdir -p "${BUILT_PRODUCTS_DIR}/fingerprint"
-fingerprint_output="${BUILT_PRODUCTS_DIR}/fingerprint/libfreetune_song_fingerprint.a"
-fingerprint_temporary=$(mktemp "${BUILT_PRODUCTS_DIR}/fingerprint/.fingerprint.XXXXXX")
+fingerprint_directory="${FINGERPRINT_OUTPUT_DIR:-${BUILT_PRODUCTS_DIR}/fingerprint}"
+mkdir -p "$fingerprint_directory"
+fingerprint_output="${fingerprint_directory}/libfreetune_song_fingerprint.a"
+fingerprint_temporary=$(mktemp "${fingerprint_directory}/.fingerprint.XXXXXX")
 trap 'rm -f "$fingerprint_temporary"' EXIT
 xcrun lipo -create "${libraries[@]}" -output "$fingerprint_temporary"
 # Cargo still checks every source/dependency and target on every invocation.

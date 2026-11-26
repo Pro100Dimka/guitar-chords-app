@@ -3,6 +3,13 @@ import UIKit
 
 /// The actual system button remains visible; starting capture always requires the person's tap.
 final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentationControllerDelegate {
+  static var broadcastExtension: String? {
+    guard let directory = Bundle.main.builtInPlugInsURL,
+          let plugins = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else { return nil }
+    return plugins.compactMap { Bundle(url: $0) }.first {
+      ($0.infoDictionary?["NSExtension"] as? [String: Any])?["NSExtensionPointIdentifier"] as? String == "com.apple.broadcast-services-upload"
+    }?.bundleIdentifier
+  }
   var onCancel: (() -> Void)?
   private var completed = false
   private static var language: String { Locale.preferredLanguages.first?.prefix(2).lowercased() ?? "en" }
@@ -23,7 +30,7 @@ final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentat
     instructions.font = .preferredFont(forTextStyle: .body)
     for label in [title, instructions] { label.numberOfLines = 0; label.textAlignment = .center; label.adjustsFontForContentSizeCategory = true }
     let picker = RPSystemBroadcastPickerView(frame: .zero)
-    picker.preferredExtension = "com.freetune.PlaybackBroadcast"
+    picker.preferredExtension = Self.broadcastExtension
     picker.showsMicrophoneButton = false
     let cancel = UIButton(type: .system)
     cancel.setTitle(Self.text("Cancel", "Отмена", "Скасувати"), for: .normal)
@@ -49,6 +56,10 @@ final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentat
       picker.widthAnchor.constraint(equalToConstant: 64), picker.heightAnchor.constraint(equalToConstant: 64),
       cancel.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
     ])
+    presentationController?.delegate = self
+  }
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
     presentationController?.delegate = self
   }
   @objc private func cancelCapture() { if !completed { completed = true; onCancel?() }; dismiss(animated: true) }

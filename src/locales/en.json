@@ -300,7 +300,9 @@
   "AutofillAlbum": "Album",
   "AutofillDuration": "Duration",
   "AutofillUnknownAlbum": "Unknown album",
-  "AutofillRecognize": "Recognize song",
+  "AutofillRecognize": "Recognize",
+  "AddSongRecognizeHint": "Identify music nearby or playing on your phone",
+  "AutofillResultExpired": "This result has expired. Start recognition again.",
   "AutofillRecognizeMic": "Recognize with microphone",
   "AutofillRecognizeFile": "Recognize audio file",
   "AutofillListening": "Listening…",
@@ -401,23 +403,23 @@
     },
     "add": {
       "title": "Add a song",
-      "summary": "All four entry methods are under one plus button in Library.",
+      "summary": "Add a song manually or recognize music.",
       "steps": [
         "Tap + beside the search field.",
-        "Choose manual entry, microphone recognition, audio-file recognition or TXT/ChordPro.",
+        "Choose Manual or Recognize.",
         "Review the form, change the cover by tapping it and save."
       ],
       "tip": "Artist comes before song title. The save button stays available while you scroll the form.",
       "keywords": "add plus manual cover artist title"
     },
     "recognize": {
-      "title": "Recognize with the microphone",
+      "title": "Recognize",
       "summary": "Identify the original recording, then search for available text and chords.",
       "steps": [
-        "In Library, tap +, choose microphone recognition and allow microphone access.",
-        "Tap the large listening button and play a clear original recording nearby.",
-        "When a song card appears, tap anywhere on it to open the prepared form; review and save.",
-        "Allow audio capture in the system dialog, then return to your music app. After up to 20 seconds, open FreeTune for the result. Some players do not allow audio capture. Tap Start, then the broadcast button and Start Broadcast. Return to your music app, let it play for 20 seconds, then open FreeTune. Audio from protected players may be unavailable."
+        "Tap + in the library and choose Recognize. Listening starts immediately.",
+        "FreeTune uses phone audio when another app is playing music; otherwise it uses the microphone. Allow the requested audio access.",
+        "For phone audio on iPhone, confirm Start Broadcast and return to your music app. A notification reports the result.",
+        "When a song is found, its form opens with available details and chords. Review and save it."
       ],
       "tip": "The first attempt is after about 3 seconds. Difficult matches can take up to 20 seconds. A match does not guarantee lyrics or chords.",
       "keywords": "recognize microphone listening shazam identification"
@@ -955,8 +957,8 @@
   "AddSongPlaybackTitle": "Listen to phone audio",
   "AutofillListeningPlayback": "Waiting for phone audio…",
   "AddSongPlaybackAndroidHint": "Allow audio capture in the system dialog, then return to your music app. After up to 20 seconds, open FreeTune for the result. Some players do not allow audio capture.",
-  "AddSongPlaybackIOSHint": "Tap Start, then the broadcast button and Start Broadcast. Return to your music app, let it play for 20 seconds, then open FreeTune. Audio from protected players may be unavailable.",
-  "AddSongControlCenterHint": "On iOS 18 or later, open Control Center → Add a Control → FreeTune → Recognize phone audio.",
+  "AddSongPlaybackIOSHint": "Confirm Start Broadcast, then return to your music app. FreeTune will notify you when recognition finishes. Tap a found song to open its form. Protected audio may be unavailable.",
+  "AddSongControlCenterHint": "Add FreeTune → Recognize in Control Center. It listens through the microphone immediately and opens the song form when a match is found. Phone audio capture requires system broadcast confirmation.",
   "AddSongQuickTile": "Add to Quick Settings",
   "AddSongQuickTileAdded": "FreeTune is available in Quick Settings.",
   "AddSongQuickTileHint": "Open Quick Settings, tap Edit and add FreeTune. Tap its tile to recognize phone audio.",
