@@ -9,7 +9,7 @@ import type { SQLTransaction } from "react-native-sqlite-2";
 import { db } from "./database";
 import { getAllItems } from "./database/crud";
 import { normalizeTablature, Tablature } from "./tablature";
-import { rhythms } from "../screens/song/rhythms";
+import { rhythms, MAX_RHYTHM_STEPS } from "../screens/song/rhythms";
 import {
   normalizeTabPractice,
   TabPracticeSettings
@@ -340,13 +340,14 @@ export function normalizeRhythm(value: unknown): SongRhythm {
   const rhythm = record(value) ? value : {};
   let strum =
     typeof rhythm.strum === "string"
-      ? rhythm.strum.replace(/[^DUXBA1-6-]/g, "").slice(0, 16)
+      ? rhythm.strum.replace(/[^DUXBA1-6-]/g, "").slice(0, MAX_RHYTHM_STEPS)
       : "";
-  if (
+  const updatedPreset =
     rhythm.strumPreset === "nine" &&
-    ["D-DU-UD-D-DU--D-", "D-U-D--U-U-U-DUD"].includes(strum)
-  )
-    strum = rhythms.find((preset) => preset.id === "nine")!.pattern;
+    ["D-DU-UD-D-DU--D-", "D-U-D--U-U-U-DUD", "D--UD--U-U-UDUD-"].includes(strum)
+      ? rhythms.find((preset) => preset.id === "nine")
+      : undefined;
+  strum = updatedPreset?.pattern ?? strum;
   const division = rhythm.strumDivision;
   const numericDivision =
     typeof division === "number" || typeof division === "string"
@@ -356,7 +357,10 @@ export function normalizeRhythm(value: unknown): SongRhythm {
     strum,
     strumMeter:
       ([2, 3, 4] as const).find((meter) => meter === rhythm.strumMeter) ?? 4,
-    strumDivision: [2, 3, 4].find((entry) => entry === numericDivision) ?? 2,
+    strumDivision:
+      updatedPreset?.division ??
+      [2, 3, 4].find((entry) => entry === numericDivision) ??
+      2,
     strumPreset:
       typeof rhythm.strumPreset === "string"
         ? rhythm.strumPreset.slice(0, 32)

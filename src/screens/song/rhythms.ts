@@ -1,6 +1,9 @@
 import { songSections } from "./chords";
 import type { SongRhythm } from "../../components/preferences";
 
+const ninePattern = "D-------D-----U---U-D---D---D-DU";
+export const MAX_RHYTHM_STEPS = 32;
+
 export const rhythms: {
   id: string;
   title: string;
@@ -121,9 +124,9 @@ export const rhythms: {
     id: "nine",
     aliases: ["девятка", "дев'ятка", "дев’ятка", "nine", "9"],
     title: "RhythmNine",
-    pattern: "D--UD--U-U-UDUD-",
+    pattern: ninePattern,
     meter: 4,
-    division: 2
+    division: 4
   }
 ];
 export const pickingPatterns: (typeof rhythms)[number][] = [
@@ -182,6 +185,46 @@ export const pickingPatterns: (typeof rhythms)[number][] = [
   }
 ];
 export const allRhythms = [...rhythms, ...pickingPatterns];
+
+export interface SongArrangement {
+  title: string;
+  artist: string;
+  tempo: number;
+  source: { name: string; url: string };
+  parts: Record<string, readonly (readonly [chord: string, pattern: string])[]>;
+}
+
+const shortStrum = "D-------D-----U-";
+const transitionStrum = "D-------D-----U---U-D---D-----DU";
+export const songArrangements: SongArrangement[] = [
+  {
+    title: "Behind Blue Eyes",
+    artist: "Limp Bizkit",
+    tempo: 120,
+    source: {
+      name: "GuitarZero2Hero",
+      url: "https://www.youtube.com/watch?v=EKG_xRtnDQw"
+    },
+    parts: {
+      chorus: [
+        ["Cadd9", shortStrum],
+        ["D", shortStrum],
+        ["G", "D-------D-----U---U-D---D---D-U-"],
+        ["Cadd9", shortStrum],
+        ["D", "D-------D-----"],
+        ["E", "DUD-----DUD-"],
+        ["Esus4", "U---"],
+        ["E", "U---U-D-"],
+        ["Esus4", "U-D-"],
+        ["E", "U---U-"],
+        ["Bm", ninePattern],
+        ["C", ninePattern],
+        ["D", transitionStrum],
+        ["Asus2", transitionStrum + "D-------D-----U---U-D---D-------"]
+      ]
+    }
+  }
+];
 export const rhythmMeterLabel = (meter: number, division: number) =>
   meter === 2 && division === 3 ? "6/8" : `${meter}/4`;
 export const rhythmSymbols: Record<string, string> = {

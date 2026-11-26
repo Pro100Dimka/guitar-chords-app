@@ -68,6 +68,7 @@ export interface Tablature {
   rests?: TabRest[];
   chords?: { tick: number; name: string }[];
   sourceText?: string;
+  arrangementSource?: { name: string; url: string };
 }
 
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -351,6 +352,19 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     notes,
     rests,
     ...(chords.length ? { chords } : {}),
+    ...(record(value.arrangementSource) &&
+    value.arrangementSource.name === "GuitarZero2Hero" &&
+    typeof value.arrangementSource.url === "string" &&
+    /^https:\/\/www\.youtube\.com\/watch\?v=[\w-]{11}$/.test(
+      value.arrangementSource.url
+    )
+      ? {
+          arrangementSource: {
+            name: value.arrangementSource.name,
+            url: value.arrangementSource.url
+          }
+        }
+      : {}),
     ...(typeof value.sourceText === "string" &&
     value.sourceText.length <= 200000
       ? { sourceText: value.sourceText }

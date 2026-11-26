@@ -6,6 +6,7 @@ import {
 } from "../../screens/song/chords";
 import { Parser, DomHandler, DomUtils } from "htmlparser2";
 import { sourceMetadata } from "./source-metadata";
+import { songArrangements } from "../../screens/song/rhythms";
 import { lookupChordsAndTabs } from "./chords-and-tabs";
 import { lookupSonidos } from "./sonidos";
 import { lookupWeingGuitar } from "./weing-guitar";
@@ -1423,6 +1424,14 @@ const providerContext: ChordProviderContext = {
   trackTitle,
   primaryArtist
 };
+
+export function matchedSongArrangement(title: string, artist: string) {
+  return songArrangements.find(
+    (arrangement) =>
+      matchingIdentity(title, arrangement.title) &&
+      sameArtist(artist, arrangement.artist)
+  );
+}
 
 export async function lookupSongContent(
   title: string,

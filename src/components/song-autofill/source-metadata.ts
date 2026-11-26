@@ -1,4 +1,7 @@
-import { sourceArrangement } from "../../screens/song/rhythms";
+import {
+  sourceArrangement,
+  type SongArrangement
+} from "../../screens/song/rhythms";
 import {
   chordNotationPattern,
   isChordLine,
@@ -25,6 +28,51 @@ type SourcePart = {
   chords: NonNullable<Tablature["chords"]>;
   length: number;
 };
+
+function strummedPart(
+  words: string,
+  definition: SongArrangement["parts"][string]
+) {
+  const family = (name: string) => name.replace(/5\(9\)|add9|sus2|6|9/g, "");
+  const cues: SourcePart["chords"] = [];
+  const changes: SourcePart["chords"] = [];
+  const hits: { tick: number; chord: string; pick: "downBrush" | "upBrush" }[] =
+    [];
+  let length = 0;
+  for (const [chord, pattern] of definition) {
+    changes.push({ name: chord, tick: length });
+    for (const [step, symbol] of [...pattern].entries())
+      if (["D", "U"].includes(symbol))
+        hits.push({
+          tick: length + (step * TAB_TICKS_PER_BEAT) / 4,
+          chord,
+          pick: symbol === "D" ? "downBrush" : "upBrush"
+        });
+    length += (pattern.length * TAB_TICKS_PER_BEAT) / 4;
+  }
+  let cursor = 0;
+  for (const chord of songChordSequence(words)) {
+    const index = changes.findIndex(
+      (change, index) =>
+        index >= cursor && family(change.name) === family(chord)
+    );
+    if (index < 0) return;
+    cues.push({ name: chord, tick: changes[index].tick });
+    cursor = index + 1;
+  }
+  if (!cues.length || cursor !== changes.length) return;
+  const notes = hits.flatMap((hit, index) => {
+    const duration = (hits[index + 1]?.tick ?? length) - hit.tick;
+    return (
+      chordShapeOptions(hit.chord)[0]?.frets.flatMap((fret, string) =>
+        fret === null
+          ? []
+          : [{ string, fret, tick: hit.tick, duration, pick: hit.pick }]
+      ) ?? []
+    );
+  });
+  return { notes, chords: cues, length };
+}
 const partNames: Record<string, string> = {
   intro: "intro",
   вступление: "intro",
@@ -70,7 +118,8 @@ function arrangeSource(
   parts: Map<string, SourcePart>,
   tempo: number,
   otherVersesIntro: boolean,
-  lyricsOnly: boolean
+  lyricsOnly: boolean,
+  arrangement?: SongArrangement
 ) {
   const barTicks = tabBarTicks(emptyTablature(tempo));
   const sectionPart = (title: string) => {
@@ -138,8 +187,11 @@ function arrangeSource(
   const chords: NonNullable<Tablature["chords"]> = [];
   let tick = 0;
   const output: string[] = [];
+  let arranged = false;
   for (const section of sections) {
-    const part = sectionPart(section.title);
+    const definition = arrangement?.parts[partKey(section.title).split(":")[0]];
+    const strummed = definition && strummedPart(section.content, definition);
+    const part = strummed ?? sectionPart(section.title);
     let words = section.content.trim();
     const fromTab = !songChordSequence(words).length && !!part?.chords.length;
     if (fromTab && part) {
@@ -171,7 +223,8 @@ function arrangeSource(
     }
     if (section.title) output.push(`[${section.title}]`);
     output.push(words, "");
-    if (fromTab && part) {
+    if ((fromTab || strummed) && part) {
+      arranged ||= !!strummed;
       notes.push(
         ...part.notes.map((note) => ({ ...note, tick: tick + note.tick }))
       );
@@ -203,6 +256,7 @@ function arrangeSource(
     ...emptyTablature(tempo),
     notes,
     chords,
+    ...(arranged ? { arrangementSource: arrangement?.source } : {}),
     barCount: Math.ceil(tick / barTicks)
   });
   return tablature
@@ -259,7 +313,12 @@ export function sourceMetadata(text: string) {
   };
 }
 
-export function sourceSong(text: string, tempo?: number, expand = true) {
+export function sourceSong(
+  text: string,
+  tempo?: number,
+  expand = true,
+  arrangement?: SongArrangement
+) {
   const metadata = sourceMetadata(text);
   const lines = text.replace(/\r\n?/g, "\n").split("\n");
   const removed = new Set<number>();
@@ -527,13 +586,14 @@ export function sourceSong(text: string, tempo?: number, expand = true) {
     .replace(/\n{3,}/g, "\n\n")
     .trim();
   const arranged =
-    expand && parts.size
+    expand && (parts.size || arrangement)
       ? arrangeSource(
           cleaned,
           parts,
-          tempo ?? metadata.tempo ?? 80,
+          tempo ?? metadata.tempo ?? arrangement?.tempo ?? 80,
           /all\s+other\s+verses\s+are\s+like\s+(?:the\s+)?intro/i.test(text),
-          lyrics >= 0
+          lyrics >= 0,
+          arrangement
         )
       : undefined;
   const content = arranged?.content ?? (changed ? cleaned : text);
@@ -547,6 +607,9 @@ export function sourceSong(text: string, tempo?: number, expand = true) {
           }
         }
       : {}),
-    ...metadata
+    ...metadata,
+    ...(arranged?.tablature.arrangementSource
+      ? { tempo: tempo ?? metadata.tempo ?? arrangement?.tempo }
+      : {})
   };
 }

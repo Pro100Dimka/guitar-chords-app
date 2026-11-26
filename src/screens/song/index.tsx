@@ -61,7 +61,10 @@ import {
 } from "./chords";
 import { Action, ChordSheet, SongTools, SongPlayback } from "./tools";
 import { sourceSong } from "../../components/song-autofill/source-metadata";
-import { lookupChordPage } from "../../components/song-autofill/lyrics";
+import {
+  lookupChordPage,
+  matchedSongArrangement
+} from "../../components/song-autofill/lyrics";
 import { db } from "../../components/database";
 import { tabBarTicks, tablatureLength } from "../../components/tablature";
 
@@ -170,7 +173,16 @@ const SongDetail: React.FC = () => {
               return;
             }
             const saved = usePreferences.getState().songs[songId];
-            const imported = sourceSong(found.content ?? "", saved?.tempo);
+            const arrangement = matchedSongArrangement(
+              found.title,
+              found.band_name ?? ""
+            );
+            const imported = sourceSong(
+              found.content ?? "",
+              saved?.tempo,
+              true,
+              arrangement
+            );
             setSong({ ...found, content: imported.content });
             updateSong(songId, {
               opened: Date.now(),
@@ -198,6 +210,7 @@ const SongDetail: React.FC = () => {
             ).find((name) => name === saved?.contentSource?.name);
             if (
               !saved?.tablature ||
+              saved.tablature.arrangementSource ||
               (!saved.tablature.sourceText &&
                 (!provider || !saved.contentSource))
             )
@@ -219,14 +232,20 @@ const SongDetail: React.FC = () => {
               const rawText = saved.tablature.sourceText ?? option?.content;
               if (!rawText || !active || deletedSong.current === songId) return;
               const legacy = sourceSong(rawText, saved.tempo, false);
-              const replacement = sourceSong(rawText, saved.tempo);
+              const baseline = sourceSong(rawText, saved.tempo);
+              const replacement = sourceSong(
+                rawText,
+                saved.tempo,
+                true,
+                arrangement
+              );
               const canonical = (text: string) =>
                 createSongEditorState(text).text.replace(/\s+/g, "");
               const current = usePreferences.getState().songs[songId];
               if (
                 !replacement.tablature?.chords?.length ||
                 current?.tablature !== saved.tablature ||
-                ![legacy, replacement].some(
+                ![legacy, baseline, replacement].some(
                   (parsed) =>
                     JSON.stringify(parsed.tablature?.notes) ===
                     JSON.stringify(saved.tablature.notes)
@@ -235,6 +254,7 @@ const SongDetail: React.FC = () => {
                   JSON.stringify(saved.tablature) ||
                 ![
                   canonical(legacy.content),
+                  canonical(baseline.content),
                   canonical(replacement.content)
                 ].includes(canonical(found.content ?? ""))
               )

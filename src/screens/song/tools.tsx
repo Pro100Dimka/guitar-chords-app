@@ -66,6 +66,7 @@ import {
   rhythms,
   pickingPatterns,
   allRhythms,
+  MAX_RHYTHM_STEPS,
   rhythmSymbols,
   rhythmReference,
   pickingReference,
@@ -821,7 +822,10 @@ export function SongTools({
             accessibilityLabel={t("SongPlayOnLineSelect")}
             value={value.playOnLineSelect !== false}
             onValueChange={(playOnLineSelect) => onChange({ playOnLineSelect })}
-            trackColor={{ false: palette.glass.edge, true: palette.glass.accent }}
+            trackColor={{
+              false: palette.glass.edge,
+              true: palette.glass.accent
+            }}
             thumbColor={palette.glass.ink}
           />
         </View>
@@ -940,6 +944,18 @@ function SongTablature({
       <Text style={styles.description}>
         {t("SongTabNoteCount", { count: score.notes.length })}
       </Text>
+      {score.arrangementSource && (
+        <Text
+          accessibilityRole="link"
+          style={styles.description}
+          onPress={() => {
+            if (score.arrangementSource)
+              void Linking.openURL(score.arrangementSource.url);
+          }}
+        >
+          {score.arrangementSource.name}
+        </Text>
+      )}
       <TempoControl
         label={t("Tempo")}
         value={value.tempo}
@@ -2127,7 +2143,7 @@ function PatternEditor({
                   glass
                   key={symbol}
                   label={label}
-                  disabled={value.strum.length >= 16}
+                  disabled={value.strum.length >= MAX_RHYTHM_STEPS}
                   onPress={() =>
                     onChange({ strum: value.strum + symbol, strumPreset: "" })
                   }
