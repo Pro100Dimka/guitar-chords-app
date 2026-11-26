@@ -144,7 +144,15 @@ test("rhythm timing survives preference normalization and legacy songs use eight
   }
   expect(
     rhythms.find((rhythm) => rhythm.id === "nine")!.pattern.replace(/-/g, "")
-  ).toHaveLength(9);
+  ).toBe("DUDUUUDUD");
+  expect(
+    normalizeSongPreferences({ strumPreset: "nine", strum: "D-DU-UD-D-DU--D-" })
+      .strum
+  ).toBe("D-U-D--U-U-U-DUD");
+  expect(
+    normalizeSongPreferences({ strumPreset: "", strum: "D-DU-UD-D-DU--D-" })
+      .strum
+  ).toBe("D-DU-UD-D-DU--D-");
 });
 
 test.each([

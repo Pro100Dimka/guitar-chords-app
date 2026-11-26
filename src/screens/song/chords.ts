@@ -498,7 +498,7 @@ const chordProSectionTitles: Record<string, string | undefined> = {
   start_of_bridge: "Bridge",
   sob: "Bridge"
 };
-function isSectionBoundary(line: string) {
+export function isSectionBoundary(line: string) {
   return (
     sectionHeading.test(line.trim()) ||
     !!line.match(sectionPattern) ||

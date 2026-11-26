@@ -3,6 +3,7 @@ import Foundation
 import React
 import UIKit
 import UserNotifications
+import ShazamKit
 
 @objc(SongRecognition)
 final class SongRecognition: NSObject, RCTBridgeModule {
@@ -13,6 +14,7 @@ final class SongRecognition: NSObject, RCTBridgeModule {
   private let worker = DispatchQueue(label: "song.recognition.worker", qos: .userInitiated)
   @objc var methodQueue: DispatchQueue! { control }
   private var active: RecognitionCapture?
+  private var managedTask: Task<Void, Never>?
   private var observers = [NSObjectProtocol]()
   private let fingerprint = SongFingerprintRecognizer()
 
@@ -31,25 +33,6 @@ final class SongRecognition: NSObject, RCTBridgeModule {
         }
       })
     }
-    observers.append(NotificationCenter.default.addObserver(forName: RecognitionNotice.received, object: nil, queue: nil) { [weak self] notification in
-      guard let payload = notification.userInfo else { return }
-      self?.control.async { [weak self] in
-        guard let capture = self?.active, capture.ignoresAudioInterruptions else { return }
-        capture.receivePlayback(payload)
-      }
-    })
-    #if os(iOS)
-    observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil) { [weak self] _ in
-      self?.control.async { [weak self] in
-        guard let capture = self?.active, capture.ignoresAudioInterruptions else { return }
-        UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
-          if let latest = notifications.filter({ $0.request.content.userInfo["recognitionPlayback"] as? Bool == true }).max(by: { $0.date < $1.date }) {
-            capture.receivePlayback(latest.request.content.userInfo)
-          }
-        }
-      }
-    })
-    #endif
   }
   deinit {
     active?.cancel()
@@ -57,9 +40,13 @@ final class SongRecognition: NSObject, RCTBridgeModule {
   }
 
   @objc func cancel(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
-    if active?.ignoresAudioInterruptions == true { RecognitionNotice.cancelCapture() }
     active?.cancel()
-    worker.async { self.control.async { resolve(nil) } }
+    if let task = managedTask {
+      task.cancel()
+      Task { await task.value; self.control.async { resolve(nil) } }
+    } else {
+      worker.async { self.control.async { resolve(nil) } }
+    }
   }
 
   @objc func recognizeMicrophone(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
@@ -81,6 +68,12 @@ final class SongRecognition: NSObject, RCTBridgeModule {
     guard AVAudioSession.sharedInstance().recordPermission == .granted else {
       reject("MicrophonePermissionDenied", "MicrophonePermissionDenied", nil); return
     }
+    #if os(iOS)
+    if #available(iOS 17.0, *) {
+      startManagedRecognition(resolve, rejecter: reject, allowsBackground: allowsBackground)
+      return
+    }
+    #endif
     let capture = RecognitionCapture(allowsBackground: allowsBackground)
     active = capture
     worker.async {
@@ -131,9 +124,71 @@ final class SongRecognition: NSObject, RCTBridgeModule {
     }
   }
 
+  @available(iOS 17.0, macOS 14.0, *)
+  private func recognitionCatalog() throws -> SHCustomCatalog {
+    let format = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!
+    let reference = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 64000)!
+    reference.frameLength = reference.frameCapacity
+    var seed: UInt32 = 0x4654554E
+    for frame in 0..<Int(reference.frameLength) {
+      seed = 1664525 &* seed &+ 1013904223
+      reference.floatChannelData![0][frame] = Float(Int32(bitPattern: seed)) / Float(Int32.max) * 0.25
+    }
+    let generator = SHSignatureGenerator()
+    try generator.append(reference, at: nil)
+    let catalog = SHCustomCatalog()
+    // The framework requires a reference. Only captured query signatures are identified.
+    try catalog.addReferenceSignature(generator.signature(), representing: [SHMediaItem(properties: [.title: "Input reference"])])
+    return catalog
+  }
+
+  @available(iOS 17.0, macOS 14.0, *)
+  private func startManagedRecognition(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock, allowsBackground: Bool) {
+    let capture = RecognitionCapture(allowsBackground: allowsBackground, ignoresAudioInterruptions: true)
+    active = capture
+    // A local catalog lets the system capture audio without requiring an App ID service.
+    let session: SHManagedSession
+    do { session = SHManagedSession(catalog: try recognitionCatalog()) }
+    catch { active = nil; reject("AudioDeviceUnavailable", "AudioDeviceUnavailable", error); return }
+    capture.attach { session.cancel() }
+    managedTask = Task {
+      var result: [String: Any]?
+      var failure: Error?
+      do {
+        for _ in 0..<3 {
+          try self.check(capture)
+          let query = await session.result()
+          try self.check(capture)
+          let signature: SHSignature
+          switch query {
+          case .match(let match): signature = match.querySignature
+          case .noMatch(let value): signature = value
+          case .error(let error, let value):
+            guard value.duration >= 2 else { throw error }
+            signature = value
+          @unknown default: throw self.error("RecognitionFailed")
+          }
+          guard signature.duration >= 2 else { continue }
+          let uri = "data:audio/vnd.shazam.sig;base64," + signature.dataRepresentation.base64EncodedString()
+          result = try self.fingerprint.identify(signature: uri, sampleMilliseconds: Int(signature.duration * 1000), cancelled: { capture.cancelled }, attach: { capture.attach($0) })
+          if result != nil { break }
+        }
+      } catch { failure = error }
+      session.cancel()
+      self.control.async {
+        if self.active === capture { self.active = nil; self.managedTask = nil }
+        if capture.cancelled { reject("Cancelled", "Cancelled", nil) }
+        else if let failure = failure {
+          let code = (failure as NSError).domain
+          reject(code, code, failure)
+        } else { resolve(result) }
+      }
+    }
+  }
+
   #if os(iOS)
   @objc func getRecognitionSource(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
-    resolve(AVAudioSession.sharedInstance().isOtherAudioPlaying ? "playback" : "mic")
+    resolve("mic")
   }
 
   @objc func consumeLaunchURL(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
@@ -145,66 +200,7 @@ final class SongRecognition: NSObject, RCTBridgeModule {
   }
 
   @objc func recognizePlayback(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
-    guard active == nil else { reject("Busy", "RecognitionBusy", nil); return }
-    guard PlaybackCaptureViewController.broadcastExtension != nil else {
-      reject("PlaybackCaptureUnavailable", "PlaybackCaptureUnavailable", nil); return
-    }
-    let capture = RecognitionCapture(allowsBackground: true, ignoresAudioInterruptions: true)
-    active = capture
-    let expires = Date().addingTimeInterval(180)
-    let failureId = UUID().uuidString
-    let fail: (String) -> Void = { code in
-      capture.receivePlayback(["recognitionPlayback": true, "recognitionStartedAt": capture.createdAt.timeIntervalSince1970, "recognitionRequestId": failureId, "recognitionError": code])
-    }
-    let sheet = DispatchQueue.main.sync { PlaybackCaptureViewController() }
-    DispatchQueue.main.async {
-      sheet.onCancel = { RecognitionNotice.cancelCapture(); capture.cancel() }
-      func presentCapture(_ attempt: Int = 0) {
-        guard !capture.cancelled else { return }
-        guard attempt < 50 else { fail("PlaybackCaptureFailed"); return }
-        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first { $0.activationState == .foregroundActive }
-        var presenter = scene?.windows.first { $0.isKeyWindow }?.rootViewController
-        while let next = presenter?.presentedViewController { presenter = next }
-        guard let presenter = presenter, !presenter.isBeingDismissed, !presenter.isBeingPresented, presenter.transitionCoordinator == nil else {
-          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { presentCapture(attempt + 1) }; return
-        }
-        presenter.present(sheet, animated: true)
-      }
-      UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
-        DispatchQueue.main.async {
-          if granted { presentCapture() } else { fail("PlaybackNotificationsDenied") }
-        }
-      }
-    }
-    worker.async {
-      var result: [String: Any]?
-      var failure: Error?
-      do {
-        var payload = capture.playbackResult
-        while payload == nil {
-          try self.check(capture)
-          guard Date() < expires else { throw self.error("PlaybackCaptureTimeout") }
-          Thread.sleep(forTimeInterval: 0.1)
-          payload = capture.playbackResult
-        }
-        try self.check(capture)
-        if let code = payload?["recognitionError"] as? String, !code.isEmpty { throw self.error(code) }
-        result = RecognitionNotice.song(payload ?? [:])
-        if let result = result, let id = payload?["recognitionRequestId"] as? String { RecognitionLaunch.saveSong(result, requestId: id) }
-      } catch { failure = error }
-      RecognitionNotice.cancelCapture()
-      DispatchQueue.main.async { sheet.finish() }
-      self.control.async {
-        if self.active === capture { self.active = nil }
-        if capture.cancelled { reject("Cancelled", "Cancelled", nil) }
-        else if let failure = failure {
-          let code = (failure as NSError).domain
-          let known = ["PlaybackCaptureUnavailable", "PlaybackCaptureTimeout", "PlaybackAudioUnavailable", "PlaybackCaptureFailed", "PlaybackNotificationsDenied", "Cancelled", "NetworkError", "RateLimited", "ServiceUnavailable", "AudioTooShort"]
-          let message = known.contains(code) ? code : "PlaybackCaptureFailed"
-          reject(message, message, failure)
-        } else { resolve(result) }
-      }
-    }
+    startMicrophone(resolve, rejecter: reject, allowsBackground: false)
   }
   #endif
 

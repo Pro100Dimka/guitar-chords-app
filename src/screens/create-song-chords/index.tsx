@@ -59,6 +59,7 @@ export interface FormValues {
   cover: string;
   capo?: number;
   tempo?: number;
+  tablature?: SongPreferences["tablature"];
   rhythm?: Pick<
     SongPreferences,
     "strum" | "strumMeter" | "strumDivision" | "strumPreset" | "rhythmSections"

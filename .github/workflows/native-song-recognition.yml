@@ -106,7 +106,7 @@ jobs:
           done
 
   ios:
-    runs-on: macos-15
+    runs-on: macos-15-intel
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
@@ -129,3 +129,9 @@ jobs:
       - name: Production Swift instrument playback and lifecycle guards
         if: ${{ !cancelled() }}
         run: python3 test-ios-performance.py
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: system-signature-proof
+          path: ${{ runner.temp }}/freetune-system-signature-proof
+          retention-days: 1

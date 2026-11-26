@@ -1,5 +1,13 @@
 # FreeTune song recognition and lyrics with chords
 
+## Single-action recognition and imported tabs, 26 November 2026
+
+The add menu offers Manual and Recognize. Recognize starts listening with one tap. On iOS 17 and later the system ShazamKit managed session captures the query, including supported headphone playback; the existing recognizer matches its signature. There is no broadcast picker or screen-recording extension in the delivered app. The Control Center control remains available. Older iOS versions and Android retain microphone capture. See the [current iPhone implementation](../ios/playback-recognition.md).
+
+Recognized and manually pasted charts separate six-string ASCII tablature from song words. Published frets and simultaneous attacks become the song's existing playable tablature document. Chord diagram tables are excluded from the note sequence. ASCII without note-value notation uses an eighth-note grid; it does not establish the recording's exact durations or tempo. Explicit supported tempo, strumming and picking instructions become saved settings. Instruction text remains available, including ambiguous annotations that cannot determine a setting. Source identity and links remain attached to the song. Existing text without imported notation remains unchanged.
+
+The Nine preset follows the directions and pauses in the [Gitarik lesson](https://www.youtube.com/watch?v=rIxdm1f7Iw4): `D-U-D--U-U-U-DUD`. Previously saved, unchanged Nine presets migrate to this pattern; custom patterns remain intact.
+
 ## Tempo and accompaniment from the selected chart, 25 November 2026
 
 All chord-provider adapters now import supported, explicit tempo and accompaniment instructions from their verified chart content and existing dedicated metadata blocks. The shared parser accepts one consistent tempo in the existing 40–200 BPM range, including `Темп`, `Tempo`, `BPM`, `Andamento`, a quarter-note mark and supported ChordPro declarations. Unlabelled page numbers, conflicting values and unsupported units do not become song tempo. The original chart text and source link are preserved.
@@ -10,7 +18,7 @@ Explicit supported strumming and picking instructions become saved global or sec
 
 The real recognition screen, creation editor and save handler are exercised together, checking both serialized SQL preferences and the live preferences store. The regression cases cover tempo precedence, version changes, missing settings, invalid native values, fresh attempts, global picking and different verse/chorus patterns. Provider fixtures cover scoped extraction, conflicting metadata and cache behavior. See the [investigation, verification and live metadata availability](recognition-arrangement-metadata-2026-11-25.md) and [machine-readable evidence](recognition-arrangement-investigation-2026-11-25.json).
 
-## Phone audio and quick launch, 25 November 2026
+## Historical phone-audio implementation, 25 November 2026
 
 Branch: `fix/recognition-chords-and-device-audio`. The chord-search investigation and the same-song before/after evidence are recorded below. Recognition exposes a prepared result only when a verified arrangement contains both lyrics and chords. When chord lookup fails, the identified song remains available for retry without recording it again.
 

@@ -91,21 +91,17 @@ function deferred<T>() {
 let screen: Renderer.ReactTestRenderer | undefined;
 
 test.each(["mic", "playback"] as const)(
-  "unified recognition captures the selected %s source once",
+  "one-tap recognition never opens screen capture when the reported source is %s",
   async (source) => {
     const native = NativeModules.SongRecognition;
     native.getRecognitionSource.mockResolvedValue(source);
-    const onSource = jest.fn();
+    const onCaptureReady = jest.fn();
     await expect(
-      recognizeSong(new AbortController().signal, onSource, jest.fn())
+      recognizeSong(new AbortController().signal, onCaptureReady)
     ).resolves.toMatchObject({ title: "Track" });
-    expect(onSource).toHaveBeenCalledWith(source);
-    expect(native.recognizeMicrophone).toHaveBeenCalledTimes(
-      source === "mic" ? 1 : 0
-    );
-    expect(native.recognizePlayback).toHaveBeenCalledTimes(
-      source === "playback" ? 1 : 0
-    );
+    expect(onCaptureReady).toHaveBeenCalledTimes(1);
+    expect(native.recognizeMicrophone).toHaveBeenCalledTimes(1);
+    expect(native.recognizePlayback).not.toHaveBeenCalled();
   }
 );
 
@@ -433,12 +429,12 @@ test("Quick Settings asks Android to add the tile only on a supported system", a
 });
 
 test.each(["android", "ios"])(
-  "%s playback keeps capturing while the user returns to their music app",
+  "%s legacy playback links use simple listening and cancel when leaving the screen",
   async (platform) => {
     jest.replaceProperty(Platform, "OS", platform as typeof Platform.OS);
     mockMode = "playback";
     const capture = deferred<null>();
-    NativeModules.SongRecognition.recognizePlayback.mockReturnValue(
+    NativeModules.SongRecognition.recognizeMicrophone.mockReturnValue(
       capture.promise
     );
     let background!: (state: AppStateStatus) => void;
@@ -456,9 +452,14 @@ test.each(["android", "ios"])(
       AppState.currentState = "background";
       background("background");
     });
-    expect(NativeModules.SongRecognition.cancel).not.toHaveBeenCalled();
+    expect(NativeModules.SongRecognition.cancel).toHaveBeenCalledTimes(1);
+    expect(
+      NativeModules.SongRecognition.recognizePlayback
+    ).not.toHaveBeenCalled();
     await act(async () => capture.resolve(null));
-    expect(JSON.stringify(screen!.toJSON())).toContain("AutofillNoAudioMatch");
+    expect(JSON.stringify(screen!.toJSON())).toContain(
+      "AutofillSearchCancelled"
+    );
   }
 );
 
@@ -467,30 +468,30 @@ test("a tile launch starts once and opening its notification preserves active ca
   mockAutoStart = true;
   mockRequestId = "first";
   const capture = deferred<null>();
-  NativeModules.SongRecognition.recognizePlayback.mockReturnValue(
+  NativeModules.SongRecognition.recognizeMicrophone.mockReturnValue(
     capture.promise
   );
   await act(async () => {
     screen = Renderer.create(<RecognizeSong />);
   });
-  expect(NativeModules.SongRecognition.recognizePlayback).toHaveBeenCalledTimes(
-    1
-  );
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(1);
   await act(async () => screen!.update(<RecognizeSong />));
   mockAutoStart = false;
   mockRequestId = undefined;
   await act(async () => screen!.update(<RecognizeSong />));
   expect(NativeModules.SongRecognition.cancel).not.toHaveBeenCalled();
-  expect(NativeModules.SongRecognition.recognizePlayback).toHaveBeenCalledTimes(
-    1
-  );
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(1);
   await act(async () => capture.resolve(null));
   mockAutoStart = true;
   mockRequestId = "second";
   await act(async () => screen!.update(<RecognizeSong />));
-  expect(NativeModules.SongRecognition.recognizePlayback).toHaveBeenCalledTimes(
-    2
-  );
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(2);
 });
 
 test("an invalid shortcut mode never starts microphone capture automatically", async () => {
@@ -509,7 +510,7 @@ test("an invalid shortcut mode never starts microphone capture automatically", a
 });
 
 test("retrying unavailable chord sources reuses the recognized song without recording again", async () => {
-  mockMode = "playback";
+  mockMode = "mic";
   jest
     .mocked(lookupSongContent)
     .mockRejectedValueOnce(new Error("ChordSourcesUnavailable"))
@@ -527,9 +528,9 @@ test("retrying unavailable chord sources reuses the recognized song without reco
     )
   ).toHaveLength(0);
   await press("AddSongRetryChords");
-  expect(NativeModules.SongRecognition.recognizePlayback).toHaveBeenCalledTimes(
-    1
-  );
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(1);
   expect(lookupSongContent).toHaveBeenCalledTimes(2);
   await press("AddSongEditResult");
   expect(mockNavigate).toHaveBeenCalledWith("createSong", {

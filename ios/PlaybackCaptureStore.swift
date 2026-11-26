@@ -12,6 +12,7 @@ final class RecognitionCapture {
   private var stopped = false
   private var samples = [Int16]()
   private var task: URLSessionDataTask?
+  private var recordingCancellation: (() -> Void)?
   private var fileCoordinator: NSFileCoordinator?
   private var readExpired = false
 
@@ -67,9 +68,18 @@ final class RecognitionCapture {
     stopped = true
     let pending = task
     let coordinator = fileCoordinator
+    let recording = recordingCancellation
     lock.unlock()
     pending?.cancel()
     coordinator?.cancel()
+    recording?()
+  }
+  func attach(_ cancellation: @escaping () -> Void) {
+    lock.lock()
+    recordingCancellation = cancellation
+    let cancel = stopped
+    lock.unlock()
+    if cancel { cancellation() }
   }
   func attach(_ value: URLSessionDataTask) {
     lock.lock(); defer { lock.unlock() }
@@ -153,6 +163,16 @@ final class SongFingerprintRecognizer {
     }
     defer { freetune_fingerprint_free(pointer) }
     let signature = String(cString: pointer)
+    return try identify(signature: signature, sampleMilliseconds: samples.count * 1000 / 16000, cancelled: cancelled, attach: attach)
+  }
+  func identify(signature encodedSignature: String, sampleMilliseconds: Int, cancelled: () -> Bool = { false }, attach: (URLSessionDataTask) -> Void = { _ in }) throws -> [String: Any]? {
+    if cancelled() { throw error("Cancelled") }
+    let prefix = "data:audio/vnd.shazam.sig;base64,"
+    guard encodedSignature.hasPrefix(prefix),
+          let data = Data(base64Encoded: String(encodedSignature.dropFirst(prefix.count))),
+          let header = data.range(of: Data([0x80, 0x25, 0xfe, 0xca])) else { throw error("RecognitionFailed") }
+    // ShazamKit data includes a container; the service expects the embedded wire signature.
+    let signature = prefix + data[header.lowerBound...].base64EncodedString()
     if let (until, result) = cached[signature], until > Date() { return result }
     guard Date() >= retryAfter else { throw error("RateLimited") }
     let url = URL(string: "https://amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag/\(UUID().uuidString)/\(UUID().uuidString)?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3&sharehub=true&hubv5minorversion=v5.1&hidelb=true&video=v3")!
@@ -163,7 +183,7 @@ final class SongFingerprintRecognizer {
     }
     request.httpBody = try JSONSerialization.data(withJSONObject: [
       "timezone": TimeZone.current.identifier, "timestamp": Int(Date().timeIntervalSince1970 * 1000),
-      "signature": ["samplems": samples.count * 1000 / 16000, "uri": signature], "geolocation": [:], "context": [:]
+      "signature": ["samplems": sampleMilliseconds, "uri": signature], "geolocation": [:], "context": [:]
     ])
     let response = FingerprintResponse()
     let task = URLSession.shared.dataTask(with: request) { data, value, failure in response.finish(data, value, failure) }
@@ -179,7 +199,7 @@ final class SongFingerprintRecognizer {
       retryAfter = Date().addingTimeInterval(min(3600, max(1, Double(http.value(forHTTPHeaderField: "Retry-After") ?? "") ?? 30)))
       throw error("RateLimited")
     }
-    guard (200..<300).contains(http.statusCode), let data = response.data else { throw error("ServiceUnavailable") }
+    guard (200..<300).contains(http.statusCode), let data = response.data else { throw NSError(domain: "ServiceUnavailable", code: http.statusCode) }
     guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
       let track = json["track"] as? [String: Any],
       let title = track["title"] as? String, !title.isEmpty,

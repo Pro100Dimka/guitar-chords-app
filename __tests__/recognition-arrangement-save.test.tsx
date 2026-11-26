@@ -108,6 +108,69 @@ const plainChart = {
   rhythm: undefined
 };
 
+test("imports the published Behind Blue Eyes picking as playable tabs and saves only song words", async () => {
+  const content = [
+    "Limp Bizkit Behind blue eyes",
+    "Artist:Limp Bizkit",
+    "Song:Behind blue eyes",
+    "Album:Result may vary",
+    "Tabber:Pawanman",
+    "This song is very very beautiful song in contrast to there old music.",
+    "intro",
+    "E|------0---------0--------0--------0--------0--------0--------0--------0-------|",
+    "B|-----0-0-------3-3-----3--3-3---3--3-3---3--3-3---3--3-3---0--0-0---0--0-0----|",
+    "G|---------0--------0---2-2--2---2-2--2-----0--0-----0--0-----2--2-----2--2-----|",
+    "D|----2-----2---0----0-0--------0---------2--------2--------2--------2----------|",
+    "A|---2---------2-------------------------3--------3--------0--------0-----------|",
+    "E|--0---------3-----------------------------------------------------------------|",
+    "verse 1",
+    "E|------0-------0-------0--------0--------0--------0----000-0-0-|",
+    "B|-----0-0-----3-3----3--3-3---3--3-3---3--3-3---3--3-3-000-0-0-|",
+    "G|--------0-------0--2-2--2---2-2--2-----0--0-----0--0--222-2-2-|",
+    "D|----2-------0-----0--------0---------2--------2-------222-2-2-|",
+    "A|---2-------2------------------------3--------3--------000-0-0-|",
+    "E|--0-------3-------------------------------------------000-0-0-|",
+    "Chorus",
+    "   C    D    G",
+    "|-0----0----3-",
+    "|-1----3----0-",
+    "|-0----2----0-",
+    "|-2----0----0-",
+    "|-3----0----2-",
+    "|-0----0----3-",
+    "LYRICS",
+    "no one knows what it's like",
+    "CHORUS",
+    "      C    D                G",
+    "but my dreams they aren't as empty"
+  ].join("\n");
+  jest
+    .mocked(lookupSongContent)
+    .mockResolvedValue([{ ...plainChart, content }]);
+  await start();
+  const draft = await openEditor();
+  expect(draft.content).not.toMatch(
+    /E\||Tabber:|Artist:|very very beautiful|\|-0/
+  );
+  expect(draft.content).toContain("no one knows what it's like");
+  expect(draft.content).toContain("but my dreams they aren't as empty");
+  const persisted = await save();
+  expect(
+    persisted.tablature.notes.every((note: { fret: number }) => note.fret <= 3)
+  ).toBe(true);
+  expect(persisted.tablature.notes).toContainEqual(
+    expect.objectContaining({ string: 0, fret: 0, tick: 0 })
+  );
+  expect(persisted.tablature.notes).toContainEqual(
+    expect.objectContaining({ string: 5, fret: 0 })
+  );
+  expect(
+    require("../src/components/tablature").normalizeTablature(
+      persisted.tablature
+    )
+  ).toEqual(persisted.tablature);
+});
+
 async function press(label: string) {
   await act(async () =>
     screen!.root
@@ -251,7 +314,16 @@ test.each(["recognized", "looked up"])(
     expect(usePreferences.getState().songs[73]).toEqual(persisted);
     expect(
       writes.find((write) => write.sql.startsWith("INSERT INTO songs"))
-    ).toMatchObject({ args: ["Track", arrangementText, 11, "", "", "track"] });
+    ).toMatchObject({
+      args: [
+        "Track",
+        arrangementText,
+        11,
+        "",
+        "",
+        "track"
+      ]
+    });
     expect(lookupSongTempo).toHaveBeenCalledTimes(
       fallback === "recognized" ? 0 : 1
     );

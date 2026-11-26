@@ -28,8 +28,6 @@ import type { FormValues } from "../create-song-chords";
 import {
   cancelRecognition,
   consumeRecognitionResult,
-  recognizeMicrophone,
-  recognizePlayback,
   recognizeSong,
   requestQuickSettingsTile,
   RecognizedSong
@@ -48,13 +46,14 @@ import {
 } from "../../components/library-files";
 import initialValues from "../create-song-chords/formik/initial-values";
 import { applyRecognitionDraft } from "../../components/song-autofill/draft";
+import { sourceSong } from "../../components/song-autofill/source-metadata";
 
 export default function RecognizeSong() {
   const { params } = useRoute<RouteProp<RootStackParamList, "recognizeSong">>();
   const mode =
-    params?.mode && ["auto", "mic", "playback", "result"].includes(params.mode)
-      ? params.mode
-      : "auto";
+    ({ auto: "auto", mic: "mic", playback: "auto", result: "result" } as const)[
+      params?.mode ?? "auto"
+    ] ?? "auto";
   const autoStart =
     params?.autoStart === true &&
     ["auto", "mic", "playback", "result"].includes(params.mode);
@@ -88,9 +87,6 @@ export default function RecognizeSong() {
     };
   }, []);
   const [busy, setBusy] = useState(false);
-  const [source, setSource] = useState<"mic" | "playback">(
-    mode === "playback" ? "playback" : "mic"
-  );
   const [message, setMessage] = useState("");
   const [found, setFound] = useState<RecognizedSong | null>(null);
   const [retrySong, setRetrySong] = useState<RecognizedSong | null>(null);
@@ -175,7 +171,6 @@ export default function RecognizeSong() {
     const subscription = AppState.addEventListener("change", (state) => {
       if (
         state === "background" &&
-        source === "mic" &&
         running.current &&
         !awaitingMicStart.current
       ) {
@@ -183,7 +178,7 @@ export default function RecognizeSong() {
       }
     });
     return () => subscription.remove();
-  }, [source, stop]);
+  }, [stop]);
   const start = useCallback(
     async (identified?: RecognizedSong) => {
       if (running.current) return;
@@ -206,7 +201,6 @@ export default function RecognizeSong() {
             : {
                 auto: "AutofillListening",
                 mic: "AutofillListening",
-                playback: "AutofillListeningPlayback",
                 result: "AddSongPreparing"
               }[mode]
         )
@@ -219,27 +213,9 @@ export default function RecognizeSong() {
         };
         const result =
           identified ??
-          (await {
-            auto: () =>
-              recognizeSong(
-                abort.signal,
-                (selected) => {
-                  setSource(selected);
-                  setMessage(
-                    t(
-                      selected === "playback"
-                        ? "AutofillListeningPlayback"
-                        : "AutofillListening"
-                    )
-                  );
-                },
-                captureReady
-              ),
-            mic: () => recognizeMicrophone(abort.signal, captureReady),
-            playback: () => recognizePlayback(abort.signal),
-            result: () =>
-              consumeRecognitionResult(launch.current.requestId ?? "")
-          }[mode]());
+          (await (mode === "result"
+            ? consumeRecognitionResult(launch.current.requestId ?? "")
+            : recognizeSong(abort.signal, captureReady)));
         if (request !== generation.current) return;
         if (!result) {
           setMessage(t("AutofillNoAudioMatch"));
@@ -329,14 +305,19 @@ export default function RecognizeSong() {
           setMessage(t("AutofillSearchCancelled"));
           return;
         }
+        const imported = sourceSong(
+          selected.content,
+          selected.tempo ?? fallbackTempo.current
+        );
         next = {
           ...next,
+          ...imported,
           cover,
-          tempo: selected.tempo ?? fallbackTempo.current,
+          tempo: selected.tempo ?? imported.tempo ?? fallbackTempo.current,
           capo: selected?.capo,
-          rhythm: selected?.rhythm,
+          rhythm: selected.rhythm ?? imported.rhythm,
           sourceTuning: selected?.tuning,
-          content: selected?.content ?? next.content,
+          content: imported.content,
           contentSource: selected
             ? selected.url
               ? { name: selected.source, url: selected.url }
@@ -463,7 +444,6 @@ export default function RecognizeSong() {
   const icon = {
     auto: "music-note-search",
     mic: "microphone",
-    playback: "cellphone-sound",
     result: "music-note-search"
   }[mode];
   return (
@@ -536,15 +516,6 @@ export default function RecognizeSong() {
           <Text accessibilityLiveRegion="polite" style={styles.status}>
             {message || t("AddSongStart")}
           </Text>
-          {source === "playback" && (
-            <Text style={styles.hint}>
-              {t(
-                Platform.OS === "ios"
-                  ? "AddSongPlaybackIOSHint"
-                  : "AddSongPlaybackAndroidHint"
-              )}
-            </Text>
-          )}
           {!!retrySong && !busy && (
             <>
               <Text style={styles.hint}>
@@ -681,16 +652,24 @@ export default function RecognizeSong() {
                 .filter(Boolean)
                 .join(" · ")}
               onPress={() => {
+                const imported = sourceSong(
+                  option.content,
+                  option.tempo ?? fallbackTempo.current
+                );
                 if (versionResolver.current) versionResolver.current(option);
                 else
                   setDraft(
                     (previous) =>
                       previous && {
                         ...previous,
-                        content: option.content,
-                        tempo: option.tempo ?? fallbackTempo.current,
+                        ...imported,
+                        tablature: imported.tablature,
+                        tempo:
+                          option.tempo ??
+                          imported.tempo ??
+                          fallbackTempo.current,
                         capo: option.capo,
-                        rhythm: option.rhythm,
+                        rhythm: option.rhythm ?? imported.rhythm,
                         sourceTuning: option.tuning,
                         contentSource: option.url
                           ? { name: option.source, url: option.url }

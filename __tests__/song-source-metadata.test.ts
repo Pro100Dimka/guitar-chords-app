@@ -1,7 +1,16 @@
 import {
   sourceMetadata,
+  sourceSong,
   sourceTempo
 } from "../src/components/song-autofill/source-metadata";
+
+test.each(["Picking: B32123", "Tempo: 100-120"])(
+  "keeps unresolved published instructions instead of silently deleting %s",
+  (instruction) => {
+    const content = `${instruction}\n[Am]Example words for a song`;
+    expect(sourceSong(content).content).toBe(content);
+  }
+);
 
 describe("explicit chart tempo", () => {
   it.each([

@@ -4,6 +4,8 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+import urllib.request
+import shutil
 
 
 if sys.platform != "darwin":
@@ -14,6 +16,7 @@ source = (source.replace("import React", "").replace("import UIKit", "")
           .replace(", RCTBridgeModule", "").replace("@objc(SongRecognition)", "")
           .replace("@objc ", "").replace("private ", "")
           .replace("AVAudioSession", "CaptureSession").replace("AVAudioEngine", "CaptureEngine"))
+source = source.replace("SHManagedSession", "TestManagedSession")
 source += (root / "ios/PlaybackCaptureStore.swift").read_text(encoding="utf-8").replace("private ", "")
 source += ((root / "ios/PlaybackBroadcast/SampleHandler.swift").read_text(encoding="utf-8")
            .replace("import ReplayKit", "").replace("private ", "")
@@ -28,6 +31,21 @@ import Foundation
 typealias RCTPromiseResolveBlock = (Any?) -> Void
 typealias RCTPromiseRejectBlock = (String?, String?, Error?) -> Void
 enum UIApplication { static let didEnterBackgroundNotification = Notification.Name("background") }
+final class TestManagedSession {
+  static var feed = true, stopped = 0
+  static let signature: SHSignature = {
+    let generator = SHSignatureGenerator()
+    try! generator.append(pcm(48000, 144000), at: nil)
+    return generator.signature()
+  }()
+  private var cancelled = false
+  init(catalog: SHCatalog) {}
+  func result() async -> SHSession.Result {
+    while !Self.feed && !cancelled { try? await Task.sleep(nanoseconds: 1_000_000) }
+    return .noMatch(Self.signature)
+  }
+  func cancel() { cancelled = true; Self.stopped += 1 }
+}
 enum RPSampleBufferType { case video, audioApp, audioMic }
 class RPBroadcastSampleHandler {
   func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {}
@@ -88,10 +106,35 @@ final class CaptureEngine {
 }
 final class HTTPFixture: URLProtocol {
   static var count = 0, status = 200
-  override class func canInit(with request: URLRequest) -> Bool { request.url?.host == "amp.shazam.com" }
+  static var enabled = true
+  static var expectedSignature: String?
+  static var expectedMilliseconds = 3000
+  override class func canInit(with request: URLRequest) -> Bool { enabled && request.url?.host == "amp.shazam.com" }
   override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
   override func startLoading() {
     Self.count += 1
+    if let expected = Self.expectedSignature {
+      var bytes = request.httpBody ?? Data()
+      if bytes.isEmpty, let stream = request.httpBodyStream {
+        stream.open()
+        defer { stream.close() }
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while stream.hasBytesAvailable {
+          let count = stream.read(&buffer, maxLength: buffer.count)
+          if count <= 0 { break }
+          bytes.append(contentsOf: buffer.prefix(count))
+        }
+      }
+      let data = try! JSONSerialization.jsonObject(with: bytes) as! [String: Any]
+      let signature = data["signature"] as! [String: Any]
+      let prefix = "data:audio/vnd.shazam.sig;base64,"
+      let uri = signature["uri"] as! String
+      let wire = Data(base64Encoded: String(uri.dropFirst(prefix.count)))!
+      let original = Data(base64Encoded: String(expected.dropFirst(prefix.count)))!
+      precondition(wire.starts(with: [0x80, 0x25, 0xfe, 0xca]))
+      precondition(original.suffix(wire.count) == wire)
+      precondition(signature["samplems"] as? Int == Self.expectedMilliseconds)
+    }
     let body = #"{"track":{"title":"Example","subtitle":"Performer","sections":[{"type":"LYRICS","text":["Example words"],"footer":"Source"},{"metadata":[{"title":"BPM","text":"123"}]}]}}"#.data(using: .utf8)!
     client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: Self.status, httpVersion: nil, headerFields: ["Retry-After": "60"])!, cacheStoragePolicy: .notAllowed)
     client?.urlProtocol(self, didLoad: body)
@@ -217,6 +260,47 @@ catch { precondition((error as NSError).domain == "FileReadTimeout") }
 timedOut.finishReading()
 precondition(!CaptureSession.instance.active, "File recognition activated the microphone")
 
+if #available(macOS 14.0, *) {
+  let signature = TestManagedSession.signature
+  let restoredSignature = try SHSignature(dataRepresentation: signature.dataRepresentation)
+  precondition(restoredSignature.duration == signature.duration)
+  let catalog = try running.recognitionCatalog()
+  let localCatalogDone = DispatchSemaphore(value: 0)
+  Task.detached {
+    let result = await SHSession(catalog: catalog).result(from: signature)
+    switch result {
+    case .noMatch(let captured): precondition(captured.duration >= 2)
+    default: fatalError("The local catalog must return the captured query signature without an App ID service")
+    }
+    localCatalogDone.signal()
+  }
+  precondition(localCatalogDone.wait(timeout: .now() + 10) == .success)
+
+  HTTPFixture.expectedSignature = "data:audio/vnd.shazam.sig;base64," + signature.dataRepresentation.base64EncodedString()
+  HTTPFixture.expectedMilliseconds = Int(signature.duration * 1000)
+  let managed = SongRecognition()
+  let managedDone = DispatchSemaphore(value: 0)
+  managed.control.async {
+    managed.startManagedRecognition({ value in
+      precondition((value as? [String: Any])?["title"] as? String == "Example")
+      managedDone.signal()
+    }, rejecter: { code, _, _ in fatalError(code ?? "Managed recognition failed") }, allowsBackground: true)
+  }
+  precondition(managedDone.wait(timeout: .now() + 5) == .success)
+  precondition(TestManagedSession.stopped > 0)
+  TestManagedSession.feed = false
+  let managedStopped = DispatchSemaphore(value: 0), managedCancelled = DispatchSemaphore(value: 0)
+  managed.control.async {
+    managed.startManagedRecognition({ _ in fatalError("Cancelled managed session resolved") }, rejecter: { code, _, _ in
+      precondition(code == "Cancelled"); managedStopped.signal()
+    }, allowsBackground: true)
+    managed.cancel({ _ in managedCancelled.signal() }, rejecter: { _, _, _ in fatalError("Managed cancellation failed") })
+  }
+  precondition(managedStopped.wait(timeout: .now() + 3) == .success)
+  precondition(managedCancelled.wait(timeout: .now() + 3) == .success)
+  HTTPFixture.expectedSignature = nil
+}
+
 // The ReplayKit extension owns capture while the main app is suspended/interrupted.
 let independent = RecognitionCapture(allowsBackground: true, ignoresAudioInterruptions: true)
 running.control.sync { running.active = independent }
@@ -323,6 +407,42 @@ RecognitionLaunch.open("mic")
 UserDefaults.standard.set(Date().addingTimeInterval(-180), forKey: RecognitionLaunch.createdKey)
 precondition(RecognitionLaunch.consume() == nil, "An expired shortcut auto-started recognition")
 print("Production iOS recognition passed: microphone mixing, PCM rates, metadata/cache/HTTP 429, cancellation/cleanup, WAV decoding, ReplayKit background lifecycle, bounded stereo PCM handoff across 18 format/rate combinations, silence/private buffer rejection, stale session cancellation, and Control Center launch consumption.")
+
+HTTPFixture.enabled = false
+let knownAudio = try AVAudioFile(forReading: directory.appendingPathComponent("positive.m4a"), commonFormat: .pcmFormatFloat32, interleaved: false)
+let frames = AVAudioFrameCount(min(knownAudio.length, Int64(knownAudio.processingFormat.sampleRate * 12)))
+knownAudio.framePosition = max(0, (knownAudio.length - Int64(frames)) / 2)
+let decodedAudio = AVAudioPCMBuffer(pcmFormat: knownAudio.processingFormat, frameCapacity: frames)!
+try knownAudio.read(into: decodedAudio)
+let knownCapture = RecognitionCapture()
+knownCapture.append(decodedAudio)
+let knownSamples = knownCapture.snapshot(16000 * 10)!
+let mono = AVAudioPCMBuffer(pcmFormat: AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!, frameCapacity: AVAudioFrameCount(knownSamples.count))!
+mono.frameLength = mono.frameCapacity
+for index in knownSamples.indices { mono.floatChannelData![0][index] = Float(knownSamples[index]) / 32768 }
+let knownGenerator = SHSignatureGenerator()
+try knownGenerator.append(mono, at: nil)
+let knownSignature = knownGenerator.signature()
+try knownSignature.dataRepresentation.write(to: directory.appendingPathComponent("system-query.shazamsignature"))
+let knownURI = "data:audio/vnd.shazam.sig;base64," + knownSignature.dataRepresentation.base64EncodedString()
+let knownResult: [String: Any]?
+do {
+  knownResult = try SongFingerprintRecognizer().identify(signature: knownURI, sampleMilliseconds: Int(knownSignature.duration * 1000))
+} catch {
+  let systemError = error as NSError
+  var diagnostics: [String: Any] = ["systemError": systemError.domain, "systemStatus": systemError.code, "systemSignatureBytes": knownSignature.dataRepresentation.count, "duration": knownSignature.duration]
+  do {
+    let legacy = try SongFingerprintRecognizer().identify(knownSamples)
+    diagnostics["legacyTitle"] = legacy?["title"] as? String ?? "No match"
+  } catch {
+    diagnostics["legacyError"] = (error as NSError).domain
+    diagnostics["legacyStatus"] = (error as NSError).code
+  }
+  FileHandle.standardError.write(try JSONSerialization.data(withJSONObject: diagnostics))
+  throw error
+}
+precondition((knownResult?["title"] as? String)?.contains("I Will Survive") == true && knownResult?["artist"] as? String == "Gloria Gaynor", "The real system-generated signature did not identify the known recording")
+print("System-generated signature identified I Will Survive by Gloria Gaynor through the production recognition request.")
 '''
 subprocess.run(["cargo", "build", "--release", "--locked", "--lib", "--manifest-path",
                 str(root / "android/song-fingerprint/Cargo.toml")], check=True)
@@ -333,4 +453,15 @@ with tempfile.TemporaryDirectory(prefix="freetune-recognition-") as directory:
     (temporary / "Bridge.h").write_text("#include <stdint.h>\nchar *freetune_fingerprint(const int16_t *, uintptr_t);\nvoid freetune_fingerprint_free(char *);\n", encoding="utf-8")
     subprocess.run(["swiftc", str(temporary / "Probe.swift"), "-import-objc-header", str(temporary / "Bridge.h"),
                     str(target / "release/libfreetune_song_fingerprint.a"), "-o", str(temporary / "probe")], check=True)
-    subprocess.run([str(temporary / "probe"), str(temporary / "audio")], check=True, timeout=60)
+    (temporary / "audio").mkdir()
+    preview = "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e7/40/66/e74066a0-d000-1896-cd2e-7b2bc97393ad/mzaf_6935563640938257821.plus.aac.p.m4a"
+    with urllib.request.urlopen(preview, timeout=20) as response:
+        (temporary / "audio/positive.m4a").write_bytes(response.read())
+    try:
+        subprocess.run([str(temporary / "probe"), str(temporary / "audio")], check=True, timeout=90)
+    finally:
+        signature = temporary / "audio/system-query.shazamsignature"
+        if signature.exists() and os.environ.get("RUNNER_TEMP"):
+            proof = Path(os.environ["RUNNER_TEMP"]) / "freetune-system-signature-proof"
+            proof.mkdir(exist_ok=True)
+            shutil.copyfile(signature, proof / signature.name)
