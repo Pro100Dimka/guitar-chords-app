@@ -58,7 +58,9 @@ import {
   Frets,
   songChords,
   songChordSequence,
+  songPlaybackLines,
   songSections,
+  createSongEditorState,
   guitarMidi,
   transposeChord
 } from "./chords";
@@ -1047,10 +1049,14 @@ export function SongPlayback({
   content: string;
   value: SongPreferences;
   startIndex?: number;
-  onPosition: (index: number) => void;
+  onPosition: (index: number, lineProgress?: number) => void;
   onStopped: () => void;
 }) {
   const score = value.accompaniment === "pattern" ? undefined : value.tablature;
+  const lines = useMemo(
+    () => songPlaybackLines(createSongEditorState(content).text),
+    [content]
+  );
   const started = useRef(false);
   const transport = useTablature(!!score, () => {}, false);
   const tick = useTablaturePosition(transport);
@@ -1065,11 +1071,21 @@ export function SongPlayback({
       const index = next < 0 ? score.chords.length - 1 : Math.max(0, next - 1);
       const start = score.chords[index].tick;
       const end = score.chords[index + 1]?.tick ?? tablatureLength(score);
+      const first = lines.indexOf(lines[index]);
+      const nextLine = lines.lastIndexOf(lines[index]) + 1;
+      const lineStart = score.chords[first]?.tick;
+      const lineEnd = score.chords[nextLine]?.tick ?? tablatureLength(score);
       onPosition(
-        index + Math.min(0.99999, Math.max(0, (tick - start) / (end - start)))
+        index + Math.min(0.99999, Math.max(0, (tick - start) / (end - start))),
+        lines.length === score.chords.length && lineStart !== undefined
+          ? Math.min(
+              0.99999,
+              Math.max(0, (tick - lineStart) / (lineEnd - lineStart))
+            )
+          : undefined
       );
     }
-  }, [tick, score, status, onPosition]);
+  }, [tick, score, status, onPosition, lines]);
   useEffect(() => {
     if (score) {
       replaceTab({ ...score, tempo: value.tempo });

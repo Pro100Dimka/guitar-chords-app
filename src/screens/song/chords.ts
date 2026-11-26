@@ -1,3 +1,5 @@
+import { tablatureLength, type Tablature } from "../../components/tablature";
+
 type ParserWork<T> = Generator<void, T>;
 function finishParser<T>(work: ParserWork<T>): T {
   let step = work.next();
@@ -900,6 +902,52 @@ export function songPlaybackLines(text: string) {
       target++;
     return songChordSequence(line).map(() => target);
   });
+}
+
+/** Place chord labels at the same relative time as their score cues. */
+export function timedSongContent(content: string, score?: Tablature) {
+  const cues = score?.chords;
+  if (!score || !cues?.length) return content;
+  const display = createSongEditorState(content).text;
+  const targets = songPlaybackLines(display);
+  const names = songChordSequence(display);
+  if (
+    targets.length !== cues.length ||
+    names.some((name, index) => name !== cues[index].name)
+  )
+    return content;
+  const lines = display.split("\n");
+  const replacements = new Map<number, string>();
+  const removed = new Set<number>();
+  for (let first = 0; first < cues.length; ) {
+    const line = targets[first];
+    let next = first + 1;
+    while (next < cues.length && targets[next] === line) next++;
+    let row = line;
+    while (row > 0 && isChordLine(lines[row - 1])) row--;
+    const start = cues[first].tick;
+    const end = cues[next]?.tick ?? tablatureLength(score);
+    if (row < line && end > start && !isChordLine(lines[line])) {
+      const length = [...lines[line]].length;
+      replacements.set(
+        row,
+        anchoredContent({
+          lyrics: lines[line],
+          anchors: cues.slice(first, next).map((cue) => ({
+            chord: cue.name,
+            column: Math.round((length * (cue.tick - start)) / (end - start))
+          }))
+        })
+      );
+      for (let index = row + 1; index <= line; index++) removed.add(index);
+    }
+    first = next;
+  }
+  return lines
+    .flatMap((line, index) =>
+      removed.has(index) ? [] : [replacements.get(index) ?? line]
+    )
+    .join("\n");
 }
 
 export function songSections(content: string) {

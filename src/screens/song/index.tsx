@@ -57,6 +57,7 @@ import {
   isChordLine,
   songChords,
   songPlaybackLines,
+  timedSongContent,
   transposeSong
 } from "./chords";
 import { Action, ChordSheet, SongTools, SongPlayback } from "./tools";
@@ -406,18 +407,29 @@ const SongDetail: React.FC = () => {
     () =>
       createSongEditorState(
         transposeSong(
-          song?.content ?? "",
+          timedSongContent(
+            song?.content ?? "",
+            preferences.accompaniment === "pattern"
+              ? undefined
+              : preferences.tablature
+          ),
           preferences.transpose - preferences.capo
         )
       ),
-    [song?.content, preferences.transpose, preferences.capo]
+    [
+      song?.content,
+      preferences.transpose,
+      preferences.capo,
+      preferences.accompaniment,
+      preferences.tablature
+    ]
   );
   const playbackLines = useMemo(
     () => songPlaybackLines(display.text),
     [display.text]
   );
   const playbackPosition = useCallback(
-    (position: number) => {
+    (position: number, lineProgress?: number) => {
       const line = playbackLines[Math.floor(position)];
       if (line === undefined) {
         setActiveLine(null);
@@ -426,7 +438,8 @@ const SongDetail: React.FC = () => {
       const first = playbackLines.indexOf(line);
       const last = playbackLines.lastIndexOf(line);
       playhead.setValue(
-        Math.max(0, Math.min(1, (position - first) / (last - first + 1)))
+        lineProgress ??
+          Math.max(0, Math.min(1, (position - first) / (last - first + 1)))
       );
       setActiveLine(line);
     },

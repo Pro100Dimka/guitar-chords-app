@@ -6,7 +6,8 @@ import {
   isSectionBoundary,
   songChordSequence,
   songPlaybackLines,
-  songSections
+  songSections,
+  timedSongContent
 } from "../../screens/song/chords";
 import { allRhythms } from "../../screens/song/rhythms";
 import type { SongRhythm } from "../preferences";
@@ -194,6 +195,20 @@ export async function readGuitarPro({
     ];
   });
   const counts = new Map<string, number>();
+  const harmonyFor = (notes: model.Note[], bass: number) => {
+    const pitches = new Set(notes.map((note) => note.realValue % 12));
+    return new Map(
+      shapes.map((shape) => [
+        shape.name,
+        (notes.filter((note) => shape.tones.has(note.realValue % 12)).length /
+          Math.max(1, notes.length)) *
+          3 +
+          [...shape.tones].filter((pitch) => pitches.has(pitch)).length /
+            shape.tones.size +
+          (bass === shape.bass ? 3 : 0)
+      ])
+    );
+  };
   let section = "";
   const bars = timeline.map((entry) => {
     if (entry.masterBar.section || !section) {
@@ -218,18 +233,7 @@ export async function readGuitarPro({
     const bass = bassNotes.length
       ? Math.min(...bassNotes.map((note) => note.realValue)) % 12
       : -1;
-    const pitches = new Set(notes.map((note) => note.realValue % 12));
-    const harmony = new Map(
-      shapes.map((shape) => [
-        shape.name,
-        (notes.filter((note) => shape.tones.has(note.realValue % 12)).length /
-          Math.max(1, notes.length)) *
-          3 +
-          [...shape.tones].filter((pitch) => pitches.has(pitch)).length /
-            shape.tones.size +
-          (bass === shape.bass ? 3 : 0)
-      ])
-    );
+    const harmony = harmonyFor(notes, bass);
     return {
       entry,
       bar,
@@ -239,17 +243,41 @@ export async function readGuitarPro({
       chord: [...harmony].sort((a, b) => b[1] - a[1])[0]?.[0]
     };
   });
-  const positions = bars.flatMap((bar, barIndex) =>
-    Array.from(
-      { length: Math.ceil((bar.entry.end - bar.entry.start) / 960) },
-      (_, phase) => ({
-        ...bar,
-        barIndex,
-        phase,
-        position: bar.entry.start + phase * 960
-      })
-    )
-  );
+  const positions = bars.flatMap((bar, barIndex) => {
+    const attacks = bar.bar.voices
+      .flatMap((voice) => voice.beats)
+      .filter((beat) => beat.notes.length);
+    return [...new Set([0, ...attacks.map((beat) => beat.playbackStart)])]
+      .sort((a, b) => a - b)
+      .map((offset, phase) => {
+        const notes = attacks
+          .filter((beat) => beat.playbackStart === offset)
+          .flatMap((beat) => beat.notes);
+        const bass = Math.min(...notes.map((note) => note.realValue)) % 12;
+        const harmony =
+          notes.length >= 3
+            ? harmonyFor(notes, bass)
+            : new Map(
+                shapes.map((shape) => [
+                  shape.name,
+                  notes.length
+                    ? (bar.harmony.get(shape.name) ?? 0) +
+                      Number(
+                        notes.some((note) => note.string <= 3) &&
+                          bass === shape.bass
+                      )
+                    : 0
+                ])
+              );
+        return {
+          ...bar,
+          barIndex,
+          phase,
+          harmony,
+          position: bar.entry.start + offset
+        };
+      });
+  });
   if (words.length > positions.length) return;
   const firstVerse = Math.max(
     0,
@@ -330,7 +358,8 @@ export async function readGuitarPro({
                 !bar.phase &&
                 sourcePartKey(bars[bar.barIndex - 1]?.section ?? "") ===
                   scope));
-        const candidate = values[index - 1] + harmony;
+        // Equal harmony starts at its first attack, not a later repetition.
+        const candidate = values[index - 1] + harmony - bar.phase * 0.001;
         if (matchesSection && harmony >= 2 && candidate > next[index]) {
           next[index] = candidate;
           matched[index] = true;
@@ -486,7 +515,7 @@ export async function readGuitarPro({
   if (!tablature) return;
   const sectionIds = new Set(songSections(output).map((part) => part.id));
   return {
-    content: output,
+    content: timedSongContent(output, tablature),
     tablature,
     tempo: tablature.tempo,
     tuning: tuning.map((pitch) => noteNames[pitch % 12]).join(" "),
