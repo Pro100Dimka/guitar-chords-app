@@ -331,6 +331,7 @@ export function TablatureLibrary({
         <>
           <Text style={styles.hint}>{t("TabSongTitle")}</Text>
           <TextInput
+            testID="tab-library-title"
             accessibilityLabel={t("TabSongTitle")}
             placeholder={t("TabNewTitle")}
             placeholderTextColor={palette.glass.muted}

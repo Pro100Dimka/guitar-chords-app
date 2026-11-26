@@ -1,0 +1,9 @@
+# Cross-platform application audit
+
+One **paired pass** means the same numbered end-to-end journey on both an installed Android release APK and a self-contained iPhone simulator release app. Each starts with cleared application data, exercises the tuner, Play, tablature editing and practice, song creation/editing/favorites/search, native recording and playback, restart/persistence, deletion, recognition routes/file picker cancellation, settings and guide. It reopens the saved tablature at the end. Inputs vary by pass.
+
+The pilot on each platform must pass before the 20 x 50 batches per platform can start. Pilots are numbered zero and are not counted. A failed assertion stops its batch; the matrix stops on the first failure. Each numbered success requires Maestro to exit successfully and emit a nonempty, passing JUnit report. Only a pair of successes on the same SHA counts as one complete cross-platform pass. The final ledger verifier requires all 1,000 pairs and rejects duplicates.
+
+This is an emulator/simulator UI campaign, not a claim of exhaustive paths or physical-device verification. It does not make real purchases or repeatedly query live recognition/chord/lyrics services, and does not establish microphone fidelity or speaker latency on hardware. Existing CI checks cover additional parsers, database transactions, native methods and live recognition smoke tests. An infrastructure or selector failure must be distinguished from a product defect before changing the product.
+
+The audit is intentionally triggered only by audit-file changes on the dedicated audit branch, not ordinary main pushes or every code edit. Standard hosted runners and the local Maestro CLI are used; no paid device service is configured. The matrix is gated by the two pilot results. See GitHub Actions artifacts for logs, failed-step screenshots, JUnit reports and the per-pass ledger. Do not claim completion from a planned or interrupted run.
