@@ -707,6 +707,8 @@ test("each rhythm can be selected once through its full pattern and applied", as
   const html = screen!.root.findByType(WebView).props.source.html;
   const source = html.match(/<script>([\s\S]*?)<\/script>/)[1];
   const sources: any[] = [];
+  const audioSession = { type: "auto" };
+  const outputSessions: string[] = [];
   let clock = 0;
   const parameter = () => ({
     value: 0,
@@ -747,7 +749,7 @@ test("each rhythm can be selected once through its full pattern and applied", as
         ...connect(),
         buffer: null,
         playbackRate: { value: 1 },
-        start: jest.fn(),
+        start: jest.fn(() => outputSessions.push(audioSession.type)),
         stop: jest.fn()
       };
       sources.push(voice);
@@ -757,6 +759,7 @@ test("each rhythm can be selected once through its full pattern and applied", as
   let schedule = () => {};
   const window: any = {
     AudioContext,
+    navigator: { audioSession },
     ReactNativeWebView: { postMessage: jest.fn() },
     addEventListener() {}
   };
@@ -820,6 +823,7 @@ test("each rhythm can be selected once through its full pattern and applied", as
     expect(times).toEqual([...times].sort((a, b) => a - b));
     expect(times.at(-1) - times[0]).toBeLessThan(0.09);
   }
+  expect(new Set(outputSessions)).toEqual(new Set(["playback"]));
   const decodeCount = decoded.length;
   const previous = sources.slice();
   window.configurePlayer({

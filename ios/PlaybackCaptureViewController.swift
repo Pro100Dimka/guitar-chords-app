@@ -25,7 +25,11 @@ final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentat
       "Натисніть кнопку трансляції та виберіть «Почати трансляцію», потім поверніться до плеєра. FreeTune повідомить результат сповіщенням. Натисніть знайдену пісню, щоб відкрити форму. Використовується лише звук; захищене аудіо може бути недоступне.")
     instructions.font = .preferredFont(forTextStyle: .body)
     for label in [title, instructions] { label.numberOfLines = 0; label.textAlignment = .center; label.adjustsFontForContentSizeCategory = true }
-    let picker = RPSystemBroadcastPickerView(frame: .zero)
+    let picker = RPSystemBroadcastPickerView(frame: CGRect(x: 0, y: 0, width: 64, height: 64))
+    picker.overrideUserInterfaceStyle = .light
+    picker.backgroundColor = .systemYellow
+    picker.tintColor = .black
+    picker.layer.cornerRadius = 16
     picker.preferredExtension = Self.broadcastExtension
     picker.showsMicrophoneButton = false
     let cancel = UIButton(type: .system)
