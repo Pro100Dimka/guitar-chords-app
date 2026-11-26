@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-        AAC500000000000000000001 /* OfflineChordAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC500000000000000000002; };
+        B4B91E704A3A45C187A12D01 /* OfflineChordAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4B91E704A3A45C187A12D02; };
         AAC300000000000000000001 /* SongRecognition.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAC300000000000000000002; };
         AAB100000000000000000001 /* PerformanceAudio.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAB100000000000000000002; };
         AAB100000000000000000003 /* tuner_success.wav in Resources */ = {isa = PBXBuildFile; fileRef = AAB100000000000000000004; };
@@ -46,7 +46,7 @@ AAB200000000000000000006 /* Manrope license in Resources */ = {isa = PBXBuildFil
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-        AAC500000000000000000002 /* OfflineChordAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineChordAnalysis.swift; sourceTree = "<group>"; };
+        B4B91E704A3A45C187A12D02 /* OfflineChordAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineChordAnalysis.swift; sourceTree = "<group>"; };
         AAC300000000000000000002 /* SongRecognition.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SongRecognition.swift; sourceTree = "<group>"; };
         AAB100000000000000000002 /* PerformanceAudio.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PerformanceAudio.swift; sourceTree = "<group>"; };
         AAB100000000000000000004 /* tuner_success.wav */ = {isa = PBXFileReference; lastKnownFileType = audio.wav; name = tuner_success.wav; path = freetune/tuner_success.wav; sourceTree = "<group>"; };
@@ -121,7 +121,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				5BD81FA32F61EB5E00227B71 /* MicrophoneStreamModule.swift */,
                 AAB100000000000000000002 /* PerformanceAudio.swift */,
                 AAC300000000000000000002 /* SongRecognition.swift */,
-                AAC500000000000000000002 /* OfflineChordAnalysis.swift */,
+                B4B91E704A3A45C187A12D02 /* OfflineChordAnalysis.swift */,
 				AAC400000000000000000001,
 				AAC400000000000000000002,
 				AAC400000000000000000003,
@@ -417,7 +417,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 				5BD81FA42F61EB5E00227B71 /* MicrophoneStreamModule.swift in Sources */,
                 AAB100000000000000000001 /* PerformanceAudio.swift in Sources */,
                 AAC300000000000000000001 /* SongRecognition.swift in Sources */,
-                AAC500000000000000000001 /* OfflineChordAnalysis.swift in Sources */,
+                B4B91E704A3A45C187A12D01 /* OfflineChordAnalysis.swift in Sources */,
 				AAC400000000000000000028,
 				AAC40000000000000000002A,
 			);
