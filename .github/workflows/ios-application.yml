@@ -6,6 +6,7 @@ on:
   push:
     branches: [main]
   pull_request:
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -21,6 +22,8 @@ permissions:
   contents: read
 jobs:
   ios-application:
+    if: >-
+      ${{ (github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')) || (github.event_name == 'pull_request' && github.base_ref == 'main' && github.event.pull_request.draft == false) }}
     # Standard Apple Silicon runner; public repositories use this free tier.
     runs-on: macos-15
     timeout-minutes: 45
