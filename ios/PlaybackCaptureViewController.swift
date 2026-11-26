@@ -24,9 +24,9 @@ final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentat
     title.text = Self.text("Recognize phone audio", "Распознать звук телефона", "Розпізнати звук телефона")
     let instructions = UILabel()
     instructions.text = Self.text(
-      "Tap the broadcast button and choose Start Broadcast. Return to your player for up to 20 seconds, then return to FreeTune. Only audio is used; protected audio may be unavailable.",
-      "Нажмите кнопку трансляции и выберите «Начать вещание». Перейдите к плееру на 20 секунд, затем вернитесь в FreeTune. Используется только звук; защищённое аудио может быть недоступно.",
-      "Натисніть кнопку трансляції та виберіть «Почати трансляцію». Перейдіть до плеєра на 20 секунд, потім поверніться у FreeTune. Використовується лише звук; захищене аудіо може бути недоступне.")
+      "Tap the broadcast button and choose Start Broadcast, then return to your player. FreeTune will notify you of the result. Tap a found song to open its form. Only audio is used; protected audio may be unavailable.",
+      "Нажмите кнопку трансляции и выберите «Начать вещание», затем вернитесь к плееру. FreeTune сообщит результат уведомлением. Нажмите на найденную песню, чтобы открыть форму. Используется только звук; защищённое аудио может быть недоступно.",
+      "Натисніть кнопку трансляції та виберіть «Почати трансляцію», потім поверніться до плеєра. FreeTune повідомить результат сповіщенням. Натисніть знайдену пісню, щоб відкрити форму. Використовується лише звук; захищене аудіо може бути недоступне.")
     instructions.font = .preferredFont(forTextStyle: .body)
     for label in [title, instructions] { label.numberOfLines = 0; label.textAlignment = .center; label.adjustsFontForContentSizeCategory = true }
     let picker = RPSystemBroadcastPickerView(frame: .zero)
