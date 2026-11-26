@@ -343,9 +343,14 @@ export function normalizeRhythm(value: unknown): SongRhythm {
       ? rhythm.strum.replace(/[^DUXBA1-6-]/g, "").slice(0, MAX_RHYTHM_STEPS)
       : "";
   const updatedPreset =
-    rhythm.strumPreset === "nine" &&
-    ["D-DU-UD-D-DU--D-", "D-U-D--U-U-U-DUD", "D--UD--U-U-UDUD-"].includes(strum)
-      ? rhythms.find((preset) => preset.id === "nine")
+    rhythm.strumPreset === "nine"
+      ? rhythms.find(
+          (preset) =>
+            ["nine", "nine-alt"].includes(preset.id) &&
+            (preset.pattern === strum ||
+              (preset.id === "nine" &&
+                ["D-DU-UD-D-DU--D-", "D-U-D--U-U-U-DUD"].includes(strum)))
+        )
       : undefined;
   strum = updatedPreset?.pattern ?? strum;
   const division = rhythm.strumDivision;
@@ -362,9 +367,10 @@ export function normalizeRhythm(value: unknown): SongRhythm {
       [2, 3, 4].find((entry) => entry === numericDivision) ??
       2,
     strumPreset:
-      typeof rhythm.strumPreset === "string"
+      updatedPreset?.id ??
+      (typeof rhythm.strumPreset === "string"
         ? rhythm.strumPreset.slice(0, 32)
-        : ""
+        : "")
   };
 }
 function readSavedSong(value: unknown): SongPreferences {

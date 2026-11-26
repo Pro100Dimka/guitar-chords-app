@@ -720,6 +720,7 @@
   "RhythmShuffle": "Shuffle",
   "RhythmGallop": "Gallop",
   "RhythmNine": "Nine strokes",
+  "RhythmNineVariant": "Nine strokes, variant 2",
   "SongPlayOnLineSelect": "Play when selecting a line",
   "SongSelectPlaybackLine": "Select the line to start playback from",
   "RecordedGuitar": "FreeTune acoustic recordings",
