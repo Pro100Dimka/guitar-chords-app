@@ -29,8 +29,8 @@ jobs:
           java-version: '17'
       - uses: gradle/actions/setup-gradle@v4
         with:
-          # Main publishes caches; PRs reuse them without uploading each commit.
-          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+          # Reuse dependencies downloaded during earlier audit attempts.
+          cache-read-only: false
       - uses: dtolnay/rust-toolchain@stable
         with:
           targets: x86_64-linux-android
@@ -75,8 +75,14 @@ jobs:
           RELEASE_KEY_PASSWORD: android
         run: |
           chmod +x gradlew
-          ./gradlew :app:assembleRelease -PreactNativeArchitectures=x86_64 --no-daemon --stacktrace
+          bash ../scripts/build-app-audit-android.sh
           test -s app/build/outputs/apk/release/app-release.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-android-build-log
+          path: ${{ runner.temp }}/audit-android-build.log
+          retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
           name: audit-release-apk
@@ -289,7 +295,6 @@ jobs:
           xcrun simctl bootstatus "$device" -b
           xcrun simctl spawn "$device" defaults write -g AppleLanguages -array en
           xcrun simctl spawn "$device" defaults write -g AppleLocale en_US
-          xcrun simctl status_bar "$device" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState unplugged --batteryLevel 100
           xcrun simctl install "$device" "$RUNNER_TEMP/audit-app/freetune.app"
       - name: Run complete journeys
         run: bash scripts/run-app-audit.sh ios 0 1 "$RUNNER_TEMP/audit-results"
@@ -387,7 +392,6 @@ jobs:
           xcrun simctl bootstatus "$device" -b
           xcrun simctl spawn "$device" defaults write -g AppleLanguages -array en
           xcrun simctl spawn "$device" defaults write -g AppleLocale en_US
-          xcrun simctl status_bar "$device" override --time '9:41' --dataNetwork wifi --wifiMode active --wifiBars 3 --cellularMode active --cellularBars 4 --batteryState unplugged --batteryLevel 100
           xcrun simctl install "$device" "$RUNNER_TEMP/audit-app/freetune.app"
       - name: Run complete journeys
         run: bash scripts/run-app-audit.sh ios $(( ${{ matrix.shard }} * 50 + 1 )) 50 "$RUNNER_TEMP/audit-results"
