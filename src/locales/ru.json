@@ -1,4 +1,8 @@
 {
+  "SongAccompanimentSettings": "Сопровождение",
+  "AccompanimentSource": "Что играть",
+  "SongTablature": "Табы песни",
+  "SongTabNoteCount": "Нот в табах: {{count}}",
   "SongAccompaniment": "Играть сопровождение",
   "StopSongAccompaniment": "Остановить сопровождение",
   "TabShowKeypad": "Показать панель ладов",

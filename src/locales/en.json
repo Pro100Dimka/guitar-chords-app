@@ -1,4 +1,8 @@
 {
+  "SongAccompanimentSettings": "Accompaniment",
+  "AccompanimentSource": "What to play",
+  "SongTablature": "Song tabs",
+  "SongTabNoteCount": "Notes in tabs: {{count}}",
   "SongAccompaniment": "Play accompaniment",
   "StopSongAccompaniment": "Stop accompaniment",
   "TabShowKeypad": "Show fret keypad",

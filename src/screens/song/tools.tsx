@@ -48,7 +48,8 @@ import {
 } from "../../components/acoustic-instrument";
 import { performanceAudio } from "../../components/performance-audio";
 import { useTablature, useTablaturePosition } from "../play/use-tablature";
-import { tabBarTicks } from "../../components/tablature";
+import { tabBarTicks, tablatureLength } from "../../components/tablature";
+import { TablatureBar } from "../play/tablature-panel";
 import guitarBackground from "../../../assets/images/gold-background.webp";
 import {
   chordShapeOptions,
@@ -765,11 +766,10 @@ export function SongTools({
   onOpenTabs?: () => void;
 }) {
   const { t } = useTranslation();
-  const [tab, setTab] = useState<"reading" | "rhythm" | "practice">(initialTab);
+  const [tab, setTab] = useState<"reading" | "rhythm">(initialTab);
   const [easier, setEasier] = useState(false);
-  const [manualRhythm, setManualRhythm] = useState(
-    value.accompaniment === "pattern"
-  );
+  const manualRhythm =
+    value.accompaniment === "pattern" || !value.tablature?.notes.length;
   const controls: {
     key: "fontSize" | "transpose" | "capo" | "speed" | "tempo";
     label: string;
@@ -789,7 +789,7 @@ export function SongTools({
       musical
     >
       <View style={styles.segments}>
-        {(["reading", "rhythm", "practice"] as const).map((key) => (
+        {(["reading", "rhythm"] as const).map((key) => (
           <Pressable
             key={key}
             accessibilityRole="tab"
@@ -807,23 +807,37 @@ export function SongTools({
             )}
             <Text style={[styles.segmentText, tab === key && styles.goldText]}>
               {t(
-                { reading: "Reading", rhythm: "Rhythm", practice: "Practice" }[
-                  key
-                ]
+                { reading: "Reading", rhythm: "SongAccompanimentSettings" }[key]
               )}
             </Text>
           </Pressable>
         ))}
       </View>
-      {tab !== "reading" && value.tablature?.notes.length && manualRhythm ? (
-        <Action
-          label={t("TabTitle")}
-          onPress={() => {
-            setManualRhythm(false);
-            onChange({ accompaniment: "tabs" });
-          }}
-        />
-      ) : null}
+      {tab === "rhythm" && !!value.tablature?.notes.length && (
+        <>
+          <Text style={styles.label}>{t("AccompanimentSource")}</Text>
+          <View style={styles.row}>
+            {(
+              [
+                {
+                  mode: "tabs",
+                  label: "SongTablature",
+                  selected: !manualRhythm
+                },
+                { mode: "pattern", label: "Rhythm", selected: manualRhythm }
+              ] as const
+            ).map((item) => (
+              <Action
+                key={item.mode}
+                glass
+                label={t(item.label)}
+                selected={item.selected}
+                onPress={() => onChange({ accompaniment: item.mode })}
+              />
+            ))}
+          </View>
+        </>
+      )}
       {tab === "reading" ? (
         <>
           {!easier && (
@@ -872,23 +886,10 @@ export function SongTools({
         <SongTablature
           value={value}
           onChange={onChange}
-          practice={tab === "practice"}
           onOpenTabs={onOpenTabs}
-          onChooseRhythm={() => {
-            setManualRhythm(true);
-            onChange({ accompaniment: "pattern" });
-            setTab("rhythm");
-          }}
         />
-      ) : tab === "rhythm" ? (
-        <RhythmEditor value={value} onChange={onChange} content={content} />
       ) : (
-        <TransitionPractice
-          content={content}
-          value={value}
-          onChange={onChange}
-          onChooseRhythm={() => setTab("rhythm")}
-        />
+        <RhythmEditor value={value} onChange={onChange} content={content} />
       )}
     </Sheet>
   );
@@ -897,34 +898,74 @@ export function SongTools({
 function SongTablature({
   value,
   onChange,
-  practice,
-  onOpenTabs,
-  onChooseRhythm
+  onOpenTabs
 }: {
   value: SongPreferences;
   onChange: (patch: Partial<SongPreferences>) => void;
-  practice: boolean;
   onOpenTabs?: () => void;
-  onChooseRhythm: () => void;
 }) {
   const { t } = useTranslation();
   const transport = useTablature(true, () => {}, false);
-  const { replaceTab, setLoop } = transport;
+  const { replaceTab } = transport;
+  const tick = useTablaturePosition(transport);
   const score = value.tablature;
   useEffect(() => {
     if (score) replaceTab({ ...score, tempo: value.tempo });
   }, [score, value.tempo, replaceTab]);
-  useEffect(() => setLoop(practice), [practice, setLoop]);
   if (!score) return null;
+  const barTicks = tabBarTicks(transport.tab);
+  const bars = Math.max(
+    1,
+    Math.ceil(tablatureLength(transport.tab) / barTicks)
+  );
+  const bar = Math.min(bars - 1, Math.floor(tick / barTicks));
   const running = ["playing", "preparing", "countingIn"].includes(
     transport.status
   );
   return (
     <>
-      <Text style={styles.label}>{t("TabTitle")}</Text>
+      <Text style={styles.description}>
+        {t("SongTabNoteCount", { count: score.notes.length })}
+      </Text>
+      <TempoControl
+        label={t("Tempo")}
+        value={value.tempo}
+        onChange={(tempo) =>
+          onChange({ tempo, tablature: { ...score, tempo } })
+        }
+      />
+      <TablatureBar
+        tab={transport.tab}
+        bar={bar}
+        tick={tick}
+        readOnly
+        readingScale={0.6}
+      />
+      <View style={[styles.row, { justifyContent: "space-between" }]}>
+        <Action
+          glass
+          compact
+          icon="chevron-left"
+          label={t("TabPreviousBar")}
+          disabled={bar === 0}
+          onPress={() => transport.seek((bar - 1) * barTicks)}
+        />
+        <Text style={styles.description}>
+          {t("TabBarOf", { current: bar + 1, total: bars })}
+        </Text>
+        <Action
+          glass
+          compact
+          icon="chevron-right"
+          label={t("TabNextBar")}
+          disabled={bar >= bars - 1}
+          onPress={() => transport.seek((bar + 1) * barTicks)}
+        />
+      </View>
       <View style={styles.row}>
         <Action
           primary
+          showLabel
           label={t(running ? "Pause" : "TabPlay")}
           icon={running ? "pause" : "play"}
           onPress={() => {
@@ -933,18 +974,18 @@ function SongTablature({
           }}
         />
         <Action label={t("TabRewind")} onPress={transport.rewind} />
+        <Action
+          glass
+          icon="repeat"
+          showLabel
+          label={t("TabLoop")}
+          selected={transport.loop}
+          onPress={() => transport.setLoop(!transport.loop)}
+        />
       </View>
       {transport.error && (
         <Text style={styles.description}>{t(transport.error)}</Text>
       )}
-      <TempoControl
-        label={t("Tempo")}
-        value={value.tempo}
-        onChange={(tempo) =>
-          onChange({ tempo, tablature: { ...score, tempo } })
-        }
-      />
-      <Action label={t("ChooseSongRhythm")} onPress={onChooseRhythm} />
       {onOpenTabs && <Action label={t("TabOpenInPlay")} onPress={onOpenTabs} />}
     </>
   );
@@ -1186,11 +1227,13 @@ const rhythmCounts: Record<number, string[]> = {
 export function RhythmGrid({
   pattern,
   meter,
-  division = 2
+  division = 2,
+  activeStep
 }: {
   pattern: string;
   meter: number;
   division?: number;
+  activeStep?: number;
 }) {
   const beatsPerRow = division > 2 ? (meter % 2 === 0 ? 2 : 1) : meter;
   const columns = beatsPerRow * division;
@@ -1207,7 +1250,14 @@ export function RhythmGrid({
             return (
               <View
                 key={step}
-                style={[styles.beat, symbol !== "-" && styles.beatPlayed]}
+                style={[
+                  styles.beat,
+                  symbol !== "-" && styles.beatPlayed,
+                  position === activeStep && {
+                    borderLeftWidth: 3,
+                    borderLeftColor: palette.glass.play
+                  }
+                ]}
               >
                 <Text style={styles.beatCount}>
                   {beat % division === 0
@@ -1257,7 +1307,7 @@ function RhythmPlayer({
   autoStart?: boolean;
   onStopped?: () => void;
   onStarted?: () => void;
-  onPosition?: (index: number) => void;
+  onPosition?: (index: number, step?: number) => void;
   playOnce?: boolean;
   practice?: string[];
   compact?: boolean;
@@ -1403,7 +1453,7 @@ function RhythmPlayer({
         const key=activePattern+':'+beats+':'+parts;
         if(key!==planKey){patternStep=0;planKey=key;}
         const index=patternStep++%activePattern.length,hit=activePattern[index];
-        scheduled.push({when:next,chordIndex,fraction:slot/(beats*parts),barSeconds:60/tempo*beats,beat:slot%parts===0?String(Math.floor(slot/parts)+1):beatCounts[parts][slot%parts]});
+        scheduled.push({when:next,chordIndex,patternIndex:index,fraction:slot/(beats*parts),barSeconds:60/tempo*beats,beat:slot%parts===0?String(Math.floor(slot/parts)+1):beatCounts[parts][slot%parts]});
         step++;
         if(hit!=='-'){
           const end=engine.stroke(frequencies[chordIndex],hit,next,index,lastChord!==-1&&chords[lastChord]!==chords[chordIndex],activePattern);
@@ -1415,7 +1465,7 @@ function RhythmPlayer({
       }
       while(scheduled.length>1&&scheduled[1].when<=now)scheduled.shift();
       const current=scheduled[0],elapsed=Math.max(0,now-start);
-      if(current&&current.when<=now){const position=current.chordIndex+Math.min(.9999,current.fraction+(now-current.when)/current.barSeconds);if(Math.abs(position-lastPosition)>.01){lastPosition=position;window.ReactNativeWebView?.postMessage(JSON.stringify({type:'position',index:position}));}}
+      if(current&&current.when<=now){const position=current.chordIndex+Math.min(.9999,current.fraction+(now-current.when)/current.barSeconds);if(Math.abs(position-lastPosition)>.01){lastPosition=position;window.ReactNativeWebView?.postMessage(JSON.stringify({type:'position',index:position,step:current.patternIndex}));}}
       if(current&&current.when<=now)count.textContent=chords[current.chordIndex]+' · '+current.beat+(practice?' · '+Math.max(0,60-Math.floor(elapsed))+' '+labels.seconds:'');
       timer=setTimeout(tick,20);
     }
@@ -1561,7 +1611,12 @@ function RhythmPlayer({
                   Number.isFinite(message.index) &&
                   message.index >= 0
                 )
-                  onPosition?.(message.index);
+                  onPosition?.(
+                    message.index,
+                    Number.isSafeInteger(message.step)
+                      ? message.step
+                      : undefined
+                  );
                 if (message.type === "audioError") {
                   console.warn("Rhythm audio failed", message.message);
                   setPreparationError(true);
@@ -1750,6 +1805,35 @@ function PatternEditor({
   const [editing, setEditing] = useState(false);
   const [audition, setAudition] = useState("");
   const [playingAudition, setPlayingAudition] = useState("");
+  const [repeat, setRepeat] = useState(true);
+  const [activeStep, setActiveStep] = useState<number>();
+  const [start, setStart] = useState(0);
+  const [choosingStart, setChoosingStart] = useState(false);
+  const orderedChords = useMemo(
+    () => [...chords.slice(start), ...chords.slice(0, start)],
+    [chords, start]
+  );
+  const orderedArrangements = useMemo(
+    () =>
+      arrangements && [
+        ...arrangements.slice(start),
+        ...arrangements.slice(0, start)
+      ],
+    [arrangements, start]
+  );
+  const chooseRhythm = (item: (typeof allRhythms)[number]) => {
+    onChange({
+      strum: item.pattern,
+      strumMeter: item.meter,
+      strumDivision: item.division,
+      strumPreset: item.id
+    });
+    setBrowsing(false);
+    setEditing(false);
+    setAudition("");
+    setPlayingAudition("");
+    setActiveStep(undefined);
+  };
   const modes = (
     <View style={styles.row}>
       {(["strum", "picking"] as const).map((mode) => (
@@ -1809,14 +1893,7 @@ function PatternEditor({
               accessibilityRole="button"
               accessibilityLabel={t(item.title)}
               accessibilityState={{ selected: preset?.id === item.id }}
-              onPress={() => {
-                onChange({
-                  strum: item.pattern,
-                  strumMeter: item.meter,
-                  strumDivision: item.division,
-                  strumPreset: item.id
-                });
-              }}
+              onPress={() => chooseRhythm(item)}
               style={[styles.rhythmRows, styles.rhythmChoice]}
             >
               <View style={[styles.rhythmHeading, styles.rhythmCardTitle]}>
@@ -1846,14 +1923,7 @@ function PatternEditor({
                 icon={preset?.id === item.id ? "check-circle" : "check"}
                 selected={preset?.id === item.id}
                 label={`${t("ChooseRhythm")}: ${t(item.title)}`}
-                onPress={() =>
-                  onChange({
-                    strum: item.pattern,
-                    strumMeter: item.meter,
-                    strumDivision: item.division,
-                    strumPreset: item.id
-                  })
-                }
+                onPress={() => chooseRhythm(item)}
               />
             </View>
           </View>
@@ -1896,7 +1966,6 @@ function PatternEditor({
     );
   return (
     <>
-      {modes}
       <View style={styles.row}>
         <Text style={[styles.title, styles.glassText]}>
           {t(
@@ -1911,11 +1980,17 @@ function PatternEditor({
         />
       </View>
 
+      <TempoControl
+        label={t("Tempo")}
+        value={value.tempo}
+        onChange={(tempo) => onChange({ tempo })}
+      />
       {value.strum ? (
         <RhythmGrid
           pattern={value.strum}
           meter={value.strumMeter}
           division={value.strumDivision}
+          activeStep={activeStep}
         />
       ) : (
         <Text style={styles.description}>
@@ -1929,24 +2004,60 @@ function PatternEditor({
           meter={value.strumMeter}
           division={value.strumDivision}
           tempo={value.tempo}
-          chords={chords}
+          chords={orderedChords}
           capo={value.capo}
           shapes={value.shapes}
-          arrangements={arrangements}
+          arrangements={orderedArrangements}
+          playOnce={!repeat}
+          onPosition={(_position, step) => setActiveStep(step)}
+          onStopped={() => setActiveStep(undefined)}
         />
       )}
-      <TempoControl
-        label={t("Tempo")}
-        value={value.tempo}
-        onChange={(tempo) => onChange({ tempo })}
-      />
-
-      <Action
-        glass
-        label={t("EditRhythm")}
-        selected={editing}
-        onPress={() => setEditing(!editing)}
-      />
+      <View style={styles.row}>
+        <Action
+          glass
+          icon="repeat"
+          showLabel
+          label={t("TabLoop")}
+          selected={repeat}
+          onPress={() => setRepeat(!repeat)}
+        />
+        <Action
+          glass
+          label={t("EditRhythm")}
+          selected={editing}
+          onPress={() => setEditing(!editing)}
+        />
+      </View>
+      {!!chords.length && (
+        <Action
+          glass
+          label={`${t("PracticeStartChord")}: ${orderedChords[0]}`}
+          selected={choosingStart}
+          onPress={() => setChoosingStart(!choosingStart)}
+        />
+      )}
+      {choosingStart && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={[styles.row, styles.sectionChoices]}
+        >
+          {[...new Set(chords)].map((chord) => (
+            <Action
+              glass
+              key={chord}
+              label={chord}
+              selected={orderedChords[0] === chord}
+              onPress={() => {
+                setStart(chords.indexOf(chord));
+                setChoosingStart(false);
+                setActiveStep(undefined);
+              }}
+            />
+          ))}
+        </ScrollView>
+      )}
       {editing && (
         <>
           <View style={styles.row}>
