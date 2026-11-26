@@ -23,7 +23,7 @@ final class RecognitionCapture {
   func receivePlayback(_ payload: [AnyHashable: Any]) {
     guard payload["recognitionPlayback"] as? Bool == true,
           let started = payload["recognitionStartedAt"] as? Double,
-          started >= createdAt.timeIntervalSince1970 - 1 else { return }
+          started >= createdAt.timeIntervalSince1970 else { return }
     lock.lock(); defer { lock.unlock() }
     if !stopped { receivedPlayback = payload }
   }
@@ -137,7 +137,7 @@ enum RecognitionNotice {
     return content
   }
   static func show(_ song: [String: Any]?, requestId: String, error: String? = nil, startedAt: Date = Date(), playback: Bool = false, completion: (() -> Void)? = nil) {
-    let content = content(song, requestId: requestId, error: error, startedAt: startedAt, playback: playback)
+    let content = Self.content(song, requestId: requestId, error: error, startedAt: startedAt, playback: playback)
     UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "recognition-\(requestId)", content: content, trigger: nil)) { _ in completion?() }
   }
 }

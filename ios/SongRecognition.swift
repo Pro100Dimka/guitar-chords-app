@@ -33,7 +33,10 @@ final class SongRecognition: NSObject, RCTBridgeModule {
     }
     observers.append(NotificationCenter.default.addObserver(forName: RecognitionNotice.received, object: nil, queue: nil) { [weak self] notification in
       guard let payload = notification.userInfo else { return }
-      self?.control.async { [weak self] in self?.active?.receivePlayback(payload) }
+      self?.control.async { [weak self] in
+        guard let capture = self?.active, capture.ignoresAudioInterruptions else { return }
+        capture.receivePlayback(payload)
+      }
     })
     #if os(iOS)
     observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil) { [weak self] _ in
