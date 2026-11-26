@@ -170,12 +170,37 @@ export function preferredSongContent(
       : 0);
   const best = Math.max(...options.map(score));
   const candidates = options.filter((option) => score(option) === best);
+  // Equivalent charts must not lose verified arrangement metadata because
+  // a less informative provider happened to return first. Conflicting
+  // arrangements stay available for explicit selection.
+  const metadata = candidates.map((option) => [
+    option.tempo,
+    option.tuning || undefined,
+    option.rhythm && JSON.stringify(option.rhythm)
+  ]);
   return candidates.filter(
     (option, index) =>
-      candidates.findIndex(
-        (other) =>
-          other.content === option.content && other.capo === option.capo
-      ) === index
+      !candidates.some((other, otherIndex) => {
+        if (
+          index === otherIndex ||
+          option.content !== other.content ||
+          option.capo !== other.capo
+        )
+          return false;
+        const current = metadata[index];
+        const alternative = metadata[otherIndex];
+        return (
+          current.every(
+            (value, field) =>
+              value === undefined || value === alternative[field]
+          ) &&
+          (otherIndex < index ||
+            current.some(
+              (value, field) =>
+                value === undefined && alternative[field] !== undefined
+            ))
+        );
+      })
   );
 }
 
