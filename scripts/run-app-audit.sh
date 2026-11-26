@@ -37,6 +37,9 @@ PY
   else
     printf '{"platform":"%s","round":%s,"sha":"%s","result":"failed"}\n' "$platform" "$round" "$GITHUB_SHA" >> "$output/ledger.jsonl"
     tail -n 100 "$dir/console.log" || true
+    if [[ "$platform" == android ]]; then
+      adb logcat -d -t 2000 > "$dir/android-logcat.txt" 2>&1 || true
+    fi
     exit "$status"
   fi
 done

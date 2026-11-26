@@ -252,7 +252,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -no-snapshot -camera-back none
+          emulator-options: -no-window -gpu swangle -no-boot-anim -no-snapshot -camera-back none
           script: |
             adb install -r "$RUNNER_TEMP/audit-app/app-release.apk"
             bash scripts/run-app-audit.sh android 0 1 "$RUNNER_TEMP/audit-results"
@@ -344,7 +344,7 @@ jobs:
           arch: x86_64
           profile: pixel_6
           disable-animations: true
-          emulator-options: -no-window -gpu swiftshader_indirect -no-boot-anim -no-snapshot -camera-back none
+          emulator-options: -no-window -gpu swangle -no-boot-anim -no-snapshot -camera-back none
           script: |
             adb install -r "$RUNNER_TEMP/audit-app/app-release.apk"
             bash scripts/run-app-audit.sh android $(( ${{ matrix.shard }} * 50 + 1 )) 50 "$RUNNER_TEMP/audit-results"
