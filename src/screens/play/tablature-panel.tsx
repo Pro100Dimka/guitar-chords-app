@@ -718,6 +718,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
   const { t } = useTranslation();
   const { width, height, fontScale } = useWindowDimensions();
   const dense = compact && (height < 700 || width > height);
+  const reading = readOnly || notation;
   const textScale = Math.max(1, fontScale);
   const scroll = useRef<ScrollView>(null);
   const [staffWidth, setStaffWidth] = useState(0);
@@ -808,12 +809,10 @@ const TablatureStaff = React.memo(function TablatureStaff({
     selectedTick,
     staffEnd
   ]);
-  const prefixWidth = bar === 0 && !compact && !readOnly ? 64 : 0;
-  const labelWidth = readOnly
-    ? Math.max(24, 20 * readingScale)
-    : 24 * textScale;
+  const prefixWidth = bar === 0 && !compact && !reading ? 64 : 0;
+  const labelWidth = reading ? Math.max(24, 20 * readingScale) : 24 * textScale;
   const cellWidth = Math.max(
-    readOnly
+    reading
       ? (notation ? 18 : 44) * readingScale
       : (multiBar ? 28 : compact ? 34 : 44) * textScale,
     (staffWidth - labelWidth - prefixWidth) / Math.max(1, columns.length)
@@ -850,7 +849,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
         animated: readOnly
       });
   }, [active, cellWidth, columns, selectedTick, followPlayback, readOnly]);
-  const rowHeight = readOnly
+  const rowHeight = reading
     ? (notation ? 14 : 32) * readingScale
     : dense
       ? 12 * textScale
@@ -893,13 +892,13 @@ const TablatureStaff = React.memo(function TablatureStaff({
     [tab, bar, barCount, readingScale]
   );
   const notationHeight = notation ? systemLayout.notationHeight : 0;
-  const barLineTop = readOnly
+  const barLineTop = reading
     ? (notation ? 16 : 20) * readingScale
     : (dense ? 14 : 18) * textScale;
   const stringsTop = barLineTop + notationHeight + effectHeight;
   const barLineHeight = rowHeight * 6;
   const showRests = !notation && (readOnly || notes.size > 0 || rests.size > 0);
-  const rhythmScale = readOnly ? readingScale : textScale;
+  const rhythmScale = reading ? readingScale : textScale;
   const rhythmEvents = useMemo(() => {
     const events = new Map<string, RhythmEvent>();
     for (const { note, end, position } of notes.values()) {
@@ -999,7 +998,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
     });
   };
   const beatPosition = (position: number) =>
-    Number((1 + (position - start) / beatTicks).toFixed(2));
+    Number((1 + ((position - start) % barTicks) / beatTicks).toFixed(2));
   return (
     <View
       ref={staffElement}
@@ -1026,8 +1025,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
           style={[
             styles.beatRow,
             dense && styles.denseBeats,
-            !readOnly && { height: (dense ? 14 : 18) * textScale },
-            readOnly && { height: barLineTop }
+            { height: barLineTop }
           ]}
         />
         {notation && (
@@ -1059,10 +1057,10 @@ const TablatureStaff = React.memo(function TablatureStaff({
         {stringOrder.map((string) => (
           <View key={string} style={[styles.stringLabel, rowStyle]}>
             <Text
-              allowFontScaling={!readOnly}
+              allowFontScaling={!reading}
               style={[
                 styles.stringName,
-                readOnly && { fontSize: 13 * readingScale }
+                reading && { fontSize: 13 * readingScale }
               ]}
             >
               {stringNames[string]}
@@ -1148,14 +1146,13 @@ const TablatureStaff = React.memo(function TablatureStaff({
             style={[
               styles.beatRow,
               dense && styles.denseBeats,
-              !readOnly && { height: (dense ? 14 : 18) * textScale },
-              readOnly && { height: barLineTop }
+              { height: barLineTop }
             ]}
           >
             {columns.map((position, index) => (
               <View key={position} style={[styles.cell, { width: cellWidth }]}>
                 <Text
-                  allowFontScaling={!readOnly}
+                  allowFontScaling={!reading}
                   accessibilityRole={
                     onSeek && (position - start) % barTicks === 0
                       ? "button"
@@ -1176,7 +1173,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
                   numberOfLines={1}
                   style={[
                     styles.beat,
-                    readOnly && { fontSize: 11 * readingScale },
+                    reading && { fontSize: 11 * readingScale },
                     index === active && styles.activeBeat
                   ]}
                 >
@@ -1414,12 +1411,12 @@ const TablatureStaff = React.memo(function TablatureStaff({
                           </Svg>
                         )}
                         <Text
-                          allowFontScaling={!readOnly}
+                          allowFontScaling={!reading}
                           style={[
                             styles.fret,
                             compact && styles.compactFret,
                             dense && styles.denseFret,
-                            readOnly && {
+                            reading && {
                               fontSize: (notation ? 12 : 20) * readingScale,
                               lineHeight: (notation ? 14 : 22) * readingScale
                             },
@@ -1453,7 +1450,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
                         accessibilityRole="button"
                         accessibilityLabel={t("TabEmptyCell", {
                           string: 6 - string,
-                          bar: bar + 1,
+                          bar: Math.floor(position / barTicks) + 1,
                           beat: beatPosition(position)
                         })}
                         accessibilityState={{ selected: chosen, disabled }}
@@ -1470,7 +1467,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
                         }}
                         style={[
                           styles.emptyCell,
-                          { width: cellWidth, height: editingRowHeight },
+                          { width: cellWidth, height: rowHeight },
                           chosen && styles.cursorCell
                         ]}
                       >
@@ -1735,7 +1732,6 @@ export function TablaturePanel({
     tab.beatUnit ?? 4
   ]);
   const [keypadExpanded, setKeypadExpanded] = useState(false);
-  const [workspaceHeight, setWorkspaceHeight] = useState(0);
   const fretInput = useRef<{
     string: number;
     tick: number;
@@ -2117,8 +2113,8 @@ export function TablaturePanel({
     setEditError(null);
   };
   const barsPerRow = Math.max(
-    1,
-    Math.min(4, Math.floor((width - (keypadExpanded ? 218 : 44) - 24) / 200))
+    2,
+    Math.min(4, Math.floor((width - (keypadExpanded ? 218 : 44) - 24) / 160))
   );
   const barsPerPage = barsPerRow * 2;
   const windowStart = Math.floor(bar / barsPerPage) * barsPerPage;
@@ -2126,7 +2122,11 @@ export function TablaturePanel({
     { length: Math.min(barsPerPage, bars - windowStart) },
     (_, index) => windowStart + index
   );
-  const staffRows = Math.ceil(visibleBars.length / barsPerRow);
+  const staffRows = Array.from(
+    { length: Math.ceil(visibleBars.length / barsPerRow) },
+    (_, index) =>
+      visibleBars.slice(index * barsPerRow, (index + 1) * barsPerRow)
+  );
   const playback = (
     <Action
       glass
@@ -2513,9 +2513,11 @@ export function TablaturePanel({
           {hasEvents ? (
             <TablatureBar
               tab={tab}
-              bar={bar}
+              bar={Math.floor(bar / 2) * 2}
+              barCount={Math.min(2, bars - Math.floor(bar / 2) * 2)}
               tick={tick}
               compact
+              notation
               disabled={readOnly}
               onNote={showEditor}
               onRest={(rest) => {
@@ -2787,12 +2789,7 @@ export function TablaturePanel({
                   ))}
                 </View>
               )}
-            <View
-              style={styles.entryWorkspace}
-              onLayout={(event) =>
-                setWorkspaceHeight(event.nativeEvent.layout.height)
-              }
-            >
+            <View style={styles.entryWorkspace}>
               <ScrollView
                 style={styles.workspace}
                 contentContainerStyle={styles.workspaceContent}
@@ -2803,35 +2800,27 @@ export function TablaturePanel({
                   </Text>
                 )}
                 <>
-                  <View style={styles.barGrid}>
-                    {visibleBars.map((visibleBar) => (
-                      <View
-                        key={visibleBar}
-                        style={{
-                          width: `${100 / Math.min(barsPerRow, visibleBars.length)}%`
-                        }}
-                      >
-                        <TablatureBar
-                          tab={tab}
-                          bar={visibleBar}
-                          tick={tick}
-                          multiBar
-                          availableHeight={Math.max(
-                            0,
-                            workspaceHeight / staffRows - 24
-                          )}
-                          selected={moving ? null : selection}
-                          selectedRest={moving ? null : restSelection}
-                          grid={grid}
-                          disabled={readOnly}
-                          onNote={selectNote}
-                          onCell={selectCell}
-                          onRest={selectRest}
-                          selectedRange={noteRange}
-                          onRange={selectRange}
-                          onMeter={openMeter}
-                        />
-                      </View>
+                  <View>
+                    {staffRows.map((row) => (
+                      <TablatureBar
+                        key={row[0]}
+                        tab={tab}
+                        bar={row[0]}
+                        barCount={row.length}
+                        tick={tick}
+                        compact
+                        notation
+                        selected={moving ? null : selection}
+                        selectedRest={moving ? null : restSelection}
+                        grid={grid}
+                        disabled={readOnly}
+                        onNote={selectNote}
+                        onCell={selectCell}
+                        onRest={selectRest}
+                        selectedRange={noteRange}
+                        onRange={selectRange}
+                        onMeter={openMeter}
+                      />
                     ))}
                   </View>
                   {editError && (
@@ -3116,7 +3105,6 @@ export function TablaturePanel({
 }
 
 const styles = StyleSheet.create({
-  barGrid: { flexDirection: "row", flexWrap: "wrap" },
   rangeHandle: {
     position: "absolute",
     width: 36,
