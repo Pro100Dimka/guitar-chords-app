@@ -162,6 +162,7 @@ export function preferredSongContent(
 ) {
   const score = (option: LyricsOption) =>
     (option.hasChords ? 1000 : 0) +
+    (hasSourceRhythm(option) ? 10 : 0) +
     (album && normalize(album) === normalize(option.album) ? 100 : 0) +
     (duration &&
     duration > 0 &&
@@ -1040,6 +1041,11 @@ const contentCache = new Map<
   string,
   { until: number; options: LyricsOption[] }
 >();
+const hasSourceRhythm = (option: LyricsOption) =>
+  !!option.rhythm?.strum ||
+  Object.values(option.rhythm?.rhythmSections ?? {}).some(
+    (rhythm) => !!rhythm.strum
+  );
 export async function lookupChordPage(
   title: string,
   artist: string,
@@ -1476,8 +1482,7 @@ export async function lookupSongContent(
     ];
     const primaryCompleted = Promise.allSettled(primaryRequests);
     const lyricRequest = lookupLyrics(title, artist, controller.signal);
-    // Consult extra catalogues only after the existing providers cannot find
-    // a playable arrangement. Successful lookups retain their request path.
+    // A chord chart alone does not establish its accompaniment.
     const fallbackProviders: Array<
       (
         name: string,
@@ -1519,7 +1524,9 @@ export async function lookupSongContent(
             results.some(
               (result) =>
                 result.status === "fulfilled" &&
-                result.value.some((option) => option.hasChords)
+                result.value.some(
+                  (option) => option.hasChords && hasSourceRhythm(option)
+                )
             )
           )
             return [];
@@ -1550,7 +1557,10 @@ export async function lookupSongContent(
         controller.signal.aborted
           ? collected
           : new Promise<LyricsOption[]>((resolve) => {
-              collectionTimer = setTimeout(() => resolve(collected), 1500);
+              collectionTimer = setTimeout(
+                () => resolve(collected),
+                collected.some(hasSourceRhythm) ? 1500 : 4500
+              );
             })
       ),
       cancelled,

@@ -283,17 +283,23 @@ function sourcePattern(
   };
 }
 
+const sourceRhythmLabel =
+  /^(?:(?:рекомендуемый|рекомендую|гитарный)\s+)?(бой|бій|strumming(?: pattern)?|strum(?: pattern)?|batida|ritmo|перебор|арпеджіо|арпеджио|fingerpicking(?: pattern)?|picking(?: pattern)?|arpeggio)(?:\s+(?:песни|пісні))?(?:\s*[:\-\u2013\u2014]\s*|\s+|$)(.*)$/i;
+
 export function sourceRhythm(text: string): SongRhythm | undefined {
   const lines = text.split(/\r?\n/);
   let selected: (typeof rhythms)[number] | undefined;
   for (let index = 0; index < lines.length; index++) {
-    const match = lines[index]
-      .trim()
-      .match(
-        /^(?:(?:рекомендуемый|рекомендую)\s+)?(бой|бій|strumming(?: pattern)?|strum(?: pattern)?|batida|ritmo|перебор|арпеджіо|арпеджио|fingerpicking(?: pattern)?|picking(?: pattern)?|arpeggio)(?:\s*[:\-\u2013\u2014]\s*|\s+|$)(.*)$/i
-      );
+    const match = lines[index].trim().match(sourceRhythmLabel);
     if (!match) continue;
-    let value = (match[2].trim() || lines[index + 1]?.trim() || "")
+    let value = (
+      match[2].trim() ||
+      lines
+        .slice(index + 1, index + 5)
+        .find((line) => line.trim())
+        ?.trim() ||
+      ""
+    )
       .replace(/[BБ]₂/gi, "A")
       .normalize("NFKC")
       .toLowerCase()
@@ -303,16 +309,33 @@ export function sourceRhythm(text: string): SongRhythm | undefined {
     );
     const annotation = value.match(/^([^()]+)\(([^()]+)\)$/);
     if (annotation) value = annotation[1].trim();
-    const label = annotation?.[2].trim();
+    const label = /^(?:смотреть видео|дивитися відео|watch video)$/i.test(
+      annotation?.[2].trim() ?? ""
+    )
+      ? undefined
+      : annotation?.[2].trim();
     const catalog = (picking ? pickingPatterns : rhythms).filter(
       (preset) =>
         !label ||
         preset.aliases?.includes(label) ||
         rhythmMeterLabel(preset.meter, preset.division) === label
     );
+    const directions: Record<string, string> = {
+      вниз: "D",
+      вверх: "U",
+      down: "D",
+      up: "U",
+      глушение: "X",
+      приглушение: "X",
+      бас: "B",
+      bass: "B"
+    };
+    const words = /вниз|вверх|down|up|(?:при)?глушение|бас|bass/gi;
+    const writtenWords = words.test(value);
     const notation = value
+      .replace(words, (word) => directions[word.toLowerCase()])
       .replace(/[↓↑×·]/g, (symbol) => sourceSymbols[symbol])
-      .replace(/[\s|]/g, "")
+      .replace(writtenWords ? /[\s|,\-\u2013\u2014]/g : /[\s|]/g, "")
       .toUpperCase()
       .replace(/Б/g, "B");
     let matches = catalog.filter((rhythm) => rhythm.aliases?.includes(value));
@@ -324,7 +347,8 @@ export function sourceRhythm(text: string): SongRhythm | undefined {
     // uniformly delimited picking list can borrow one known preset's timing.
     const noteList =
       !value.includes("·") &&
-      (!notation.includes("-") ||
+      (writtenWords ||
+        !notation.includes("-") ||
         (picking && /^[BA1-6](?:-[BA1-6])+$/.test(notation)));
     if (!matches.length && noteList && /^[DUXBA1-6-]+$/.test(notation))
       matches = catalog.flatMap(
@@ -355,11 +379,17 @@ export function sourceArrangement(text: string) {
   const groups = new Map<string, (SongRhythm | undefined)[]>();
   for (const section of sections.slice(1)) {
     if (!section.id) continue;
-    const setting = sourceRhythm(
-      [section.title.match(/\(([^()]*)\)/)?.[1] ?? "", section.content].join(
-        "\n"
-      )
-    );
+    const instructions = [
+      section.title.match(/\(([^()]*)\)/)?.[1] ?? "",
+      section.content
+    ].join("\n");
+    if (
+      !instructions
+        .split(/\r?\n/)
+        .some((line) => sourceRhythmLabel.test(line.trim()))
+    )
+      continue;
+    const setting = sourceRhythm(instructions);
     const group = groups.get(section.id);
     if (group) group.push(setting);
     else groups.set(section.id, [setting]);
@@ -372,6 +402,25 @@ export function sourceArrangement(text: string) {
       values.every((value) => JSON.stringify(value) === JSON.stringify(first))
     )
       assignments.set(key, first);
+  }
+  const family = (id: string) =>
+    id
+      .replace(/\s*\([^()]*\)/g, "")
+      .replace(/\s*\d+$/, "")
+      .trim();
+  const declared = [...assignments];
+  for (const section of sections.slice(1)) {
+    if (groups.has(section.id)) continue;
+    const matches = declared
+      .filter(([id]) => family(id) === family(section.id))
+      .map(([, rhythm]) => rhythm);
+    if (
+      matches.length &&
+      matches.every(
+        (rhythm) => JSON.stringify(rhythm) === JSON.stringify(matches[0])
+      )
+    )
+      assignments.set(section.id, matches[0]);
   }
   const rhythmSections = Object.fromEntries(assignments);
   if (general || Object.keys(rhythmSections).length)
