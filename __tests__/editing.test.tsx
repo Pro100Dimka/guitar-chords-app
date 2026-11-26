@@ -353,13 +353,11 @@ test("pending native fingering cannot resume after a background and foreground c
       .mocked(performanceAudio.prepareFingering)
       .mock.calls.at(-1)![0];
     await act(async () =>
-      screen!.root
-        .findByType(WebView)
-        .props.onMessage({
-          nativeEvent: {
-            data: JSON.stringify({ type: "fingering", key, wave: "AAAA" })
-          }
-        })
+      screen!.root.findByType(WebView).props.onMessage({
+        nativeEvent: {
+          data: JSON.stringify({ type: "fingering", key, wave: "AAAA" })
+        }
+      })
     );
     for (const state of ["background", "active"] as const)
       await act(async () => {
@@ -806,12 +804,12 @@ test("each rhythm can be selected once through its full pattern and applied", as
   for (let i = 0; i < 10; i++) await Promise.resolve();
   clock = 1;
   schedule();
-  const sampleCount = (decoded.length - 1) / 2;
+  const sampleCount = decoded.length / 2;
   expect(sampleCount).toBeGreaterThanOrEqual(4);
   const down = sources.slice(0, sampleCount);
   const up = sources.slice(sampleCount, sampleCount + 3);
-  const medium = decoded.filter((_, index) => index > 0 && index % 2 === 0);
-  const soft = decoded.filter((_, index) => index % 2 === 1);
+  const medium = decoded.filter((_, index) => index % 2 === 1);
+  const soft = decoded.filter((_, index) => index % 2 === 0);
   expect(down.map((voice) => voice.buffer)).toEqual(medium);
   expect(up.map((voice) => voice.buffer)).toEqual(
     [...soft].reverse().slice(0, 3)
@@ -1089,9 +1087,7 @@ test.each(["youtube_music", "youtobe_lesson"] as const)(
       id: 1,
       [key]: "https://example.com/legacy"
     };
-    expect(
-      await validationSchema(String, legacy).isValid(legacy)
-    ).toBe(true);
+    expect(await validationSchema(String, legacy).isValid(legacy)).toBe(true);
   }
 );
 
@@ -2184,10 +2180,11 @@ test.each(["close", "background", "change"] as const)(
     }[] = [];
     jest
       .spyOn(acousticInstrument, "prepareAcousticInstrument")
-      .mockImplementation((spec, signal) =>
-        new Promise((resolve) => {
-          requests.push({ signal, chords: spec.chords, finish: resolve });
-        })
+      .mockImplementation(
+        (spec, signal) =>
+          new Promise((resolve) => {
+            requests.push({ signal, chords: spec.chords, finish: resolve });
+          })
       );
     const injectJavaScript = jest.fn();
     const onChange = jest.fn();

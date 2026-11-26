@@ -34,7 +34,7 @@ The three-minute request expiry does not extend audio recording. If iOS terminat
 
 ## Verification
 
-The changed native code has not yet been compiled or exercised on an iPhone. Existing native fixtures describe the previous capture-only extension and need adjustment before they can verify the independent identification path. No automated tests or application builds were run for these changes.
+JavaScript regression checks cover the two-option add menu, automatic source selection, saved-result routing without a second capture, and playback without decoding a disabled room impulse. Native fixtures check independent extension identification with HTTP doubles and session reactivation on repeated fingering taps. These fixtures and the complete Xcode application build require macOS; neither establishes physical iPhone behavior.
 
 **Physical iPhone validation is still required:** test Control Center cold/warm/repeated launch, microphone capture while music plays, ReplayKit through the desired player and headphones, system-picker cancellation, navigation cancellation, return from the background, silence/protected content, and signed App Group access. Simulator/fixture results do not establish device capture behavior.
 

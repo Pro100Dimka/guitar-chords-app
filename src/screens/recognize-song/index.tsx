@@ -55,11 +55,17 @@ export default function RecognizeSong() {
     params?.mode && ["auto", "mic", "playback", "result"].includes(params.mode)
       ? params.mode
       : "auto";
-  const autoStart = params?.autoStart === true;
+  const autoStart =
+    params?.autoStart === true &&
+    ["auto", "mic", "playback", "result"].includes(params.mode);
   const launchRequest = `${mode}:${params?.requestId ?? "initial"}`;
   const handledLaunch = useRef<string | undefined>(undefined);
-  const launch = useRef({ autoStart, launchRequest });
-  launch.current = { autoStart, launchRequest };
+  const launch = useRef({
+    autoStart,
+    launchRequest,
+    requestId: params?.requestId
+  });
+  launch.current = { autoStart, launchRequest, requestId: params?.requestId };
   const focused = useRef(false);
   const navigation = useNavigation<NavigationProp>();
   const { t } = useTranslation();
@@ -231,7 +237,8 @@ export default function RecognizeSong() {
               ),
             mic: () => recognizeMicrophone(abort.signal, captureReady),
             playback: () => recognizePlayback(abort.signal),
-            result: () => consumeRecognitionResult(params?.requestId ?? "")
+            result: () =>
+              consumeRecognitionResult(launch.current.requestId ?? "")
           }[mode]());
         if (request !== generation.current) return;
         if (!result) {
@@ -300,16 +307,16 @@ export default function RecognizeSong() {
         );
         setAvailableVersions(candidates);
         if (!candidates.length) {
-          navigation.replace("createSong", {
-            draft: { ...next, cover },
-            notice: lyrics.failed
-              ? "AddSongLyricsUnavailable"
-              : "AddSongNoLyrics"
-          });
+          setFound(null);
+          setDraft(null);
+          setRetrySong(result);
+          setMessage(
+            t(lyrics.failed ? "AddSongLyricsUnavailable" : "AddSongNoLyrics")
+          );
           return;
         }
         const selected =
-          candidates.length > 1 && mode !== "result"
+          candidates.length > 1 && !["auto", "result"].includes(mode)
             ? await new Promise<LyricsOption | undefined>((resolve) => {
                 versionResolver.current = resolve;
                 setVersions(candidates);
@@ -347,7 +354,8 @@ export default function RecognizeSong() {
         draftReady.current = true;
         setDraft(next);
         setMessage(t("AddSongTapResult"));
-        navigation.replace("createSong", { draft: next, notice });
+        if (["auto", "result"].includes(mode))
+          navigation.replace("createSong", { draft: next, notice });
       } catch (error) {
         if (request !== generation.current) return;
         if (!draftReady.current) setFound(null);
@@ -419,7 +427,7 @@ export default function RecognizeSong() {
         }
       }
     },
-    [mode, navigation, params?.requestId, t]
+    [mode, navigation, t]
   );
   useFocusEffect(
     useCallback(() => {

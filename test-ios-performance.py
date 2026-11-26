@@ -338,6 +338,7 @@ do {
     let first = player.cue!
     player.playPreparedGuitar("chord")
     let second = player.cue!
+    precondition(AVAudioSession.instance.activations == 2, "Each fingering tap must reactivate the audio session")
     precondition(first !== second && first.plays == 1 && second.plays == 1)
     DispatchQueue.main.advance(0.005)
     player.playPreparedGuitar("chord")

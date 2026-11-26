@@ -6,6 +6,7 @@ import UserNotifications
 
 private final class RecognitionCapture {
   let allowsBackground: Bool
+  let ignoresAudioInterruptions: Bool
   private let lock = NSLock()
   private var stopped = false
   private var samples = [Int16]()
@@ -13,7 +14,10 @@ private final class RecognitionCapture {
   private var fileCoordinator: NSFileCoordinator?
   private var readExpired = false
 
-  init(allowsBackground: Bool = false) { self.allowsBackground = allowsBackground }
+  init(allowsBackground: Bool = false, ignoresAudioInterruptions: Bool = false) {
+    self.allowsBackground = allowsBackground
+    self.ignoresAudioInterruptions = ignoresAudioInterruptions
+  }
 
   var fileReadExpired: Bool {
     lock.lock(); defer { lock.unlock() }
@@ -108,7 +112,8 @@ final class SongRecognition: NSObject, RCTBridgeModule {
         self?.control.async { [weak self] in
           guard let capture = self?.active else { return }
           if name == AVAudioSession.interruptionNotification {
-            if let type = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+            if !capture.ignoresAudioInterruptions,
+               let type = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
                type == AVAudioSession.InterruptionType.began.rawValue { capture.cancel() }
           } else if !capture.allowsBackground { capture.cancel() }
         }
@@ -224,7 +229,7 @@ final class SongRecognition: NSObject, RCTBridgeModule {
     let request: PlaybackCaptureStore.Request
     do { store = try PlaybackCaptureStore.shared(); request = try store.begin() }
     catch { reject("PlaybackCaptureUnavailable", "PlaybackCaptureUnavailable", error); return }
-    let capture = RecognitionCapture(allowsBackground: true)
+    let capture = RecognitionCapture(allowsBackground: true, ignoresAudioInterruptions: true)
     active = capture
     // The system requires the user's tap on its visible broadcast picker.
     // The upload extension keeps recording while this app is suspended.

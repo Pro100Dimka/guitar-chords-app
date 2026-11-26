@@ -87,44 +87,34 @@ test.each(["Favorites", "RecentSongs"])(
   }
 );
 
-test("iPhone offers microphone, phone audio and audio-file recognition in the add menu", async () => {
-  jest.replaceProperty(Platform, "OS", "ios");
-  jest.mocked(getAllItems).mockResolvedValue(songs);
-  await act(async () => {
-    screen = Renderer.create(<Library />);
-  });
-  await act(async () => screen.root.findByType(SearchBar).props.onAdd());
-  expect(
-    screen.root.findAll(
-      (node) => node.props.accessibilityLabel === "AutofillRecognizeMic"
-    ).length
-  ).toBeGreaterThan(0);
-  expect(
-    screen.root.findAll(
-      (node) => node.props.accessibilityLabel === "AutofillRecognizeFile"
-    ).length
-  ).toBeGreaterThan(0);
-  expect(
-    screen.root.findAll(
-      (node) => node.props.accessibilityLabel === "AutofillRecognizePlayback"
-    ).length
-  ).toBeGreaterThan(0);
-});
-
-test.each([28, 29])(
-  "Android API %s offers phone audio only when supported",
-  async (version) => {
-    jest.replaceProperty(Platform, "OS", "android");
-    jest.spyOn(Platform, "Version", "get").mockReturnValue(version);
+test.each(["ios", "android"] as const)(
+  "%s offers only manual entry and unified recognition",
+  async (platform) => {
+    jest.replaceProperty(Platform, "OS", platform);
     jest.mocked(getAllItems).mockResolvedValue(songs);
     await act(async () => {
       screen = Renderer.create(<Library />);
     });
     await act(async () => screen.root.findByType(SearchBar).props.onAdd());
     const options = screen.root.findAll(
-      (node) => node.props.accessibilityLabel === "AutofillRecognizePlayback"
+      (node) =>
+        ["AddSongManual", "AutofillRecognize"].includes(
+          node.props.accessibilityLabel
+        ) && typeof node.props.onPress === "function"
     );
-    expect(options.length > 0).toBe(version >= 29);
+    expect(options.map((node) => node.props.accessibilityLabel)).toEqual([
+      "AddSongManual",
+      "AutofillRecognize"
+    ]);
+    for (const label of [
+      "AutofillRecognizeMic",
+      "AutofillRecognizePlayback",
+      "AutofillRecognizeFile",
+      "ImportSong"
+    ])
+      expect(
+        screen.root.findAll((node) => node.props.accessibilityLabel === label)
+      ).toHaveLength(0);
   }
 );
 

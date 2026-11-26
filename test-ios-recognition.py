@@ -16,9 +16,11 @@ source = (source.replace("import React", "").replace("import UIKit", "")
           .replace("AVAudioSession", "CaptureSession").replace("AVAudioEngine", "CaptureEngine"))
 source += (root / "ios/PlaybackCaptureStore.swift").read_text(encoding="utf-8").replace("private ", "")
 source += ((root / "ios/PlaybackBroadcast/SampleHandler.swift").read_text(encoding="utf-8")
-           .replace("import ReplayKit", "").replace("private ", ""))
+           .replace("import ReplayKit", "").replace("private ", "")
+           .replace("SongFingerprintRecognizer().identify(captured, cancelled:", "captureFixture(captured, cancelled:")
+           .replace("RecognitionNotice.show(song, requestId: request.id.uuidString, error: status)", "extensionReady.signal()"))
 source += ((root / "ios/OpenRecognitionIntent.swift").read_text(encoding="utf-8").split("@available", 1)[0]
-           .replace("import AppIntents", "").replace("private ", ""))
+           .replace("import AppIntents", "").replace("import ActivityKit", "").replace("private ", ""))
 fixture = r'''
 import AVFoundation
 import Foundation
@@ -32,7 +34,9 @@ class RPBroadcastSampleHandler {
   func broadcastFinished() {}
   func finishBroadcastWithError(_ error: Error) {}
 }
+let CaptureSessionInterruptionTypeKey = "type"
 final class CaptureSession {
+  enum InterruptionType: UInt { case ended = 0, began = 1 }
   enum Category { case playAndRecord }
   enum Mode { case measurement }
   enum Permission { case granted }
@@ -93,6 +97,13 @@ final class HTTPFixture: URLProtocol {
   }
   override func stopLoading() {}
 }
+let extensionReady = DispatchSemaphore(value: 0)
+let extensionCaptureLock = NSLock()
+var extensionCapture = [Int16]()
+func captureFixture(_ samples: [Int16], cancelled: () -> Bool) throws -> [String: Any]? {
+  extensionCaptureLock.lock(); extensionCapture = samples; extensionCaptureLock.unlock()
+  return try SongFingerprintRecognizer().identify(samples, cancelled: cancelled)
+}
 URLProtocol.registerClass(HTTPFixture.self)
 '''
 checks = r'''
@@ -113,7 +124,7 @@ precondition(HTTPFixture.count == 1)
 let repeated = try recognizer.identify(samples, RecognitionCapture())
 precondition(repeated != nil)
 precondition(HTTPFixture.count == 1, "Repeated audio made another network request")
-recognizer.cached.removeAll()
+recognizer.fingerprint.cached.removeAll()
 HTTPFixture.status = 429
 for _ in 0..<2 {
   do { _ = try recognizer.identify(samples, RecognitionCapture()); fatalError("Rate limit ignored") }
@@ -198,10 +209,10 @@ timedOut.finishReading()
 precondition(!CaptureSession.instance.active, "File recognition activated the microphone")
 
 // The ReplayKit extension owns capture while the main app is suspended/interrupted.
-let independent = RecognitionCapture(allowsBackground: true)
+let independent = RecognitionCapture(allowsBackground: true, ignoresAudioInterruptions: true)
 running.control.sync { running.active = independent }
 NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
-NotificationCenter.default.post(name: CaptureSession.interruptionNotification, object: nil)
+NotificationCenter.default.post(name: CaptureSession.interruptionNotification, object: nil, userInfo: [CaptureSessionInterruptionTypeKey: UInt(1)])
 running.control.sync { precondition(!independent.cancelled); running.active = nil }
 let foreground = RecognitionCapture()
 running.control.sync { running.active = foreground }
@@ -267,8 +278,12 @@ for rate in [16000.0, 44100.0, 48000.0] {
       handler.processSampleBuffer(buffer, with: .audioMic)
       precondition(handler.samples.isEmpty, "Private video or microphone data was captured")
       for _ in 0..<14 { handler.processSampleBuffer(buffer, with: .audioApp) }
-      let result = try store.result(request), captured = try store.samples(request)
-      precondition(result?.error == nil && handler.finished)
+      precondition(extensionReady.wait(timeout: .now() + 10) == .success)
+      let result = try store.result(request)
+      extensionCaptureLock.lock(); let captured = extensionCapture; extensionCaptureLock.unlock()
+      precondition(result?.error == nil && result?.identified == true && handler.finished)
+      let song = try JSONSerialization.jsonObject(with: result!.song!) as! [String: Any]
+      precondition(song["title"] as? String == "Example", "The extension failed to identify audio independently")
       precondition(captured.count == PlaybackCaptureStore.maximumSamples, "Capture exceeded 12 seconds")
       precondition(captured.allSatisfy { abs(Int($0) - 12287) <= 1 }, "Channel mixing/resampling corrupts the fingerprint input")
       precondition(handler.samples.isEmpty, "Completed audio remains in extension memory")
@@ -280,6 +295,7 @@ let silentRequest = try store.begin(), silentHandler = SampleHandler()
 silentHandler.store = store; silentHandler.request = silentRequest
 silentHandler.processSampleBuffer(broadcastBuffer(rate: 48000, common: .pcmFormatFloat32, interleaved: false, silent: true), with: .audioApp)
 silentHandler.broadcastFinished()
+precondition(extensionReady.wait(timeout: .now() + 10) == .success)
 let silentResult = try store.result(silentRequest)
 precondition(silentResult?.error == "PlaybackAudioUnavailable", "Protected or silent playback was reported as a usable capture")
 store.remove(silentRequest)

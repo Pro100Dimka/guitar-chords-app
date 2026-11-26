@@ -15,6 +15,7 @@ import { pick } from "@react-native-documents/picker";
 import checkMicPermission from "../src/components/permissions";
 import {
   recognizeMicrophone,
+  recognizeSong,
   recognizeAudioFile,
   recognizePlayback,
   requestQuickSettingsTile,
@@ -89,6 +90,74 @@ function deferred<T>() {
 }
 let screen: Renderer.ReactTestRenderer | undefined;
 
+test.each(["mic", "playback"] as const)(
+  "unified recognition captures the selected %s source once",
+  async (source) => {
+    const native = NativeModules.SongRecognition;
+    native.getRecognitionSource.mockResolvedValue(source);
+    const onSource = jest.fn();
+    await expect(
+      recognizeSong(new AbortController().signal, onSource, jest.fn())
+    ).resolves.toMatchObject({ title: "Track" });
+    expect(onSource).toHaveBeenCalledWith(source);
+    expect(native.recognizeMicrophone).toHaveBeenCalledTimes(
+      source === "mic" ? 1 : 0
+    );
+    expect(native.recognizePlayback).toHaveBeenCalledTimes(
+      source === "playback" ? 1 : 0
+    );
+  }
+);
+
+test("a found control result opens the completed form without capturing again", async () => {
+  mockMode = "result";
+  mockAutoStart = true;
+  mockRequestId = "found-song";
+  NativeModules.SongRecognition.consumeResult.mockResolvedValue({
+    title: "Track",
+    artist: "Artist",
+    source: "Shazam"
+  });
+  jest.mocked(lookupSongContent).mockResolvedValue([chart]);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  expect(NativeModules.SongRecognition.consumeResult).toHaveBeenCalledWith(
+    "found-song"
+  );
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).not.toHaveBeenCalled();
+  expect(
+    NativeModules.SongRecognition.recognizePlayback
+  ).not.toHaveBeenCalled();
+  expect(mockNavigation.replace).toHaveBeenCalledWith("createSong", {
+    draft: expect.objectContaining({ title: "Track", content: chart.content }),
+    notice: "AddSongChordsNotice"
+  });
+});
+
+test("unified recognition opens the form without another tap or version choice", async () => {
+  mockMode = "auto";
+  mockAutoStart = true;
+  jest
+    .mocked(lookupSongContent)
+    .mockResolvedValue([
+      chart,
+      { ...chart, id: 2, content: "[C]Another version [G]of the song" }
+    ]);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).toHaveBeenCalledTimes(1);
+  expect(mockNavigation.replace).toHaveBeenCalledWith("createSong", {
+    draft: expect.objectContaining({ title: "Track", content: chart.content }),
+    notice: "AddSongChordsNotice"
+  });
+});
+
 test("recognition remains usable when the native motion-preference query fails", async () => {
   jest
     .mocked(AccessibilityInfo.isReduceMotionEnabled)
@@ -97,7 +166,7 @@ test("recognition remains usable when the native motion-preference query fails",
     screen = Renderer.create(<RecognizeSong />);
   });
   await new Promise<void>((resolve) => setTimeout(resolve, 0));
-  expect(JSON.stringify(screen!.toJSON())).toContain("AddSongListenTitle");
+  expect(JSON.stringify(screen!.toJSON())).toContain("AutofillRecognize");
 });
 
 test.each([undefined, "invalid"])(
@@ -107,7 +176,7 @@ test.each([undefined, "invalid"])(
     await act(async () => {
       screen = Renderer.create(<RecognizeSong />);
     });
-    expect(JSON.stringify(screen!.toJSON())).toContain("AddSongListenTitle");
+    expect(JSON.stringify(screen!.toJSON())).toContain("AutofillRecognize");
     expect(pick).not.toHaveBeenCalled();
     expect(
       NativeModules.SongRecognition.recognizeMicrophone
@@ -246,13 +315,17 @@ test.each(["android", "ios"])(
 test("cancelling immediately after foreground wait never notifies capture readiness", async () => {
   AppState.currentState = "background";
   let resume!: (state: AppStateStatus) => void;
-  jest.spyOn(AppState, "addEventListener").mockImplementation((_event, listener) => {
-    resume = listener;
-    return { remove: jest.fn() };
-  });
+  jest
+    .spyOn(AppState, "addEventListener")
+    .mockImplementation((_event, listener) => {
+      resume = listener;
+      return { remove: jest.fn() };
+    });
   const controller = new AbortController();
   const ready = jest.fn();
-  const pending = recognizeMicrophone(controller.signal, ready).catch((error) => error);
+  const pending = recognizeMicrophone(controller.signal, ready).catch(
+    (error) => error
+  );
   for (let i = 0; i < 20; i++) await Promise.resolve();
   AppState.currentState = "active";
   resume("active");
@@ -260,7 +333,9 @@ test("cancelling immediately after foreground wait never notifies capture readin
   controller.abort();
   expect(await pending).toEqual(new Error("Cancelled"));
   expect(ready).not.toHaveBeenCalled();
-  expect(NativeModules.SongRecognition.recognizeMicrophone).not.toHaveBeenCalled();
+  expect(
+    NativeModules.SongRecognition.recognizeMicrophone
+  ).not.toHaveBeenCalled();
 });
 
 test.each(["mic", "playback"])(
@@ -268,13 +343,16 @@ test.each(["mic", "playback"])(
   async (mode) => {
     AppState.currentState = "background";
     let resume!: (state: AppStateStatus) => void;
-    jest.spyOn(AppState, "addEventListener").mockImplementation((_event, listener) => {
-      resume = listener;
-      return { remove: jest.fn() };
-    });
-    const capture = mode === "mic"
-      ? NativeModules.SongRecognition.recognizeMicrophone
-      : NativeModules.SongRecognition.recognizePlayback;
+    jest
+      .spyOn(AppState, "addEventListener")
+      .mockImplementation((_event, listener) => {
+        resume = listener;
+        return { remove: jest.fn() };
+      });
+    const capture =
+      mode === "mic"
+        ? NativeModules.SongRecognition.recognizeMicrophone
+        : NativeModules.SongRecognition.recognizePlayback;
     const result = (mode === "mic" ? recognizeMicrophone : recognizePlayback)();
     for (let i = 0; i < 20; i++) await Promise.resolve();
     AppState.currentState = "active";
@@ -463,10 +541,11 @@ test("recognition rejects chord-only results as well as lyrics-only results", as
   ).toHaveLength(0);
 });
 
-test.each(["mic", "file"])(
+test.each(["mic", "auto"])(
   "recognition refuses plain lyrics without chords: %s",
   async (mode) => {
     mockMode = mode as typeof mockMode;
+    mockAutoStart = mode === "auto";
     NativeModules.SongRecognition.recognizeFile.mockResolvedValue({
       title: "Track",
       artist: "Artist",
@@ -647,6 +726,8 @@ beforeEach(() => {
       artist: "Artist",
       source: "Shazam"
     }),
+    getRecognitionSource: jest.fn().mockResolvedValue("mic"),
+    consumeResult: jest.fn(),
     requestQuickSettingsTile: jest.fn().mockResolvedValue(true),
     cancel: jest.fn().mockResolvedValue(undefined)
   };
@@ -779,8 +860,12 @@ test("conflicting versions of one chart show their tempo before the user chooses
   await press("AddSongStart");
   const { Action } = require("../src/screens/song/tools");
   const actions = screen!.root.findAllByType(Action);
-  const first = actions.find((node) => String(node.props.label).includes("96 BPM"));
-  const second = actions.find((node) => String(node.props.label).includes("104 BPM"));
+  const first = actions.find((node) =>
+    String(node.props.label).includes("96 BPM")
+  );
+  const second = actions.find((node) =>
+    String(node.props.label).includes("104 BPM")
+  );
   expect(first).toBeDefined();
   expect(second).toBeDefined();
   await act(async () => second!.props.onPress());
@@ -959,27 +1044,15 @@ test.each([
   ["Busy", "AutofillBusy"],
   ["NoAudioTrack", "AutofillNoAudioTrack"],
   ["UnsupportedPcmFormat", "AutofillUnsupportedAudio"]
-])("local file error %s has a specific explanation", async (code, message) => {
-  mockMode = "file";
-  jest.mocked(pick).mockResolvedValue([
-    {
-      uri: "content://clip",
-      name: "clip.wav",
-      type: "audio/wav",
-      size: 44100,
-      isVirtual: false,
-      hasRequestedType: true,
-      nativeType: "audio/wav",
-      convertibleToMimeTypes: null,
-      error: null
-    }
-  ]);
-  NativeModules.SongRecognition.recognizeFile.mockRejectedValue(
+])("recognition error %s has a specific explanation", async (code, message) => {
+  mockMode = "mic";
+  NativeModules.SongRecognition.recognizeMicrophone.mockRejectedValue(
     Object.assign(new Error(code), { code: "RecognitionFailed" })
   );
   await act(async () => {
     screen = Renderer.create(<RecognizeSong />);
   });
+  await press("AddSongStart");
   expect(JSON.stringify(screen!.toJSON())).toContain(message);
   expect(JSON.stringify(screen!.toJSON())).not.toContain(
     "AutofillRecognitionError"
