@@ -195,8 +195,20 @@ test.each([
     ]);
     expect(dispose).toHaveBeenCalledTimes(emptyFrames + 1);
     expect(
-      screen.root.findAllByType(Action).find((node) => node.props.label === "Retry")
-    ).toBeUndefined();
+      screen.root.findAll((node) => node.props.children === "ErrorStartingApp")
+    ).toHaveLength(0);
+    if (delay < 30000)
+      expect(
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "Retry")
+      ).toBeUndefined();
+    else
+      expect(
+        screen.root.findAll(
+          (node) => node.props.children === "TunerCaptureUnavailable"
+        )
+      ).not.toHaveLength(0);
     expect(screen.root.findAll((node) =>
       node.props.accessibilityElementsHidden === false &&
       node.props.pointerEvents === "auto"
