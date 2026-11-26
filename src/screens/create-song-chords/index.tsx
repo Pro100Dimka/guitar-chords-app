@@ -488,6 +488,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                     <Action
                       compact
                       icon="arrow-expand"
+                      testID="lyrics-expand"
                       label={t("EditLyrics")}
                       onPress={() => {
                         Keyboard.dismiss();
@@ -598,6 +599,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
                         </View>
                         <TextInput
                           ref={lyricsInput}
+                          testID="lyrics-input"
                           multiline
                           disableFullscreenUI
                           accessibilityLabel={t("ChordsLyrics")}

@@ -2196,6 +2196,7 @@ export function TablaturePanel({
                 compact
                 icon="arrow-left"
                 style={styles.roundControl}
+                testID="tab-editor-close"
                 label={t("Close")}
                 onPress={closeEditor}
               />

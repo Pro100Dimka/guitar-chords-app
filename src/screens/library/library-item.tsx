@@ -25,6 +25,7 @@ const LibraryItem: React.FC<{
   );
   return (
     <Pressable
+      testID={`song-card-${song.id}`}
       accessibilityRole="button"
       style={({ pressed }) => [styles.card, pressed && styles.pressed]}
       onPress={() => navigation.navigate("Song", { id: song.id.toString() })}

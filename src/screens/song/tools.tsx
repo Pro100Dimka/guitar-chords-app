@@ -81,6 +81,7 @@ export function Action({
   showLabel = false,
   notation = false,
   accessibilityRole = "button",
+  testID,
   style
 }: {
   label: string;
@@ -95,12 +96,14 @@ export function Action({
   showLabel?: boolean;
   notation?: boolean;
   accessibilityRole?: "button" | "tab";
+  testID?: string;
   style?: StyleProp<ViewStyle>;
 }) {
   const finish =
     selected || primary ? (notation ? palette.notation : palette.finish) : null;
   return (
     <Pressable
+      testID={testID}
       accessibilityRole={accessibilityRole}
       accessibilityLabel={accessibilityLabel ?? label}
       accessibilityState={{ selected, disabled }}
@@ -356,6 +359,7 @@ export function Sheet({
               notation={dense}
               style={dense ? styles.notationClose : undefined}
               icon="close"
+              testID="sheet-close"
               label={t("Close")}
               onPress={onClose}
             />

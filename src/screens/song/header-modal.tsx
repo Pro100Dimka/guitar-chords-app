@@ -45,6 +45,7 @@ const SongModal: FC<ISongModalProps> = ({
   return (
     <>
       <Pressable
+        testID="song-menu"
         accessibilityRole="button"
         accessibilityLabel={t("SongTools")}
         disabled={disabled}
@@ -74,6 +75,9 @@ const SongModal: FC<ISongModalProps> = ({
             {menuItems.map(([label, action], index) => (
               <TouchableOpacity
                 key={index}
+                testID={index === 0 ? "song-menu-edit" : "song-menu-delete"}
+                accessibilityRole="button"
+                accessibilityLabel={label}
                 onPress={() => {
                   action();
                   setMenuVisible(false);
