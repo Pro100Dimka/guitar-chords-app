@@ -5,7 +5,8 @@ import {
   songContentFromEditor,
   createSongEditorState,
   hasSongChordsAsync,
-  songChordSequence
+  songChordSequence,
+  chordShapes
 } from "../src/screens/song/chords";
 import { importedSong } from "../src/components/library-files";
 
@@ -13,6 +14,13 @@ jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
 }));
 jest.mock("../src/locales", () => ({ t: String }));
+
+test.each([
+  { chord: "D5(9)", frets: [null, null, 0, 2, 3, 0] },
+  { chord: "A5(9)", frets: [null, 0, 2, 2, 0, 0] }
+])("provides the published open voicing for $chord", ({ chord, frets }) => {
+  expect(chordShapes(chord)).toContainEqual(frets);
+});
 
 test.each([
   ["[Am]Original words [G]with chords", true],

@@ -1,6 +1,12 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert, AppState, FlatList, Text, type AppStateStatus } from "react-native";
+import {
+  Alert,
+  AppState,
+  FlatList,
+  Text,
+  type AppStateStatus
+} from "react-native";
 import { Action, ChordSheet, SongTools } from "../src/screens/song/tools";
 import { WebView } from "react-native-webview";
 import SongRecorder from "../src/screens/song/recorder";
@@ -8,6 +14,8 @@ import { defaultSongPreferences } from "../src/components/preferences";
 import * as acousticPlayer from "../src/components/acoustic-player";
 import * as acousticInstrument from "../src/components/acoustic-instrument";
 import * as chordTools from "../src/screens/song/chords";
+import * as guitarAudio from "../src/components/guitar-audio";
+import { sourceSong } from "../src/components/song-autofill/source-metadata";
 import {
   performanceAudio,
   type PerformanceEvent
@@ -45,6 +53,7 @@ afterEach(async () => {
   appListeners.clear();
   jest.restoreAllMocks();
   jest.clearAllMocks();
+  jest.useRealTimers();
 });
 
 const content = Array.from(
@@ -54,6 +63,69 @@ const content = Array.from(
 const settings = { ...defaultSongPreferences, strum: "D-D-D-D-" };
 const onChange = jest.fn();
 const onClose = jest.fn();
+
+test.each(["rhythm", "practice"])(
+  "the %s tab plays imported notes without choosing a stock pattern",
+  async (tab) => {
+    jest.useFakeTimers();
+    jest.spyOn(guitarAudio, "warmGuitar").mockResolvedValue(undefined);
+    const sound = jest
+      .spyOn(performanceAudio, "guitarString")
+      .mockImplementation(() => {});
+    const imported = sourceSong(
+      [
+        "E|---------0-",
+        "B|-------0---",
+        "G|-----0-----",
+        "D|---2-------",
+        "A|--2--------",
+        "E|-0---------",
+        "[Em]Example words for this song"
+      ].join("\n")
+    );
+    await act(async () => {
+      screen = Renderer.create(
+        <SongTools
+          initialTab="rhythm"
+          content={imported.content}
+          value={{
+            ...defaultSongPreferences,
+            tablature: imported.tablature,
+            tempo: 80
+          }}
+          onChange={onChange}
+          onClose={onClose}
+        />
+      );
+    });
+    if (tab === "practice")
+      await act(async () => {
+        screen!.root
+          .findAll(
+            (node) =>
+              node.props.accessibilityRole === "tab" &&
+              typeof node.props.onPress === "function" &&
+              node
+                .findAllByType(Text)
+                .some((text) => text.props.children === "Practice")
+          )[0]
+          .props.onPress();
+      });
+    const controls = screen!.root
+      .findAllByType(Action)
+      .filter((node) => node.props.label === "TabPlay");
+    expect(controls).toHaveLength(1);
+    await act(async () => controls[0].props.onPress());
+    await act(async () => jest.advanceTimersByTimeAsync(400));
+    expect(sound).toHaveBeenCalledWith("440:40:string0", 0);
+    expect(sound).toHaveBeenCalledWith("440:47:string1", 1);
+    expect(acousticInstrument.prepareAcousticInstrument).not.toHaveBeenCalled();
+    jest.mocked(performanceAudio.stopGuitarString).mockClear();
+    await act(async () => screen!.unmount());
+    expect(performanceAudio.stopGuitarString).toHaveBeenCalledTimes(6);
+    screen = undefined;
+  }
+);
 
 test("rhythm preparation resolves each distinct voicing once and preserves the full progression", async () => {
   const selectedShape = acousticPlayer.selectedChordShape;
@@ -206,7 +278,9 @@ test("recording events are scoped to the active song without duplicate alerts", 
   jest.spyOn(performanceAudio, "listen").mockImplementation((listener) => {
     listeners.add(listener);
     return {
-      remove: () => { listeners.delete(listener); }
+      remove: () => {
+        listeners.delete(listener);
+      }
     } as unknown as ReturnType<typeof performanceAudio.listen>;
   });
   const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
@@ -238,7 +312,11 @@ test("a stale recording-list failure never displays an error for the next song",
   const take = { path: "/song-2-10.m4a", date: 10, bytes: 100 };
   jest
     .mocked(performanceAudio.list)
-    .mockReturnValueOnce(new Promise((_resolve, reject) => { fail = reject; }))
+    .mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        fail = reject;
+      })
+    )
     .mockResolvedValue([take]);
   const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const render = (songId: number) => (

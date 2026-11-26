@@ -96,6 +96,62 @@ function mockSongSave(id: number) {
 }
 let screen: Renderer.ReactTestRenderer | undefined;
 
+test.each([false, true])(
+  "stored source tabs load as accompaniment and preserve custom score=%s",
+  async (custom) => {
+    jest.useFakeTimers();
+    const {
+      usePreferences,
+      flushPreferences
+    } = require("../src/components/preferences");
+    mockSongSave(1);
+    const {
+      sourceSong
+    } = require("../src/components/song-autofill/source-metadata");
+    const content = [
+      "E|---------0-",
+      "B|-------0---",
+      "G|-----0-----",
+      "D|---2-------",
+      "A|--2--------",
+      "E|-0---------",
+      "[Em]Example words for this song"
+    ].join("\n");
+    const original = sourceSong(content).tablature;
+    const edited = {
+      ...original,
+      notes: original.notes.map((note: { fret: number }) => ({
+        ...note,
+        fret: 7
+      }))
+    };
+    usePreferences.setState({
+      songs: {
+        1: {
+          ...defaultSongPreferences,
+          ...(custom ? { tablature: edited } : {})
+        }
+      }
+    });
+    jest
+      .mocked(crud.getAllItems)
+      .mockResolvedValue([{ id: 1, title: "Imported", content }]);
+    await act(async () => {
+      screen = Renderer.create(<Song />);
+    });
+    expect(JSON.stringify(screen!.toJSON()).includes("E|-")).toBe(false);
+    expect(usePreferences.getState().songs[1].tablature).toEqual(
+      custom ? edited : original
+    );
+    expect(
+      screen!.root
+        .findAllByType(Action)
+        .some((node) => node.props.label === "TabOpenInPlay")
+    ).toBe(true);
+    await flushPreferences();
+  }
+);
+
 test("a preference edit after the song SQL write wins over stale recognition metadata", async () => {
   const {
     usePreferences,

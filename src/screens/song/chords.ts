@@ -187,6 +187,7 @@ const inversions: Record<string, Frets[]> = {
   "G/D": [[null, null, 0, 0, 0, 3]]
 };
 const aliases: Record<string, string> = {
+  "5(9)": "sus2",
   min: "m",
   maj: "",
   M: "",

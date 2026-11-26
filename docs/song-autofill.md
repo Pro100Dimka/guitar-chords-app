@@ -8,6 +8,8 @@ Recognized and manually pasted charts separate six-string ASCII tablature from s
 
 The Nine preset follows the directions and pauses in the [Gitarik lesson](https://www.youtube.com/watch?v=rIxdm1f7Iw4): `D--UD--U-U-UDUD-`. Its attacks occupy eighth-note slots 0, 3, 4, 7, 9, 11, 12, 13 and 14 of a two-bar cycle. This matches the continuous performance starting at 1.142 seconds, with the next cycle at 4.610 seconds (about 139 BPM). Previously saved, unchanged Nine presets migrate to this pattern; custom patterns remain intact.
 
+Imported tablature plays directly in the song's Rhythm and Practice tabs through the existing native tablature transport. Practice repeats the score; choosing a manual rhythm remains available. Opening a previously stored ASCII chart also exposes its playable score and cleaned words, while preserving the original database text and any manually edited score. The `5(9)` chord quality uses the existing sus2 voicings, and unsupported-chord notices list each name once.
+
 ## Tempo and accompaniment from the selected chart, 25 November 2026
 
 All chord-provider adapters now import supported, explicit tempo and accompaniment instructions from their verified chart content and existing dedicated metadata blocks. The shared parser accepts one consistent tempo in the existing 40–200 BPM range, including `Темп`, `Tempo`, `BPM`, `Andamento`, a quarter-note mark and supported ChordPro declarations. Unlabelled page numbers, conflicting values and unsupported units do not become song tempo. The original chart text and source link are preserved.

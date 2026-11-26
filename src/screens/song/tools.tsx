@@ -47,6 +47,7 @@ import {
   transferAcousticInstrument
 } from "../../components/acoustic-instrument";
 import { performanceAudio } from "../../components/performance-audio";
+import { useTablature } from "../play/use-tablature";
 import guitarBackground from "../../../assets/images/gold-background.webp";
 import {
   chordShapeOptions,
@@ -763,6 +764,7 @@ export function SongTools({
   const { t } = useTranslation();
   const [tab, setTab] = useState<"reading" | "rhythm" | "practice">(initialTab);
   const [easier, setEasier] = useState(false);
+  const [manualRhythm, setManualRhythm] = useState(false);
   const controls: {
     key: "fontSize" | "transpose" | "capo" | "speed" | "tempo";
     label: string;
@@ -808,6 +810,9 @@ export function SongTools({
           </Pressable>
         ))}
       </View>
+      {tab !== "reading" && value.tablature?.notes.length && manualRhythm ? (
+        <Action label={t("TabTitle")} onPress={() => setManualRhythm(false)} />
+      ) : null}
       {tab === "reading" ? (
         <>
           {!easier && (
@@ -852,6 +857,16 @@ export function SongTools({
             <EasierChords content={content} value={value} onChange={onChange} />
           )}
         </>
+      ) : value.tablature?.notes.length && !manualRhythm ? (
+        <SongTablature
+          value={value}
+          onChange={onChange}
+          practice={tab === "practice"}
+          onChooseRhythm={() => {
+            setManualRhythm(true);
+            setTab("rhythm");
+          }}
+        />
       ) : tab === "rhythm" ? (
         <RhythmEditor value={value} onChange={onChange} content={content} />
       ) : (
@@ -863,6 +878,59 @@ export function SongTools({
         />
       )}
     </Sheet>
+  );
+}
+
+function SongTablature({
+  value,
+  onChange,
+  practice,
+  onChooseRhythm
+}: {
+  value: SongPreferences;
+  onChange: (patch: Partial<SongPreferences>) => void;
+  practice: boolean;
+  onChooseRhythm: () => void;
+}) {
+  const { t } = useTranslation();
+  const transport = useTablature(true, () => {}, false);
+  const { replaceTab, setLoop } = transport;
+  const score = value.tablature;
+  useEffect(() => {
+    if (score) replaceTab({ ...score, tempo: value.tempo });
+  }, [score, value.tempo, replaceTab]);
+  useEffect(() => setLoop(practice), [practice, setLoop]);
+  if (!score) return null;
+  const running = ["playing", "preparing", "countingIn"].includes(
+    transport.status
+  );
+  return (
+    <>
+      <Text style={styles.label}>{t("TabTitle")}</Text>
+      <View style={styles.row}>
+        <Action
+          primary
+          label={t(running ? "Pause" : "TabPlay")}
+          icon={running ? "pause" : "play"}
+          onPress={() => {
+            if (running) transport.pause();
+            else void transport.play();
+          }}
+        />
+        <Action label={t("TabRewind")} onPress={transport.rewind} />
+      </View>
+      {transport.error && (
+        <Text style={styles.description}>{t(transport.error)}</Text>
+      )}
+      <TempoControl
+        label={t("Tempo")}
+        value={value.tempo}
+        onChange={(tempo) =>
+          onChange({ tempo, tablature: { ...score, tempo } })
+        }
+      />
+      <Action label={t("ChooseSongRhythm")} onPress={onChooseRhythm} />
+    </>
   );
 }
 
@@ -1029,7 +1097,9 @@ function TransitionPractice({
           />
         ))}
       </View>
-      <Text style={styles.description}>{sequence.join(" → ")}</Text>
+      <Text numberOfLines={2} style={styles.description}>
+        {sequence.join(" → ")}
+      </Text>
     </>
   );
 }
@@ -1371,9 +1441,9 @@ function RhythmPlayer({
       );
   }, [ready, playConfig]);
   const source = useMemo(() => ({ html: preview }), [preview]);
-  const unavailable = progression.filter(
-    (_, index) => !frequencies[index]?.length
-  );
+  const unavailable = [
+    ...new Set(progression.filter((_, index) => !frequencies[index]?.length))
+  ];
   if (preparationError)
     return <Text style={styles.description}>{t("RhythmAudioError")}</Text>;
   if (unavailable.length)
@@ -1612,14 +1682,13 @@ function PatternEditor({
       ))}
     </View>
   );
-  const unavailable = useMemo(() => {
-    const missing = new Set(
+  const unavailable = useMemo(
+    () =>
       [...new Set(chords)].filter(
         (chord) => !selectedChordShape(chord, value.shapes[chord])
-      )
-    );
-    return chords.filter((chord) => missing.has(chord));
-  }, [chords, value.shapes]);
+      ),
+    [chords, value.shapes]
+  );
   const previewRhythm = allRhythms.find((item) => item.id === audition);
   const preset = allRhythms.find(
     (item) =>

@@ -56,6 +56,7 @@ import {
   transposeSong
 } from "./chords";
 import { Action, ChordSheet, SongTools } from "./tools";
+import { sourceSong } from "../../components/song-autofill/source-metadata";
 
 const SongDetail: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, "Song">>();
@@ -144,8 +145,19 @@ const SongDetail: React.FC = () => {
       })
         .then(([found]) => {
           if (active && deletedSong.current !== songId) {
-            setSong(found);
-            if (found) updateSong(songId, { opened: Date.now() });
+            if (!found) {
+              setSong(undefined);
+              return;
+            }
+            const saved = usePreferences.getState().songs[songId];
+            const imported = sourceSong(found.content ?? "", saved?.tempo);
+            setSong({ ...found, content: imported.content });
+            updateSong(songId, {
+              opened: Date.now(),
+              ...(!saved?.tablature && imported.tablature
+                ? { tablature: imported.tablature }
+                : {})
+            });
           }
         })
         .catch((error) => {
