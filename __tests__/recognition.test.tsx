@@ -768,6 +768,31 @@ test("recognition selects lyrics from the known album instead of the first versi
   );
 });
 
+test("conflicting versions of one chart show their tempo before the user chooses", async () => {
+  jest.mocked(lookupSongContent).mockResolvedValue([
+    { ...chart, tempo: 96 },
+    { ...chart, tempo: 104 }
+  ]);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await press("AddSongStart");
+  const { Action } = require("../src/screens/song/tools");
+  const actions = screen!.root.findAllByType(Action);
+  const first = actions.find((node) => String(node.props.label).includes("96 BPM"));
+  const second = actions.find((node) => String(node.props.label).includes("104 BPM"));
+  expect(first).toBeDefined();
+  expect(second).toBeDefined();
+  await act(async () => second!.props.onPress());
+  await press("AddSongEditResult");
+  expect(mockNavigation.navigate).toHaveBeenLastCalledWith(
+    "createSong",
+    expect.objectContaining({
+      draft: expect.objectContaining({ tempo: 104, content: chart.content })
+    })
+  );
+});
+
 test("ambiguous lyric versions wait for an explicit choice", async () => {
   jest.mocked(lookupSongContent).mockResolvedValue([
     {
