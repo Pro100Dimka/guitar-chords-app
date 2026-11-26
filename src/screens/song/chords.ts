@@ -889,6 +889,18 @@ export function songChordSequence(content: string) {
     );
 }
 
+export function songPlaybackLines(text: string) {
+  const lines = text.split(/\r?\n/);
+  return lines.flatMap((line, index) => {
+    let target = index;
+    while (target + 1 < lines.length && isChordLine(lines[target + 1]))
+      target++;
+    if (lines[target + 1]?.trim() && !isSectionBoundary(lines[target + 1]))
+      target++;
+    return songChordSequence(line).map(() => target);
+  });
+}
+
 export function songSections(content: string) {
   const sections = [{ id: "", title: "", content: "" }];
   for (const line of content.split(/\r?\n/)) {

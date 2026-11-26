@@ -7,6 +7,7 @@ import React, {
 } from "react";
 import {
   AppState,
+  Animated,
   FlatList,
   ImageBackground,
   Modal,
@@ -14,6 +15,7 @@ import {
   ScrollView,
   type ScrollViewProps,
   type ViewToken,
+  type TextProps,
   StyleSheet,
   Text,
   View
@@ -53,9 +55,10 @@ import {
   chordLineParts,
   isChordLine,
   songChords,
+  songPlaybackLines,
   transposeSong
 } from "./chords";
-import { Action, ChordSheet, SongTools } from "./tools";
+import { Action, ChordSheet, SongTools, SongPlayback } from "./tools";
 import { sourceSong } from "../../components/song-autofill/source-metadata";
 
 const SongDetail: React.FC = () => {
@@ -71,6 +74,11 @@ const SongDetail: React.FC = () => {
   const editorExitAllowed = useRef(false);
   const deletedSong = useRef<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [accompaniment, setAccompaniment] = useState(false);
+  const [activeLine, setActiveLine] = useState<number | null>(null);
+  const playhead = useRef(new Animated.Value(0)).current;
+  const horizontalLines = useRef(new Map<number, ScrollView>());
+  const blockPositions = useRef(new Map<number, number>());
   const [tools, setTools] = useState<false | "reading" | "rhythm">(false);
   const [tuner, setTuner] = useState(false);
   const [chord, setChord] = useState("");
@@ -90,11 +98,20 @@ const SongDetail: React.FC = () => {
     position: 0,
     content: 0,
     viewport: 0,
+    viewportWidth: 0,
     restored: false,
     target: preferences.position,
     endVisible: false
   });
   const hasSong = !loading && song?.id === songId;
+  const stopAccompaniment = useCallback(() => setAccompaniment(false), []);
+  useEffect(() => {
+    if (!focused || tuner || tools || chord || isEdit || loading)
+      setAccompaniment(false);
+  }, [focused, tuner, tools, chord, isEdit, loading]);
+  useEffect(() => {
+    if (!accompaniment) setActiveLine(null);
+  }, [accompaniment]);
   const change = (patch: Partial<typeof preferences>) => {
     if (hasSong && deletedSong.current !== songId) updateSong(songId, patch);
   };
@@ -180,6 +197,7 @@ const SongDetail: React.FC = () => {
       position: 0,
       content: 0,
       viewport: 0,
+      viewportWidth: 0,
       restored: false,
       target: usePreferences.getState().songs[songId]?.position ?? 0,
       endVisible: false
@@ -192,6 +210,7 @@ const SongDetail: React.FC = () => {
     const subscription = AppState.addEventListener("change", (state) => {
       updateAwake(state === "active");
       if (state !== "active") {
+        setAccompaniment(false);
         setPlaying(false);
         setVideos(false);
         setTools(false);
@@ -284,6 +303,26 @@ const SongDetail: React.FC = () => {
       ),
     [song?.content, preferences.transpose, preferences.capo]
   );
+  const playbackLines = useMemo(
+    () => songPlaybackLines(display.text),
+    [display.text]
+  );
+  const playbackPosition = useCallback(
+    (position: number) => {
+      const line = playbackLines[Math.floor(position)];
+      if (line === undefined) {
+        setActiveLine(null);
+        return;
+      }
+      const first = playbackLines.indexOf(line);
+      const last = playbackLines.lastIndexOf(line);
+      playhead.setValue(
+        Math.max(0, Math.min(1, (position - first) / (last - first + 1)))
+      );
+      setActiveLine(line);
+    },
+    [playbackLines, playhead]
+  );
   const content = useMemo(() => {
     const renderChord = (displayed: string, key: number) => {
       return (
@@ -310,18 +349,22 @@ const SongDetail: React.FC = () => {
       const parts = onlyChords
         ? chordLineParts(line)
         : line.split(/(\[[^\[\]]+\])/);
-      return (
-        <Text
-          key={index}
-          numberOfLines={paired ? 1 : undefined}
-          style={[
-            styles.content,
-            {
-              fontSize: preferences.fontSize,
-              lineHeight: preferences.fontSize * 1.65
-            }
-          ]}
-        >
+      const props: TextProps = {
+        onLayout: paired
+          ? undefined
+          : ({ nativeEvent }) =>
+              blockPositions.current.set(index, nativeEvent.layout.y),
+        numberOfLines: paired ? 1 : undefined,
+        style: [
+          styles.content,
+          {
+            fontSize: preferences.fontSize,
+            lineHeight: preferences.fontSize * 1.65
+          }
+        ]
+      };
+      const children = (
+        <>
           {parts.length > 256
             ? line
             : parts.map((part, i) => {
@@ -332,6 +375,27 @@ const SongDetail: React.FC = () => {
                   : part;
               })}
           {line ? "" : " "}
+        </>
+      );
+      return index === activeLine ? (
+        <PlaybackLyricLine
+          key={index}
+          {...props}
+          progress={playhead}
+          onCursor={(x) =>
+            horizontalLines.current
+              .get(index)
+              ?.scrollTo({
+                x: Math.max(0, x - metrics.current.viewportWidth * 0.35),
+                animated: false
+              })
+          }
+        >
+          {children}
+        </PlaybackLyricLine>
+      ) : (
+        <Text key={index} {...props}>
+          {children}
         </Text>
       );
     };
@@ -377,11 +441,20 @@ const SongDetail: React.FC = () => {
       return (
         <ScrollView
           key={row.index}
+          ref={(node) =>
+            block.forEach((item) => {
+              if (node) horizontalLines.current.set(item.index, node);
+              else horizontalLines.current.delete(item.index);
+            })
+          }
           horizontal
           nestedScrollEnabled
           directionalLockEnabled
           showsHorizontalScrollIndicator={false}
           style={styles.pairedLines}
+          onLayout={({ nativeEvent }) =>
+            blockPositions.current.set(row.index, nativeEvent.layout.y)
+          }
           onScrollBeginDrag={() => setPlaying(false)}
         >
           <View>
@@ -397,7 +470,24 @@ const SongDetail: React.FC = () => {
       renderBlock,
       virtualized
     };
-  }, [display, preferences.fontSize, t]);
+  }, [display, preferences.fontSize, t, activeLine, playhead]);
+  useEffect(() => {
+    if (activeLine === null) return;
+    const index = content.blocks.findIndex((block) =>
+      block.some((row) => row.index === activeLine)
+    );
+    if (index < 0) return;
+    if (list.current)
+      list.current.scrollToIndex({ index, viewPosition: 0.3, animated: true });
+    else {
+      const y = blockPositions.current.get(content.blocks[index][0].index);
+      if (y !== undefined)
+        scroll.current?.scrollTo({
+          y: Math.max(0, y - metrics.current.viewport * 0.3),
+          animated: true
+        });
+    }
+  }, [activeLine, content.blocks]);
   const lastBlock = useRef(0);
   lastBlock.current = content.blocks.length - 1;
   const viewableItemsChanged = useRef(
@@ -420,6 +510,7 @@ const SongDetail: React.FC = () => {
   > = {
     onLayout: ({ nativeEvent }) => {
       metrics.current.viewport = nativeEvent.layout.height;
+      metrics.current.viewportWidth = nativeEvent.layout.width;
       restorePosition();
     },
     onContentSizeChange: (_, height) => {
@@ -455,25 +546,6 @@ const SongDetail: React.FC = () => {
       )}
       {!!song?.band_name && (
         <Text style={styles.metadata}>{song.band_name}</Text>
-      )}
-      {!!(
-        preferences.tablature?.notes.length ||
-        preferences.tablature?.rests?.length
-      ) && (
-        <Action
-          glass
-          label={t("TabOpenInPlay")}
-          icon="guitar-acoustic"
-          onPress={() => {
-            setPlaying(false);
-            setVideos(false);
-            savePosition();
-            navigation.popTo("Tabs", {
-              screen: "play",
-              params: { tablatureSongId: songId, tablatureRequest: Date.now() }
-            });
-          }}
-        />
       )}
     </>
   );
@@ -633,12 +705,49 @@ const SongDetail: React.FC = () => {
             <Action
               glass
               compact
+              label={t("SongAccompaniment")}
+              icon="music-note"
+              accessibilityLabel={t(
+                accompaniment ? "StopSongAccompaniment" : "SongAccompaniment"
+              )}
+              selected={accompaniment}
+              onPress={() => {
+                if (accompaniment) {
+                  setAccompaniment(false);
+                  return;
+                }
+                if (
+                  !preferences.tablature?.notes.length &&
+                  !preferences.strum &&
+                  !Object.values(preferences.rhythmSections).some(
+                    (section) => section.strum
+                  )
+                ) {
+                  setTools("rhythm");
+                  return;
+                }
+                setPlaying(false);
+                setVideos(false);
+                setAccompaniment(true);
+              }}
+            />
+            <Action
+              glass
+              compact
               label="⚙"
               icon="cog"
               accessibilityLabel={t("SongTools")}
               onPress={openTools}
             />
           </View>
+          {accompaniment && (
+            <SongPlayback
+              content={song.content}
+              value={preferences}
+              onPosition={playbackPosition}
+              onStopped={stopAccompaniment}
+            />
+          )}
           {tools && (
             <SongTools
               initialTab={tools}
@@ -646,6 +755,17 @@ const SongDetail: React.FC = () => {
               value={preferences}
               onChange={change}
               onClose={() => setTools(false)}
+              onOpenTabs={() => {
+                setTools(false);
+                savePosition();
+                navigation.popTo("Tabs", {
+                  screen: "play",
+                  params: {
+                    tablatureSongId: songId,
+                    tablatureRequest: Date.now()
+                  }
+                });
+              }}
             />
           )}
           {!!previewChord && (
@@ -680,6 +800,73 @@ const SongDetail: React.FC = () => {
     </ImageBackground>
   );
 };
+function PlaybackLyricLine({
+  progress,
+  onCursor,
+  onLayout,
+  ...props
+}: TextProps & {
+  progress: Animated.Value;
+  onCursor: (x: number) => void;
+}) {
+  const lines = useRef<
+    { text: string; x: number; y: number; width: number; height: number }[]
+  >([]);
+  const current = useRef(0);
+  const x = useRef(new Animated.Value(0)).current;
+  const y = useRef(new Animated.Value(0)).current;
+  const [height, setHeight] = useState(24);
+  const place = useCallback(
+    ({ value }: { value: number }) => {
+      current.current = value;
+      let remaining =
+        lines.current.reduce((sum, line) => sum + line.text.length, 0) *
+        Math.min(0.99999, value);
+      for (const line of lines.current) {
+        if (remaining >= line.text.length) {
+          remaining -= line.text.length;
+          continue;
+        }
+        const left =
+          line.x + (line.width * remaining) / Math.max(1, line.text.length);
+        x.setValue(left);
+        y.setValue(line.y);
+        onCursor(left);
+        return;
+      }
+    },
+    [x, y, onCursor]
+  );
+  useEffect(() => {
+    const id = progress.addListener(place);
+    return () => progress.removeListener(id);
+  }, [progress, place]);
+  return (
+    <View onLayout={onLayout} style={{ position: "relative" }}>
+      <Text
+        {...props}
+        onTextLayout={({ nativeEvent }) => {
+          lines.current = nativeEvent.lines;
+          setHeight(nativeEvent.lines[0]?.height ?? 24);
+          place({ value: current.current });
+        }}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={{
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: 2,
+          height,
+          backgroundColor: palette.glass.play,
+          transform: [{ translateX: x }, { translateY: y }]
+        }}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   background: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },

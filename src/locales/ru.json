@@ -1,4 +1,6 @@
 {
+  "SongAccompaniment": "Играть сопровождение",
+  "StopSongAccompaniment": "Остановить сопровождение",
   "TabShowKeypad": "Показать панель ладов",
   "TabHideKeypad": "Скрыть панель ладов",
   "GuitarZoom": "Размер гитары",

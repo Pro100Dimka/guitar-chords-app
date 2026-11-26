@@ -1,4 +1,6 @@
 {
+  "SongAccompaniment": "Play accompaniment",
+  "StopSongAccompaniment": "Stop accompaniment",
   "TabShowKeypad": "Show fret keypad",
   "TabHideKeypad": "Hide fret keypad",
   "GuitarZoom": "Guitar size",

@@ -10,6 +10,8 @@ The Nine preset follows the directions and pauses in the [Gitarik lesson](https:
 
 Imported tablature plays directly in the song's Rhythm and Practice tabs through the existing native tablature transport. Practice repeats the score; choosing a manual rhythm remains available. Opening a previously stored ASCII chart also exposes its playable score and cleaned words, while preserving the original database text and any manually edited score. The `5(9)` chord quality uses the existing sus2 voicings, and unsupported-chord notices list each name once.
 
+The song toolbar's music-note control starts or stops the selected accompaniment. A thin cursor moves within the active lyric line from the playback position, and the text follows it. Tab documents open from Rhythm or Practice rather than the song body. Charts without lyric timestamps use a practice mapping by chords and bars; they do not provide the original recording's word timings. Selecting tabs or a manual pattern preserves both documents and saves the selected accompaniment mode.
+
 ## Tempo and accompaniment from the selected chart, 25 November 2026
 
 All chord-provider adapters now import supported, explicit tempo and accompaniment instructions from their verified chart content and existing dedicated metadata blocks. The shared parser accepts one consistent tempo in the existing 40–200 BPM range, including `Темп`, `Tempo`, `BPM`, `Andamento`, a quarter-note mark and supported ChordPro declarations. Unlabelled page numbers, conflicting values and unsupported units do not become song tempo. The original chart text and source link are preserved.

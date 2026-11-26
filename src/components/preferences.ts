@@ -16,6 +16,7 @@ import {
 } from "./tablature-practice";
 
 export interface SongPreferences {
+  accompaniment?: "tabs" | "pattern";
   tablature?: Tablature;
   tabPractice?: TabPracticeSettings;
   backupId?: string;
@@ -244,6 +245,9 @@ export function normalizeSongPreferences(value: unknown): SongPreferences {
     });
   return {
     tablature: normalizeTablature(song.tablature),
+    accompaniment: (["tabs", "pattern"] as const).find(
+      (mode) => mode === song.accompaniment
+    ),
     tabPractice:
       song.tabPractice === undefined
         ? undefined
