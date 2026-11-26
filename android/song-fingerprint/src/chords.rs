@@ -11,6 +11,7 @@ pub const SAMPLE_RATE: usize = 16_000;
 pub const MAX_SAMPLES: usize = SAMPLE_RATE * 900;
 const WINDOW: usize = 8192;
 const HOP: usize = 1024;
+const CONTEXT_RADIUS: usize = 8;
 const ENVELOPE_HOP: usize = 256;
 const UNKNOWN: usize = 24;
 const NAMES: [&str; 12] = [
@@ -183,10 +184,12 @@ impl ChordAnalyzer {
         for (index, feature) in self.frames.iter().enumerate() {
             let mut chroma = [0.0; 12];
             let mut bass = [0.0; 12];
-            // A short local average suppresses strum transients without forcing
-            // beats or assuming that chord changes follow a particular song.
-            for neighbor in index.saturating_sub(3)..=(index + 3).min(self.frames.len() - 1) {
-                let weight = (4 - neighbor.abs_diff(index)) as f32;
+            // Average neighboring arpeggio notes as well as strum transients.
+            // The 512 ms radius does not assume a beat grid or song key.
+            for neighbor in index.saturating_sub(CONTEXT_RADIUS)
+                ..=(index + CONTEXT_RADIUS).min(self.frames.len() - 1)
+            {
+                let weight = (CONTEXT_RADIUS + 1 - neighbor.abs_diff(index)) as f32;
                 for pc in 0..12 {
                     chroma[pc] += self.frames[neighbor].chroma[pc] * weight;
                     bass[pc] += self.frames[neighbor].bass[pc] * weight;
@@ -343,16 +346,24 @@ fn pitch_classes(magnitudes: &[f32]) -> ([f32; 12], [f32; 12], f32) {
             continue;
         }
         let pc = (nearest as i32).rem_euclid(12) as usize;
-        // Harmonics of a single strong tone must not become a confident chord.
-        // Retain some overtone energy: fundamentals can be weak or absent.
-        let harmonic = peaks[..index].iter().any(|&(lower, strength)| {
-            let ratio = frequency / lower;
-            let integer = ratio.round();
-            (2.0..=6.0).contains(&integer)
-                && (ratio / integer).log2().abs() < 0.015
-                && strength > weight * 0.4
-        });
-        let value = weight * (1.0 - distance * 1.3) * if harmonic { 0.22 } else { 1.0 };
+        // A fifth harmonic falls near a major third and can overpower a
+        // separately played minor third. Discount it more than octave/fifth
+        // harmonics, which also reinforce real chord-root/fifth evidence.
+        let harmonic_weight = peaks[..index]
+            .iter()
+            .fold(1.0f32, |discount, &(lower, strength)| {
+                let ratio = frequency / lower;
+                let integer = ratio.round();
+                if (2.0..=6.0).contains(&integer)
+                    && (ratio / integer).log2().abs() < 0.015
+                    && strength > weight * 0.4
+                {
+                    discount.min(if integer == 5.0 { 0.05 } else { 0.22 })
+                } else {
+                    discount
+                }
+            });
+        let value = weight * (1.0 - distance * 1.3) * harmonic_weight;
         chroma[pc] += value;
         if frequency < 350.0 {
             bass[pc] += value;
@@ -578,6 +589,120 @@ mod tests {
                 (value * 5000.0) as i16
             })
             .collect()
+    }
+
+    fn normalized_pcm(values: &[f64]) -> Vec<i16> {
+        let peak = values.iter().map(|x| x.abs()).fold(0.0, f64::max);
+        values
+            .iter()
+            .map(|x| (x * 24575.0 / peak.max(1e-9)) as i16)
+            .collect()
+    }
+
+    fn plucked_arpeggio(root: usize, minor: bool, decay: f64) -> Vec<i16> {
+        let third = if minor { 3 } else { 4 };
+        let notes = [0, 7, 12, third + 12, 19, 24, 19, third + 12];
+        let mut samples = vec![0.0; SAMPLE_RATE * 6];
+        // The first identifying third arrives 1.5 s after the bass note.
+        for pluck in 0..12 {
+            let start = pluck * SAMPLE_RATE / 2;
+            let frequency =
+                440.0 * 2.0f64.powf((root + 36 + notes[pluck % 8]) as f64 / 12.0 - 69.0 / 12.0);
+            for (i, sample) in samples[start..]
+                .iter_mut()
+                .take((8.0 * decay * SAMPLE_RATE as f64) as usize)
+                .enumerate()
+            {
+                let t = i as f64 / SAMPLE_RATE as f64;
+                let envelope = (t / 0.004).min(1.0) * (-t / decay).exp();
+                *sample += envelope
+                    * (1..=5)
+                        .map(|h| {
+                            (std::f64::consts::TAU * frequency * h as f64 * t).sin()
+                                / (h as f64).powf(1.3)
+                        })
+                        .sum::<f64>();
+            }
+        }
+        normalized_pcm(&samples)
+    }
+
+    fn correct_duration(pcm: &[i16], expected: &str) -> (f64, Vec<Segment>) {
+        let mut analyzer = ChordAnalyzer::new();
+        analyzer.push(pcm).unwrap();
+        let result = analyzer.finish().unwrap();
+        let correct = result
+            .segments
+            .iter()
+            .filter(|s| s.chord == expected)
+            .map(|s| s.end - s.start)
+            .sum();
+        (correct, result.segments)
+    }
+
+    #[test]
+    fn major_and_minor_plucked_arpeggios_keep_the_delayed_third() {
+        for root in 0..12 {
+            for minor in [false, true] {
+                for decay in [0.15, 0.4] {
+                    let expected = chord_name(root + if minor { 12 } else { 0 });
+                    let (correct, segments) =
+                        correct_duration(&plucked_arpeggio(root, minor, decay), &expected);
+                    assert!(correct > 5.4, "{expected}, decay {decay}: {segments:?}");
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn wide_and_inverted_triads_retain_independently_played_thirds() {
+        for root in 0..12 {
+            for minor in [false, true] {
+                let third = if minor { 3 } else { 4 };
+                // A high major third lies near the bass's fifth harmonic.
+                // First/second inversions also guard against forcing bass=root.
+                for notes in [[0, 7, third + 24], [third, 12, 19], [7, 12, third + 12]] {
+                    for bass_gain in [1.0, 2.0] {
+                        let samples: Vec<f64> = (0..SAMPLE_RATE * 3)
+                            .map(|i| {
+                                let t = i as f64 / SAMPLE_RATE as f64;
+                                let envelope = (t / 0.006).min(1.0) * ((3.0 - t) / 0.05).min(1.0);
+                                envelope
+                                    * notes
+                                        .iter()
+                                        .enumerate()
+                                        .map(|(voice, &note)| {
+                                            let frequency = 440.0
+                                                * 2.0f64.powf(
+                                                    (root + 36 + note) as f64 / 12.0 - 69.0 / 12.0,
+                                                );
+                                            let gain = if voice == 0 { bass_gain } else { 1.0 };
+                                            gain * (1..=6)
+                                                .map(|h| {
+                                                    (std::f64::consts::TAU
+                                                        * frequency
+                                                        * h as f64
+                                                        * t
+                                                        + (voice * h) as f64 * 0.73)
+                                                        .sin()
+                                                        / (h as f64).powf(1.3)
+                                                })
+                                                .sum::<f64>()
+                                        })
+                                        .sum::<f64>()
+                            })
+                            .collect();
+                        let expected = chord_name(root + if minor { 12 } else { 0 });
+                        let (correct, segments) =
+                            correct_duration(&normalized_pcm(&samples), &expected);
+                        assert!(
+                            correct > 2.7,
+                            "{expected}, notes {notes:?}, bass {bass_gain}: {segments:?}"
+                        );
+                    }
+                }
+            }
+        }
     }
 
     #[test]

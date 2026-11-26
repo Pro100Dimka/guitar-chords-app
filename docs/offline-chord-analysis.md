@@ -24,9 +24,12 @@ suspended/diminished chords and inversions are not separate output labels.
 Key and tempo are estimates and may be absent or ambiguous (including half/double
 tempo). Segment confidence is a matching heuristic, not a calibrated probability.
 
-The 512 ms spectral window advances every 64 ms; displayed/exported times use
-hundredths of a second. This display precision does not imply 10 ms recognition
-accuracy. Adjacent estimates are merged into a continuous full-duration timeline.
+The 512 ms spectral window advances every 64 ms. Chroma averaging uses a 512 ms
+radius to retain notes played at different times in an arpeggio. Fifth-harmonic
+energy receives a stronger discount because it can imitate a major third;
+octave/fifth harmonic evidence retains its existing weight. Displayed/exported
+times use hundredths of a second. This display precision does not imply 10 ms
+recognition accuracy. Adjacent estimates form a continuous full-duration timeline.
 No beat grid, strumming pattern, lyrics alignment, or audio playback synchronization
 is claimed by this implementation.
 
@@ -57,16 +60,41 @@ CC-BY credits, and reproduction commands.
 
 | Recording | Duration | Measured result | Core time on this host |
 | --- | ---: | --- | ---: |
-| GuitarSet `00_SS3-98-C_comp`, live acoustic performance of the Canon progression | 39.18 s | 93.99% duration-weighted major/minor agreement; key C correct; 96.91 BPM versus reference 98 | 0.051 s |
-| Gloria Gaynor — I Will Survive, existing pinned recognition test recording | 198.27 s | Full-file analysis, 147 segments; estimated Am / 116.44 BPM | 0.356 s |
+| GuitarSet `00_SS3-98-C_comp`, live acoustic performance of the Canon progression | 39.18 s | 96.51% duration-weighted major/minor agreement; key C correct; 96.91 BPM versus reference 98 | 0.049 s |
+| Gloria Gaynor — I Will Survive, existing pinned recognition test recording | 198.27 s | Full-file analysis, 108 segments; estimated Am / 116.44 BPM | 0.372 s |
+| Limp Bizkit — Behind Blue Eyes, complete alternative music-video audio | 276.46 s | Full-file analysis, 102 segments; opening Em and two repeated Em passages checked; no whole-song accuracy score | 0.446 s |
 
-The main **93.99%** score counts the entire reference duration, including chord
+The main **96.51%** score counts the entire reference duration, including chord
 boundaries and unknown intervals. A separately reported score excluding 250 ms
-at each reference boundary is 97.76%; it is not substituted for the main score.
+at each reference boundary is 99.92%; it is not substituted for the main score.
 One annotated acoustic performance does not establish accuracy across other
 styles, songs, recordings, or full mixes. There is no trusted chord reference for
-the full commercial track here, so its chord accuracy is **not measured**. Its
-audio is not added to the repository or the application.
+the entire commercial recordings here, so their whole-song chord accuracy is
+**not measured**. Their audio is not added to the repository or the application.
+
+### Behind Blue Eyes correction
+
+The initial Apple preview was not the start of the song: waveform correlation
+places it at **45.03675 seconds** in the complete video recording. Its initial A
+therefore could not validate the opening chord. Running the complete recording
+then exposed a separate real error: the original core labeled the opening as E
+instead of Em. A short arpeggio context and accumulated fifth-harmonic energy
+favored a major-third estimate over the later minor-third note.
+
+The current core reports Em at **0.288–2.592**, **16.416–18.912**, and
+**32.480–34.720 seconds**. The leading 0.288 seconds remain N. These are targeted
+passage checks, not a verified transcription of the whole song. The
+[publisher's intro reference](https://dux-verlag.de/ancora_myfactory/CustomUpload/374O357O340O370O356O369O350O352O365O354O366O369O352O/D%20873_01.%20Behind%20Blue%20Eyes.pdf)
+contains Em, G6, Dsus2, Cadd9 and Asus2. The current major/minor vocabulary cannot
+represent all those qualities: the Asus2 region still receives Am/A estimates,
+including Am at 12.384–13.984 seconds. Root/fifth dyads can also acquire a major
+estimate without a separately played third.
+
+[Case evidence](offline-chord-behind-blue-eyes-validation.json) records the public
+input URL/hash, recording version, preview alignment, unmodified before/after
+opening output, reference and remaining limits. The complete current output is
+in the validation JSON above. The accompanying GuitarSet score improved from
+93.99% to 96.51%; that does not imply the same improvement on arbitrary songs.
 
 ## Verification and reproduction
 
@@ -81,9 +109,12 @@ python3 test-ios-offline-chords.py
 ```
 
 The focused JS run passed 208 tests, including 20 new service/UI cases. The Rust
-library run passed 11 tests, covering all 24 triads, slight detuning, silence,
+library run passed 13 tests, covering all 24 triads, slight detuning, silence,
 noise, single notes, chunk invariance, timeline boundaries, tempo pulses, limits,
-FFI lifecycle, and the existing fingerprint checks. The Android-target Rust
+FFI lifecycle, and the existing fingerprint checks. Two regression tests add
+48 delayed-third plucked-arpeggio cases and 144 wide/inverted-voicing cases across
+all roots and both qualities. The arpeggio regression fails on the original
+implementation. The Android-target Rust
 bridge type-checks. The production Kotlin module compiles with Android/RN
 signature stubs; lifecycle tests include deliberately blocked providers, prompt
 cancellation, bounded workers, late cleanup and retry. Stub checks are not a
