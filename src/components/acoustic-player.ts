@@ -135,7 +135,7 @@ export const acousticEngine = `function createAcousticPlayer(audio, prepared) {
   const decoded=new Map();let impulseReady,loadToken=0;
   function loadBank(bank){
     const token=++loadToken;wet.gain.value=bank.wetGain;
-    impulseReady??=decode(bank.impulse).then(buffer=>{room.buffer=buffer;}).catch(error=>{impulseReady=undefined;throw error;});
+    if(bank.wetGain>0)impulseReady??=decode(bank.impulse).then(buffer=>{room.buffer=buffer;}).catch(error=>{impulseReady=undefined;throw error;});
     return Promise.all([
       impulseReady,
       Promise.all(bank.samples.map(sample=>{

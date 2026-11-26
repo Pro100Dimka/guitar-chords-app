@@ -2,114 +2,54 @@ import AVFoundation
 import Foundation
 import React
 import UIKit
-
-private final class RecognitionCapture {
-  let allowsBackground: Bool
-  private let lock = NSLock()
-  private var stopped = false
-  private var samples = [Int16]()
-  private var task: URLSessionDataTask?
-  private var fileCoordinator: NSFileCoordinator?
-  private var readExpired = false
-
-  init(allowsBackground: Bool = false) { self.allowsBackground = allowsBackground }
-
-  var fileReadExpired: Bool {
-    lock.lock(); defer { lock.unlock() }
-    return readExpired
-  }
-  func attach(_ coordinator: NSFileCoordinator) {
-    lock.lock()
-    fileCoordinator = coordinator
-    let cancel = stopped
-    lock.unlock()
-    if cancel { coordinator.cancel() }
-  }
-  func finishReading() {
-    lock.lock(); defer { lock.unlock() }
-    fileCoordinator = nil
-  }
-  func expireReading() {
-    lock.lock()
-    let coordinator = fileCoordinator
-    if coordinator != nil { readExpired = true }
-    lock.unlock()
-    coordinator?.cancel()
-  }
-  private var inputFrames: Int64 = 0
-  private var outputFrames: Int64 = 0
-  private var sampleSum: Float = 0
-  private var sampleCount = 0
-
-  var cancelled: Bool {
-    lock.lock(); defer { lock.unlock() }
-    return stopped
-  }
-  func cancel() {
-    lock.lock()
-    stopped = true
-    let pending = task
-    let coordinator = fileCoordinator
-    lock.unlock()
-    pending?.cancel()
-    coordinator?.cancel()
-  }
-  func attach(_ value: URLSessionDataTask) {
-    lock.lock(); defer { lock.unlock() }
-    task = value
-    if stopped { value.cancel() }
-  }
-  func append(_ buffer: AVAudioPCMBuffer) {
-    guard let channels = buffer.floatChannelData else { return }
-    lock.lock(); defer { lock.unlock() }
-    guard !stopped, samples.count < 320000 else { return }
-    let rate = buffer.format.sampleRate
-    for frame in 0..<Int(buffer.frameLength) {
-      var value: Float = 0
-      for channel in 0..<Int(buffer.format.channelCount) { value += channels[channel][frame] }
-      value /= Float(buffer.format.channelCount)
-      sampleSum += value
-      sampleCount += 1
-      inputFrames += 1
-      let count = Int64(Double(inputFrames) * 16000 / rate)
-      let previous = outputFrames
-      while outputFrames < count, samples.count < 320000 {
-        let average = sampleSum / Float(sampleCount)
-        samples.append(Int16(max(-32767, min(32767, average.isFinite ? average * 32767 : 0))))
-        outputFrames += 1
-      }
-      if previous < outputFrames { sampleSum = 0; sampleCount = 0 }
-    }
-  }
-  func snapshot(_ count: Int) -> [Int16]? {
-    lock.lock(); defer { lock.unlock() }
-    return samples.count >= count ? Array(samples.suffix(min(samples.count, 192000))) : nil
-  }
-}
+import UserNotifications
 
 @objc(SongRecognition)
 final class SongRecognition: NSObject, RCTBridgeModule {
+  static weak var controlInstance: SongRecognition?
   static func moduleName() -> String! { "SongRecognition" }
   @objc static func requiresMainQueueSetup() -> Bool { false }
   private let control = DispatchQueue(label: "song.recognition.control")
   private let worker = DispatchQueue(label: "song.recognition.worker", qos: .userInitiated)
   @objc var methodQueue: DispatchQueue! { control }
   private var active: RecognitionCapture?
-  private var retryAfter = Date.distantPast
   private var observers = [NSObjectProtocol]()
-  private var cached = [String: (Date, [String: Any])]()
+  private let fingerprint = SongFingerprintRecognizer()
 
   override init() {
     super.init()
+    Self.controlInstance = self
     for name in [AVAudioSession.interruptionNotification, UIApplication.didEnterBackgroundNotification] {
-      observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] _ in
+      observers.append(NotificationCenter.default.addObserver(forName: name, object: nil, queue: nil) { [weak self] notification in
         self?.control.async { [weak self] in
           guard let capture = self?.active else { return }
-          // ReplayKit owns the independent audio session while the user visits the player.
-          if !capture.allowsBackground { capture.cancel() }
+          if name == AVAudioSession.interruptionNotification {
+            if !capture.ignoresAudioInterruptions,
+               let type = notification.userInfo?[AVAudioSessionInterruptionTypeKey] as? UInt,
+               type == AVAudioSession.InterruptionType.began.rawValue { capture.cancel() }
+          } else if !capture.allowsBackground { capture.cancel() }
         }
       })
     }
+    observers.append(NotificationCenter.default.addObserver(forName: RecognitionNotice.received, object: nil, queue: nil) { [weak self] notification in
+      guard let payload = notification.userInfo else { return }
+      self?.control.async { [weak self] in
+        guard let capture = self?.active, capture.ignoresAudioInterruptions else { return }
+        capture.receivePlayback(payload)
+      }
+    })
+    #if os(iOS)
+    observers.append(NotificationCenter.default.addObserver(forName: UIApplication.didBecomeActiveNotification, object: nil, queue: nil) { [weak self] _ in
+      self?.control.async { [weak self] in
+        guard let capture = self?.active, capture.ignoresAudioInterruptions else { return }
+        UNUserNotificationCenter.current().getDeliveredNotifications { notifications in
+          if let latest = notifications.filter({ $0.request.content.userInfo["recognitionPlayback"] as? Bool == true }).max(by: { $0.date < $1.date }) {
+            capture.receivePlayback(latest.request.content.userInfo)
+          }
+        }
+      }
+    })
+    #endif
   }
   deinit {
     active?.cancel()
@@ -117,16 +57,31 @@ final class SongRecognition: NSObject, RCTBridgeModule {
   }
 
   @objc func cancel(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    if active?.ignoresAudioInterruptions == true { RecognitionNotice.cancelCapture() }
     active?.cancel()
     worker.async { self.control.async { resolve(nil) } }
   }
 
   @objc func recognizeMicrophone(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
+    startMicrophone(resolve, rejecter: reject, allowsBackground: false)
+  }
+
+  func recognizeFromControl() async throws -> [String: Any]? {
+    try await withCheckedThrowingContinuation { continuation in
+      control.async {
+        self.startMicrophone({ value in continuation.resume(returning: value as? [String: Any]) }, rejecter: { code, message, error in
+          continuation.resume(throwing: error ?? NSError(domain: code ?? "RecognitionFailed", code: 1, userInfo: [NSLocalizedDescriptionKey: message ?? "Recognition failed"]))
+        }, allowsBackground: true)
+      }
+    }
+  }
+
+  private func startMicrophone(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock, allowsBackground: Bool) {
     guard active == nil else { reject("Busy", "RecognitionBusy", nil); return }
     guard AVAudioSession.sharedInstance().recordPermission == .granted else {
       reject("MicrophonePermissionDenied", "MicrophonePermissionDenied", nil); return
     }
-    let capture = RecognitionCapture()
+    let capture = RecognitionCapture(allowsBackground: allowsBackground)
     active = capture
     worker.async {
       var engine: AVAudioEngine?
@@ -151,7 +106,7 @@ final class SongRecognition: NSObject, RCTBridgeModule {
         try self.check(capture)
         try input.start()
         let deadline = Date().addingTimeInterval(23)
-        for seconds in [3, 7, 12, 20] {
+        for seconds in allowsBackground ? [7] : [3, 7, 12, 20] {
           var samples: [Int16]?
           while samples == nil {
             try self.check(capture)
@@ -177,60 +132,74 @@ final class SongRecognition: NSObject, RCTBridgeModule {
   }
 
   #if os(iOS)
+  @objc func getRecognitionSource(_ resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
+    resolve(AVAudioSession.sharedInstance().isOtherAudioPlaying ? "playback" : "mic")
+  }
+
   @objc func consumeLaunchURL(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
     DispatchQueue.main.async { resolve(RecognitionLaunch.consume()) }
   }
 
+  @objc func consumeResult(_ requestId: String, resolver resolve: RCTPromiseResolveBlock, rejecter reject: RCTPromiseRejectBlock) {
+    resolve(RecognitionLaunch.consumeSong(requestId))
+  }
+
   @objc func recognizePlayback(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock) {
     guard active == nil else { reject("Busy", "RecognitionBusy", nil); return }
-    let store: PlaybackCaptureStore
-    let request: PlaybackCaptureStore.Request
-    do { store = try PlaybackCaptureStore.shared(); request = try store.begin() }
-    catch { reject("PlaybackCaptureUnavailable", "PlaybackCaptureUnavailable", error); return }
-    let capture = RecognitionCapture(allowsBackground: true)
+    guard PlaybackCaptureViewController.broadcastExtension != nil else {
+      reject("PlaybackCaptureUnavailable", "PlaybackCaptureUnavailable", nil); return
+    }
+    let capture = RecognitionCapture(allowsBackground: true, ignoresAudioInterruptions: true)
     active = capture
-    // The system requires the user's tap on its visible broadcast picker.
-    // The upload extension keeps recording while this app is suspended.
+    let expires = Date().addingTimeInterval(180)
+    let failureId = UUID().uuidString
+    let fail: (String) -> Void = { code in
+      capture.receivePlayback(["recognitionPlayback": true, "recognitionStartedAt": capture.createdAt.timeIntervalSince1970, "recognitionRequestId": failureId, "recognitionError": code])
+    }
     let sheet = DispatchQueue.main.sync { PlaybackCaptureViewController() }
     DispatchQueue.main.async {
-      sheet.onCancel = { capture.cancel() }
-      guard !capture.cancelled,
-            let scene = UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first(where: { $0.activationState == .foregroundActive }),
-            var presenter = scene.windows.first(where: { $0.isKeyWindow })?.rootViewController else { capture.cancel(); return }
-      while let next = presenter.presentedViewController { presenter = next }
-      presenter.present(sheet, animated: true)
+      sheet.onCancel = { RecognitionNotice.cancelCapture(); capture.cancel() }
+      func presentCapture(_ attempt: Int = 0) {
+        guard !capture.cancelled else { return }
+        guard attempt < 50 else { fail("PlaybackCaptureFailed"); return }
+        let scene = UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first { $0.activationState == .foregroundActive }
+        var presenter = scene?.windows.first { $0.isKeyWindow }?.rootViewController
+        while let next = presenter?.presentedViewController { presenter = next }
+        guard let presenter = presenter, !presenter.isBeingDismissed, !presenter.isBeingPresented, presenter.transitionCoordinator == nil else {
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { presentCapture(attempt + 1) }; return
+        }
+        presenter.present(sheet, animated: true)
+      }
+      UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { granted, _ in
+        DispatchQueue.main.async {
+          if granted { presentCapture() } else { fail("PlaybackNotificationsDenied") }
+        }
+      }
     }
     worker.async {
       var result: [String: Any]?
       var failure: Error?
       do {
-        var ready: PlaybackCaptureStore.Result?
-        while ready == nil {
+        var payload = capture.playbackResult
+        while payload == nil {
           try self.check(capture)
-          guard Date() < request.expires else { throw self.error("PlaybackCaptureTimeout") }
-          ready = try store.result(request)
-          if ready == nil {
-            Thread.sleep(forTimeInterval: 0.1)
-          }
-        }
-        if let code = ready?.error {
-          let known = ["PlaybackCaptureUnavailable", "PlaybackAudioUnavailable", "PlaybackCaptureFailed", "Cancelled"]
-          throw self.error(known.contains(code) ? code : "PlaybackCaptureFailed")
+          guard Date() < expires else { throw self.error("PlaybackCaptureTimeout") }
+          Thread.sleep(forTimeInterval: 0.1)
+          payload = capture.playbackResult
         }
         try self.check(capture)
-        let samples = try store.samples(request)
-        store.remove(request)
-        DispatchQueue.main.async { sheet.finish() }
-        result = try self.identify(samples, capture)
+        if let code = payload?["recognitionError"] as? String, !code.isEmpty { throw self.error(code) }
+        result = RecognitionNotice.song(payload ?? [:])
+        if let result = result, let id = payload?["recognitionRequestId"] as? String { RecognitionLaunch.saveSong(result, requestId: id) }
       } catch { failure = error }
-      store.remove(request)
+      RecognitionNotice.cancelCapture()
       DispatchQueue.main.async { sheet.finish() }
       self.control.async {
         if self.active === capture { self.active = nil }
         if capture.cancelled { reject("Cancelled", "Cancelled", nil) }
         else if let failure = failure {
           let code = (failure as NSError).domain
-          let known = ["PlaybackCaptureUnavailable", "PlaybackCaptureTimeout", "PlaybackAudioUnavailable", "PlaybackCaptureFailed", "Cancelled", "NetworkError", "RateLimited", "ServiceUnavailable", "AudioTooShort"]
+          let known = ["PlaybackCaptureUnavailable", "PlaybackCaptureTimeout", "PlaybackAudioUnavailable", "PlaybackCaptureFailed", "PlaybackNotificationsDenied", "Cancelled", "NetworkError", "RateLimited", "ServiceUnavailable", "AudioTooShort"]
           let message = known.contains(code) ? code : "PlaybackCaptureFailed"
           reject(message, message, failure)
         } else { resolve(result) }
@@ -309,79 +278,6 @@ final class SongRecognition: NSObject, RCTBridgeModule {
     if capture.fileReadExpired { throw error("FileReadTimeout") }
   }
   private func identify(_ samples: [Int16], _ capture: RecognitionCapture) throws -> [String: Any]? {
-    try check(capture)
-    guard let pointer = samples.withUnsafeBufferPointer({ freetune_fingerprint($0.baseAddress, UInt($0.count)) }) else {
-      throw error("AudioTooShort")
-    }
-    defer { freetune_fingerprint_free(pointer) }
-    let signature = String(cString: pointer)
-    if let (until, result) = cached[signature], until > Date() { return result }
-    guard Date() >= retryAfter else { throw error("RateLimited") }
-    let url = URL(string: "https://amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag/\(UUID().uuidString)/\(UUID().uuidString)?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3&sharehub=true&hubv5minorversion=v5.1&hidelb=true&video=v3")!
-    var request = URLRequest(url: url, timeoutInterval: 15)
-    request.httpMethod = "POST"
-    for (name, value) in ["Content-Type": "application/json", "X-Shazam-Platform": "IPHONE", "X-Shazam-AppVersion": "14.1.0", "Accept-Language": "en-US"] {
-      request.setValue(value, forHTTPHeaderField: name)
-    }
-    request.httpBody = try JSONSerialization.data(withJSONObject: [
-      "timezone": TimeZone.current.identifier, "timestamp": Int(Date().timeIntervalSince1970 * 1000),
-      "signature": ["samplems": samples.count * 1000 / 16000, "uri": signature], "geolocation": [:], "context": [:]
-    ])
-    let response = RecognitionResponse()
-    let task = URLSession.shared.dataTask(with: request) { data, value, failure in response.finish(data, value, failure) }
-    capture.attach(task)
-    task.resume()
-    guard response.ready.wait(timeout: .now() + 16) == .success else {
-      task.cancel(); throw error("NetworkError")
-    }
-    try check(capture)
-    if response.failure != nil { throw error("NetworkError") }
-    guard let http = response.response as? HTTPURLResponse else { throw error("NetworkError") }
-    if http.statusCode == 429 {
-      retryAfter = Date().addingTimeInterval(min(3600, max(1, Double(http.value(forHTTPHeaderField: "Retry-After") ?? "") ?? 30)))
-      throw error("RateLimited")
-    }
-    guard (200..<300).contains(http.statusCode), let data = response.data else { throw error("ServiceUnavailable") }
-    guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
-      let track = json["track"] as? [String: Any],
-      let title = track["title"] as? String, !title.isEmpty,
-      let artist = track["subtitle"] as? String, !artist.isEmpty else { return nil }
-    var result: [String: Any] = ["title": title, "artist": artist, "source": "Shazam"]
-    result["cover"] = (track["images"] as? [String: Any])?["coverart"]
-    result["url"] = track["url"]
-    result["genre"] = (track["genres"] as? [String: Any])?["primary"]
-    for key in ["bpm", "tempo"] {
-      if let tempo = track[key] as? Double, tempo.isFinite, (40...200).contains(tempo) { result["tempo"] = tempo; break }
-    }
-    if let duration = track["duration"] as? Double, duration.isFinite, duration > 0, duration <= 86400 { result["duration"] = duration }
-    for section in track["sections"] as? [[String: Any]] ?? [] {
-      if section["type"] as? String == "LYRICS", let lines = section["text"] as? [String] {
-        let lyrics = lines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
-        if !lyrics.isEmpty && lyrics.count <= 200000 {
-          result["lyrics"] = lyrics
-          result["lyricsCredit"] = String((section["footer"] as? String ?? "").prefix(2000))
-        }
-      }
-      for entry in section["metadata"] as? [[String: Any]] ?? [] {
-        let label = (entry["title"] as? String ?? "").lowercased()
-        if label == "album" { result["album"] = entry["text"] }
-        if ["bpm", "tempo", "темп"].contains(label.trimmingCharacters(in: .whitespacesAndNewlines)), let text = entry["text"] as? String,
-          let tempo = Double(text.replacingOccurrences(of: "bpm", with: "", options: .caseInsensitive).trimmingCharacters(in: .whitespacesAndNewlines)), tempo.isFinite, (40...200).contains(tempo) { result["tempo"] = tempo }
-      }
-    }
-    if cached.count >= 20 { cached.removeAll() }
-    cached[signature] = (Date().addingTimeInterval(600), result)
-    return result
-  }
-}
-
-private final class RecognitionResponse {
-  let ready = DispatchSemaphore(value: 0)
-  var data: Data?
-  var response: URLResponse?
-  var failure: Error?
-  func finish(_ data: Data?, _ response: URLResponse?, _ failure: Error?) {
-    self.data = data; self.response = response; self.failure = failure
-    ready.signal()
+    try fingerprint.identify(samples, cancelled: { capture.cancelled }, attach: { capture.attach($0) })
   }
 }

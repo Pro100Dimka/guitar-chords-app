@@ -3,30 +3,33 @@ import UIKit
 
 /// The actual system button remains visible; starting capture always requires the person's tap.
 final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentationControllerDelegate {
+  static var broadcastExtension: String? {
+    guard let directory = Bundle.main.builtInPlugInsURL,
+          let plugins = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) else { return nil }
+    return plugins.compactMap { Bundle(url: $0) }.first {
+      ($0.infoDictionary?["NSExtension"] as? [String: Any])?["NSExtensionPointIdentifier"] as? String == "com.apple.broadcast-services-upload"
+    }?.bundleIdentifier
+  }
   var onCancel: (() -> Void)?
   private var completed = false
-  private static var language: String { Locale.preferredLanguages.first?.prefix(2).lowercased() ?? "en" }
-  static func text(_ en: String, _ ru: String, _ uk: String) -> String {
-    language == "ru" ? ru : language == "uk" ? uk : en
-  }
   override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = .systemBackground
     let title = UILabel()
     title.font = .preferredFont(forTextStyle: .title2)
-    title.text = Self.text("Recognize phone audio", "Распознать звук телефона", "Розпізнати звук телефона")
+    title.text = RecognitionNotice.text("Recognize phone audio", "Распознать звук телефона", "Розпізнати звук телефона")
     let instructions = UILabel()
-    instructions.text = Self.text(
-      "Tap the broadcast button and choose Start Broadcast. Return to your player for up to 20 seconds, then return to FreeTune. Only audio is used; protected audio may be unavailable.",
-      "Нажмите кнопку трансляции и выберите «Начать вещание». Перейдите к плееру на 20 секунд, затем вернитесь в FreeTune. Используется только звук; защищённое аудио может быть недоступно.",
-      "Натисніть кнопку трансляції та виберіть «Почати трансляцію». Перейдіть до плеєра на 20 секунд, потім поверніться у FreeTune. Використовується лише звук; захищене аудіо може бути недоступне.")
+    instructions.text = RecognitionNotice.text(
+      "Tap the broadcast button and choose Start Broadcast, then return to your player. FreeTune will notify you of the result. Tap a found song to open its form. Only audio is used; protected audio may be unavailable.",
+      "Нажмите кнопку трансляции и выберите «Начать вещание», затем вернитесь к плееру. FreeTune сообщит результат уведомлением. Нажмите на найденную песню, чтобы открыть форму. Используется только звук; защищённое аудио может быть недоступно.",
+      "Натисніть кнопку трансляції та виберіть «Почати трансляцію», потім поверніться до плеєра. FreeTune повідомить результат сповіщенням. Натисніть знайдену пісню, щоб відкрити форму. Використовується лише звук; захищене аудіо може бути недоступне.")
     instructions.font = .preferredFont(forTextStyle: .body)
     for label in [title, instructions] { label.numberOfLines = 0; label.textAlignment = .center; label.adjustsFontForContentSizeCategory = true }
     let picker = RPSystemBroadcastPickerView(frame: .zero)
-    picker.preferredExtension = "com.freetune.PlaybackBroadcast"
+    picker.preferredExtension = Self.broadcastExtension
     picker.showsMicrophoneButton = false
     let cancel = UIButton(type: .system)
-    cancel.setTitle(Self.text("Cancel", "Отмена", "Скасувати"), for: .normal)
+    cancel.setTitle(RecognitionNotice.text("Cancel", "Отмена", "Скасувати"), for: .normal)
     cancel.addTarget(self, action: #selector(cancelCapture), for: .touchUpInside)
     let stack = UIStackView(arrangedSubviews: [title, instructions, picker, cancel])
     stack.axis = .vertical; stack.spacing = 24; stack.alignment = .center
@@ -49,6 +52,10 @@ final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentat
       picker.widthAnchor.constraint(equalToConstant: 64), picker.heightAnchor.constraint(equalToConstant: 64),
       cancel.heightAnchor.constraint(greaterThanOrEqualToConstant: 44)
     ])
+    presentationController?.delegate = self
+  }
+  override func viewDidAppear(_ animated: Bool) {
+    super.viewDidAppear(animated)
     presentationController?.delegate = self
   }
   @objc private func cancelCapture() { if !completed { completed = true; onCancel?() }; dismiss(animated: true) }

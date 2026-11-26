@@ -76,13 +76,6 @@ const articles: {
     picture: "recognize"
   },
   {
-    id: "import",
-    section: "library",
-    icon: "file-document-outline",
-    picture: "editor"
-  },
-  { id: "audioFile", section: "library", icon: "file-music-outline" },
-  {
     id: "editing",
     section: "library",
     icon: "text-box-edit-outline",

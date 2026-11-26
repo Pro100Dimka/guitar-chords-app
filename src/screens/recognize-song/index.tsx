@@ -27,9 +27,10 @@ import type { NavigationProp, RootStackParamList } from "../../router";
 import type { FormValues } from "../create-song-chords";
 import {
   cancelRecognition,
-  recognizeAudioFile,
+  consumeRecognitionResult,
   recognizeMicrophone,
   recognizePlayback,
+  recognizeSong,
   requestQuickSettingsTile,
   RecognizedSong
 } from "../../components/song-autofill/recognition";
@@ -43,8 +44,6 @@ import {
 } from "../../components/song-autofill/lyrics";
 import {
   fileCanceled,
-  importedSong,
-  readLibraryFile,
   readRemoteSongCover
 } from "../../components/library-files";
 import initialValues from "../create-song-chords/formik/initial-values";
@@ -53,15 +52,20 @@ import { applyRecognitionDraft } from "../../components/song-autofill/draft";
 export default function RecognizeSong() {
   const { params } = useRoute<RouteProp<RootStackParamList, "recognizeSong">>();
   const mode =
-    params?.mode && ["mic", "playback", "file", "text"].includes(params.mode)
+    params?.mode && ["auto", "mic", "playback", "result"].includes(params.mode)
       ? params.mode
-      : "mic";
+      : "auto";
   const autoStart =
-    params?.autoStart === true && ["mic", "playback"].includes(params.mode);
+    params?.autoStart === true &&
+    ["auto", "mic", "playback", "result"].includes(params.mode);
   const launchRequest = `${mode}:${params?.requestId ?? "initial"}`;
   const handledLaunch = useRef<string | undefined>(undefined);
-  const launch = useRef({ autoStart, launchRequest });
-  launch.current = { autoStart, launchRequest };
+  const launch = useRef({
+    autoStart,
+    launchRequest,
+    requestId: params?.requestId
+  });
+  launch.current = { autoStart, launchRequest, requestId: params?.requestId };
   const focused = useRef(false);
   const navigation = useNavigation<NavigationProp>();
   const { t } = useTranslation();
@@ -84,6 +88,9 @@ export default function RecognizeSong() {
     };
   }, []);
   const [busy, setBusy] = useState(false);
+  const [source, setSource] = useState<"mic" | "playback">(
+    mode === "playback" ? "playback" : "mic"
+  );
   const [message, setMessage] = useState("");
   const [found, setFound] = useState<RecognizedSong | null>(null);
   const [retrySong, setRetrySong] = useState<RecognizedSong | null>(null);
@@ -168,7 +175,7 @@ export default function RecognizeSong() {
     const subscription = AppState.addEventListener("change", (state) => {
       if (
         state === "background" &&
-        mode === "mic" &&
+        source === "mic" &&
         running.current &&
         !awaitingMicStart.current
       ) {
@@ -176,7 +183,7 @@ export default function RecognizeSong() {
       }
     });
     return () => subscription.remove();
-  }, [mode, stop, t]);
+  }, [source, stop]);
   const start = useCallback(
     async (identified?: RecognizedSong) => {
       if (running.current) return;
@@ -197,33 +204,42 @@ export default function RecognizeSong() {
           identified
             ? "AddSongPreparing"
             : {
+                auto: "AutofillListening",
                 mic: "AutofillListening",
                 playback: "AutofillListeningPlayback",
-                file: "AutofillIdentifying",
-                text: "FileLoading"
+                result: "AddSongPreparing"
               }[mode]
         )
       );
       try {
-        if (mode === "text") {
-          const file = await readLibraryFile("song", abort.signal);
-          const imported = importedSong(file.text, file.name);
-          if (request === generation.current)
-            navigation.replace("createSong", {
-              draft: { ...initialValues, ...imported }
-            });
-          return;
-        }
-        awaitingMicStart.current = !identified && mode === "mic";
+        awaitingMicStart.current =
+          !identified && ["auto", "mic"].includes(mode);
+        const captureReady = () => {
+          awaitingMicStart.current = false;
+        };
         const result =
           identified ??
-          (await (mode === "mic"
-            ? recognizeMicrophone(abort.signal, () => {
-                awaitingMicStart.current = false;
-              })
-            : mode === "playback"
-              ? recognizePlayback(abort.signal)
-              : recognizeAudioFile(abort.signal)));
+          (await {
+            auto: () =>
+              recognizeSong(
+                abort.signal,
+                (selected) => {
+                  setSource(selected);
+                  setMessage(
+                    t(
+                      selected === "playback"
+                        ? "AutofillListeningPlayback"
+                        : "AutofillListening"
+                    )
+                  );
+                },
+                captureReady
+              ),
+            mic: () => recognizeMicrophone(abort.signal, captureReady),
+            playback: () => recognizePlayback(abort.signal),
+            result: () =>
+              consumeRecognitionResult(launch.current.requestId ?? "")
+          }[mode]());
         if (request !== generation.current) return;
         if (!result) {
           setMessage(t("AutofillNoAudioMatch"));
@@ -300,7 +316,7 @@ export default function RecognizeSong() {
           return;
         }
         const selected =
-          candidates.length > 1
+          candidates.length > 1 && !["auto", "result"].includes(mode)
             ? await new Promise<LyricsOption | undefined>((resolve) => {
                 versionResolver.current = resolve;
                 setVersions(candidates);
@@ -338,11 +354,8 @@ export default function RecognizeSong() {
         draftReady.current = true;
         setDraft(next);
         setMessage(t("AddSongTapResult"));
-        if (mode === "file")
-          navigation.replace("createSong", {
-            draft: next,
-            notice
-          });
+        if (["auto", "result"].includes(mode))
+          navigation.replace("createSong", { draft: next, notice });
       } catch (error) {
         if (request !== generation.current) return;
         if (!draftReady.current) setFound(null);
@@ -366,7 +379,9 @@ export default function RecognizeSong() {
           PlaybackCaptureCancelled: "AutofillSearchCancelled",
           PlaybackCaptureTimeout: "AutofillPlaybackTimeout",
           PlaybackAudioUnavailable: "AutofillPlaybackNoAudio",
-          PlaybackCaptureFailed: "AutofillPlaybackFailed"
+          PlaybackCaptureFailed: "AutofillPlaybackFailed",
+          PlaybackNotificationsDenied: "AutofillPlaybackNotificationsDenied",
+          RecognitionResultExpired: "AutofillResultExpired"
         };
         const code =
           typeof error === "object" && error !== null && "code" in error
@@ -403,7 +418,7 @@ export default function RecognizeSong() {
               key: errorMessage
             }
           ].find((item) => item.matches)?.key ??
-          (mode === "text" ? "FileReadError" : "AutofillRecognitionError");
+          "AutofillRecognitionError";
         setMessage(t(key));
       } finally {
         if (request === generation.current) {
@@ -421,9 +436,7 @@ export default function RecognizeSong() {
       let activeFocus = true;
       const pending = launch.current;
       const shouldStart =
-        mode === "file" ||
-        mode === "text" ||
-        (pending.autoStart && handledLaunch.current !== pending.launchRequest);
+        pending.autoStart && handledLaunch.current !== pending.launchRequest;
       if (shouldStart) {
         handledLaunch.current = pending.launchRequest;
         void (cancellation.current ?? Promise.resolve()).then(() => {
@@ -435,7 +448,7 @@ export default function RecognizeSong() {
         focused.current = false;
         void stop();
       };
-    }, [mode, start, stop])
+    }, [start, stop])
   );
   useEffect(() => {
     if (
@@ -448,23 +461,17 @@ export default function RecognizeSong() {
     if (!running.current) void start();
   }, [autoStart, launchRequest, start]);
   const icon = {
+    auto: "music-note-search",
     mic: "microphone",
     playback: "cellphone-sound",
-    file: "file-music-outline",
-    text: "file-document-outline"
+    result: "music-note-search"
   }[mode];
   return (
     <ScrollView contentContainerStyle={styles.content}>
       {!found && (
         <>
           <Text accessibilityRole="header" style={styles.title}>
-            {t(
-              mode === "playback"
-                ? "AddSongPlaybackTitle"
-                : mode === "mic"
-                  ? "AddSongListenTitle"
-                  : "AddSongFileTitle"
-            )}
+            {t("AutofillRecognize")}
           </Text>
           <View style={[styles.orbit, { width: size + 54, height: size + 54 }]}>
             <Animated.View
@@ -498,6 +505,12 @@ export default function RecognizeSong() {
                 if (cancellation.current) return;
                 if (busy) {
                   stop();
+                } else if (mode === "result") {
+                  navigation.replace("recognizeSong", {
+                    mode: "auto",
+                    autoStart: true,
+                    requestId: String(Date.now())
+                  });
                 } else void start();
               }}
               style={({ pressed }) => [
@@ -523,7 +536,7 @@ export default function RecognizeSong() {
           <Text accessibilityLiveRegion="polite" style={styles.status}>
             {message || t("AddSongStart")}
           </Text>
-          {mode === "playback" && (
+          {source === "playback" && (
             <Text style={styles.hint}>
               {t(
                 Platform.OS === "ios"
@@ -547,7 +560,7 @@ export default function RecognizeSong() {
               />
             </>
           )}
-          {mode === "playback" && !busy && (
+          {!busy && (
             <>
               {Platform.OS === "android" && Number(Platform.Version) >= 33 ? (
                 <Action

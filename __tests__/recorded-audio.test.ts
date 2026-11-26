@@ -74,7 +74,10 @@ test("recorded strokes rotate, keep original speed and schedule without new deco
   const audio = {
     currentTime: 0,
     destination: {},
-    decodeAudioData: async () => ({ duration: 8.4, id: decoded++ }),
+    decodeAudioData: async (bytes: ArrayBuffer) => {
+      if (bytes.byteLength === 46) throw new Error("Unsupported short impulse");
+      return { duration: 8.4, id: decoded++ };
+    },
     createGain: () => ({ ...connection(), gain: parameter() }),
     createConvolver: () => ({ ...connection(), buffer: null }),
     createDynamicsCompressor: () => ({
@@ -106,7 +109,7 @@ test("recorded strokes rotate, keep original speed and schedule without new deco
     notes = notesFor("Am"),
     bank = acousticBank(notes);
   await engine.loadBank({ ...bank, samples: [] });
-  expect(decoded).toBe(7);
+  expect(decoded).toBe(6);
   for (let i = 0; i < 4; i++)
     engine.stroke(notes, "D", i, 0, false, "D-------");
   engine.stroke(notes, "U", 4, 0, false, "U-------");
@@ -117,7 +120,7 @@ test("recorded strokes rotate, keep original speed and schedule without new deco
   expect(sources.map((source) => source.start.mock.calls[0][0])).toEqual([
     0, 1, 2, 3, 4
   ]);
-  expect(decoded).toBe(7);
+  expect(decoded).toBe(6);
   expect(sources.every((source) => !source.stop.mock.calls.length)).toBe(true);
   engine.stroke(notes, "X", 5, 0, false, "X-------");
   expect(sources.at(-1).start).toHaveBeenCalledWith(5);

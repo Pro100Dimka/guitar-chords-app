@@ -1,32 +1,48 @@
+import ActivityKit
 import AppIntents
 import SwiftUI
 import WidgetKit
 
 @main
 struct RecognitionControls: WidgetBundle {
-  var body: some Widget { PhoneAudioControl(); MicrophoneControl() }
+  var body: some Widget { RecognitionControl(); RecognitionActivity() }
 }
 
-struct PhoneAudioControl: ControlWidget {
+struct RecognitionControl: ControlWidget {
   var body: some ControlWidgetConfiguration {
     StaticControlConfiguration(kind: "com.freetune.recognition.playback") {
-      ControlWidgetButton(action: OpenRecognitionIntent(target: .playback)) {
-        Label("Phone audio", systemImage: "waveform")
+      ControlWidgetButton(action: RecognizeSongIntent()) {
+        Label("Recognize", systemImage: "waveform")
       }
     }
-    .displayName("Recognize phone audio")
-    .description("Recognize phone audio and find lyrics with chords.")
+    .displayName("Recognize")
+    .description("Listen to a song and find its chords.")
   }
 }
 
-struct MicrophoneControl: ControlWidget {
-  var body: some ControlWidgetConfiguration {
-    StaticControlConfiguration(kind: "com.freetune.recognition.microphone") {
-      ControlWidgetButton(action: OpenRecognitionIntent(target: .mic)) {
-        Label("Microphone", systemImage: "mic")
+struct RecognitionActivity: Widget {
+  var body: some WidgetConfiguration {
+    ActivityConfiguration(for: RecognitionActivityAttributes.self) { _ in
+      HStack {
+        Image(systemName: "waveform").symbolEffect(.variableColor.iterative)
+        Text("Listening…")
+      }
+      .padding()
+      .foregroundStyle(.yellow)
+      .activityBackgroundTint(.black)
+      .activitySystemActionForegroundColor(.yellow)
+    } dynamicIsland: { _ in
+      DynamicIsland {
+        DynamicIslandExpandedRegion(.center) {
+          Label("Listening…", systemImage: "waveform")
+        }
+      } compactLeading: {
+        Image(systemName: "waveform").symbolEffect(.variableColor.iterative)
+      } compactTrailing: {
+        Text("FreeTune")
+      } minimal: {
+        Image(systemName: "waveform").symbolEffect(.variableColor.iterative)
       }
     }
-    .displayName("Recognize with microphone")
-    .description("Listen to a song nearby and find lyrics with chords.")
   }
 }

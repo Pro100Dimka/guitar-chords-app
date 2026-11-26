@@ -459,7 +459,6 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
     }
     @objc func playPreparedGuitar(_ key: String) {
         guard canPlayInstrument, recorder == nil, let audio = preparedStrings[key] else { return }
-        let wasActive = stringSessionActive
         let previous = cue
         cue = nil
         if previous === audio { previous?.stop() }
@@ -472,12 +471,10 @@ class PerformanceAudio: RCTEventEmitter, AVAudioPlayerDelegate {
         stopPlayback()
         do {
             let session = AVAudioSession.sharedInstance()
-            if !wasActive || session.category != .playback {
-                if session.category != .playAndRecord {
-                    try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
-                }
-                try session.setActive(true)
+            if session.category != .playAndRecord {
+                try session.setCategory(.playback, mode: .default, options: [.mixWithOthers])
             }
+            try session.setActive(true)
             stringSessionActive = true
             audio.currentTime = 0
             audio.setVolume(1, fadeDuration: 0)

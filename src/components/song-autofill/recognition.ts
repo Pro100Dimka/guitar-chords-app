@@ -20,6 +20,8 @@ interface NativeRecognizer {
   recognizePlayback?(): Promise<RecognizedSong | null>;
   requestQuickSettingsTile?(): Promise<boolean>;
   recognizeFile(uri: string): Promise<RecognizedSong | null>;
+  getRecognitionSource?(): Promise<"mic" | "playback">;
+  consumeResult?(requestId: string): Promise<RecognizedSong | null>;
   cancel(): Promise<void>;
 }
 const native = (): NativeRecognizer => {
@@ -153,6 +155,23 @@ export async function waitForAppActive(signal?: AbortSignal) {
     });
   }
   if (signal?.aborted) throw new Error("Cancelled");
+}
+export async function recognizeSong(
+  signal: AbortSignal,
+  onSource: (source: "mic" | "playback") => void,
+  onCaptureReady: () => void
+) {
+  const source = (await native().getRecognitionSource?.()) ?? "mic";
+  if (signal.aborted) throw new Error("Cancelled");
+  onSource(source);
+  return source === "playback"
+    ? recognizePlayback(signal)
+    : recognizeMicrophone(signal, onCaptureReady);
+}
+export async function consumeRecognitionResult(requestId: string) {
+  const result = await native().consumeResult?.(requestId);
+  if (!result) throw new Error("RecognitionResultExpired");
+  return result;
 }
 export async function recognizeAudioFile(
   signal?: AbortSignal
