@@ -5,6 +5,7 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+import shutil
 
 
 if sys.platform != "darwin":
@@ -417,8 +418,24 @@ for index in knownSamples.indices { mono.floatChannelData![0][index] = Float(kno
 let knownGenerator = SHSignatureGenerator()
 try knownGenerator.append(mono, at: nil)
 let knownSignature = knownGenerator.signature()
+try knownSignature.dataRepresentation.write(to: directory.appendingPathComponent("system-query.shazamsignature"))
 let knownURI = "data:audio/vnd.shazam.sig;base64," + knownSignature.dataRepresentation.base64EncodedString()
-let knownResult = try SongFingerprintRecognizer().identify(signature: knownURI, sampleMilliseconds: Int(knownSignature.duration * 1000))
+let knownResult: [String: Any]?
+do {
+  knownResult = try SongFingerprintRecognizer().identify(signature: knownURI, sampleMilliseconds: Int(knownSignature.duration * 1000))
+} catch {
+  let systemError = error as NSError
+  var diagnostics: [String: Any] = ["systemError": systemError.domain, "systemStatus": systemError.code, "systemSignatureBytes": knownSignature.dataRepresentation.count, "duration": knownSignature.duration]
+  do {
+    let legacy = try SongFingerprintRecognizer().identify(knownSamples)
+    diagnostics["legacyTitle"] = legacy?["title"] as? String ?? "No match"
+  } catch {
+    diagnostics["legacyError"] = (error as NSError).domain
+    diagnostics["legacyStatus"] = (error as NSError).code
+  }
+  FileHandle.standardError.write(try JSONSerialization.data(withJSONObject: diagnostics))
+  throw error
+}
 precondition((knownResult?["title"] as? String)?.contains("I Will Survive") == true && knownResult?["artist"] as? String == "Gloria Gaynor", "The real system-generated signature did not identify the known recording")
 print("System-generated signature identified I Will Survive by Gloria Gaynor through the production recognition request.")
 '''
@@ -435,4 +452,11 @@ with tempfile.TemporaryDirectory(prefix="freetune-recognition-") as directory:
     preview = "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview221/v4/e7/40/66/e74066a0-d000-1896-cd2e-7b2bc97393ad/mzaf_6935563640938257821.plus.aac.p.m4a"
     with urllib.request.urlopen(preview, timeout=20) as response:
         (temporary / "audio/positive.m4a").write_bytes(response.read())
-    subprocess.run([str(temporary / "probe"), str(temporary / "audio")], check=True, timeout=60)
+    try:
+        subprocess.run([str(temporary / "probe"), str(temporary / "audio")], check=True, timeout=90)
+    finally:
+        signature = temporary / "audio/system-query.shazamsignature"
+        if signature.exists() and os.environ.get("RUNNER_TEMP"):
+            proof = Path(os.environ["RUNNER_TEMP"]) / "freetune-system-signature-proof"
+            proof.mkdir(exist_ok=True)
+            shutil.copyfile(signature, proof / signature.name)

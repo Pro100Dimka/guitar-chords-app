@@ -193,7 +193,7 @@ final class SongFingerprintRecognizer {
       retryAfter = Date().addingTimeInterval(min(3600, max(1, Double(http.value(forHTTPHeaderField: "Retry-After") ?? "") ?? 30)))
       throw error("RateLimited")
     }
-    guard (200..<300).contains(http.statusCode), let data = response.data else { throw error("ServiceUnavailable") }
+    guard (200..<300).contains(http.statusCode), let data = response.data else { throw NSError(domain: "ServiceUnavailable", code: http.statusCode) }
     guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
       let track = json["track"] as? [String: Any],
       let title = track["title"] as? String, !title.isEmpty,
