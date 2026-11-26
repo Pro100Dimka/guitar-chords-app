@@ -1,6 +1,6 @@
 /** Musical ticks always count quarter notes, independently of the meter. */
 export const TAB_TICKS_PER_BEAT = 24;
-export const TAB_MAX_NOTES = 2048;
+export const TAB_MAX_NOTES = 8192;
 export const TAB_MAX_BARS = 128;
 export const TAB_TUNING = [40, 45, 50, 55, 59, 64] as const;
 export const TAB_TECHNIQUES = {
@@ -65,6 +65,7 @@ export interface Tablature {
   /** Retains intentionally empty final bars. */
   barCount?: number;
   notes: TabNote[];
+  tuning?: number[];
   rests?: TabRest[];
   chords?: { tick: number; name: string }[];
   sourceText?: string;
@@ -136,6 +137,10 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     (value.barCount !== undefined &&
       !integer(value.barCount, 1, TAB_MAX_BARS)) ||
     !Array.isArray(value.notes) ||
+    (value.tuning !== undefined &&
+      (!Array.isArray(value.tuning) ||
+        value.tuning.length !== 6 ||
+        !value.tuning.every((pitch) => integer(pitch, 24, 88)))) ||
     (value.rests !== undefined && !Array.isArray(value.rests))
   )
     return undefined;
@@ -350,12 +355,14 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     beatUnit,
     barCount: (value.barCount as number | undefined) ?? 1,
     notes,
+    ...(Array.isArray(value.tuning) ? { tuning: [...value.tuning] } : {}),
     rests,
     ...(chords.length ? { chords } : {}),
     ...(record(value.arrangementSource) &&
-    value.arrangementSource.name === "GuitarZero2Hero" &&
+    typeof value.arrangementSource.name === "string" &&
+    value.arrangementSource.name.length <= 100 &&
     typeof value.arrangementSource.url === "string" &&
-    /^https:\/\/www\.youtube\.com\/watch\?v=[\w-]{11}$/.test(
+    /^(?:https:\/\/www\.youtube\.com\/watch\?v=[\w-]{11}|https:\/\/(?:www\.gtp-tabs\.ru\/n|gtptabs\.com)\/tabs\/\d+\/[a-z0-9_-]+\/[a-z0-9_-]+\.html)$/.test(
       value.arrangementSource.url
     )
       ? {

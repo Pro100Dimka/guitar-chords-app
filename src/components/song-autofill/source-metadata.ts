@@ -101,7 +101,7 @@ const partNames: Record<string, string> = {
   брідж: "bridge",
   проигрыш: "bridge"
 };
-function partKey(title: string) {
+export function sourcePartKey(title: string) {
   const words = title
     .normalize("NFKC")
     .toLowerCase()
@@ -123,7 +123,7 @@ function arrangeSource(
 ) {
   const barTicks = tabBarTicks(emptyTablature(tempo));
   const sectionPart = (title: string) => {
-    const key = partKey(title),
+    const key = sourcePartKey(title),
       kind = key.split(":")[0];
     return (
       parts.get(key) ??
@@ -172,7 +172,7 @@ function arrangeSource(
             section.content.trim().split("\n").length === 1
               ? "Interlude"
               : `Verse ${++verse}`;
-        if (partKey(section.title) === "chorus") {
+        if (sourcePartKey(section.title) === "chorus") {
           if (!section.content.trim() && chorus)
             section.content = chorus.content;
           if (section.content.trim()) chorus = section;
@@ -189,7 +189,8 @@ function arrangeSource(
   const output: string[] = [];
   let arranged = false;
   for (const section of sections) {
-    const definition = arrangement?.parts[partKey(section.title).split(":")[0]];
+    const definition =
+      arrangement?.parts[sourcePartKey(section.title).split(":")[0]];
     const strummed = definition && strummedPart(section.content, definition);
     const part = strummed ?? sectionPart(section.title);
     let words = section.content.trim();
@@ -387,7 +388,7 @@ export function sourceSong(
     const named =
       songSections(lines[index]).find((section) => section.title)?.title ??
       lines[index];
-    const key = partKey(named);
+    const key = sourcePartKey(named);
     if (key) scope = key;
     if (/^\s*dedilhado\s+das?\s+estrofes?/i.test(lines[index]))
       removed.add(index);

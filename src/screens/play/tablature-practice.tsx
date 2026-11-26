@@ -53,16 +53,23 @@ export function TablaturePractice({
   const { tab, status, practice, countIn, range } = transport;
   const tick = useTablaturePosition(transport);
   const scale = sizes[size] * (landscape ? 0.8 : 1) * fontScale;
-  const columns = Math.max(
-    2,
-    Math.min(
-      4,
-      Math.floor((width - (landscape ? 124 : 0) - 20) / (160 * scale))
-    )
-  );
   const barTicks = tabBarTicks(tab);
   const length = useMemo(() => tablatureLength(tab), [tab]);
   const bars = Math.max(1, Math.ceil(length / barTicks));
+  const barWidth = useMemo(
+    () =>
+      Math.max(
+        ...Array.from(
+          { length: bars },
+          (_, index) => tablatureSystemLayout(tab, index, 1, scale).minimumWidth
+        )
+      ),
+    [tab, bars, scale]
+  );
+  const columns = Math.max(
+    1,
+    Math.min(4, Math.floor((width - (landscape ? 124 : 0) - 20) / barWidth))
+  );
   const currentBar = Math.max(
     0,
     Math.min(bars - 1, Math.floor(tick / barTicks))

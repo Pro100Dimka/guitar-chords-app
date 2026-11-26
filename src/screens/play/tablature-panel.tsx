@@ -29,6 +29,7 @@ import {
   tablatureLength
 } from "../../components/tablature";
 import palette from "../../theme/palette";
+import { noteNames } from "../tuner/tunings";
 import notationSymbols from "../../../assets/notation-symbols.json";
 import { Action, Sheet } from "../song/tools";
 import { TablatureKeypad } from "./tablature-keypad";
@@ -247,8 +248,11 @@ type RhythmEvent = {
 };
 
 const pitchSteps = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
-const writtenPitch = (note: TabNote) => {
-  const midi = TAB_TUNING[note.string] + note.fret + 12;
+const writtenPitch = (
+  note: TabNote,
+  tuning: readonly number[] = TAB_TUNING
+) => {
+  const midi = tuning[note.string] + note.fret + 12;
   return {
     step: Math.floor(midi / 12) * 7 + pitchSteps[midi % 12],
     sharp: [1, 3, 6, 8, 10].includes(midi % 12)
@@ -266,14 +270,25 @@ export function tablatureSystemLayout(
   const notes = tab.notes.filter(
     (note) => note.tick < end && note.tick + tabNoteDuration(note) > start
   );
-  const steps = notes.map((note) => writtenPitch(note).step);
+  const steps = notes.map((note) => writtenPitch(note, tab.tuning).step);
   const top = Math.max(18, (Math.max(37, ...steps) - 45) * 3 + 26);
   const notationHeight =
     top + 24 + Math.max(12, (37 - Math.min(37, ...steps)) * 3 + 10);
   const effects = lineTechniques.filter((technique) =>
     notes.some((note) => note.techniques?.includes(technique))
   ).length;
+  const columns = new Set(
+    Array.from(
+      { length: Math.ceil((end - start) / tabBeatTicks(tab)) },
+      (_, index) => start + index * tabBeatTicks(tab)
+    )
+  );
+  notes.forEach((note) => columns.add(Math.max(start, note.tick)));
+  tab.rests
+    ?.filter((rest) => rest.tick >= start && rest.tick < end)
+    .forEach((rest) => columns.add(rest.tick));
   return {
+    minimumWidth: Math.max(160 * scale, 24 + columns.size * 18 * scale),
     top: top * scale,
     notationHeight: notationHeight * scale,
     height: (16 + notationHeight + 84) * scale + effects * 16 + 8
@@ -290,6 +305,7 @@ const RhythmNotation = React.memo(function RhythmNotation({
   notation,
   barTicks,
   eighthGroupTicks = beatTicks,
+  tuning,
   rests = []
 }: {
   events: RhythmEvent[];
@@ -302,6 +318,7 @@ const RhythmNotation = React.memo(function RhythmNotation({
   notation?: { top: number; notationHeight: number };
   barTicks?: number;
   eighthGroupTicks?: number;
+  tuning?: readonly number[];
   rests?: TabRest[];
 }) {
   const staffHeight = notation
@@ -313,7 +330,7 @@ const RhythmNotation = React.memo(function RhythmNotation({
     const denominator = event.tuplet?.denominator ?? parts?.denominator;
     const pitches =
       event.pitches?.map((note) => {
-        const pitch = writtenPitch(note);
+        const pitch = writtenPitch(note, tuning);
         const key = `${Math.floor(event.tick / (barTicks ?? beatTicks))}:${pitch.step}`;
         const accidental =
           (accidentals.get(key) ?? false) !== pitch.sharp
@@ -1063,7 +1080,11 @@ const TablatureStaff = React.memo(function TablatureStaff({
                 reading && { fontSize: 13 * readingScale }
               ]}
             >
-              {stringNames[string]}
+              {tab.tuning
+                ? string === 5
+                  ? noteNames[tab.tuning[string] % 12].toLowerCase()
+                  : noteNames[tab.tuning[string] % 12]
+                : stringNames[string]}
             </Text>
           </View>
         ))}
@@ -1207,6 +1228,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
                     ? beatTicks * 2
                     : beamTicks
                 }
+                tuning={tab.tuning}
                 rests={[...rests.values()]}
               />
             </View>
@@ -1754,7 +1776,8 @@ export function TablaturePanel({
   const readOnly = controlsLocked || status === "playing";
   const { preview, cancelPreview } = useTablaturePreview(
     visible && !readOnly && (full || expanded),
-    tab.tempo
+    tab.tempo,
+    tab.tuning
   );
   const moving = status === "playing" || recording;
   const wasMoving = useRef(false);
@@ -2112,9 +2135,22 @@ export function TablaturePanel({
     setRestSelection(null);
     setEditError(null);
   };
+  const barWidth = useMemo(
+    () =>
+      Math.max(
+        ...Array.from(
+          { length: bars },
+          (_, index) => tablatureSystemLayout(tab, index, 1, 1).minimumWidth
+        )
+      ),
+    [tab, bars]
+  );
   const barsPerRow = Math.max(
-    2,
-    Math.min(4, Math.floor((width - (keypadExpanded ? 218 : 44) - 24) / 160))
+    1,
+    Math.min(
+      4,
+      Math.floor((width - (keypadExpanded ? 218 : 44) - 24) / barWidth)
+    )
   );
   const barsPerPage = barsPerRow * 2;
   const windowStart = Math.floor(bar / barsPerPage) * barsPerPage;

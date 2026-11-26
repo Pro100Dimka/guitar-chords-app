@@ -50,7 +50,7 @@ import {
 import { performanceAudio } from "../../components/performance-audio";
 import { useTablature, useTablaturePosition } from "../play/use-tablature";
 import { tabBarTicks, tablatureLength } from "../../components/tablature";
-import { TablatureBar } from "../play/tablature-panel";
+import { TablatureBar, tablatureSystemLayout } from "../play/tablature-panel";
 import guitarBackground from "../../../assets/images/gold-background.webp";
 import {
   chordShapeOptions,
@@ -922,6 +922,7 @@ function SongTablature({
   onOpenTabs?: () => void;
 }) {
   const { t } = useTranslation();
+  const { width } = useWindowDimensions();
   const transport = useTablature(true, () => {}, false);
   const { replaceTab } = transport;
   const tick = useTablaturePosition(transport);
@@ -936,6 +937,16 @@ function SongTablature({
     Math.ceil(tablatureLength(transport.tab) / barTicks)
   );
   const bar = Math.min(bars - 1, Math.floor(tick / barTicks));
+  const columns = Math.max(
+    1,
+    Math.min(
+      2,
+      Math.floor(
+        Math.min(width - 48, 728) /
+          tablatureSystemLayout(transport.tab, bar, 1, 1).minimumWidth
+      )
+    )
+  );
   const running = ["playing", "preparing", "countingIn"].includes(
     transport.status
   );
@@ -965,8 +976,8 @@ function SongTablature({
       />
       <TablatureBar
         tab={transport.tab}
-        bar={Math.floor(bar / 2) * 2}
-        barCount={Math.min(2, bars - Math.floor(bar / 2) * 2)}
+        bar={Math.floor(bar / columns) * columns}
+        barCount={Math.min(columns, bars - Math.floor(bar / columns) * columns)}
         tick={tick}
         readOnly
         notation

@@ -315,6 +315,7 @@ export default function RecognizeSong() {
         next = {
           ...next,
           ...imported,
+          tablature: selected.tablature ?? imported.tablature,
           cover,
           tempo: selected.tempo ?? imported.tempo ?? fallbackTempo.current,
           capo: selected?.capo,
@@ -668,7 +669,7 @@ export default function RecognizeSong() {
                       previous && {
                         ...previous,
                         ...imported,
-                        tablature: imported.tablature,
+                        tablature: option.tablature ?? imported.tablature,
                         tempo:
                           option.tempo ??
                           imported.tempo ??
