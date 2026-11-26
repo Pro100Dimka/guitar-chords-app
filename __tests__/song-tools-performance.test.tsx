@@ -1,6 +1,6 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { AppState, FlatList, Text, type AppStateStatus } from "react-native";
+import { Alert, AppState, FlatList, Text, type AppStateStatus } from "react-native";
 import { Action, ChordSheet, SongTools } from "../src/screens/song/tools";
 import { WebView } from "react-native-webview";
 import SongRecorder from "../src/screens/song/recorder";
@@ -184,6 +184,73 @@ test("practice tempo and start-chord controls reuse parsed section progressions"
     .mocked(acousticInstrument.prepareAcousticInstrument)
     .mock.calls.at(-1)![0];
   expect(instrument.chords.slice(0, 5)).toEqual(["C", "G", "Em", "Am", "C"]);
+});
+
+test("inactive recorders never stop audio owned by another screen", async () => {
+  await act(async () => {
+    screen = Renderer.create(
+      <SongRecorder songId={1} active={false} onStart={() => {}} />
+    );
+  });
+  await act(async () => {
+    AppState.currentState = "background";
+    appListeners.forEach((callback) => callback("background"));
+  });
+  await act(async () => screen!.unmount());
+  screen = undefined;
+  expect(performanceAudio.stopPlayback).not.toHaveBeenCalled();
+});
+
+test("recording events are scoped to the active song without duplicate alerts", async () => {
+  const listeners = new Set<(event: PerformanceEvent) => void>();
+  jest.spyOn(performanceAudio, "listen").mockImplementation((listener) => {
+    listeners.add(listener);
+    return {
+      remove: () => { listeners.delete(listener); }
+    } as unknown as ReturnType<typeof performanceAudio.listen>;
+  });
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  await act(async () => {
+    screen = Renderer.create(
+      <>
+        <SongRecorder songId={1} active onStart={() => {}} />
+        <SongRecorder songId={2} active={false} onStart={() => {}} />
+      </>
+    );
+  });
+  await act(async () => {
+    listeners.forEach((listener) =>
+      listener({ state: "processingFailed", uri: "/song-2-10.m4a" })
+    );
+  });
+  expect(alert).not.toHaveBeenCalled();
+  await act(async () => {
+    listeners.forEach((listener) =>
+      listener({ state: "processingFailed", uri: "/song-1-10.m4a" })
+    );
+  });
+  expect(alert).toHaveBeenCalledTimes(1);
+  expect(alert).toHaveBeenCalledWith("RecordingPolishFailed");
+});
+
+test("a stale recording-list failure never displays an error for the next song", async () => {
+  let fail!: (error: Error) => void;
+  const take = { path: "/song-2-10.m4a", date: 10, bytes: 100 };
+  jest
+    .mocked(performanceAudio.list)
+    .mockReturnValueOnce(new Promise((_resolve, reject) => { fail = reject; }))
+    .mockResolvedValue([take]);
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const render = (songId: number) => (
+    <SongRecorder songId={songId} active open onStart={() => {}} />
+  );
+  await act(async () => {
+    screen = Renderer.create(render(1));
+  });
+  await act(async () => screen!.update(render(2)));
+  await act(async () => fail(new Error("Old request failed")));
+  expect(alert).not.toHaveBeenCalled();
+  expect(screen!.root.findByType(FlatList).props.data).toEqual([take]);
 });
 
 test("hidden recording lists do not rescan files for global processing events", async () => {

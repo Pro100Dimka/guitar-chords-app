@@ -2,6 +2,9 @@ import React from "react";
 import Renderer, { act } from "react-test-renderer";
 import {
   AppState,
+  Alert,
+  Linking,
+  Platform,
   ImageBackground,
   TextInput,
   Dimensions,
@@ -14,7 +17,9 @@ import RequireMicAccess from "../src/screens/tuner";
 import Buttons from "../src/screens/tuner/buttons";
 import MicrophoneStream from "../src/screens/tuner/MicrophoneStream";
 import checkMicPermission from "../src/components/permissions";
+import { chromaticLayout } from "../src/screens/tuner/chromatic-layout";
 import * as guitarAudio from "../src/components/guitar-audio";
+import { performanceAudio } from "../src/components/performance-audio";
 import {
   calibratedNote,
   signalLevels
@@ -90,12 +95,9 @@ jest.mock("../src/screens/tuner/note-indicator", () => () => null);
 jest.mock("../src/screens/tuner/chormatic-wheel", () => ({
   __esModule: true,
   default: () => null,
-  chromaticLayout: () => ({
-    hole: { x: 0, y: 0, width: 100, height: 100 },
-    octaveLeft: 0,
-    octaveTop: 0,
-    octaveWidth: 100
-  })
+  chromaticLayout: jest.requireActual(
+    "../src/screens/tuner/chromatic-layout"
+  ).chromaticLayout
 }));
 jest.mock("../src/screens/tuner/chormatic", () => () => null);
 jest.mock("../src/screens/tuner/buttons", () => () => null);
@@ -110,11 +112,42 @@ jest.mock("../src/screens/tuner/config", () => ({
 
 let screen: Renderer.ReactTestRenderer;
 
-test("first-frame validation reads one opaque pixel instead of copying the full canvas", async () => {
+test.each([
+  [240, 960],
+  [320, 360],
+  [390, 640],
+  [430, 740],
+  [568, 220],
+  [844, 300],
+  [900, 255],
+  [768, 900]
+])("chromatic notes have aligned 44-point targets on %s × %s", (width, height) => {
+  const layout = chromaticLayout(width, height);
+  expect((layout.panelWidth - 16) / layout.columns).toBeGreaterThanOrEqual(44);
+  expect(layout.rowHeight).toBe(44);
+  expect(layout.panelHeight).toBe((12 / layout.columns) * layout.rowHeight + 16);
+  expect(layout.octaveTop + 44).toBeLessThanOrEqual(height);
+  if (width > height) {
+    expect(layout.panelLeft).toBeGreaterThanOrEqual(
+      layout.hole.x + layout.hole.width + 19.99
+    );
+    expect(layout.panelLeft + layout.panelWidth).toBeLessThanOrEqual(width - 67.99);
+  }
+});
+
+test.each([
+  { delay: 0, emptyFrames: 0 },
+  { delay: 12000, emptyFrames: 0 },
+  { delay: 90000, emptyFrames: 0 },
+  { delay: 0, emptyFrames: 4 }
+])("first-frame validation waits for a real painted pixel: %j", async ({ delay, emptyFrames }) => {
   jest.useFakeTimers();
   const previous = usePreferences.getState().instrument;
   usePreferences.setState({ instrument: "guitar" });
   const readPixels = jest.fn(() => new Uint8Array([2, 3, 3, 255]));
+  for (let i = 0; i < emptyFrames; i++) {
+    readPixels.mockReturnValueOnce(new Uint8Array([0, 0, 0, 0]));
+  }
   const dispose = jest.fn();
   try {
     await act(async () => {
@@ -122,12 +155,18 @@ test("first-frame validation reads one opaque pixel instead of copying the full 
         createNodeMock: (element) =>
           element.type === "Canvas"
             ? {
-                makeImageSnapshotAsync: async () => ({
-                  width: () => 1000,
-                  height: () => 2000,
-                  readPixels,
-                  dispose
-                })
+                makeImageSnapshotAsync: async () => {
+                  if (delay)
+                    await new Promise<void>((resolve) =>
+                      setTimeout(resolve, delay)
+                    );
+                  return {
+                    width: () => 1000,
+                    height: () => 2000,
+                    readPixels,
+                    dispose
+                  };
+                }
               }
             : null
       });
@@ -145,14 +184,35 @@ test("first-frame validation reads one opaque pixel instead of copying the full 
         .props.onReady();
       screen.root.findByType(Buttons).props.onReady();
     });
-    await act(async () => jest.advanceTimersByTimeAsync(50));
-    expect(readPixels.mock.calls.length).toBe(1);
+    await act(async () =>
+      jest.advanceTimersByTimeAsync(delay + emptyFrames * 250 + 100)
+    );
+    expect(readPixels).toHaveBeenCalledTimes(emptyFrames + 1);
     expect(jest.mocked(readPixels).mock.calls[0]).toEqual([
       expect.any(Number),
       expect.any(Number),
       { width: 1, height: 1, colorType: 4, alphaType: 3 }
     ]);
-    expect(dispose).toHaveBeenCalledTimes(1);
+    expect(dispose).toHaveBeenCalledTimes(emptyFrames + 1);
+    expect(
+      screen.root.findAll((node) => node.props.children === "ErrorStartingApp")
+    ).toHaveLength(0);
+    if (delay < 30000)
+      expect(
+        screen.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "Retry")
+      ).toBeUndefined();
+    else
+      expect(
+        screen.root.findAll(
+          (node) => node.props.children === "TunerCaptureUnavailable"
+        )
+      ).not.toHaveLength(0);
+    expect(screen.root.findAll((node) =>
+      node.props.accessibilityElementsHidden === false &&
+      node.props.pointerEvents === "auto"
+    ).length).toBeGreaterThan(0);
   } finally {
     await act(async () => usePreferences.setState({ instrument: previous }));
   }
@@ -409,6 +469,75 @@ test("a stalled microphone restarts after three seconds and stops recovery when 
   expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(starts);
 });
 
+test("a synchronous microphone bridge error does not permanently lock recovery", async () => {
+  jest.useFakeTimers();
+  jest.spyOn(console, "warn").mockImplementation(() => {});
+  jest.mocked(MicrophoneStream.restartRecording).mockImplementationOnce(() => {
+    throw new Error("Native bridge unavailable");
+  });
+  await act(async () => {
+    screen = Renderer.create(<Tuner active />);
+  });
+  for (let i = 0; i < 4; i++)
+    await act(async () => jest.advanceTimersByTimeAsync(1500));
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(2);
+});
+
+test("late microphone buffers revive bounded recovery after an exhausted attempt", async () => {
+  jest.useFakeTimers();
+  jest.spyOn(console, "warn").mockImplementation(() => {});
+  await act(async () => {
+    screen = Renderer.create(<Tuner active />);
+  });
+  for (let i = 0; i < 30; i++)
+    await act(async () => jest.advanceTimersByTimeAsync(1500));
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(3);
+  const receive = jest.mocked(MicrophoneStream.addListener).mock.calls.at(-1)![0];
+  await act(async () =>
+    receive({
+      note: "Silence", rms: 0, pitch: 0, refFreq: 0, octave: 0,
+      direction: "=", diff: 0
+    })
+  );
+  await act(async () => jest.advanceTimersByTimeAsync(3000));
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(4);
+});
+
+test("missing graphics readiness presents a retry instead of an invisible tuner", async () => {
+  jest.useFakeTimers();
+  await act(async () => {
+    screen = Renderer.create(<Tuner active />);
+  });
+  await act(async () => jest.advanceTimersByTimeAsync(29999));
+  const retry = () =>
+    screen.root.findAllByType(Action).find((node) => node.props.label === "Retry");
+  expect(retry()).toBeUndefined();
+  await act(async () => jest.advanceTimersByTimeAsync(1));
+  expect(retry()).toBeDefined();
+  await act(async () => retry()!.props.onPress());
+  expect(retry()).toBeUndefined();
+  await act(async () => jest.advanceTimersByTimeAsync(30000));
+  expect(retry()).toBeDefined();
+});
+
+test.each(["android", "ios"] as const)(
+  "denied microphone access reports settings navigation failures on %s",
+  async (os) => {
+    jest.replaceProperty(Platform, "OS", os);
+    jest.mocked(checkMicPermission).mockResolvedValue(false);
+    const open = os === "ios"
+      ? jest.spyOn(Linking, "openURL")
+      : jest.spyOn(Linking, "openSettings");
+    open.mockRejectedValue(new Error("Settings unavailable"));
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    await act(async () => {
+      screen = Renderer.create(<RequireMicAccess />);
+    });
+    await act(async () => screen.root.findByType(Action).props.onPress());
+    expect(alert).toHaveBeenCalledWith("LinkOpenError");
+  }
+);
+
 test("microphone recovery is bounded when no buffers ever arrive", async () => {
   jest.useFakeTimers();
   jest.spyOn(console, "warn").mockImplementation(() => {});
@@ -509,6 +638,30 @@ test("returning from settings refreshes microphone access without requesting it 
   expect(MicrophoneStream.stopRecording).toHaveBeenCalled();
 });
 
+test("foreground permission refresh cannot be lost behind a pending request", async () => {
+  let finish!: (granted: boolean) => void;
+  jest
+    .mocked(checkMicPermission)
+    .mockReturnValueOnce(new Promise((resolve) => { finish = resolve; }))
+    .mockResolvedValue(false);
+  const listener = jest.spyOn(AppState, "addEventListener");
+  await act(async () => {
+    screen = Renderer.create(<RequireMicAccess />);
+  });
+  const onChange = listener.mock.calls.find(
+    ([event]) => event === "change"
+  )?.[1];
+  await act(async () => {
+    onChange?.("background");
+    onChange?.("active");
+    finish(true);
+  });
+  expect(checkMicPermission).toHaveBeenCalledTimes(2);
+  expect(checkMicPermission).toHaveBeenLastCalledWith(false);
+  expect(screen.root.findAllByType(Tuner)).toHaveLength(0);
+  expect(MicrophoneStream.startRecording).not.toHaveBeenCalled();
+});
+
 test("silence does not repeatedly restart the recorder", async () => {
   await act(async () => {
     screen = Renderer.create(<Tuner active />);
@@ -529,6 +682,25 @@ test("silence does not repeatedly restart the recorder", async () => {
   });
   expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(1);
   expect(MicrophoneStream.stopRecording).not.toHaveBeenCalled();
+});
+
+test("inactive tuner changes and cleanup cannot stop audio from another screen", async () => {
+  const previous = usePreferences.getState();
+  usePreferences.setState({ instrument: "chromatic", chromaticOctave: 4 });
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Tuner active={false} />);
+    });
+    expect(performanceAudio.stopPlayback).not.toHaveBeenCalled();
+    await act(async () =>
+      usePreferences.setState({ chromaticOctave: 5, instrument: "guitar" })
+    );
+    expect(performanceAudio.stopPlayback).not.toHaveBeenCalled();
+    await act(async () => screen.unmount());
+    expect(performanceAudio.stopPlayback).not.toHaveBeenCalled();
+  } finally {
+    usePreferences.setState(previous);
+  }
 });
 
 test("an inactive tuner keeps its view without capturing or restarting the microphone", async () => {
@@ -563,6 +735,38 @@ test("backgrounding stops capture and returning checks permission before restart
   await act(async () => onChange?.("active"));
   expect(checkMicPermission).toHaveBeenLastCalledWith(false);
   expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(2);
+});
+
+test("reference playback stops on a second tap or at its natural timeout", async () => {
+  jest.useFakeTimers();
+  const previous = usePreferences.getState();
+  usePreferences.setState({ instrument: "chromatic", chromaticOctave: 4 });
+  const play = jest
+    .spyOn(guitarAudio, "playGuitar")
+    .mockResolvedValue(undefined);
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Tuner active />);
+    });
+    const buttons = () => screen.root.findByType(Buttons).props;
+    await act(async () => buttons().onReference());
+    expect(buttons().referencePlaying).toBe(true);
+    const signal = play.mock.calls.at(-1)![2]!;
+    expect(signal.aborted).toBe(false);
+    await act(async () => buttons().onReference());
+    expect(buttons().referencePlaying).toBe(false);
+    expect(signal.aborted).toBe(true);
+    await act(async () => buttons().onReference());
+    expect(buttons().referencePlaying).toBe(true);
+    const nextSignal = play.mock.calls.at(-1)![2]!;
+    await act(async () => jest.advanceTimersByTimeAsync(3099));
+    expect(buttons().referencePlaying).toBe(true);
+    await act(async () => jest.advanceTimersByTimeAsync(1));
+    expect(buttons().referencePlaying).toBe(false);
+    expect(nextSignal.aborted).toBe(true);
+  } finally {
+    await act(async () => usePreferences.setState(previous));
+  }
 });
 
 test("changing octave stops the reference and the next tap plays again", async () => {

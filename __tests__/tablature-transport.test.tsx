@@ -87,6 +87,57 @@ test("a tied note continues without a second string attack", async () => {
   expect(performanceAudio.stopGuitarString).not.toHaveBeenCalled();
 });
 
+test("fractional attacks are not skipped when playback pauses between them", async () => {
+  transport.replaceTab({
+    ...emptyTablature(),
+    version: 3,
+    notes: [
+      { string: 0, fret: 0, tick: 0, duration: 0.6 },
+      { string: 0, fret: 3, tick: 0.6, duration: 24 }
+    ]
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(4);
+  transport.pause();
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(25);
+  expect(performanceAudio.guitarString).toHaveBeenLastCalledWith(
+    "440:43:string0",
+    0
+  );
+  expect(onNotes.mock.calls.at(-1)![0][0].tick).toBe(0.6);
+});
+
+test("simultaneous fractional fermata releases create one hold, not two", async () => {
+  transport.replaceTab({
+    ...emptyTablature(),
+    version: 3,
+    notes: [
+      { string: 1, fret: 0, tick: 0, duration: 57.6, fermata: true },
+      { string: 0, fret: 0, tick: 38.4, duration: 19.2, fermata: true },
+      { string: 2, fret: 0, tick: 57.6, duration: 24 }
+    ]
+  });
+  await transport.play();
+  await jest.advanceTimersByTimeAsync(3599);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(2);
+  await jest.advanceTimersByTimeAsync(51);
+  expect(onNotes.mock.calls.at(-1)![0][0].tick).toBe(57.6);
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(3);
+});
+
+test("seeking to an exact fractional onset preserves that position", () => {
+  transport.replaceTab({
+    ...emptyTablature(),
+    version: 3,
+    notes: [{ string: 0, fret: 0, tick: 2.05, duration: 24 }]
+  });
+  transport.seek(2.05);
+  expect(transport.getSnapshot().tick).toBe(2.05);
+  transport.setRange({ start: 0.6, end: 2.4 });
+  expect(transport.getSnapshot().tick).toBe(0.6);
+});
+
 test("changing practice speed refreshes time-dependent expression samples", async () => {
   transport.setTab(
     normalizeTablature({
@@ -633,6 +684,27 @@ test("a complete replacement recording is one undo operation and preserves its m
   expect(transport.getSnapshot().canUndo).toBe(false);
   transport.redo();
   expect(transport.getSnapshot().tab).toEqual(recorded);
+});
+
+test("recording a replacement take preserves 2/2 and its bar duration", () => {
+  const original = {
+    ...emptyTablature(80, 2, 2),
+    beatUnit: 2 as const,
+    notes: [{ string: 5, fret: 12, tick: 0, duration: 48 }]
+  };
+  transport.replaceTab(original);
+  transport.startRecording();
+  transport.capture([{ string: 0, fret: 0 }]);
+  jest.advanceTimersByTime(2500);
+  transport.stopRecording();
+  expect(transport.getSnapshot().tab).toMatchObject({
+    beatUnit: 2,
+    beatsPerBar: 2,
+    tempo: 80,
+    barCount: 1
+  });
+  transport.undo();
+  expect(transport.getSnapshot().tab).toEqual(original);
 });
 
 test("undo cancels audio and the bounded history retains the latest fifty edits", async () => {

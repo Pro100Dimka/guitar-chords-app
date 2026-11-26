@@ -17,42 +17,9 @@ import fontFamilies from "../../../assets/fonts";
 import CurrentNote from "./note-indicator/current-note";
 import { noteNames } from "./tunings";
 
-export function chromaticLayout(width: number, height: number) {
-  const landscape = width > height;
-  const panelWidth = landscape ? Math.max(120, width * 0.4 - 66) : width - 32;
-  const columns = panelWidth < 260 ? 6 : 12;
-  const panelHeight = columns === 6 ? 80 : 48;
-  const diameter = Math.max(
-    80,
-    Math.min(
-      landscape ? width * 0.52 : width - 40,
-      height - (landscape ? 40 : columns === 6 ? 236 : 204)
-    )
-  );
-  const hole = {
-    x: landscape ? (width * 0.58 - diameter) / 2 : (width - diameter) / 2,
-    y: landscape
-      ? (height - diameter) / 2
-      : Math.max(64, (height - 160 - diameter) / 2),
-    width: diameter,
-    height: diameter
-  };
-  const panelLeft = landscape ? width * 0.59 : 16;
-  const panelTop = landscape
-    ? (height - panelHeight - 76) / 2
-    : hole.y + diameter + 22;
-  return {
-    hole,
-    panelWidth,
-    panelHeight,
-    panelLeft,
-    panelTop,
-    columns,
-    octaveTop: panelTop + panelHeight + 18,
-    octaveLeft: panelLeft + panelWidth * 0.15,
-    octaveWidth: panelWidth * 0.7
-  };
-}
+import { chromaticLayout } from "./chromatic-layout";
+
+export { chromaticLayout } from "./chromatic-layout";
 
 function ChromaticWheel({
   note,
@@ -203,7 +170,11 @@ function ChromaticWheel({
               name={name}
               font={font}
               x={8 + spacing * (index % layout.columns)}
-              y={8 + Math.floor(index / layout.columns) * 32}
+              y={
+                8 +
+                Math.floor(index / layout.columns) * layout.rowHeight +
+                (layout.rowHeight - 23) / 2
+              }
               width={spacing}
             />
           ))}

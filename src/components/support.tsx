@@ -74,7 +74,7 @@ export default function Support() {
       }
       deferred.current = false;
       pendingPurchases.current.delete(id);
-      const task = (async () => {
+      const task = Promise.resolve().then(async () => {
         try {
           await finishTransaction({ purchase, isConsumable: true });
           completed.current.add(id);
@@ -86,7 +86,7 @@ export default function Support() {
           processing.current.delete(id);
           updateState("SupportThanks");
         }
-      })();
+      });
       processing.current.set(id, task);
       updateState();
       return task;
@@ -179,7 +179,6 @@ export default function Support() {
     const checked = await refresh();
     if (
       checked &&
-      Platform.OS === "ios" &&
       deferred.current &&
       !pendingPurchases.current.size &&
       !unfinished.current.size &&
@@ -187,7 +186,7 @@ export default function Support() {
       !requesting.current
     ) {
       deferred.current = false;
-      updateState("SupportRetryPermission");
+      updateState(Platform.OS === "ios" ? "SupportRetryPermission" : "");
     }
   };
   const purchase = async () => {

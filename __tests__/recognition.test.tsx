@@ -214,6 +214,82 @@ test("cancelling during Android playback permission cannot start later capture",
   ).not.toHaveBeenCalled();
 });
 
+test.each(["android", "ios"])(
+  "%s does not start playback capture after aborting on foreground resume",
+  async (platform) => {
+    jest.replaceProperty(Platform, "OS", platform as typeof Platform.OS);
+    AppState.currentState = "background";
+    let resume!: (state: AppStateStatus) => void;
+    jest
+      .spyOn(AppState, "addEventListener")
+      .mockImplementation((_event, listener) => {
+        resume = listener;
+        return { remove: jest.fn() };
+      });
+    const controller = new AbortController();
+    const pending = recognizePlayback(controller.signal).catch(
+      (error) => error
+    );
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    AppState.currentState = "active";
+    resume("active");
+    await Promise.resolve();
+    controller.abort();
+    expect(await pending).toEqual(new Error("Cancelled"));
+    expect(NativeModules.SongRecognition.cancel).toHaveBeenCalledTimes(1);
+    expect(
+      NativeModules.SongRecognition.recognizePlayback
+    ).not.toHaveBeenCalled();
+  }
+);
+
+test("cancelling immediately after foreground wait never notifies capture readiness", async () => {
+  AppState.currentState = "background";
+  let resume!: (state: AppStateStatus) => void;
+  jest.spyOn(AppState, "addEventListener").mockImplementation((_event, listener) => {
+    resume = listener;
+    return { remove: jest.fn() };
+  });
+  const controller = new AbortController();
+  const ready = jest.fn();
+  const pending = recognizeMicrophone(controller.signal, ready).catch((error) => error);
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+  AppState.currentState = "active";
+  resume("active");
+  await Promise.resolve();
+  controller.abort();
+  expect(await pending).toEqual(new Error("Cancelled"));
+  expect(ready).not.toHaveBeenCalled();
+  expect(NativeModules.SongRecognition.recognizeMicrophone).not.toHaveBeenCalled();
+});
+
+test.each(["mic", "playback"])(
+  "%s waits again if the app leaves foreground after the wait resolves",
+  async (mode) => {
+    AppState.currentState = "background";
+    let resume!: (state: AppStateStatus) => void;
+    jest.spyOn(AppState, "addEventListener").mockImplementation((_event, listener) => {
+      resume = listener;
+      return { remove: jest.fn() };
+    });
+    const capture = mode === "mic"
+      ? NativeModules.SongRecognition.recognizeMicrophone
+      : NativeModules.SongRecognition.recognizePlayback;
+    const result = (mode === "mic" ? recognizeMicrophone : recognizePlayback)();
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    AppState.currentState = "active";
+    resume("active");
+    await Promise.resolve();
+    AppState.currentState = "background";
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    expect(capture).not.toHaveBeenCalled();
+    AppState.currentState = "active";
+    resume("active");
+    await expect(result).resolves.toMatchObject({ title: "Track" });
+    expect(capture).toHaveBeenCalledTimes(1);
+  }
+);
+
 test.each(["mic", "playback"])(
   "%s rechecks foreground after waiting for the previous capture to stop",
   async (mode) => {
@@ -486,6 +562,20 @@ test("a failed native cancellation does not poison subsequent recognition", asyn
   ).toHaveBeenCalledTimes(1);
 });
 
+test("a synchronous native cancellation failure does not strand the cancellation lock", async () => {
+  const failure = new Error("Native bridge unavailable");
+  const cancel = NativeModules.SongRecognition.cancel;
+  cancel.mockImplementationOnce(() => {
+    throw failure;
+  });
+  await expect(cancelRecognition()).rejects.toBe(failure);
+  await expect(cancelRecognition()).resolves.toBeUndefined();
+  expect(cancel).toHaveBeenCalledTimes(2);
+  await expect(recognizeMicrophone()).resolves.toMatchObject({
+    title: "Track"
+  });
+});
+
 test("a rejected concurrent caller cannot cancel the active owner", async () => {
   const running = deferred<null>();
   NativeModules.SongRecognition.recognizeMicrophone.mockReturnValue(
@@ -674,6 +764,31 @@ test("recognition selects lyrics from the known album instead of the first versi
         content: "Em G\nStudio words",
         tempo: 188
       })
+    })
+  );
+});
+
+test("conflicting versions of one chart show their tempo before the user chooses", async () => {
+  jest.mocked(lookupSongContent).mockResolvedValue([
+    { ...chart, tempo: 96 },
+    { ...chart, tempo: 104 }
+  ]);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  await press("AddSongStart");
+  const { Action } = require("../src/screens/song/tools");
+  const actions = screen!.root.findAllByType(Action);
+  const first = actions.find((node) => String(node.props.label).includes("96 BPM"));
+  const second = actions.find((node) => String(node.props.label).includes("104 BPM"));
+  expect(first).toBeDefined();
+  expect(second).toBeDefined();
+  await act(async () => second!.props.onPress());
+  await press("AddSongEditResult");
+  expect(mockNavigation.navigate).toHaveBeenLastCalledWith(
+    "createSong",
+    expect.objectContaining({
+      draft: expect.objectContaining({ tempo: 104, content: chart.content })
     })
   );
 });

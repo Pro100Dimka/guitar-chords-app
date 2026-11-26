@@ -194,6 +194,32 @@ test.each(["GO_BACK", "POP", "POP_TO_TOP"])(
     expect(mockNavigation.dispatch).toHaveBeenCalledWith(action);
   }
 );
+test("failed video link validation remains visible even when optional fields are collapsed", async () => {
+  await change();
+  await act(async () => {
+    await values.setFieldValue("youtube_music", "https://example.com/no-video");
+  });
+  const form = screen.root.findAll(
+    (node) => node.props.formik && node.props.name === "title"
+  )[0].props.formik;
+  jest.mocked(db.transaction).mockClear();
+  await act(async () => form.submitForm());
+  expect(db.transaction).not.toHaveBeenCalled();
+  const error = screen.root.findAll(
+    (node) =>
+      node.props.accessibilityRole === "alert" &&
+      node.props.children === "SongLink: InvalidUrl" &&
+      typeof node.props.onPress === "function"
+  )[0];
+  expect(error).toBeDefined();
+  await act(async () => error.props.onPress());
+  expect(
+    screen.root.findAll(
+      (node) => node.props.formik && node.props.name === "youtube_music"
+    ).length
+  ).toBeGreaterThan(0);
+});
+
 test("save-and-leave waits for successful persistence; failure preserves the edited text", async () => {
   await change();
   const action = { type: "GO_BACK" };
@@ -206,6 +232,50 @@ test("save-and-leave waits for successful persistence; failure preserves the edi
   await act(async () => trigger(action));
   await press("SaveSong");
   expect(mockNavigation.dispatch).toHaveBeenCalledWith(action);
+});
+
+test.each(["missing", "0", "-1", "1.5", "999999"])(
+  "a missing or invalid song route cannot create orphan favorites: %s",
+  async (id) => {
+    await act(async () => screen.unmount());
+    mockParams = { id };
+    jest.mocked(getAllItems).mockResolvedValue([]);
+    const previous = usePreferences.getState().songs;
+    await act(async () => {
+      screen = Renderer.create(<Song />);
+    });
+    const favorite = screen.root.findAllByType(Action).find((node) =>
+      ["FavoritesAdd", "FavoritesRemove"].includes(node.props.accessibilityLabel)
+    )!;
+    expect(favorite.props.disabled).toBe(true);
+    expect(screen.root.findByType(Menu).props.disabled).toBe(true);
+    await act(async () => favorite.props.onPress());
+    expect(usePreferences.getState().songs).toBe(previous);
+    expect(JSON.stringify(screen.toJSON())).toContain("SongNotFound");
+  }
+);
+
+test("reusing a song route cannot carry a dirty editor into another song", async () => {
+  await act(async () => screen.unmount());
+  mockParams = { id: "1" };
+  jest.mocked(getAllItems).mockImplementation(async (query) => [
+    { id: Number(query.parameters?.[0]), title: "Song " + query.parameters?.[0], content: "Am\nWords" }
+  ]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  await act(async () => screen.root.findByType(Menu).props.setIsEdit(true));
+  await change();
+  const editorFields = () =>
+    screen.root.findAll(
+      (node) => node.props.formik && node.props.name === "title"
+    );
+  expect(editorFields()).not.toHaveLength(0);
+  expect(editorFields()[0].props.formik.values.title).toBe("Draft");
+  mockParams = { id: "2" };
+  await act(async () => screen.update(<Song />));
+  expect(editorFields()).toHaveLength(0);
+  expect(JSON.stringify(screen.toJSON())).toContain("Song 2");
 });
 
 test("confirmed header deletion of a dirty editor leaves without offering to save the deleted song", async () => {
@@ -258,9 +328,8 @@ test("confirmed header deletion of a dirty editor leaves without offering to sav
   await change();
   await menu("Delete");
   await press("Delete");
-  expect(deleteItem).toHaveBeenCalledWith(
-    expect.objectContaining({ tableName: "songs" })
-  );
+  expect(deleteItem).not.toHaveBeenCalled();
+  expect(usePreferences.getState().songs[1]).toBeUndefined();
   expect(
     jest
       .mocked(Alert.alert)

@@ -117,6 +117,7 @@ export const usePreferences = create<PreferencesStore>((set, get) => ({
     scheduleSave();
   },
   updateSong: (id, patch) => {
+    if (!Number.isSafeInteger(id) || id <= 0) return;
     const previous = get().songs[id];
     if (
       previous &&
@@ -162,23 +163,30 @@ export function flushPreferences() {
     finish = resolve;
   });
   saving = result;
-  db.transaction(
-    (tx) => writePreferences(tx, state),
-    () => {
-      saving = undefined;
-      usePreferences.setState({ saveError: true });
-      finish();
-    },
-    () => {
-      saving = undefined;
-      savedRevision = savingRevision;
-      savedSongs = state.songs;
-      if (savingRevision === revision) {
-        usePreferences.setState({ saveError: false });
-        finish();
-      } else void flushPreferences().then(finish);
-    }
-  );
+  const failed = () => {
+    if (saving !== result) return;
+    saving = undefined;
+    usePreferences.setState({ saveError: true });
+    finish();
+  };
+  try {
+    db.transaction(
+      (tx) => writePreferences(tx, state),
+      failed,
+      () => {
+        if (saving !== result) return;
+        saving = undefined;
+        savedRevision = savingRevision;
+        savedSongs = state.songs;
+        if (savingRevision === revision) {
+          usePreferences.setState({ saveError: false });
+          finish();
+        } else void flushPreferences().then(finish);
+      }
+    );
+  } catch {
+    failed();
+  }
   return result;
 }
 export function writePreferences(tx: SQLTransaction, state: Preferences) {
@@ -322,6 +330,11 @@ export function preserveSongPreferenceChanges(
 
 export function normalizeRhythm(value: unknown): SongRhythm {
   const rhythm = record(value) ? value : {};
+  const division = rhythm.strumDivision;
+  const numericDivision =
+    typeof division === "number" || typeof division === "string"
+      ? Number(division)
+      : NaN;
   return {
     strum:
       typeof rhythm.strum === "string"
@@ -329,14 +342,26 @@ export function normalizeRhythm(value: unknown): SongRhythm {
         : "",
     strumMeter:
       ([2, 3, 4] as const).find((meter) => meter === rhythm.strumMeter) ?? 4,
-    strumDivision:
-      [2, 3, 4].find((division) => division === Number(rhythm.strumDivision)) ??
-      2,
+    strumDivision: [2, 3, 4].find((entry) => entry === numericDivision) ?? 2,
     strumPreset:
       typeof rhythm.strumPreset === "string"
         ? rhythm.strumPreset.slice(0, 32)
         : ""
   };
+}
+function readSavedSong(value: unknown): SongPreferences {
+  try {
+    if (!record(value)) throw new Error("PreferenceReadFailed");
+    const song = normalizeSongPreferences(value);
+    // Do not silently discard a damaged score during an otherwise successful
+    // startup or legacy migration. The stored document must remain recoverable.
+    if (value.tablature !== undefined && !song.tablature)
+      throw new Error("PreferenceReadFailed");
+    return song;
+  } catch {
+    usePreferences.setState({ saveError: true });
+    throw new Error("PreferenceReadFailed");
+  }
 }
 export async function loadPreferences() {
   const checkpoint = cooperativeWork();
@@ -368,8 +393,7 @@ export async function loadPreferences() {
   const songs: Record<string, SongPreferences> = {};
   if (record(data.songs))
     for (const [id, song] of Object.entries(data.songs)) {
-      if (record(song) && /^\d+$/.test(id))
-        songs[id] = normalizeSongPreferences(song);
+      if (record(song) && /^\d+$/.test(id)) songs[id] = readSavedSong(song);
       const pause = checkpoint();
       if (pause) await pause;
     }
@@ -395,7 +419,7 @@ export async function loadPreferences() {
       return part;
     }).join("");
     try {
-      songs[id] = normalizeSongPreferences(JSON.parse(text));
+      songs[id] = readSavedSong(JSON.parse(text));
     } catch {
       usePreferences.setState({ saveError: true });
       throw new Error("PreferenceReadFailed");

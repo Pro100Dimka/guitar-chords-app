@@ -1061,6 +1061,48 @@ test.each([
   ).toBe("dQw4w9WgXcQ");
 });
 
+test.each(["youtube_music", "youtobe_lesson"] as const)(
+  "%s rejects links that cannot identify a playable YouTube video",
+  async (key) => {
+    const {
+      validationSchema
+    } = require("../src/screens/create-song-chords/formik/validation-schema");
+    const values = { ...initialSong, title: "Title", content: "Am\nWords" };
+    const schema = validationSchema(String);
+    for (const link of [
+      "https://example.com/?v=dQw4w9WgXcQ",
+      "https://www.youtube.com/playlist?list=PL1234567890",
+      "https://www.youtube.com/watch?v=short",
+      "ftp://youtube.com/watch?v=dQw4w9WgXcQ"
+    ]) {
+      expect(await schema.isValid({ ...values, [key]: link })).toBe(false);
+    }
+    for (const link of [
+      "",
+      "https://youtu.be/dQw4w9WgXcQ?t=12",
+      "https://music.youtube.com/watch?v=dQw4w9WgXcQ"
+    ]) {
+      expect(await schema.isValid({ ...values, [key]: link })).toBe(true);
+    }
+    const legacy = {
+      ...values,
+      id: 1,
+      [key]: "https://example.com/legacy"
+    };
+    expect(
+      await validationSchema(String, legacy).isValid(legacy)
+    ).toBe(true);
+  }
+);
+
+test("non-HTTP video links are not embedded", () => {
+  expect(
+    require("../src/components/utils/extract-youtube-id").default(
+      "ftp://youtube.com/watch?v=dQw4w9WgXcQ"
+    )
+  ).toBe("");
+});
+
 test("non-YouTube v parameters are not embedded", () => {
   expect(
     require("../src/components/utils/extract-youtube-id").default(
@@ -1969,9 +2011,12 @@ test.each(["screen", "background"])(
         });
       }
     }
+    // Stop is issued when ownership is lost, before the native reply. A
+    // delayed reply must not stop audio that may now belong to another screen.
+    expect(performanceAudio.stopPlayback).toHaveBeenCalled();
     jest.mocked(performanceAudio.stopPlayback).mockClear();
     await act(async () => finish(20000));
-    expect(performanceAudio.stopPlayback).toHaveBeenCalled();
+    expect(performanceAudio.stopPlayback).not.toHaveBeenCalled();
     await act(async () =>
       screen!.root
         .findAllByType(Action)

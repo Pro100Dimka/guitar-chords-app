@@ -261,6 +261,66 @@ test.each(["{broken", "null", "[]"])(
   }
 );
 
+test.each(["legacy", "chunk"])(
+  "a damaged stored score is never silently discarded during %s load",
+  async (kind) => {
+    const damaged = {
+      tempo: 123,
+      tablature: { ...tablature, notes: [{ tick: 0, string: 0, fret: 99 }] }
+    };
+    const legacy = JSON.stringify(
+      kind === "legacy" ? { songs: { 17: damaged } } : {}
+    );
+    jest.mocked(getAllItems).mockImplementation(async (query) => {
+      if (query.fields === "length(value) AS length")
+        return [{ length: legacy.length }];
+      if (query.parameters?.[0] === "experience") return [{ value: legacy }];
+      return kind === "chunk"
+        ? [{ key: "song:17:0", value: JSON.stringify(damaged) }]
+        : [];
+    });
+    await expect(loadPreferences()).rejects.toThrow("PreferenceReadFailed");
+    expect(usePreferences.getState().songs).toEqual({});
+    expect(usePreferences.getState().saveError).toBe(true);
+    expect(db.transaction).not.toHaveBeenCalled();
+  }
+);
+
+test.each(["null", "[]", "123"])(
+  "a valid JSON primitive is not accepted as a stored song preference: %s",
+  async (value) => {
+    jest.mocked(getAllItems).mockImplementation(async (query) =>
+      query.parameters?.[0] === "song:%"
+        ? [{ key: "song:17:0", value }]
+        : []
+    );
+    await expect(loadPreferences()).rejects.toThrow("PreferenceReadFailed");
+    expect(usePreferences.getState().saveError).toBe(true);
+    expect(db.transaction).not.toHaveBeenCalled();
+  }
+);
+
+test("malformed rhythm division in a saved song cannot block the library", async () => {
+  const invalid = { toString: null, valueOf: null };
+  const raw = {
+    tempo: 123,
+    strumDivision: invalid,
+    rhythmSections: { verse: { strumDivision: [invalid] } }
+  };
+  jest.mocked(getAllItems).mockImplementation(async (query) =>
+    query.parameters?.[0] === "song:%"
+      ? [{ key: "song:17:0", value: JSON.stringify(raw) }]
+      : []
+  );
+  await loadPreferences();
+  expect(usePreferences.getState().songs[17]).toMatchObject({
+    tempo: 123,
+    strumDivision: 2,
+    rhythmSections: { verse: { strumDivision: 2 } }
+  });
+  expect(normalizeSongPreferences({ strumDivision: "3" }).strumDivision).toBe(3);
+});
+
 test("a valid 38-cover library exports completely in individually restorable parts", async () => {
   const image =
     "data:image/jpeg;base64," +
@@ -333,6 +393,16 @@ afterEach(() => {
   jest.useRealTimers();
   jest.resetAllMocks();
 });
+
+test.each([0, -1, 1.5, Number.NaN, Number.POSITIVE_INFINITY])(
+  "invalid song IDs never create preferences or schedule persistence: %s",
+  (id) => {
+    const previous = usePreferences.getState().songs;
+    usePreferences.getState().updateSong(id, { favorite: true });
+    expect(usePreferences.getState().songs).toBe(previous);
+    expect(jest.getTimerCount()).toBe(0);
+  }
+);
 
 test("song preferences and cover survive serialization and reload; failed commits remain visible", async () => {
   const saved = new Map<string, string>();
@@ -880,6 +950,19 @@ test("a failed pending preference save remains retryable with the newest values"
   expect(writes.some((text) => text.includes('"tempo":123'))).toBe(true);
   calls[1][2]?.();
   await second;
+  expect(usePreferences.getState().saveError).toBe(false);
+});
+
+test("a synchronous database failure releases the preference save lock", async () => {
+  jest.mocked(db.transaction).mockImplementationOnce(() => {
+    throw new Error("Database closed");
+  });
+  usePreferences.getState().updateSong(17, { tempo: 119 });
+  await expect(flushPreferences()).resolves.toBeUndefined();
+  expect(usePreferences.getState().saveError).toBe(true);
+  usePreferences.getState().updateSong(17, { tempo: 120 });
+  await expect(flushPreferences()).resolves.toBeUndefined();
+  expect(db.transaction).toHaveBeenCalledTimes(2);
   expect(usePreferences.getState().saveError).toBe(false);
 });
 

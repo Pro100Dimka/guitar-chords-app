@@ -1583,3 +1583,39 @@ test("known duration separates equally ranked lyric versions", () => {
   expect(preferredSongContent(options, "Studio", 200)).toEqual([options[1]]);
   expect(preferredSongContent(options, "Studio")).toEqual(options);
 });
+
+test("duplicate charts prefer verified tempo, tuning and rhythm without discarding conflicts", () => {
+  const base = {
+    id: 1,
+    title: "Track",
+    artist: "Artist",
+    content: "[Am]Words [G]again",
+    album: "Studio",
+    duration: 200,
+    capo: 0,
+    source: "Akkords.pro" as const,
+    hasChords: true
+  };
+  const complete = {
+    ...base,
+    id: 2,
+    tempo: 96,
+    tuning: "D A D G B E",
+    rhythm: {
+      strum: "D-DU-UDU",
+      strumMeter: 4 as const,
+      strumDivision: 2,
+      strumPreset: "six",
+      rhythmSections: {}
+    }
+  };
+  expect(preferredSongContent([base, complete], "Studio", 200)).toEqual([complete]);
+  expect(preferredSongContent([complete, base], "Studio", 200)).toEqual([complete]);
+  const conflict = { ...complete, id: 3, tempo: 104 };
+  expect(preferredSongContent([base, complete, conflict])).toEqual([complete, conflict]);
+  const duplicate = { ...complete, id: 4 };
+  expect(preferredSongContent([complete, duplicate])).toEqual([complete]);
+  expect(
+    preferredSongContent([{ ...base, album: "Studio" }, { ...complete, album: "Live" }], "Studio", 200)
+  ).toEqual([base]);
+});

@@ -113,7 +113,7 @@ async function main() {
   await migrate(db);
   assert.equal((await read({ tableName: "bands" })).length, 1);
   await migrate(db);
-  assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 2);
+  assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 3);
   // Adopt an existing version-one library atomically, including failed upgrades.
   sqlite.exec("DROP INDEX songs_title_order; DROP INDEX songs_title_match; DROP INDEX bands_name_match; PRAGMA user_version = 1");
   failure = "CREATE INDEX IF NOT EXISTS songs_title_order ON songs(title COLLATE NOCASE, id)";
@@ -122,7 +122,7 @@ async function main() {
   assert.equal((await read({tableName:"bands"})).length, 1);
   failure = undefined;
   await migrate(db);
-  assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 2);
+  assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 3);
   const listPlan = sqlite.prepare("EXPLAIN QUERY PLAN SELECT b.search_text_lower band, s.title, b.name as band_name, s.id FROM songs s LEFT JOIN bands b ON s.band_id = b.id ORDER BY s.title COLLATE NOCASE, s.id LIMIT 10 OFFSET 20").all().map(row=>row.detail).join("\n");
   assert.match(listPlan, /songs_title_order/);
   assert.doesNotMatch(listPlan, /TEMP B-TREE/);
@@ -131,6 +131,24 @@ async function main() {
   assert.match(sqlite.prepare("EXPLAIN QUERY PLAN SELECT id FROM bands WHERE name = ? LIMIT 1").all("Band").map(row=>row.detail).join("\n"), /bands_name_match/);
   console.log("SQLite migration and query plans passed: paged library avoids sorting; restore and artist lookup use indexes.");
   const recent = load("src/screens/library/recent-songs.ts");
+  // Version-two databases may contain legacy songs and artists without search keys.
+  sqlite.exec("PRAGMA user_version = 2");
+  sqlite.prepare("INSERT INTO bands(id,name,search_text_lower) VALUES (?,?,?)").run(20001,"СКРЯБІН","");
+  sqlite.prepare("INSERT INTO songs(id,title,content,band_id) VALUES (?,?,?,?)").run(20001,"Старі фотографії","Am\\nWords",20001);
+  failure = "UPDATE songs SET search_text_lower = ? WHERE id = ?";
+  await assert.rejects(migrate(db), /Injected failure/);
+  assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 2);
+  assert.equal(sqlite.prepare("SELECT search_text_lower FROM songs WHERE id = 20001").get().search_text_lower,null);
+  failure = undefined;
+  await migrate(db);
+  assert.equal(sqlite.prepare("PRAGMA user_version").get().user_version, 3);
+  for (const term of ["ФОТОГРАФІЇ", "скрябін", "СКРЯБІН СТАРІ"]) {
+    const matches = await read(recent.libraryQuery(term));
+    assert.equal(matches.length, 1);
+    assert.equal(matches[0].id, 20001);
+  }
+  sqlite.exec("DELETE FROM songs WHERE id = 20001; DELETE FROM bands WHERE id = 20001");
+  console.log("Legacy Unicode library search and migration rollback passed.");
   sqlite.exec("BEGIN");
   const insertRecent = sqlite.prepare("INSERT INTO songs(id,title,content,search_text_lower) VALUES (?,?,?,?)");
   for (let id=1;id<=10000;id++) insertRecent.run(id,`Song ${id}`,"Am\nWords",id%173===0?"needle":"other");
@@ -173,6 +191,20 @@ async function main() {
 
   const library=load("src/components/library-files.ts");
 
+  const plainSong=await create({tableName:"songs",data:{title:"No audio",content:"Am\nWords"}});
+  const plainKey=`song:${plainSong.insertId}:0`;
+  sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run(plainKey,JSON.stringify({favorite:true}));
+  const plainCount=()=>sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key = ?").get(plainKey).n;
+  failure="DELETE FROM settings WHERE key LIKE ?";
+  const plainFailed=await new Promise(resolve=>{deletionResult=resolve;library.requestSongDeletion(plainSong.insertId,()=>{deletionResult=undefined;resolve(true);},()=>{});});
+  failure=undefined;
+  assert.equal(plainFailed,false);
+  assert.equal(plainCount(),1,"Failed metadata removal preserves preferences");
+  assert.equal((await read({tableName:"songs",filters:"id = ?",parameters:[plainSong.insertId]})).length,1,"Song deletion rolls back with metadata");
+  const plainCommitted=await new Promise(resolve=>{deletionResult=resolve;library.requestSongDeletion(plainSong.insertId,()=>{deletionResult=undefined;resolve(plainCount());},()=>{});});
+  assert.equal(plainCommitted,0,"Song metadata is removed before UI reports success, even without recordings");
+  assert.equal((await read({tableName:"songs",filters:"id = ?",parameters:[plainSong.insertId]})).length,0);
+
   const takeSong=await create({tableName:"songs",data:{title:"Recorded",content:"Am\nWords"}});
   const takePath=`/private/performances/song-${takeSong.insertId}-1.m4a`;
   recordingFiles.set(takePath,{path:takePath,date:1,bytes:100});
@@ -200,9 +232,14 @@ async function main() {
   const retainedPath="/NEW/Documents/performances/song-900004-100.m4a";
   recordingFiles.set(retainedPath,{path:retainedPath,date:100,bytes:100});
   sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("recording-delete:900004",JSON.stringify(["song-900004-100.m4a"]));
+  const independentPath="/NEW/Documents/performances/song-900005-100.m4a";
+  recordingFiles.set(independentPath,{path:independentPath,date:100,bytes:100});
+  sqlite.prepare("INSERT INTO settings(key,value) VALUES (?,?)").run("recording-delete:900005",JSON.stringify(["song-900005-100.m4a"]));
   const actualRemove=audio.remove;
-  audio.remove=async()=>true;
+  audio.remove=async(path)=>path===retainedPath?true:actualRemove(path);
   await assert.rejects(library.finishPendingRecordingDeletions(),/RecordingDeleteFailed/);
+  assert.equal(recordingFiles.has(independentPath),false,"One failed recording must not block other songs' cleanup");
+  assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key = 'recording-delete:900005'").get().n,0);
   assert.equal(sqlite.prepare("SELECT count(*) AS n FROM settings WHERE key = 'recording-delete:900004'").get().n,1,"Cleanup journal must remain while the native list still contains its target");
   audio.remove=actualRemove;
   await library.finishPendingRecordingDeletions();

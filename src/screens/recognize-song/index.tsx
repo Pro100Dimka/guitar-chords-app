@@ -655,8 +655,18 @@ export default function RecognizeSong() {
         >
           {versions.map((option, index) => (
             <Action
-              key={`${option.source}:${option.url ?? option.id}:${option.album}`}
-              label={`${option.album || option.title} · ${option.source}${option.duration ? ` · ${Math.round(option.duration)} s` : ""} · ${index + 1}`}
+              key={`${option.source}:${option.url ?? option.id}:${option.album}:${index}`}
+              label={[
+                option.album || option.title,
+                option.source,
+                option.duration ? `${Math.round(option.duration)} s` : "",
+                option.tempo ? `${Math.round(option.tempo)} BPM` : "",
+                option.tuning ?? "",
+                option.rhythm?.strum ?? "",
+                String(index + 1)
+              ]
+                .filter(Boolean)
+                .join(" · ")}
               onPress={() => {
                 if (versionResolver.current) versionResolver.current(option);
                 else

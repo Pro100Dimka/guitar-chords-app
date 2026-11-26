@@ -1,0 +1,265 @@
+appId: com.freetune
+name: FreeTune full application journey
+---
+# Every counted pass begins with a clean installation's data, not a mocked store.
+- launchApp:
+    clearState: true
+    permissions:
+      all: allow
+- extendedWaitUntil:
+    visible: "Switch tuner: Chromatic"
+    timeout: 180000
+- assertVisible:
+    id: tab-tuner
+- tapOn: "Mode: Auto"
+- assertVisible: "Mode: Manual"
+- tapOn: "Mode: Manual"
+- tapOn: "Guitar tuning"
+- tapOn: "Tuning sound on"
+- assertVisible: "Tuning sound off"
+- tapOn:
+    id: sheet-close
+- tapOn: "Switch tuner: Chromatic"
+- extendedWaitUntil:
+    visible: "Calibration"
+    timeout: 10000
+- tapOn: "Calibration"
+- tapOn: "A4 · ${AUDIT_HZ} Hz"
+- tapOn: "Reference note: A"
+# The preview expires after 3.1 s. Separate Maestro commands can take
+# much longer on software-rendered devices; exercise both taps together.
+- tapOn:
+    text: "Play reference note"
+    repeat: 2
+    delay: 200
+    waitToSettleTimeoutMs: 100
+- assertVisible: "Play reference note"
+- tapOn: "Choose octave"
+- tapOn: "(?s)^Octave: 4.*"
+- tapOn: "Switch tuner: Guitar"
+- assertVisible: "Guitar tuning"
+# Play: chord shapes, tempo, metronome, transport, note entry, history, practice.
+- tapOn:
+    id: tab-play
+- extendedWaitUntil:
+    visible: "Auto chords"
+    timeout: 15000
+- tapOn: "C"
+- tapOn: "Shape"
+- tapOn:
+    id: sheet-close
+- tapOn: "Faster"
+- tapOn: "Slower"
+- tapOn: "Metronome"
+- tapOn: "Metronome"
+- tapOn: "Auto chords"
+- tapOn: "Pause"
+- tapOn: "Tablature"
+- extendedWaitUntil:
+    visible: "Tab actions"
+    timeout: 15000
+- tapOn: "Show fret keypad"
+- tapOn: "Fret: ${AUDIT_FRET}"
+- assertVisible: "String 1, fret ${AUDIT_FRET}, bar 1, beat 1.*"
+- tapOn: "Undo"
+- assertNotVisible: "String 1, fret ${AUDIT_FRET}, bar 1, beat 1.*"
+- tapOn: "Redo"
+- assertVisible: "String 1, fret ${AUDIT_FRET}, bar 1, beat 1.*"
+- tapOn: "Hide fret keypad"
+- tapOn: "Tab actions"
+- tapOn: "Save"
+- tapOn:
+    id: tab-library-title
+- inputText: "${AUDIT_TAB}"
+- hideKeyboard
+- tapOn: "Save"
+- extendedWaitUntil:
+    visible: "Tab actions"
+    timeout: 15000
+- tapOn: "Tab actions"
+- tapOn: "Practice"
+- extendedWaitUntil:
+    visible: "Practice settings"
+    timeout: 15000
+- tapOn: "Practice settings"
+- tapOn: "Close practice settings"
+- tapOn: "Close practice"
+- extendedWaitUntil:
+    visible:
+      id: tab-library
+    timeout: 15000
+# Library: create a real song, save, favorite, record, edit, search, restart.
+- tapOn:
+    id: tab-library
+- assertVisible:
+    id: song-card-1
+- tapOn: "Create Song"
+- tapOn: "Enter manually"
+- tapOn:
+    id: field-fk_band.name
+- inputText: "Audit Artist"
+- tapOn:
+    id: field-title
+- inputText: "${AUDIT_TITLE}"
+- hideKeyboard
+- tapOn:
+    id: lyrics-expand
+- tapOn:
+    id: lyrics-input
+- inputText: "[Am]Audit words [G]again"
+- tapOn: "Collapse editor"
+- tapOn: "Save Song"
+- extendedWaitUntil:
+    visible: "Element saved"
+    timeout: 15000
+- tapOn: "OK"
+- assertVisible: "${AUDIT_TITLE}"
+- tapOn: "Add to favorites"
+- assertVisible: "Remove from favorites"
+- tapOn: "Auto-scroll"
+- tapOn: "Record"
+- extendedWaitUntil:
+    visible: "● Start recording"
+    timeout: 15000
+- tapOn: "● Start recording"
+- extendedWaitUntil:
+    visible: "Stop and save recording"
+    timeout: 15000
+- extendedWaitUntil:
+    visible: "0:01"
+    timeout: 10000
+- tapOn: "Stop and save recording"
+- extendedWaitUntil:
+    visible: "My recordings"
+    timeout: 30000
+- extendedWaitUntil:
+    visible: "▶ Listen"
+    timeout: 30000
+- tapOn: "▶ Listen"
+- tapOn:
+    id: sheet-close
+- tapOn:
+    id: song-menu
+- tapOn:
+    id: song-menu-edit
+- tapOn:
+    id: field-title
+- eraseText: 100
+- inputText: "${AUDIT_TITLE} Revised"
+- hideKeyboard
+- tapOn: "Save Song"
+- extendedWaitUntil:
+    visible: "Element changed"
+    timeout: 15000
+- tapOn: "OK"
+- assertVisible: "${AUDIT_TITLE} Revised"
+- tapOn: "Back"
+- tapOn: "Library filters"
+- tapOn: "Favorites"
+- assertVisible:
+    id: song-card-2
+- tapOn: "Song or artist"
+- inputText: "Audit Artist"
+- hideKeyboard
+- assertVisible:
+    id: song-card-2
+- tapOn: "Clear search"
+- launchApp
+- extendedWaitUntil:
+    visible:
+      id: tab-library
+    timeout: 30000
+- tapOn:
+    id: tab-library
+- tapOn:
+    id: song-card-2
+- assertVisible: "${AUDIT_TITLE} Revised"
+- assertVisible: "Remove from favorites"
+# Delete actual song + recording; the independently saved tablature survives.
+- tapOn:
+    id: song-menu
+- tapOn:
+    id: song-menu-delete
+- tapOn: "Delete"
+- extendedWaitUntil:
+    visible: "Delete song and recordings"
+    timeout: 15000
+- tapOn: "Delete song and recordings"
+- extendedWaitUntil:
+    visible:
+      id: song-card-1
+    timeout: 15000
+- assertNotVisible:
+    id: song-card-2
+# Recognition entry and native picker cancellation. Do not hammer external services.
+- tapOn: "Create Song"
+- tapOn: "Recognize with microphone"
+- assertVisible: "Discover your song"
+- tapOn: "Back"
+- tapOn: "Create Song"
+- tapOn: "Recognize phone audio"
+- assertVisible: "Listen to phone audio"
+- tapOn: "Back"
+- tapOn: "Create Song"
+- tapOn: "Recognize audio file"
+- runFlow:
+    when:
+      platform: Android
+    commands:
+      - pressKey: back
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - tapOn: "Cancel"
+- extendedWaitUntil:
+    visible: "Opening your song"
+    timeout: 15000
+- tapOn: "Back"
+# Settings and guide: navigate through local content and file dialogs.
+- tapOn:
+    id: tab-settings
+- tapOn: "Library backup"
+- assertVisible: "Save backup to file"
+- assertVisible: "Open a backup"
+- tapOn:
+    id: sheet-close
+- tapOn: "Sound credits"
+- assertVisible: "FreeTune acoustic recordings"
+- tapOn:
+    id: sheet-close
+- tapOn: "Privacy policy"
+- tapOn:
+    id: sheet-close
+- tapOn: "Language.*"
+- assertVisible: "English.*"
+- tapOn:
+    id: sheet-close
+- tapOn:
+    id: tab-guide
+- assertVisible: "Play with confidence"
+- tapOn:
+    id: guide-quick-start
+- assertVisible: "Start playing"
+- tapOn: "Back"
+- tapOn:
+    id: tab-library
+- assertVisible:
+    id: song-card-1
+- tapOn:
+    id: song-card-1
+- tapOn: "Open tablature in Play"
+- extendedWaitUntil:
+    visible:
+      id: tab-play
+    timeout: 15000
+- tapOn: "Tablature"
+- extendedWaitUntil:
+    visible: "Tab actions"
+    timeout: 15000
+- assertVisible: "String 1, fret ${AUDIT_FRET}, bar 1, beat 1.*"
+- tapOn:
+    id: tab-editor-close
+- assertVisible:
+    id: tab-play
+- assertNotVisible: "Unable to start the app. Your data has not been reset."

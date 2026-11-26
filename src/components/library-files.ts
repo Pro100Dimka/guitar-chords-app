@@ -1,7 +1,6 @@
 import { Alert } from "react-native";
 import { t } from "../locales";
 import { performanceAudio } from "./performance-audio";
-import { deleteItem } from "./database/crud";
 import { songFieldLimits } from "@/@interfaces";
 import { transposeSong } from "../screens/song/chords";
 import { sourceArrangement } from "../screens/song/rhythms";
@@ -727,47 +726,57 @@ export function finishPendingRecordingDeletions(): Promise<void> {
         filters: "key LIKE ?",
         parameters: ["recording-delete:%"]
       });
+      let failure: unknown;
       for (const item of pending) {
-        const match = /^recording-delete:(\d+)$/.exec(item.key);
-        if (!match) continue;
-        const songId = Number(match[1]);
-        const songs = await getAllItems({
-          tableName: "songs",
-          filters: "id = ?",
-          parameters: [songId]
-        });
-        if (!songs.length) {
-          const paths: unknown = JSON.parse(item.value);
-          if (
-            !Array.isArray(paths) ||
-            !paths.every((path) => typeof path === "string")
-          )
-            throw new Error("RecordingDeleteFailed");
-          const names = paths.map((path) => recordingFileName(path, songId));
-          const remaining = await performanceAudio.list(songId);
-          for (const take of remaining.filter((take) =>
-            names.includes(recordingFileName(take.path, songId))
-          )) {
-            if (take.processing || !(await performanceAudio.remove(take.path)))
+        try {
+          const match = /^recording-delete:(\d+)$/.exec(item.key);
+          if (!match) continue;
+          const songId = Number(match[1]);
+          const songs = await getAllItems({
+            tableName: "songs",
+            filters: "id = ?",
+            parameters: [songId]
+          });
+          if (!songs.length) {
+            const paths: unknown = JSON.parse(item.value);
+            if (
+              !Array.isArray(paths) ||
+              !paths.every((path) => typeof path === "string")
+            )
+              throw new Error("RecordingDeleteFailed");
+            const names = paths.map((path) => recordingFileName(path, songId));
+            const remaining = await performanceAudio.list(songId);
+            for (const take of remaining.filter((take) =>
+              names.includes(recordingFileName(take.path, songId))
+            )) {
+              if (
+                take.processing ||
+                !(await performanceAudio.remove(take.path))
+              )
+                throw new Error("RecordingDeleteFailed");
+            }
+            const after = await performanceAudio.list(songId);
+            if (
+              after.some((take) =>
+                names.includes(recordingFileName(take.path, songId))
+              )
+            )
               throw new Error("RecordingDeleteFailed");
           }
-          const after = await performanceAudio.list(songId);
-          if (
-            after.some((take) =>
-              names.includes(recordingFileName(take.path, songId))
+          await new Promise<void>((resolve, reject) =>
+            db.transaction(
+              (tx) =>
+                tx.executeSql("DELETE FROM settings WHERE key = ?", [item.key]),
+              reject,
+              resolve
             )
-          )
-            throw new Error("RecordingDeleteFailed");
+          );
+        } catch (error) {
+          // A failed recording must not block cleanup of unrelated songs.
+          failure ??= error ?? new Error("RecordingDeleteFailed");
         }
-        await new Promise<void>((resolve, reject) =>
-          db.transaction(
-            (tx) =>
-              tx.executeSql("DELETE FROM settings WHERE key = ?", [item.key]),
-            reject,
-            resolve
-          )
-        );
       }
+      if (failure !== undefined) throw failure;
     });
   recordingCleanup = cleanup;
   return cleanup.finally(() => {
@@ -781,6 +790,10 @@ export function requestSongDeletion(
   onRecordings: () => void
 ) {
   const fail = () => Alert.alert(t("DeleteSongError"));
+  if (!Number.isSafeInteger(songId) || songId <= 0) {
+    fail();
+    return;
+  }
   const remove = async (
     takes: Awaited<ReturnType<typeof performanceAudio.list>>
   ) => {
@@ -789,10 +802,10 @@ export function requestSongDeletion(
       if (takes.some((take) => take.processing))
         throw new Error("RecordingBusy");
       performanceAudio.stopPlayback();
-      if (takes.length)
-        await new Promise<void>((resolve, reject) =>
-          db.transaction(
-            (tx) => {
+      await new Promise<void>((resolve, reject) =>
+        db.transaction(
+          (tx) => {
+            if (takes.length)
               tx.executeSql(
                 "INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)",
                 [
@@ -802,27 +815,21 @@ export function requestSongDeletion(
                   )
                 ]
               );
-              tx.executeSql(
-                "DELETE FROM songs WHERE id = ?",
-                [songId],
-                (_, result) => {
-                  if (result.rowsAffected !== 1) throw new Error("SongMissing");
-                }
-              );
-              tx.executeSql("DELETE FROM settings WHERE key LIKE ?", [
-                `song:${songId}:%`
-              ]);
-            },
-            reject,
-            resolve
-          )
-        );
-      else
-        await deleteItem({
-          tableName: "songs",
-          filters: "id = ?",
-          parameters: [songId]
-        });
+            tx.executeSql(
+              "DELETE FROM songs WHERE id = ?",
+              [songId],
+              (_, result) => {
+                if (result.rowsAffected !== 1) throw new Error("SongMissing");
+              }
+            );
+            tx.executeSql("DELETE FROM settings WHERE key LIKE ?", [
+              `song:${songId}:%`
+            ]);
+          },
+          reject,
+          resolve
+        )
+      );
       usePreferences.getState().removeSong(songId);
       onDeleted();
       if (takes.length)

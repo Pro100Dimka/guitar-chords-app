@@ -102,6 +102,35 @@ test("ties and let-ring notes stop at the next physical attack or rest", () => {
   expect(tabNoteEnd(tied, tied.notes[0])).toBe(60);
 });
 
+test("fractional quintuplet releases touch rests and tied attacks exactly", () => {
+  const tied = normalizeTablature({
+    ...emptyTablature(),
+    version: 3,
+    notes: [
+      { string: 0, fret: 3, tick: 38.4, duration: 19.2, tie: true },
+      { string: 0, fret: 3, tick: 57.6, duration: 19.2 }
+    ]
+  })!;
+  expect(tabNoteEnd(tied, tied.notes[0])).toBe(76.8);
+  const adjacent = {
+    ...emptyTablature(),
+    version: 3,
+    notes: [{ string: 0, fret: 3, tick: 17.4, duration: 0.6 }],
+    rests: [
+      { tick: 16.2, duration: 0.6 },
+      { tick: 16.8, duration: 0.6 },
+      { tick: 18, duration: 0.6 }
+    ]
+  };
+  expect(normalizeTablature(adjacent)).toEqual(adjacent);
+  expect(
+    normalizeTablature({
+      ...adjacent,
+      notes: [{ ...adjacent.notes[0], tick: 17.4 - 1 / 960 }]
+    })
+  ).toBeUndefined();
+});
+
 test("normalization copies, orders and merges identical string onsets", () => {
   const input = {
     ...emptyTablature(),
@@ -265,6 +294,14 @@ test("length includes releases, rests and deliberately empty final bars", () => 
       notes: [{ string: 0, fret: 3, tick: 90, duration: 24 }]
     })?.barCount
   ).toBe(2);
+});
+
+test("2/2 preserves half-note beats in newly created tablature", () => {
+  const tab = emptyTablature(90, 2, 2);
+  expect(tab.beatUnit).toBe(2);
+  expect(tabBeatTicks(tab)).toBe(48);
+  expect(tabBarTicks(tab)).toBe(96);
+  expect(normalizeTablature(tab)).toEqual(tab);
 });
 
 test("6/8 counts eighth beats while quarter-based tick durations remain stable", () => {

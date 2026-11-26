@@ -32,9 +32,9 @@ export function createRecognitionLinking() {
     prefixes: ["freetune://"],
     async getInitialURL() {
       const pending = await pendingLaunch();
-      const url = pending ?? (await Linking.getInitialURL());
-      remember(url);
-      return url;
+      if (pending && remember(pending)) return pending;
+      const url = await Linking.getInitialURL();
+      return remember(url) ? url : null;
     },
     subscribe(listener: (url: string) => void) {
       let active = true;

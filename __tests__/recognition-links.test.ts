@@ -60,6 +60,29 @@ test("a Control Center cold launch reaches the recognition route before JS subsc
   expect(listener).not.toHaveBeenCalled();
 });
 
+test("a repeated initial launch cannot reopen recognition or hide a fresh link", async () => {
+  NativeModules.SongRecognition.consumeLaunchURL.mockResolvedValue(first);
+  jest
+    .mocked(Linking.getInitialURL)
+    .mockResolvedValueOnce(first)
+    .mockResolvedValueOnce(second);
+  const linking = createRecognitionLinking();
+  await expect(linking.getInitialURL()).resolves.toBe(first);
+  await expect(linking.getInitialURL()).resolves.toBeNull();
+  await expect(linking.getInitialURL()).resolves.toBe(second);
+});
+
+test("an initial URL already delivered by a warm event is ignored", async () => {
+  const listener = jest.fn();
+  const linking = createRecognitionLinking();
+  unsubscribe = linking.subscribe(listener);
+  urlEvent({ url: first });
+  await flush();
+  jest.mocked(Linking.getInitialURL).mockResolvedValue(first);
+  await expect(linking.getInitialURL()).resolves.toBeNull();
+  expect(listener).toHaveBeenCalledTimes(1);
+});
+
 test("ordinary initial deep links still open when no App Intent is pending", async () => {
   jest.mocked(Linking.getInitialURL).mockResolvedValue("freetune://library");
   await expect(createRecognitionLinking().getInitialURL()).resolves.toBe(

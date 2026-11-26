@@ -5,6 +5,8 @@ import {
   TAB_TICKS_PER_BEAT,
   tabBarTicks,
   tabNoteDuration,
+  roundTabTick,
+  tabTickEnd,
   tablatureLength,
   TabNote,
   TabRest,
@@ -56,15 +58,17 @@ export function durationLabel(ticks: number) {
 }
 
 const sameNote = (a: Pick<TabNote, "tick" | "string">, b: TabNote) =>
-  a.tick === b.tick && a.string === b.string;
+  roundTabTick(a.tick) === roundTabTick(b.tick) && a.string === b.string;
 
 function result(value: Tablature): TabEditResult {
   const maxEnd = TAB_MAX_BARS * tabBarTicks(value);
   if (
     value.notes.length + (value.rests?.length ?? 0) > TAB_MAX_NOTES ||
     (value.barCount ?? 1) > TAB_MAX_BARS ||
-    value.notes.some((note) => note.tick + tabNoteDuration(note) > maxEnd) ||
-    value.rests?.some((rest) => rest.tick + rest.duration > maxEnd)
+    value.notes.some(
+      (note) => tabTickEnd(note.tick, tabNoteDuration(note)) > maxEnd
+    ) ||
+    value.rests?.some((rest) => tabTickEnd(rest.tick, rest.duration) > maxEnd)
   )
     return { error: "TabEditLimit" };
   const expressive =
@@ -137,22 +141,27 @@ export function copyTabBar(tab: Tablature, bar: number): TabBarClipboard {
       .filter((note) => note.tick >= start && note.tick < end)
       .map((note) => ({
         ...note,
-        tick: note.tick - start,
-        duration: Math.min(tabNoteDuration(note), end - note.tick)
+        tick: roundTabTick(note.tick - start),
+        duration: roundTabTick(Math.min(tabNoteDuration(note), end - note.tick))
       })),
     rests: (tab.rests ?? [])
-      .filter((rest) => rest.tick < end && rest.tick + rest.duration > start)
+      .filter(
+        (rest) =>
+          rest.tick < end && tabTickEnd(rest.tick, rest.duration) > start
+      )
       .map((rest) => ({
-        tick: Math.max(start, rest.tick) - start,
-        duration:
-          Math.min(end, rest.tick + rest.duration) - Math.max(start, rest.tick)
+        tick: roundTabTick(Math.max(start, rest.tick) - start),
+        duration: roundTabTick(
+          Math.min(end, tabTickEnd(rest.tick, rest.duration)) -
+            Math.max(start, rest.tick)
+        )
       }))
   };
 }
 
 const clipNote = (note: TabNote, end: number): TabNote => ({
   ...note,
-  duration: Math.min(tabNoteDuration(note), end - note.tick)
+  duration: roundTabTick(Math.min(tabNoteDuration(note), end - note.tick))
 });
 const clipRest = (rest: TabRest, end: number): TabRest => ({
   ...rest,
@@ -264,11 +273,13 @@ export function tabBarCoverage(tab: Tablature, bar: number) {
   const events = [
     ...tab.notes.map((note) => ({
       start: note.tick,
-      end: note.tick + tabNoteDuration(note)
+      end: tabTickEnd(note.tick, tabNoteDuration(note)),
+      tied: note.tie === true
     })),
     ...(tab.rests ?? []).map((rest) => ({
       start: rest.tick,
-      end: rest.tick + rest.duration
+      end: tabTickEnd(rest.tick, rest.duration),
+      tied: false
     }))
   ]
     .filter((event) => event.start < end && event.end > start)
@@ -282,13 +293,10 @@ export function tabBarCoverage(tab: Tablature, bar: number) {
     at = Math.max(at, to);
   }
   return {
-    covered,
+    covered: roundTabTick(covered),
     expected: size,
     overflow: events.some(
-      (event) =>
-        event.start >= start &&
-        event.end > end &&
-        !tab.notes.some((note) => note.tick === event.start && note.tie)
+      (event) => event.start >= start && event.end > end && !event.tied
     )
   };
 }
@@ -300,7 +308,7 @@ export function copyTabSelection(
   only?: Pick<TabNote, "tick" | "string">
 ): TabBarClipboard {
   return {
-    ticks: end - start,
+    ticks: roundTabTick(end - start),
     notes: tab.notes
       .filter(
         (note) =>
@@ -310,8 +318,10 @@ export function copyTabSelection(
       )
       .map((note) => ({
         ...note,
-        tick: note.tick - start,
-        duration: Math.min(tabNoteDuration(note), end - note.tick),
+        tick: roundTabTick(note.tick - start),
+        duration: roundTabTick(
+          Math.min(tabNoteDuration(note), end - note.tick)
+        ),
         ...(note.techniques ? { techniques: [...note.techniques] } : {}),
         ...(note.tuplet ? { tuplet: { ...note.tuplet } } : {})
       })),
@@ -319,13 +329,15 @@ export function copyTabSelection(
       ? []
       : (tab.rests ?? [])
           .filter(
-            (rest) => rest.tick < end && rest.tick + rest.duration > start
+            (rest) =>
+              rest.tick < end && tabTickEnd(rest.tick, rest.duration) > start
           )
           .map((rest) => ({
-            tick: Math.max(start, rest.tick) - start,
-            duration:
-              Math.min(end, rest.tick + rest.duration) -
-              Math.max(start, rest.tick)
+            tick: roundTabTick(Math.max(start, rest.tick) - start),
+            duration: roundTabTick(
+              Math.min(end, tabTickEnd(rest.tick, rest.duration)) -
+                Math.max(start, rest.tick)
+            )
           }))
   };
 }
@@ -342,18 +354,18 @@ export function deleteTabSelection(
     ? [range]
     : removed.map((note) => ({
         start: note.tick,
-        end: note.tick + tabNoteDuration(note)
+        end: tabTickEnd(note.tick, tabNoteDuration(note))
       }));
   for (const span of spans) {
     let gaps = [{ ...span }];
     const occupied = [
       ...notes.map((note) => ({
         start: note.tick,
-        end: note.tick + tabNoteDuration(note)
+        end: tabTickEnd(note.tick, tabNoteDuration(note))
       })),
       ...rests.map((rest) => ({
         start: rest.tick,
-        end: rest.tick + rest.duration
+        end: tabTickEnd(rest.tick, rest.duration)
       }))
     ];
     for (const block of occupied)
@@ -372,7 +384,10 @@ export function deleteTabSelection(
     rests.push(
       ...gaps
         .filter((gap) => gap.end > gap.start)
-        .map((gap) => ({ tick: gap.start, duration: gap.end - gap.start }))
+        .map((gap) => ({
+          tick: gap.start,
+          duration: roundTabTick(gap.end - gap.start)
+        }))
     );
   }
   return result({ ...tab, notes, rests });
@@ -387,7 +402,7 @@ export function pasteTabSelection(
 ): TabEditResult {
   const notes = clipboard.notes.map((note) => ({
     ...note,
-    tick: at + note.tick,
+    tick: tabTickEnd(at, note.tick),
     string:
       string !== undefined && clipboard.notes.length === 1
         ? string
@@ -395,16 +410,23 @@ export function pasteTabSelection(
   }));
   if (notes.some((note) => tab.notes.some((entry) => sameNote(note, entry))))
     return { error: "TabNoteCollision" };
-  const end = at + clipboard.ticks;
+  const end = tabTickEnd(at, clipboard.ticks);
   const rests = (tab.rests ?? []).flatMap((rest) =>
-    rest.tick >= end || rest.tick + rest.duration <= at
+    rest.tick >= end || tabTickEnd(rest.tick, rest.duration) <= at
       ? [rest]
       : [
           ...(rest.tick < at
-            ? [{ tick: rest.tick, duration: at - rest.tick }]
+            ? [{ tick: rest.tick, duration: roundTabTick(at - rest.tick) }]
             : []),
-          ...(rest.tick + rest.duration > end
-            ? [{ tick: end, duration: rest.tick + rest.duration - end }]
+          ...(tabTickEnd(rest.tick, rest.duration) > end
+            ? [
+                {
+                  tick: end,
+                  duration: roundTabTick(
+                    tabTickEnd(rest.tick, rest.duration) - end
+                  )
+                }
+              ]
             : [])
         ]
   );
@@ -415,7 +437,10 @@ export function pasteTabSelection(
     notes: [...tab.notes, ...notes],
     rests: [
       ...rests,
-      ...clipboard.rests.map((rest) => ({ ...rest, tick: at + rest.tick }))
+      ...clipboard.rests.map((rest) => ({
+        ...rest,
+        tick: tabTickEnd(at, rest.tick)
+      }))
     ]
   });
 }

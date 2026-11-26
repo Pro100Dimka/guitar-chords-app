@@ -360,6 +360,45 @@ test("deferred payment returned as a rejection blocks another charge", async () 
   expect(finishTransaction).not.toHaveBeenCalled();
 });
 
+test("a synchronous native finalization failure releases the processing lock", async () => {
+  jest.mocked(finishTransaction).mockImplementationOnce(() => {
+    throw new Error("Native billing bridge is unavailable");
+  });
+  await open();
+  await act(async () => mockCallbacks.onPurchaseSuccess!(purchase));
+  expect(payButton().props.disabled).toBe(true);
+  expect(finishTransaction).toHaveBeenCalledTimes(1);
+  await act(async () =>
+    screen.root
+      .findAllByType(Action)
+      .find((node) => node.props.label === "Retry")!
+      .props.onPress()
+  );
+  expect(finishTransaction).toHaveBeenCalledTimes(2);
+  expect(payButton().props.disabled).toBe(false);
+});
+
+test("Android explicit retry unlocks a deferred request only after the store confirms no pending purchase", async () => {
+  mockRequestPurchase.mockRejectedValueOnce({ code: ErrorCode.Pending });
+  await open();
+  await act(async () => payButton().props.onPress());
+  expect(payButton().props.disabled).toBe(true);
+  const retry = () =>
+    screen.root.findAllByType(Action).find((node) => node.props.label === "Retry")!;
+  jest.mocked(getAvailablePurchases).mockRejectedValueOnce(new Error("offline"));
+  await act(async () => retry().props.onPress());
+  expect(payButton().props.disabled).toBe(true);
+  jest.mocked(getAvailablePurchases).mockResolvedValueOnce([
+    { ...purchase, purchaseState: "pending" }
+  ]);
+  await act(async () => retry().props.onPress());
+  expect(payButton().props.disabled).toBe(true);
+  await act(async () => retry().props.onPress());
+  expect(payButton().props.disabled).toBe(false);
+  expect(finishTransaction).not.toHaveBeenCalled();
+  expect(mockRequestPurchase).toHaveBeenCalledTimes(1);
+});
+
 test("iOS explicit retry permits a new Ask to Buy request without claiming approval", async () => {
   jest.replaceProperty(Platform, "OS", "ios");
   mockRequestPurchase.mockRejectedValueOnce({

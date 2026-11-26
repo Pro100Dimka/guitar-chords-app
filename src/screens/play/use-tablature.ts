@@ -12,6 +12,8 @@ import {
   tabBeatTicks,
   tabNoteDuration,
   tabNoteEnd,
+  tabTickEnd,
+  roundTabTick,
   tablatureLength,
   TAB_MAX_BARS,
   TAB_MAX_NOTES,
@@ -189,7 +191,7 @@ export class TablatureTransport {
     this.state.tab.notes.forEach((note) => {
       if (!note.fermata) return;
       const duration = tabNoteDuration(note);
-      const end = note.tick + duration;
+      const end = tabTickEnd(note.tick, duration);
       holds.set(end, Math.max(holds.get(end) ?? 0, duration));
     });
     this.fermatas = [...holds]
@@ -381,7 +383,7 @@ export class TablatureTransport {
     const bounds = this.bounds();
     this.position = Math.max(
       bounds.start,
-      Math.min(bounds.end, Math.floor(tick * 960) / 960)
+      Math.min(bounds.end, roundTabTick(tick))
     );
     this.consumedTick = this.position - 1;
     this.lastBeat = Math.ceil(this.position / tabBeatTicks(this.state.tab)) - 1;
@@ -479,14 +481,20 @@ export class TablatureTransport {
     }
     const resume = ["preparing", "playing"].includes(this.state.status);
     this.pause();
-    this.update({ range: range && { ...range }, error: null });
+    this.update({
+      range: range && {
+        start: roundTabTick(range.start),
+        end: roundTabTick(range.end)
+      },
+      error: null
+    });
     const bounds = this.bounds();
     this.position = bounds.start;
     this.consumedTick = bounds.start - 1;
     this.lastBeat = Math.ceil(bounds.start / tabBeatTicks(this.state.tab)) - 1;
     this.trainerBpm = this.state.practice.trainer.startBpm;
     this.completeLoop = true;
-    this.update({ tick: Math.floor(this.position), completedLoops: 0 });
+    this.update({ tick: this.position, completedLoops: 0 });
     if (resume) void this.play();
   };
 
@@ -510,20 +518,21 @@ export class TablatureTransport {
       occurrences.push(index);
     });
   }
-  private noteOffset(tick: number) {
+  private noteOffset(tick: number, after = false) {
     const { notes } = this.state.tab;
     let low = 0;
     let high = notes.length;
     while (low < high) {
       const middle = (low + high) >>> 1;
-      if (notes[middle].tick < tick) low = middle + 1;
+      if (notes[middle].tick < tick || (after && notes[middle].tick === tick))
+        low = middle + 1;
       else high = middle;
     }
     return low;
   }
   private heldNotes(position: number, attacksFrom = position): TabNote[] {
     this.indexNotes();
-    const end = this.noteOffset(position + 1 / 960);
+    const end = this.noteOffset(position, true);
     const held: TabNote[] = [];
     for (const indices of this.notesByString.values()) {
       const index = indices[atOrAfter(indices, end) - 1];
@@ -749,7 +758,11 @@ export class TablatureTransport {
     const controller = new AbortController();
     this.controller = controller;
     this.position = position;
-    this.cursor = this.noteOffset(Math.max(position, this.consumedTick + 1));
+    // Fractional attacks can be less than one tick apart.
+    this.cursor = Math.max(
+      this.noteOffset(position),
+      this.noteOffset(this.consumedTick, true)
+    );
     this.ready.clear();
     this.update({
       status: "preparing",

@@ -62,6 +62,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const [painted, setPainted] = useState(false);
   const [renderError, setRenderError] = useState(false);
   const [renderAttempt, setRenderAttempt] = useState(0);
+  const [captureAttempt, setCaptureAttempt] = useState(0);
+  const [captureFailed, setCaptureFailed] = useState(false);
   const markStringsReady = useCallback(() => setStringsReady(true), []);
   const markDialReady = useCallback(() => setDialReady(true), []);
   const markChromaticReady = useCallback(() => setChromaticReady(true), []);
@@ -142,10 +144,17 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const graphicsReady =
     controlsReady && (isChromatic ? chromaticReady : stringsReady && dialReady);
   useEffect(() => {
+    // Missing font/image callbacks must not leave a permanently invisible tuner.
+    if (!active || renderError || (painted && backgroundReady)) return;
+    // Cold native shader compilation can outlast several seconds, especially
+    // on a simulator or an older device. Keep the actual frame check intact.
+    const timeout = setTimeout(() => setRenderError(true), 30000);
+    return () => clearTimeout(timeout);
+  }, [active, backgroundReady, painted, renderAttempt, renderError]);
+  useEffect(() => {
     if (
       !active ||
       painted ||
-      renderError ||
       !backgroundReady ||
       !layoutReady ||
       !graphicsReady
@@ -153,7 +162,10 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       return;
     let mounted = true;
     let frame = 0;
-    let attempts = 0;
+    let retry: ReturnType<typeof setTimeout> | undefined;
+    // The visible watchdog must not discard a valid native frame that
+    // completes late. Bound further retries separately from the UI timeout.
+    const retryDeadline = Date.now() + 120000;
     const capture = async () => {
       try {
         if (!canvas.current) throw new Error("Tuner canvas unavailable");
@@ -182,11 +194,13 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
           image.dispose();
         }
         if (!visible) throw new Error("Tuner frame is empty");
-        if (mounted) setPainted(true);
+        if (mounted) {
+          setPainted(true);
+          setRenderError(false);
+        }
       } catch {
-        if (!mounted) return;
-        if (++attempts < 3) frame = requestAnimationFrame(() => void capture());
-        else setRenderError(true);
+        if (!mounted || Date.now() >= retryDeadline) return;
+        retry = setTimeout(() => void capture(), 250);
       }
     };
     frame = requestAnimationFrame(() => {
@@ -195,11 +209,11 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     return () => {
       mounted = false;
       cancelAnimationFrame(frame);
+      if (retry !== undefined) clearTimeout(retry);
     };
   }, [
     active,
     painted,
-    renderError,
     backgroundReady,
     layoutReady,
     graphicsReady,
@@ -300,6 +314,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     MicrophoneStream.setTargetNotes(stringNotes ?? []);
   }, [active, stringNotes]);
   useEffect(() => {
+    setCaptureFailed(false);
     if (!active) {
       setAccessibleReading(null);
       note.value = null;
@@ -319,6 +334,13 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     let attempts = 0;
     let nextAttemptAt = 0;
     const id = MicrophoneStream.addListener((input: AudioBufferEvent) => {
+      if (captureState === "stopped") return;
+      if (captureState === "failed") {
+        captureState = "running";
+        attempts = 0;
+        nextAttemptAt = 0;
+        setCaptureFailed(false);
+      }
       const calibrated = isChromatic
         ? calibratedNote(input.pitch, referenceRef.current)
         : null;
@@ -417,7 +439,11 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         pitch: buffer.pitch
       };
     });
-    MicrophoneStream.startRecording();
+    try {
+      MicrophoneStream.startRecording();
+    } catch (error) {
+      console.warn("Microphone start failed", error);
+    }
     const recoveryTimer = setInterval(() => {
       const now = Date.now();
       if (
@@ -428,6 +454,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         return;
       if (attempts >= 3) {
         captureState = "failed";
+        setCaptureFailed(true);
+        setAccessibleReading(null);
         console.warn("Microphone recovery exhausted");
         return;
       }
@@ -435,22 +463,28 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       attempts++;
       note.value = null;
       rms.value = 0;
-      void MicrophoneStream.restartRecording().then(
-        (started) => {
-          if (captureState === "stopped") return;
-          captureState = "running";
-          lastBufferAt = Date.now();
-          nextAttemptAt = lastBufferAt + 1500 * 2 ** (attempts - 1);
-          if (!started)
-            console.warn("Microphone recovery did not start capture");
-        },
-        (error) => {
-          if (captureState === "stopped") return;
-          captureState = "running";
-          nextAttemptAt = Date.now() + 1500 * 2 ** (attempts - 1);
-          console.warn("Microphone recovery failed", error);
-        }
-      );
+      void Promise.resolve()
+        .then(() =>
+          captureState === "stopped"
+            ? false
+            : MicrophoneStream.restartRecording()
+        )
+        .then(
+          (started) => {
+            if (captureState === "stopped") return;
+            captureState = "running";
+            lastBufferAt = Date.now();
+            nextAttemptAt = lastBufferAt + 1500 * 2 ** (attempts - 1);
+            if (!started)
+              console.warn("Microphone recovery did not start capture");
+          },
+          (error) => {
+            if (captureState === "stopped") return;
+            captureState = "running";
+            nextAttemptAt = Date.now() + 1500 * 2 ** (attempts - 1);
+            console.warn("Microphone recovery failed", error);
+          }
+        );
     }, 1500);
     return () => {
       captureState = "stopped";
@@ -470,6 +504,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     signal,
     isChromatic,
     chromaticOctave,
+    captureAttempt,
     setAccessibleReading
   ]);
   const previewUntil = useRef(0);
@@ -520,19 +555,25 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   };
   useEffect(() => {
     if (!active || !isChromatic) setReferencePlaying(false);
+    if (!active) return;
     return () => {
       pendingPreview.current?.abort();
+      pendingPreview.current = null;
       if (referenceTimer.current !== undefined)
         clearTimeout(referenceTimer.current);
+      referenceTimer.current = undefined;
       performanceAudio.stopPlayback();
     };
   }, [active, isChromatic]);
   const stopReference = useCallback(() => {
-    pendingPreview.current?.abort();
+    const preview = pendingPreview.current;
+    pendingPreview.current = null;
+    preview?.abort();
     previewUntil.current = Math.min(previewUntil.current, Date.now() + 180);
     if (referenceTimer.current !== undefined)
       clearTimeout(referenceTimer.current);
-    performanceAudio.stopPlayback();
+    referenceTimer.current = undefined;
+    if (preview) performanceAudio.stopPlayback();
     setReferencePlaying(false);
   }, []);
   useEffect(() => {
@@ -615,7 +656,12 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
           />
         )}
         <GestureDetector gesture={tapGesture}>
-          <Canvas ref={canvas} style={styles.flex} accessible={false}>
+          <Canvas
+            key={renderAttempt}
+            ref={canvas}
+            style={styles.flex}
+            accessible={false}
+          >
             {config.selectedInstrument === "guitar" ? (
               <>
                 <NoteIndicator
@@ -744,7 +790,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
                   style={[
                     styles.referenceNote,
                     {
-                      width: `${100 / octaveLayout.columns}%`
+                      width: `${100 / octaveLayout.columns}%`,
+                      height: octaveLayout.rowHeight
                     },
                     referenceNote === name && styles.selectedReference
                   ]}
@@ -804,6 +851,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
           onError={() => setRenderError(true)}
           onOpenTuning={() => setChooseTuning(true)}
           compact={layout.height < 420}
+          compactControls={octaveLayout.compactControls}
           spectrum={tunerSpectrum}
           referencePlaying={referencePlaying}
           onVisualization={() =>
@@ -880,6 +928,21 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         </Sheet>
       )}
       {chooseTuning && <TuningSheet onClose={() => setChooseTuning(false)} />}
+      {captureFailed &&
+        active &&
+        painted &&
+        backgroundReady &&
+        !renderError && (
+          <View style={styles.renderError}>
+            <Text accessibilityRole="alert" style={styles.octaveHint}>
+              {t("TunerCaptureUnavailable")}
+            </Text>
+            <Action
+              label={t("Retry")}
+              onPress={() => setCaptureAttempt((value) => value + 1)}
+            />
+          </View>
+        )}
       {renderError && (
         <View style={styles.renderError} onLayout={reportReady}>
           <Text style={styles.octaveHint}>{t("ErrorStartingApp")}</Text>
@@ -887,6 +950,11 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
             label={t("Retry")}
             onPress={() => {
               setLoadedBackground("");
+              setPainted(false);
+              setStringsReady(false);
+              setDialReady(false);
+              setChromaticReady(false);
+              setControlsReady(false);
               setRenderError(false);
               setRenderAttempt((value) => value + 1);
             }}
@@ -907,7 +975,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8
   },
   referenceNote: {
-    height: 32,
     borderRadius: 8,
     borderWidth: 0,
     borderColor: palette.gold.top

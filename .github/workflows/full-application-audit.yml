@@ -1,0 +1,415 @@
+name: full-application-audit
+on:
+  push:
+    branches: [fix/cross-platform-root-cause-audit-20261126]
+    paths:
+      - '.github/workflows/full-application-audit.yml'
+      - 'e2e/**'
+      - 'scripts/*app-audit*'
+      - 'scripts/install-audit-maestro.sh'
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: full-application-audit-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build-android:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          # Reuse dependencies downloaded during earlier audit attempts.
+          cache-read-only: false
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-linux-android
+      - name: Android NDK setup
+        id: android-ndk
+        run: |
+          ndk_version=$(awk -F '"' '/^[[:space:]]*ndkVersion[[:space:]]*=/ { print $2 }' android/build.gradle)
+          [[ "$ndk_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          echo "version=$ndk_version" >> "$GITHUB_OUTPUT"
+          # cargo-ndk and Gradle must use the same SDK, including on images that
+          # preconfigure ANDROID_NDK_ROOT to a newer installed release.
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/$ndk_version" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK_ROOT=$ANDROID_HOME/ndk/$ndk_version" >> "$GITHUB_ENV"
+          echo "ANDROID_NDK=$ANDROID_HOME/ndk/$ndk_version" >> "$GITHUB_ENV"
+          rustup show
+          if [ ! -f "$ANDROID_HOME/ndk/$ndk_version/source.properties" ]; then
+            yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses >/dev/null || true
+            "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --install "ndk;$ndk_version"
+          fi
+      - name: Install pinned official cargo-ndk binary
+        run: |
+          archive="$RUNNER_TEMP/cargo-ndk-v4.1.2.tgz"
+          curl --fail --location --retry 3 'https://github.com/bbqsrc/cargo-ndk/releases/download/v4.1.2/cargo-ndk-x86_64-unknown-linux-gnu-v4.1.2.tgz' --output "$archive"
+          echo "9451622c4567e8abb2c8005001855e32901c0b716ccdd3a173a4375fd03426e1  $archive" | sha256sum --check --strict
+          mkdir -p "$RUNNER_TEMP/cargo-ndk"
+          tar -xzf "$archive" -C "$RUNNER_TEMP/cargo-ndk" --strip-components=1
+          echo "$RUNNER_TEMP/cargo-ndk" >> "$GITHUB_PATH"
+          PATH="$RUNNER_TEMP/cargo-ndk:$PATH" cargo ndk --version
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: android/song-fingerprint
+          # rust-cache also fingerprints rustc, Cargo.lock and compiler flags.
+          key: android-ndk-${{ steps.android-ndk.outputs.version }}-cargo-ndk-4.1.2-arm64-armv7-x86_64-release
+          cache-bin: false
+      - run: npm ci
+      - name: Build locally signed x86_64 release APK
+        working-directory: android
+        env:
+          RELEASE_STORE_FILE: ${{ github.workspace }}/android/app/debug.keystore
+          RELEASE_STORE_PASSWORD: android
+          RELEASE_KEY_ALIAS: androiddebugkey
+          RELEASE_KEY_PASSWORD: android
+        run: |
+          chmod +x gradlew
+          bash ../scripts/build-app-audit-android.sh
+          test -s app/build/outputs/apk/release/app-release.apk
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-android-build-log
+          path: ${{ runner.temp }}/audit-android-build.log
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audit-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          retention-days: 7
+  build-ios:
+    runs-on: macos-15
+    timeout-minutes: 90
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-ios-sim
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.3.13'
+          bundler: '2.5.23'
+          bundler-cache: true
+      - name: Identify compatible native build caches
+        id: native-context
+        env:
+          DEVICE_IPA: 'false'
+          NATIVE_INPUT_HASH: ${{ hashFiles('package.json', 'package-lock.json', 'Gemfile', 'Gemfile.lock', 'ios/Podfile', 'ios/Podfile.lock', 'ios/.xcode.env*', 'ios/freetune.xcodeproj/project.pbxproj', 'ios/freetune.xcodeproj/xcshareddata/**', 'ios/freetune.xcworkspace/contents.xcworkspacedata', 'react-native.config.*', 'patches/**', 'ios/build-fingerprint.sh', 'scripts/ios-build-cache.py', 'android/song-fingerprint/Cargo.toml', 'android/song-fingerprint/Cargo.lock', '.github/workflows/ios-application.yml') }}
+        run: |
+          set -euo pipefail
+          if [ "$DEVICE_IPA" = 'true' ]; then
+            mode=iphoneos-Release
+            sdk=iphoneos
+          else
+            mode=iphonesimulator-Release-audit
+            sdk=iphonesimulator
+          fi
+          derived="$RUNNER_TEMP/freetune-ios-$mode"
+          echo "IOS_DERIVED_DATA=$derived" >> "$GITHUB_ENV"
+          {
+            sw_vers -productVersion
+            sw_vers -buildVersion
+            uname -m
+            xcodebuild -version
+            xcrun --sdk "$sdk" --show-sdk-version
+            xcrun --sdk "$sdk" --show-sdk-build-version
+            rustc -vV
+            node --version
+            ruby --version
+            printf '%s\n' "$GITHUB_WORKSPACE" "$derived" "$mode"
+            printf '%s\n' 'ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO'
+          } > "$RUNNER_TEMP/ios-cache-context.txt"
+          cat "$RUNNER_TEMP/ios-cache-context.txt"
+          identity=$(shasum -a 256 "$RUNNER_TEMP/ios-cache-context.txt" | awk '{print $1}')
+          echo "key=v1-$RUNNER_ARCH-$mode-$identity-$NATIVE_INPUT_HASH" >> "$GITHUB_OUTPUT"
+      - name: Cache locked Cargo downloads
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: ios-cargo-downloads-${{ runner.arch }}-${{ hashFiles('android/song-fingerprint/Cargo.lock') }}
+      - run: npm ci
+      # Skia's pod prepare copies 64 framework files outside Pods. A cached
+      # installation skips that preparation, so restore both after npm ci.
+      - name: Cache exact native dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ios/Pods
+            node_modules/@shopify/react-native-skia/libs
+          key: ios-pods-${{ steps.native-context.outputs.key }}
+      - name: Install native dependencies
+        env:
+          REFRESH_LOCK: 'false'
+        run: |
+          set -euo pipefail
+          # Skia 2.5.1 conditionally declares tvOS frameworks when libs/tvos exists.
+          # Match fresh npm evaluation for this iOS lockfile, then restore all files.
+          skia_tvos="$GITHUB_WORKSPACE/node_modules/@shopify/react-native-skia/libs/tvos"
+          skia_tvos_backup=''
+          restore_skia_tvos() {
+            local install_status=$?
+            trap - EXIT
+            if [ -n "$skia_tvos_backup" ]; then
+              if [ -d "$skia_tvos_backup/tvos" ] && [ ! -e "$skia_tvos" ] && [ ! -L "$skia_tvos" ]; then
+                if ! mv "$skia_tvos_backup/tvos" "$skia_tvos"; then
+                  echo "Could not restore Skia tvOS files; preserved at $skia_tvos_backup" >&2
+                  if [ "$install_status" -eq 0 ]; then install_status=1; fi
+                  exit "$install_status"
+                fi
+              fi
+              if ! rm -rf "$skia_tvos_backup"; then
+                if [ "$install_status" -eq 0 ]; then install_status=1; fi
+              fi
+            fi
+            exit "$install_status"
+          }
+          trap restore_skia_tvos EXIT
+          if [ -d "$skia_tvos" ]; then
+            skia_tvos_backup=$(mktemp -d "$RUNNER_TEMP/freetune-skia-tvos.XXXXXX")
+            mv "$skia_tvos" "$skia_tvos_backup/tvos"
+          fi
+          if [ "$REFRESH_LOCK" = 'true' ]; then
+            bundle exec pod install --project-directory=ios
+          else
+            bundle exec pod install --project-directory=ios --deployment
+            git diff --exit-code -- ios/Podfile.lock Gemfile.lock
+          fi
+      - name: Build self-contained simulator release app
+        run: |
+          xcodebuild -workspace ios/freetune.xcworkspace -scheme freetune \
+            -configuration Release -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath "$IOS_DERIVED_DATA" \
+            ARCHS=arm64 ONLY_ACTIVE_ARCH=YES CODE_SIGNING_ALLOWED=NO COMPILER_INDEX_STORE_ENABLE=NO \
+            build > "$RUNNER_TEMP/audit-ios-build.log" 2>&1 || { tail -n 150 "$RUNNER_TEMP/audit-ios-build.log"; exit 1; }
+          app="$IOS_DERIVED_DATA/Build/Products/Release-iphonesimulator/freetune.app"
+          test -s "$app/main.jsbundle"
+          ditto -c -k --keepParent "$app" "$RUNNER_TEMP/freetune-simulator.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: audit-release-ios
+          path: ${{ runner.temp }}/freetune-simulator.zip
+          if-no-files-found: error
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: audit-ios-build-log
+          path: ${{ runner.temp }}/audit-ios-build.log
+          retention-days: 7
+  pilot-android:
+    needs: build-android
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      MAESTRO_CLI_NO_ANALYTICS: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.freetune-audit/maestro-2.12.1
+          key: freetune-audit-maestro-2.12.1-${{ runner.os }}-${{ runner.arch }}
+      - run: bash scripts/install-audit-maestro.sh
+        env:
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+      - uses: actions/download-artifact@v4
+        with:
+          name: audit-release-apk
+          path: ${{ runner.temp }}/audit-app
+      - name: Enable hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swangle -no-boot-anim -no-snapshot -camera-back none
+          script: |
+            adb install -r "$RUNNER_TEMP/audit-app/app-release.apk"
+            bash scripts/run-app-audit.sh android 0 1 "$RUNNER_TEMP/audit-results"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pilot-evidence-android-pilot
+          path: ${{ runner.temp }}/audit-results
+          retention-days: 7
+  pilot-ios:
+    needs: build-ios
+    runs-on: macos-15
+    timeout-minutes: 30
+    env:
+      MAESTRO_CLI_NO_ANALYTICS: 'true'
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.freetune-audit/maestro-2.12.1
+          key: freetune-audit-maestro-2.12.1-${{ runner.os }}-${{ runner.arch }}
+      - run: bash scripts/install-audit-maestro.sh
+        env:
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+      - uses: actions/download-artifact@v4
+        with:
+          name: audit-release-ios
+          path: ${{ runner.temp }}/audit-app
+      - name: Boot iPhone simulator and install the real app
+        run: |
+          set -euo pipefail
+          ditto -x -k "$RUNNER_TEMP/audit-app/freetune-simulator.zip" "$RUNNER_TEMP/audit-app"
+          device=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; devices=[d for runtime,ds in json.load(sys.stdin)["devices"].items() if "iOS" in runtime for d in ds if d["name"].startswith("iPhone")]; print(next((d["udid"] for d in devices if d["name"]=="iPhone 16"),devices[0]["udid"]))')
+          xcrun simctl boot "$device"
+          xcrun simctl bootstatus "$device" -b
+          xcrun simctl spawn "$device" defaults write -g AppleLanguages -array en
+          xcrun simctl spawn "$device" defaults write -g AppleLocale en_US
+          xcrun simctl install "$device" "$RUNNER_TEMP/audit-app/freetune.app"
+      - name: Run complete journeys
+        run: bash scripts/run-app-audit.sh ios 0 1 "$RUNNER_TEMP/audit-results"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pilot-evidence-ios-pilot
+          path: ${{ runner.temp }}/audit-results
+          retention-days: 7
+  audit-android:
+    needs: [build-android, pilot-android, pilot-ios]
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    env:
+      MAESTRO_CLI_NO_ANALYTICS: 'true'
+    strategy:
+      fail-fast: true
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.freetune-audit/maestro-2.12.1
+          key: freetune-audit-maestro-2.12.1-${{ runner.os }}-${{ runner.arch }}
+      - run: bash scripts/install-audit-maestro.sh
+        env:
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+      - uses: actions/download-artifact@v4
+        with:
+          name: audit-release-apk
+          path: ${{ runner.temp }}/audit-app
+      - name: Enable hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 35
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swangle -no-boot-anim -no-snapshot -camera-back none
+          script: |
+            adb install -r "$RUNNER_TEMP/audit-app/app-release.apk"
+            bash scripts/run-app-audit.sh android $(( ${{ matrix.shard }} * 50 + 1 )) 50 "$RUNNER_TEMP/audit-results"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pass-ledger-android-${{ matrix.shard }}
+          path: ${{ runner.temp }}/audit-results
+          retention-days: 7
+  audit-ios:
+    needs: [build-ios, pilot-android, pilot-ios]
+    runs-on: macos-15
+    timeout-minutes: 355
+    env:
+      MAESTRO_CLI_NO_ANALYTICS: 'true'
+      DEVELOPER_DIR: /Applications/Xcode_16.4.app/Contents/Developer
+    strategy:
+      fail-fast: true
+      max-parallel: 4
+      matrix:
+        shard: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: actions/cache@v4
+        with:
+          path: ~/.freetune-audit/maestro-2.12.1
+          key: freetune-audit-maestro-2.12.1-${{ runner.os }}-${{ runner.arch }}
+      - run: bash scripts/install-audit-maestro.sh
+        env:
+          MAESTRO_CLI_NO_ANALYTICS: 'true'
+      - uses: actions/download-artifact@v4
+        with:
+          name: audit-release-ios
+          path: ${{ runner.temp }}/audit-app
+      - name: Boot iPhone simulator and install the real app
+        run: |
+          set -euo pipefail
+          ditto -x -k "$RUNNER_TEMP/audit-app/freetune-simulator.zip" "$RUNNER_TEMP/audit-app"
+          device=$(xcrun simctl list devices available -j | python3 -c 'import json,sys; devices=[d for runtime,ds in json.load(sys.stdin)["devices"].items() if "iOS" in runtime for d in ds if d["name"].startswith("iPhone")]; print(next((d["udid"] for d in devices if d["name"]=="iPhone 16"),devices[0]["udid"]))')
+          xcrun simctl boot "$device"
+          xcrun simctl bootstatus "$device" -b
+          xcrun simctl spawn "$device" defaults write -g AppleLanguages -array en
+          xcrun simctl spawn "$device" defaults write -g AppleLocale en_US
+          xcrun simctl install "$device" "$RUNNER_TEMP/audit-app/freetune.app"
+      - name: Run complete journeys
+        run: bash scripts/run-app-audit.sh ios $(( ${{ matrix.shard }} * 50 + 1 )) 50 "$RUNNER_TEMP/audit-results"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pass-ledger-ios-${{ matrix.shard }}
+          path: ${{ runner.temp }}/audit-results
+          retention-days: 7
+  summarize:
+    if: always()
+    needs: [pilot-android, pilot-ios, audit-android, audit-ios]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          pattern: pass-ledger-*
+          path: audit-evidence
+      - run: python3 scripts/summarize-app-audit.py audit-evidence

@@ -260,6 +260,7 @@ export default function Guide() {
       {browsing ? (
         <>
           <Pressable
+            testID="guide-quick-start"
             accessibilityRole="button"
             onPress={() => open("start")}
             style={({ pressed }) => [styles.quick, pressed && styles.pressed]}

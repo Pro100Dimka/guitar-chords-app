@@ -73,6 +73,7 @@ const TabLayout = () => {
             component={screens[name].component}
             options={{
               title: t(screens[name].title ?? name),
+              tabBarButtonTestID: `tab-${name}`,
               tabBarLabel: ({ color }) => (
                 <Text
                   numberOfLines={1}

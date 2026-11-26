@@ -240,12 +240,17 @@ class PerformanceAudio(private val context: ReactApplicationContext) :
             val playback = MediaPlayer()
             player = playback
             playback.setDataSource(file.absolutePath)
-            playback.setOnCompletionListener { stopPlayback() }
-            playback.setOnErrorListener { _, _, _ -> stopPlayback(); emit("error"); true }
+            playback.setOnCompletionListener { finishTakePlayback(it, false) }
+            playback.setOnErrorListener { completed, _, _ -> finishTakePlayback(completed, true); true }
             playback.prepare()
             playback.start()
             promise.resolve(playback.duration.toDouble())
         } catch (error: Exception) { stopPlayback(); promise.reject("PLAYBACK_FAILED", error) }
+    }
+    @Synchronized private fun finishTakePlayback(completed: MediaPlayer, failed: Boolean) {
+        if (player !== completed) return
+        stopPlayback()
+        if (failed) emit("error")
     }
     @ReactMethod @Synchronized fun stopPlayback() {
         val wasPlaying = player != null

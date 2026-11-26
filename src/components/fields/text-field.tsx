@@ -50,6 +50,7 @@ const TextField: React.FC<ITextFieldProps> = ({
     <View style={[styles.container, style?.container]}>
       {label && <Text style={styles.label}>{label}</Text>}
       <TextInput
+        testID={name ? `field-${name}` : undefined}
         accessibilityLabel={label ?? placeholder}
         selectionColor={palette.glass.accent}
         keyboardAppearance="dark"

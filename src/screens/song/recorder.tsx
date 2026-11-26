@@ -43,6 +43,8 @@ export default function SongRecorder({
   const [seconds, setSeconds] = useState(0);
   const [takes, setTakes] = useState<Take[]>([]);
   const [playing, setPlaying] = useState("");
+  const playingRef = useRef("");
+  const playbackRequest = useRef<AbortController | null>(null);
   const recordingRef = useRef(false);
   const activeRef = useRef(active);
   activeRef.current = active;
@@ -58,6 +60,23 @@ export default function SongRecorder({
   const opening = useRef<AbortController | null>(null);
   const pendingStart = useRef<AbortController | null>(null);
   const listRequest = useRef(0);
+  const stopOwnedPlayback = useCallback(() => {
+    const pending = playbackRequest.current;
+    pending?.abort();
+    playbackRequest.current = null;
+    if (pending || playingRef.current) performanceAudio.stopPlayback();
+    playingRef.current = "";
+    if (mounted.current) setPlaying("");
+  }, []);
+  const reportListError = useCallback(() => {
+    if (
+      mounted.current &&
+      activeRef.current &&
+      visibleRef.current &&
+      foreground.current
+    )
+      Alert.alert(t("RecordingError"));
+  }, [t]);
   useEffect(() => {
     listRequest.current++;
     setTakes([]);
@@ -65,21 +84,27 @@ export default function SongRecorder({
   const load = useCallback(async () => {
     listDirty.current = false;
     const request = ++listRequest.current;
-    const files = await performanceAudio.list(songId);
-    if (mounted.current && request === listRequest.current) setTakes(files);
+    try {
+      const files = await performanceAudio.list(songId);
+      if (mounted.current && request === listRequest.current) setTakes(files);
+    } catch (error) {
+      if (!mounted.current || request !== listRequest.current) return;
+      listDirty.current = true;
+      throw error;
+    }
   }, [songId]);
   useEffect(() => {
     if (!open || !active) return;
     setVisible(true);
-    void load().catch(() => Alert.alert(t("RecordingError")));
+    void load().catch(reportListError);
     onOpened?.();
-  }, [open, active, load, onOpened, t]);
+  }, [open, active, load, onOpened, reportListError]);
   useEffect(() => {
     if (visible && active && foreground.current && listDirty.current)
-      void load().catch(() => Alert.alert(t("RecordingError")));
-  }, [visible, active, load, t]);
+      void load().catch(reportListError);
+  }, [visible, active, load, reportListError]);
   const run = async (action: () => Promise<void>) => {
-    if (operation.current) return;
+    if (operation.current || !mounted.current || !activeRef.current) return;
     operation.current = true;
     setBusy(true);
     try {
@@ -88,6 +113,8 @@ export default function SongRecorder({
       if (
         !fileCanceled(error) &&
         mounted.current &&
+        activeRef.current &&
+        foreground.current &&
         !pendingStart.current?.signal.aborted
       )
         Alert.alert(t("RecordingError"), t("RecordingErrorHint"));
@@ -99,9 +126,21 @@ export default function SongRecorder({
   };
   useEffect(() => {
     mounted.current = true;
+    if (!playingRef.current) setPlaying("");
     const listener = performanceAudio.listen((event) => {
-      if (event.state === "stopped") setPlaying("");
+      if (event.state === "stopped" || event.state === "playbackInterrupted") {
+        playingRef.current = "";
+        setPlaying("");
+        if (event.state === "playbackInterrupted") {
+          playbackRequest.current?.abort();
+          playbackRequest.current = null;
+        }
+      }
+      const file = event.uri?.split(/[\\/]/).pop();
+      const owner = /^song-(\d+)-/.exec(file ?? "");
+      if (owner && Number(owner[1]) !== songId) return;
       if (["processing", "error", "interrupted"].includes(event.state)) {
+        pendingStart.current?.abort();
         recordingRef.current = false;
         setRecording(false);
       }
@@ -116,24 +155,26 @@ export default function SongRecorder({
       ) {
         listDirty.current = true;
         if (activeRef.current && visibleRef.current && foreground.current)
-          void load().catch(() => Alert.alert(t("RecordingError")));
-        if (event.state === "error")
-          Alert.alert(t("RecordingError"), t("RecordingErrorHint"));
-        if (event.state === "interrupted")
-          Alert.alert(t("RecordingInterrupted"));
-        if (event.state === "processingFailed")
-          Alert.alert(t("RecordingPolishFailed"));
+          void load().catch(reportListError);
+        if (activeRef.current) {
+          if (event.state === "error")
+            Alert.alert(t("RecordingError"), t("RecordingErrorHint"));
+          if (event.state === "interrupted")
+            Alert.alert(t("RecordingInterrupted"));
+          if (event.state === "processingFailed")
+            Alert.alert(t("RecordingPolishFailed"));
+        }
       }
     });
     const background = AppState.addEventListener("change", (state) => {
       foreground.current = state === "active";
       if (state !== "active") {
         opening.current?.abort();
-        performanceAudio.stopPlayback();
+        stopOwnedPlayback();
         if (recordingRef.current)
           void performanceAudio.stop().catch(() => undefined);
       } else if (activeRef.current && visibleRef.current && listDirty.current) {
-        void load().catch(() => Alert.alert(t("RecordingError")));
+        void load().catch(reportListError);
       }
     });
     return () => {
@@ -142,21 +183,21 @@ export default function SongRecorder({
       pendingStart.current?.abort();
       listener.remove();
       background.remove();
-      performanceAudio.stopPlayback();
+      stopOwnedPlayback();
       if (recordingRef.current)
         void performanceAudio.stop().catch(() => undefined);
     };
-  }, [load, t]);
+  }, [load, reportListError, songId, stopOwnedPlayback, t]);
   useEffect(() => {
     if (!active) {
       opening.current?.abort();
       pendingStart.current?.abort();
       setVisible(false);
-      performanceAudio.stopPlayback();
+      stopOwnedPlayback();
       if (recordingRef.current)
         void performanceAudio.stop().catch(() => undefined);
     }
-  }, [active]);
+  }, [active, stopOwnedPlayback]);
   useEffect(() => {
     if (!recording) return;
     const started = Date.now();
@@ -205,7 +246,13 @@ export default function SongRecorder({
               return;
             }
             await waitForAppActive(controller.signal);
-            if (!mounted.current || !activeRef.current) return;
+            if (
+              controller.signal.aborted ||
+              !mounted.current ||
+              !activeRef.current ||
+              AppState.currentState !== "active"
+            )
+              return;
             performanceAudio.stopPlayback();
             await performanceAudio.start(songId);
             recordingRef.current = true;
@@ -276,7 +323,7 @@ export default function SongRecorder({
           title={t(takes.length ? "MyRecordings" : "RecordPerformance")}
           onClose={() => {
             if (!busy) {
-              performanceAudio.stopPlayback();
+              stopOwnedPlayback();
               setVisible(false);
             }
           }}
@@ -314,11 +361,13 @@ export default function SongRecorder({
                     disabled={busy || take.processing}
                     onPress={() =>
                       void run(async () => {
-                        if (playing === take.path)
-                          performanceAudio.stopPlayback();
-                        else {
-                          const request = new AbortController();
-                          opening.current = request;
+                        if (playingRef.current === take.path) {
+                          stopOwnedPlayback();
+                          return;
+                        }
+                        const request = new AbortController();
+                        playbackRequest.current = request;
+                        try {
                           await performanceAudio.play(take.path);
                           if (
                             request.signal.aborted ||
@@ -326,10 +375,20 @@ export default function SongRecorder({
                             !activeRef.current ||
                             AppState.currentState !== "active"
                           ) {
-                            performanceAudio.stopPlayback();
+                            // Native playTake starts on its serial queue before
+                            // resolving. A cancelled request has already issued
+                            // its stop; a late response must not stop new audio.
+                            if (playbackRequest.current === request)
+                              stopOwnedPlayback();
                             return;
                           }
+                          playingRef.current = take.path;
                           setPlaying(take.path);
+                        } catch (error) {
+                          if (!request.signal.aborted) throw error;
+                        } finally {
+                          if (playbackRequest.current === request)
+                            playbackRequest.current = null;
                         }
                       })
                     }
@@ -342,7 +401,7 @@ export default function SongRecorder({
                     disabled={busy || take.processing}
                     onPress={() =>
                       void run(async () => {
-                        performanceAudio.stopPlayback();
+                        stopOwnedPlayback();
                         const result = await saveDocuments({
                           sourceUris: [encodeURI(`file://${take.path}`)],
                           mimeType: "audio/mp4",
@@ -368,7 +427,8 @@ export default function SongRecorder({
                           style: "destructive",
                           onPress: () =>
                             void run(async () => {
-                              await performanceAudio.remove(take.path);
+                              if (!(await performanceAudio.remove(take.path)))
+                                throw new Error("RecordingDeleteFailed");
                               await load();
                             })
                         }

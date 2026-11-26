@@ -48,10 +48,15 @@ const App: FC = () => {
   const markTunerReady = useCallback(() => setTunerReady(true), []);
   const [navigationReady, setNavigationReady] = useState(false);
   const [launching, setLaunching] = useState(true);
+  const [launchExpired, setLaunchExpired] = useState(false);
   const [loadedArt, setLoadedArt] = useState<Record<string, boolean>>({});
   const artReady = ["background", "dawn", "mark", "wordmark"].every(
     (key) => loadedArt[key]
   );
+  const canReveal =
+    launchExpired ||
+    (artReady &&
+      (failed || (ready && navigationReady && (!waitForTuner || tunerReady))));
   const launchOpacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     let active = true;
@@ -75,18 +80,22 @@ const App: FC = () => {
     };
   }, [attempt]);
   useEffect(() => {
+    // Never persist the empty startup store over unread or damaged data.
+    if (!ready) return;
     const subscription = AppState.addEventListener("change", (state) => {
       if (state !== "active") flushPreferences();
     });
     return () => subscription.remove();
-  }, []);
+  }, [ready]);
   useEffect(() => {
-    if (
-      !launching ||
-      !artReady ||
-      !(failed || (ready && navigationReady && (!waitForTuner || tunerReady)))
-    )
-      return;
+    if (!launching || (!ready && !failed)) return;
+    // Once data initialization settles, an absent graphics callback must not
+    // trap the user behind the native or JS splash.
+    const timeout = setTimeout(() => setLaunchExpired(true), 10000);
+    return () => clearTimeout(timeout);
+  }, [failed, launching, ready]);
+  useEffect(() => {
+    if (!launching || !canReveal) return;
     let active = true;
     let animation: Animated.CompositeAnimation | undefined;
     const frame = requestAnimationFrame(() => {
@@ -110,16 +119,7 @@ const App: FC = () => {
       cancelAnimationFrame(frame);
       animation?.stop();
     };
-  }, [
-    ready,
-    failed,
-    waitForTuner,
-    tunerReady,
-    navigationReady,
-    artReady,
-    launching,
-    launchOpacity
-  ]);
+  }, [canReveal, launching, launchOpacity]);
 
   return (
     <SafeAreaProvider>
