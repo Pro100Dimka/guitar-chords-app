@@ -138,6 +138,7 @@ test.each([
 test.each([
   { delay: 0, emptyFrames: 0 },
   { delay: 12000, emptyFrames: 0 },
+  { delay: 90000, emptyFrames: 0 },
   { delay: 0, emptyFrames: 4 }
 ])("first-frame validation waits for a real painted pixel: %j", async ({ delay, emptyFrames }) => {
   jest.useFakeTimers();
@@ -155,7 +156,10 @@ test.each([
           element.type === "Canvas"
             ? {
                 makeImageSnapshotAsync: async () => {
-                  if (delay) await new Promise((resolve) => setTimeout(resolve, delay));
+                  if (delay)
+                    await new Promise<void>((resolve) =>
+                      setTimeout(resolve, delay)
+                    );
                   return {
                     width: () => 1000,
                     height: () => 2000,
@@ -190,6 +194,9 @@ test.each([
       { width: 1, height: 1, colorType: 4, alphaType: 3 }
     ]);
     expect(dispose).toHaveBeenCalledTimes(emptyFrames + 1);
+    expect(
+      screen.root.findAllByType(Action).find((node) => node.props.label === "Retry")
+    ).toBeUndefined();
     expect(screen.root.findAll((node) =>
       node.props.accessibilityElementsHidden === false &&
       node.props.pointerEvents === "auto"
@@ -489,7 +496,7 @@ test("missing graphics readiness presents a retry instead of an invisible tuner"
   await act(async () => {
     screen = Renderer.create(<Tuner active />);
   });
-  await act(async () => jest.advanceTimersByTimeAsync(7999));
+  await act(async () => jest.advanceTimersByTimeAsync(29999));
   const retry = () =>
     screen.root.findAllByType(Action).find((node) => node.props.label === "Retry");
   expect(retry()).toBeUndefined();
@@ -497,7 +504,7 @@ test("missing graphics readiness presents a retry instead of an invisible tuner"
   expect(retry()).toBeDefined();
   await act(async () => retry()!.props.onPress());
   expect(retry()).toBeUndefined();
-  await act(async () => jest.advanceTimersByTimeAsync(8000));
+  await act(async () => jest.advanceTimersByTimeAsync(30000));
   expect(retry()).toBeDefined();
 });
 

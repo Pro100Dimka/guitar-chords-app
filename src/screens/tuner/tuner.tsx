@@ -155,7 +155,6 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     if (
       !active ||
       painted ||
-      renderError ||
       !backgroundReady ||
       !layoutReady ||
       !graphicsReady
@@ -164,6 +163,9 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     let mounted = true;
     let frame = 0;
     let retry: ReturnType<typeof setTimeout> | undefined;
+    // The visible watchdog must not discard a valid native frame that
+    // completes late. Bound further retries separately from the UI timeout.
+    const retryDeadline = Date.now() + 120000;
     const capture = async () => {
       try {
         if (!canvas.current) throw new Error("Tuner canvas unavailable");
@@ -192,11 +194,12 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
           image.dispose();
         }
         if (!visible) throw new Error("Tuner frame is empty");
-        if (mounted) setPainted(true);
+        if (mounted) {
+          setPainted(true);
+          setRenderError(false);
+        }
       } catch {
-        if (!mounted) return;
-        // Three adjacent frames are not enough for a cold GPU pipeline.
-        // Retry at a bounded rate until the startup watchdog expires.
+        if (!mounted || Date.now() >= retryDeadline) return;
         retry = setTimeout(() => void capture(), 250);
       }
     };
@@ -211,7 +214,6 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   }, [
     active,
     painted,
-    renderError,
     backgroundReady,
     layoutReady,
     graphicsReady,
