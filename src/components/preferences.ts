@@ -335,7 +335,10 @@ export function normalizeRhythm(value: unknown): SongRhythm {
     typeof rhythm.strum === "string"
       ? rhythm.strum.replace(/[^DUXBA1-6-]/g, "").slice(0, 16)
       : "";
-  if (rhythm.strumPreset === "nine" && strum === "D-DU-UD-D-DU--D-")
+  if (
+    rhythm.strumPreset === "nine" &&
+    ["D-DU-UD-D-DU--D-", "D-U-D--U-U-U-DUD"].includes(strum)
+  )
     strum = rhythms.find((preset) => preset.id === "nine")!.pattern;
   const division = rhythm.strumDivision;
   const numericDivision =

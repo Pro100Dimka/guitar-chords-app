@@ -121,7 +121,7 @@ export const rhythms: {
     id: "nine",
     aliases: ["девятка", "дев'ятка", "дев’ятка", "nine", "9"],
     title: "RhythmNine",
-    pattern: "D-U-D--U-U-U-DUD",
+    pattern: "D--UD--U-U-UDUD-",
     meter: 4,
     division: 2
   }

@@ -6,7 +6,7 @@ The add menu offers Manual and Recognize. Recognize starts listening with one ta
 
 Recognized and manually pasted charts separate six-string ASCII tablature from song words. Published frets and simultaneous attacks become the song's existing playable tablature document. Chord diagram tables are excluded from the note sequence. ASCII without note-value notation uses an eighth-note grid; it does not establish the recording's exact durations or tempo. Explicit supported tempo, strumming and picking instructions become saved settings. Instruction text remains available, including ambiguous annotations that cannot determine a setting. Source identity and links remain attached to the song. Existing text without imported notation remains unchanged.
 
-The Nine preset follows the directions and pauses in the [Gitarik lesson](https://www.youtube.com/watch?v=rIxdm1f7Iw4): `D-U-D--U-U-U-DUD`. Previously saved, unchanged Nine presets migrate to this pattern; custom patterns remain intact.
+The Nine preset follows the directions and pauses in the [Gitarik lesson](https://www.youtube.com/watch?v=rIxdm1f7Iw4): `D--UD--U-U-UDUD-`. Its attacks occupy eighth-note slots 0, 3, 4, 7, 9, 11, 12, 13 and 14 of a two-bar cycle. This matches the continuous performance starting at 1.142 seconds, with the next cycle at 4.610 seconds (about 139 BPM). Previously saved, unchanged Nine presets migrate to this pattern; custom patterns remain intact.
 
 ## Tempo and accompaniment from the selected chart, 25 November 2026
 
