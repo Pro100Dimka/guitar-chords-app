@@ -6,6 +6,7 @@ import React, {
   useState
 } from "react";
 import {
+  Alert,
   AppState,
   Animated,
   FlatList,
@@ -60,6 +61,7 @@ import {
 } from "./chords";
 import { Action, ChordSheet, SongTools, SongPlayback } from "./tools";
 import { sourceSong } from "../../components/song-autofill/source-metadata";
+import { tabBarTicks, tablatureLength } from "../../components/tablature";
 
 const SongDetail: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, "Song">>();
@@ -75,6 +77,7 @@ const SongDetail: React.FC = () => {
   const deletedSong = useRef<number | null>(null);
   const [playing, setPlaying] = useState(false);
   const [accompaniment, setAccompaniment] = useState(false);
+  const [playbackStart, setPlaybackStart] = useState({ index: 0, request: 0 });
   const [activeLine, setActiveLine] = useState<number | null>(null);
   const playhead = useRef(new Animated.Value(0)).current;
   const horizontalLines = useRef(new Map<number, ScrollView>());
@@ -323,6 +326,40 @@ const SongDetail: React.FC = () => {
     },
     [playbackLines, playhead]
   );
+  const startAccompaniment = useCallback(
+    (index = 0) => {
+      const score =
+        preferences.accompaniment === "pattern"
+          ? undefined
+          : preferences.tablature;
+      if (
+        !score?.notes.length &&
+        !preferences.strum &&
+        !Object.values(preferences.rhythmSections).some(
+          (section) => section.strum
+        )
+      ) {
+        setTools("rhythm");
+        return;
+      }
+      if (
+        score?.notes.length &&
+        index * tabBarTicks(score) >= tablatureLength(score)
+      ) {
+        Alert.alert(t("SongLineWithoutTabs"));
+        return;
+      }
+      setPlaying(false);
+      setVideos(false);
+      playbackPosition(index);
+      setPlaybackStart((previous) => ({
+        index,
+        request: previous.request + 1
+      }));
+      setAccompaniment(true);
+    },
+    [preferences, playbackPosition, t]
+  );
   const content = useMemo(() => {
     const renderChord = (displayed: string, key: number) => {
       return (
@@ -330,7 +367,8 @@ const SongDetail: React.FC = () => {
           key={key}
           accessibilityRole="button"
           accessibilityLabel={`${displayed}, ${t("Fingering")}`}
-          onPress={() => {
+          onPress={(event) => {
+            event.stopPropagation();
             setPlaying(false);
             setChord(displayed);
           }}
@@ -349,7 +387,15 @@ const SongDetail: React.FC = () => {
       const parts = onlyChords
         ? chordLineParts(line)
         : line.split(/(\[[^\[\]]+\])/);
+      const start = playbackLines.indexOf(index);
       const props: TextProps = {
+        ...(!onlyChords && start >= 0
+          ? {
+              accessibilityRole: "button" as const,
+              accessibilityHint: t("SongPlayFromLine"),
+              onPress: () => startAccompaniment(start)
+            }
+          : {}),
         onLayout: paired
           ? undefined
           : ({ nativeEvent }) =>
@@ -383,12 +429,10 @@ const SongDetail: React.FC = () => {
           {...props}
           progress={playhead}
           onCursor={(x) =>
-            horizontalLines.current
-              .get(index)
-              ?.scrollTo({
-                x: Math.max(0, x - metrics.current.viewportWidth * 0.35),
-                animated: false
-              })
+            horizontalLines.current.get(index)?.scrollTo({
+              x: Math.max(0, x - metrics.current.viewportWidth * 0.35),
+              animated: false
+            })
           }
         >
           {children}
@@ -470,7 +514,15 @@ const SongDetail: React.FC = () => {
       renderBlock,
       virtualized
     };
-  }, [display, preferences.fontSize, t, activeLine, playhead]);
+  }, [
+    display,
+    preferences.fontSize,
+    t,
+    activeLine,
+    playhead,
+    playbackLines,
+    startAccompaniment
+  ]);
   useEffect(() => {
     if (activeLine === null) return;
     const index = content.blocks.findIndex((block) =>
@@ -716,19 +768,7 @@ const SongDetail: React.FC = () => {
                   setAccompaniment(false);
                   return;
                 }
-                if (
-                  !preferences.tablature?.notes.length &&
-                  !preferences.strum &&
-                  !Object.values(preferences.rhythmSections).some(
-                    (section) => section.strum
-                  )
-                ) {
-                  setTools("rhythm");
-                  return;
-                }
-                setPlaying(false);
-                setVideos(false);
-                setAccompaniment(true);
+                startAccompaniment();
               }}
             />
             <Action
@@ -742,8 +782,10 @@ const SongDetail: React.FC = () => {
           </View>
           {accompaniment && (
             <SongPlayback
+              key={playbackStart.request}
               content={song.content}
               value={preferences}
+              startIndex={playbackStart.index}
               onPosition={playbackPosition}
               onStopped={stopAccompaniment}
             />

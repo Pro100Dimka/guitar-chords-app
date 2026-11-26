@@ -1,4 +1,6 @@
 {
+  "SongPlayFromLine": "Начать воспроизведение с этой строки",
+  "SongLineWithoutTabs": "Для этой строки в сохранённой партии нет табов. Выберите бой или перебор в сопровождении.",
   "SongAccompanimentSettings": "Сопровождение",
   "AccompanimentSource": "Что играть",
   "SongTablature": "Табы песни",

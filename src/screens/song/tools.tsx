@@ -994,11 +994,13 @@ function SongTablature({
 export function SongPlayback({
   content,
   value,
+  startIndex = 0,
   onPosition,
   onStopped
 }: {
   content: string;
   value: SongPreferences;
+  startIndex?: number;
   onPosition: (index: number) => void;
   onStopped: () => void;
 }) {
@@ -1006,16 +1008,17 @@ export function SongPlayback({
   const started = useRef(false);
   const transport = useTablature(!!score, () => {}, false);
   const tick = useTablaturePosition(transport);
-  const { replaceTab, play, status, error } = transport;
+  const { replaceTab, seek, play, status, error } = transport;
   useEffect(() => {
     if (score && status === "playing") onPosition(tick / tabBarTicks(score));
   }, [tick, score, status, onPosition]);
   useEffect(() => {
     if (score) {
       replaceTab({ ...score, tempo: value.tempo });
+      seek(startIndex * tabBarTicks(score));
       void play();
     }
-  }, [score, value.tempo, replaceTab, play]);
+  }, [score, value.tempo, replaceTab, seek, play, startIndex]);
   useEffect(() => {
     if (status === "playing") started.current = true;
     if (error || (started.current && status === "idle")) onStopped();
@@ -1025,6 +1028,7 @@ export function SongPlayback({
     <TransitionPractice
       content={content}
       value={value}
+      startIndex={startIndex}
       onChange={() => {}}
       onChooseRhythm={onStopped}
       autoplay
@@ -1103,6 +1107,7 @@ function TransitionPractice({
   onChange,
   onChooseRhythm,
   autoplay = false,
+  startIndex = 0,
   onPosition,
   onStopped
 }: {
@@ -1111,6 +1116,7 @@ function TransitionPractice({
   onChange: (patch: Partial<SongPreferences>) => void;
   onChooseRhythm: () => void;
   autoplay?: boolean;
+  startIndex?: number;
   onPosition?: (index: number) => void;
   onStopped?: () => void;
 }) {
@@ -1181,6 +1187,7 @@ function TransitionPractice({
       shapes={value.shapes}
       autoplay={autoplay}
       playOnce={autoplay}
+      startIndex={startIndex}
       onPosition={onPosition}
       onStopped={onStopped}
     />
@@ -1286,6 +1293,7 @@ function RhythmPlayer({
   onStarted,
   onPosition,
   playOnce = false,
+  startIndex = 0,
   practice,
   chords = ["Am", "C", "G", "Em"],
   capo = 0,
@@ -1309,6 +1317,7 @@ function RhythmPlayer({
   onStarted?: () => void;
   onPosition?: (index: number, step?: number) => void;
   playOnce?: boolean;
+  startIndex?: number;
   practice?: string[];
   compact?: boolean;
   chords?: string[];
@@ -1426,12 +1435,13 @@ function RhythmPlayer({
     stroke: stroke ?? null,
     activeFingering,
     arrangements,
+    startIndex,
     requested: autoplay ? autoStart : null
   });
   const preview = useMemo(
     () => `<!doctype html><html><head><meta name="viewport" content="width=device-width,initial-scale=1"><style>html,body{background:transparent}body{margin:0;background:transparent;font-family:system-ui;color:${palette.glass.ink}}button{width:100%;height:48px;border:1px solid ${palette.glass.edge};border-radius:14px;background:${palette.glass.play};color:${palette.gold.ink};box-shadow:0 0 12px #ffb00077,inset 0 1px 1px #fff9c9;border-color:#ffe59b;background:linear-gradient(#fff2a6,#ffd65a 16%,#ffbc08 48%,#ffaa00 52%,#ffd34a);font:600 19px system-ui}#count{height:28px;line-height:28px;text-align:center;font-size:13px}${compact ? "button{width:44px;height:44px;border-radius:50%;margin:2px;box-shadow:0 0 2px #ffb00077,inset 0 1px 1px #fff9c9}#count{display:none}" : ""}</style></head><body><button id="play"></button><div id="count"></div><script>
     let context,engine,timer,playing=false,step=0,next=0,start=0,preparing=Promise.resolve(),playToken=0,lastChord=-1,singleStroke=false,activeFingering=0,loading=true,wantsPlay=false,instrumentToken=0,lastPosition=-1;
-    let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false,arrangements=[],bar=0,slot=0,patternStep=0,planKey='',scheduled=[];
+    let pattern='D-D-D-D-',tempo=80,meter=4,division=2,practice=false,arrangements=[],initialBar=0,bar=0,slot=0,patternStep=0,planKey='',scheduled=[];
     let chords=[],frequencies=[],incomingToken=0,incomingChunks=[];
     const beatCounts=${JSON.stringify(rhythmCounts)};
     const labels=${labels};
@@ -1488,7 +1498,7 @@ function RhythmPlayer({
         if(window.navigator?.audioSession)window.navigator.audioSession.type='playback';
         const prepared=prepareAudio();await context.resume();await prepared;
         if(token!==playToken||document.hidden)return;
-        step=0;bar=0;slot=0;patternStep=0;planKey='';scheduled=[];lastChord=-1;lastPosition=-1;start=context.currentTime+.015;next=start;playing=true;
+        step=0;bar=Math.min(initialBar,chords.length-1);slot=0;patternStep=0;planKey='';scheduled=[];lastChord=-1;lastPosition=-1;start=context.currentTime+.015;next=start;playing=true;
         button.textContent=${compact ? JSON.stringify("❚❚") : "labels.stop"};button.setAttribute('aria-label',labels.stop);tick();window.ReactNativeWebView?.postMessage('started');
       }catch(e){audioError(e);}
       finally{if(token===playToken||!playing)button.disabled=false;}
@@ -1518,7 +1528,7 @@ function RhythmPlayer({
     };
     window.configurePlayer=config=>{
       const resume=config.requested===null?(playing||wantsPlay):config.requested;
-      stop();arrangements=config.arrangements||[];pattern=config.pattern;tempo=config.tempo;meter=config.meter;division=config.division||2;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
+      stop();arrangements=config.arrangements||[];initialBar=config.startIndex||0;pattern=config.pattern;tempo=config.tempo;meter=config.meter;division=config.division||2;practice=config.practice;singleStroke=config.stroke!==null;activeFingering=config.activeFingering;
       wantsPlay=resume;if(resume&&!loading)play();
     };
     button.onclick=()=>{

@@ -1,4 +1,6 @@
 {
+  "SongPlayFromLine": "Start playback from this line",
+  "SongLineWithoutTabs": "The saved tablature does not cover this line. Choose a strumming or fingerpicking pattern in accompaniment.",
   "SongAccompanimentSettings": "Accompaniment",
   "AccompanimentSource": "What to play",
   "SongTablature": "Song tabs",
