@@ -113,7 +113,18 @@ final class HTTPFixture: URLProtocol {
   override func startLoading() {
     Self.count += 1
     if let expected = Self.expectedSignature {
-      let data = try! JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
+      var bytes = request.httpBody ?? Data()
+      if bytes.isEmpty, let stream = request.httpBodyStream {
+        stream.open()
+        defer { stream.close() }
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while stream.hasBytesAvailable {
+          let count = stream.read(&buffer, maxLength: buffer.count)
+          if count <= 0 { break }
+          bytes.append(contentsOf: buffer.prefix(count))
+        }
+      }
+      let data = try! JSONSerialization.jsonObject(with: bytes) as! [String: Any]
       let signature = data["signature"] as! [String: Any]
       precondition(signature["uri"] as? String == expected)
       precondition(signature["samplems"] as? Int == Self.expectedMilliseconds)
