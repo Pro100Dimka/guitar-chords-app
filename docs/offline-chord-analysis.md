@@ -6,6 +6,35 @@ the timed chord chart, then open it in the existing song editor to edit and save
 The file name becomes the editable title; the artist stays blank. No lyrics are
 invented. Automatic analysis is clearly identified in the screen and chart.
 
+## Review a selected passage
+
+The result screen can show either the complete recording or a selected interval.
+Enter its start and end as seconds or `MM:SS.sss`, then apply the range. A decimal
+comma is also accepted. The displayed recording end resolves to the exact audio
+duration so rounding the time field does not omit the final fraction of a second.
+Selecting a range filters the existing full-recording prediction; it does not
+cut the audio, rerun inference or change the decoder's surrounding context.
+
+Times remain absolute recording times. Chords cut by a selection boundary retain
+their original source times, shown beneath the row. Missing prediction intervals
+are displayed separately from `N`/Undetermined: absence of a result is not a
+detected silence. Key and tempo remain estimates for the complete recording.
+These displays provide no accuracy percentage or new confidence calibration.
+
+The editor can receive only the applied range. Its title includes that range,
+its chart retains the original recording timestamps, and `*` identifies clipped
+boundaries with an explanation. No outside chords are exported. Edits to the
+range fields must be applied before export, preventing an unnoticed mismatch
+between the visible input and the saved section. Choosing another file resets
+the range only after a new analysis succeeds; cancellation retains the previous
+result and selection. **Whole recording** restores the complete timeline.
+
+This screen does not play the source audio or infer a strumming pattern, picking
+direction, beat grid or tablature. The existing rhythm tools let users choose
+accompaniment separately; their pattern is not a transcription of the recording.
+The [developer section command](offline-chord-section-inspection.md) additionally
+supports comparison with an explicitly timed reference.
+
 ## What runs on the phone
 
 Android MediaExtractor/MediaCodec and iOS AVAudioFile decode the selected local

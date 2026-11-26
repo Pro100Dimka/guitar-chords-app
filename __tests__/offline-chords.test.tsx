@@ -1,6 +1,13 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { NativeModules, Platform, Text as NativeText } from "react-native";
+import {
+  FlatList,
+  KeyboardAvoidingView,
+  NativeModules,
+  Platform,
+  Text as NativeText,
+  TextInput as NativeTextInput
+} from "react-native";
 import {
   pick,
   types,
@@ -32,10 +39,14 @@ jest.mock("@react-navigation/native", () => ({
 }));
 jest.mock("react-i18next", () => ({
   useTranslation: () => ({
-    t: (key: string) =>
+    t: (key: string, values?: Record<string, unknown>) =>
       key === "OfflineChordsUnknown"
         ? require("../src/locales/ru.json")[key]
-        : key
+        : values
+          ? `${key} ${Object.entries(values)
+              .map(([name, value]) => `${name}=${value}`)
+              .join(" ")}`
+          : key
   })
 }));
 jest.mock("../src/screens/song/tools", () => ({
@@ -107,16 +118,25 @@ const visibleText = () =>
     .flatMap((node) => node.props.children)
     .filter((child) => typeof child === "string" || typeof child === "number")
     .join(" ");
+const actionFor = (label: string) =>
+  screen!.root.find(
+    (node) =>
+      node.props.accessibilityLabel === label &&
+      typeof node.props.onPress === "function"
+  );
 const press = async (label: string) => {
   await act(async () => {
-    screen!.root
-      .find(
-        (node) =>
-          node.props.accessibilityLabel === label &&
-          typeof node.props.onPress === "function"
-      )
-      .props.onPress();
+    actionFor(label).props.onPress();
     await flush();
+  });
+};
+const rangeInput = (field: "start" | "end") =>
+  screen!.root
+    .findAllByType(NativeTextInput)
+    .find((node) => node.props.testID === `offline-range-${field}`)!;
+const changeTime = async (field: "start" | "end", value: string) => {
+  await act(async () => {
+    rangeInput(field).props.onChangeText(value);
   });
 };
 
@@ -431,6 +451,170 @@ test("the result screen imports extended labels and localized unknown passages w
   expect(content).toContain("Не определён 0:00.00–0:01.00");
   expect(content).not.toContain("[N]");
   expect(songChords(content)).toEqual(["G6", "Dsus2", "Cadd9", "Asus2"]);
+});
+
+test("section inspection keeps inputs mounted and exports only clipped absolute intervals", async () => {
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  const originalInput = rangeInput("start");
+  await changeTime("start", "1,5");
+  await changeTime("end", "0:03.000");
+  expect(rangeInput("start")).toBe(originalInput);
+  expect(
+    screen!.root.findByType(FlatList).props.keyboardShouldPersistTaps
+  ).toBe("handled");
+  expect(screen!.root.findByType(KeyboardAvoidingView).props.behavior).toBe(
+    "padding"
+  );
+  await press("OfflineChordsRangeApply");
+  expect(visibleText()).toContain("0:01.50–0:03.00 *");
+  expect(visibleText()).toContain(
+    "OfflineChordsOriginalInterval start=0:01.00 end=0:03.50"
+  );
+  expect(visibleText()).toContain("OfflineChordsFullRecording");
+  expect(native.analyzeFile).toHaveBeenCalledTimes(1);
+  await press("OfflineChordsSectionEdit");
+  const draft = mockNavigate.mock.calls[0][1].draft;
+  expect(draft.title).toBe("Song (0:01.50–0:03.00)");
+  expect(draft.content).toContain("[C] 0:01.50–0:03.00 *");
+  expect(draft.content).toContain("OfflineChordsBoundaryNotice");
+  expect(draft.content).toContain("OfflineChordsSectionChartNotice");
+  expect(songChords(draft.content)).toEqual(["C"]);
+});
+
+test("dirty or invalid time fields cannot silently export the applied range", async () => {
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  await changeTime("end", "2");
+  // Even the default whole-recording export is blocked before Apply.
+  expect(actionFor("OfflineChordsEdit").props.disabled).toBe(true);
+  await press("OfflineChordsEdit");
+  expect(mockNavigate).not.toHaveBeenCalled();
+  await press("OfflineChordsRangeApply");
+  expect(visibleText()).toContain(
+    "OfflineChordsRangeApplied start=0:00.00 end=0:02.00"
+  );
+  await changeTime("start", "4");
+  await press("OfflineChordsRangeApply");
+  expect(visibleText()).toContain("OfflineChordsRangeInvalid");
+  expect(visibleText()).toContain("OfflineChordsRangePending");
+  expect(visibleText()).toContain(
+    "OfflineChordsRangeApplied start=0:00.00 end=0:02.00"
+  );
+  expect(actionFor("OfflineChordsSectionEdit").props.disabled).toBe(true);
+  await press("OfflineChordsSectionEdit");
+  expect(mockNavigate).not.toHaveBeenCalled();
+  await press("OfflineChordsRangeAll");
+  expect(rangeInput("start").props.value).toBe("0:00.00");
+  expect(rangeInput("end").props.value).toBe("0:06.00");
+  expect(visibleText()).not.toContain("OfflineChordsRangeInvalid");
+  expect(actionFor("OfflineChordsEdit").props.disabled).toBe(false);
+  await press("OfflineChordsEdit");
+  expect(mockNavigate.mock.calls[0][1].draft.title).toBe("Song");
+  expect(mockNavigate.mock.calls[0][1].draft.content).toContain(
+    "[Am] 0:03.50–0:06.00"
+  );
+});
+
+test("missing analysis and undetermined audio remain distinct in whole and section exports", async () => {
+  native.analyzeFile.mockResolvedValueOnce({
+    ...nativeResult(),
+    segments: [
+      { start: 0, end: 1, chord: "N", confidence: 0 },
+      { start: 2, end: 4, chord: "C", confidence: 0.8 },
+      { start: 4, end: 6, chord: "Am", confidence: 0.7 }
+    ]
+  });
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  expect(visibleText()).toContain("Не определён");
+  expect(visibleText()).toContain("OfflineChordsMissing");
+  expect(visibleText()).toContain("OfflineChordsSectionUnknownDuration");
+  expect(visibleText()).toContain("OfflineChordsSectionMissingDuration");
+  await press("OfflineChordsEdit");
+  expect(mockNavigate.mock.calls[0][1].draft.content).toContain(
+    "OfflineChordsMissing 0:01.00–0:02.00"
+  );
+  mockNavigate.mockClear();
+  await changeTime("start", "0.5");
+  await changeTime("end", "3");
+  await press("OfflineChordsRangeApply");
+  await press("OfflineChordsSectionEdit");
+  const content = mockNavigate.mock.calls[0][1].draft.content;
+  expect(content).toContain("Не определён 0:00.50–0:01.00 *");
+  expect(content).toContain("OfflineChordsMissing 0:01.00–0:02.00");
+  expect(content).toContain("[C] 0:02.00–0:03.00 *");
+  expect(content).not.toContain("[N]");
+  expect(content).not.toContain("[OfflineChordsMissing]");
+  expect(songChords(content)).toEqual(["C"]);
+});
+
+test.each(["picker cancellation", "decode failure"])(
+  "%s preserves the section; a successful replacement resets it",
+  async (failure) => {
+    await act(async () => {
+      screen = Renderer.create(<AnalyzeAudio />);
+    });
+    await press("OfflineChordsChooseFile");
+    await changeTime("start", "2");
+    await changeTime("end", "3");
+    await press("OfflineChordsRangeApply");
+    if (failure === "picker cancellation")
+      jest.mocked(pick).mockRejectedValueOnce({ code: "cancelled" });
+    else
+      native.analyzeFile.mockRejectedValueOnce({ code: "AudioDecodeFailed" });
+    await press("OfflineChordsAnotherFile");
+    expect(rangeInput("start").props.value).toBe("2");
+    expect(rangeInput("end").props.value).toBe("3");
+    expect(visibleText()).toContain("0:02.00–0:03.00 *");
+    expect(actionFor("OfflineChordsSectionEdit").props.disabled).toBe(false);
+    jest
+      .mocked(pick)
+      .mockResolvedValueOnce(selected("file:///music/new.wav", "New.wav"));
+    native.analyzeFile.mockResolvedValueOnce({
+      ...nativeResult(),
+      duration: 4.75,
+      segments: [{ start: 0, end: 4.75, chord: "G", confidence: 0.8 }]
+    });
+    await press("OfflineChordsAnotherFile");
+    expect(rangeInput("start").props.value).toBe("0:00.00");
+    expect(rangeInput("end").props.value).toBe("0:04.75");
+    expect(visibleText()).toContain("New.wav");
+    expect(visibleText()).not.toContain("OfflineChordsRangeApplied");
+    expect(actionFor("OfflineChordsEdit").props.disabled).toBe(false);
+    await press("OfflineChordsEdit");
+    expect(mockNavigate.mock.calls[0][1].draft.title).toBe("New");
+  }
+);
+
+test("a replacement analysis disables range controls and export", async () => {
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  const pending = deferred<unknown>();
+  native.analyzeFile.mockReturnValueOnce(pending.promise);
+  await press("OfflineChordsAnotherFile");
+  expect(rangeInput("start").props.editable).toBe(false);
+  expect(rangeInput("end").props.editable).toBe(false);
+  for (const action of [
+    "OfflineChordsRangeApply",
+    "OfflineChordsRangeAll",
+    "OfflineChordsEdit"
+  ])
+    expect(actionFor(action).props.disabled).toBe(true);
+  await changeTime("start", "4");
+  expect(rangeInput("start").props.value).toBe("0:00.00");
+  await act(async () => {
+    pending.resolve(nativeResult());
+    await flush();
+  });
 });
 
 test("silence does not offer to save a fake chord chart", async () => {

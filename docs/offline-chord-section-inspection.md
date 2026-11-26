@@ -30,6 +30,23 @@ accuracy score. An untimed song chart is not a substitute for timestamped truth.
 `N` is displayed as undetermined/no chord, while gaps are explicitly marked as
 missing predictions.
 
+For example, selecting `0:12.50`–`0:22.50` from the retained
+[Behind Blue Eyes prediction](offline-chord-evaluation/candidate-final/behind-blue-eyes/output.json)
+produces this display (hundredths of a second):
+
+| Recording time | Existing prediction |
+| --- | --- |
+| 0:12.50–0:15.97 | Asus2 * |
+| 0:15.97–0:18.40 | Em |
+| 0:18.40–0:20.45 | G6 |
+| 0:20.45–0:21.40 | Dm |
+| 0:21.40–0:22.50 | Dadd9 * |
+
+The first source interval starts at 12.448 seconds; the last ends at 23.483719
+seconds. Only the displayed selection is clipped. **The known formula errors
+`Dm` / `Dadd9` remain unchanged**; this example demonstrates interval inspection,
+not improved recognition or a new audio run.
+
 The optional reference is a GuitarSet-format JAMS containing exactly two chord
 annotations in the dataset's order: instructed, then performed. The command
 uses the existing extended evaluator's chord parsing and score definitions.
@@ -48,5 +65,7 @@ different roots equivalent.
 
 Selected-section scores are diagnostic, not whole-song accuracy or a new held-out
 evaluation. Choosing a passage after seeing its mistakes makes it development
-evidence. This command does not implement an in-app section selector, strumming
-classification, rhythm transcription, guitar separation, or tablature.
+evidence. The app also has a [section selector](offline-chord-analysis.md#review-a-selected-passage)
+for inspection and editor import, without reference scores. Neither that selector
+nor this command implements strumming classification, rhythm transcription,
+guitar separation, or tablature.

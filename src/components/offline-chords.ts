@@ -8,6 +8,7 @@ import {
 import type { FormValues } from "../screens/create-song-chords";
 import initialValues from "../screens/create-song-chords/formik/initial-values";
 import { songFieldLimits } from "../@interfaces";
+import { chordSection, type ChordRange } from "./offline-chord-section";
 
 export interface ChordSegment {
   start: number;
@@ -181,25 +182,50 @@ export function offlineChordDraft(
   result: OfflineChordAnalysis,
   fallbackTitle: string,
   notice: string,
-  unknownLabel: string
+  unknownLabel: string,
+  section?: {
+    range?: ChordRange;
+    missingLabel: string;
+    rangeNotice?: string;
+    boundaryNotice: string;
+  }
 ): Partial<FormValues> {
+  const selectedRows = chordSection(result, section?.range).rows;
+  const rows = section
+    ? selectedRows
+    : selectedRows.filter((row) => row.kind === "chord");
+  const clipped = rows.some(
+    (row) => row.kind === "chord" && (row.startClipped || row.endClipped)
+  );
   const content = [
     notice,
+    ...(section?.rangeNotice ? [section.rangeNotice] : []),
+    ...(clipped && section ? [section.boundaryNotice] : []),
     "",
-    ...result.segments.map(
-      (segment) =>
-        `${segment.chord === "N" ? unknownLabel : `[${segment.chord}]`} ${chordTime(
-          segment.start
-        )}–${chordTime(segment.end)}`
-    )
+    ...rows.map((row) => {
+      const label =
+        row.kind === "gap"
+          ? section!.missingLabel
+          : row.chord === "N"
+            ? unknownLabel
+            : `[${row.chord}]`;
+      const mark =
+        section && row.kind === "chord" && (row.startClipped || row.endClipped)
+          ? " *"
+          : "";
+      return `${label} ${chordTime(row.start)}–${chordTime(row.end)}${mark}`;
+    })
   ].join("\n");
   if (content.length > songFieldLimits.content)
     throw new Error("ChordChartTooLarge");
+  const title =
+    result.fileName.replace(/\.[a-zA-Z0-9]{1,8}$/, "").trim() || fallbackTitle;
+  const suffix = section?.range
+    ? ` (${chordTime(section.range.start)}–${chordTime(section.range.end)})`
+    : "";
   return {
     ...initialValues,
-    title:
-      result.fileName.replace(/\.[a-zA-Z0-9]{1,8}$/, "").trim() ||
-      fallbackTitle,
+    title: `${title.slice(0, songFieldLimits.title - suffix.length)}${suffix}`,
     ...(result.tempo !== null ? { tempo: Math.round(result.tempo) } : {}),
     content
   };
