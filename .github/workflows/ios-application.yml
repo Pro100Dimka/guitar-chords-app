@@ -199,6 +199,7 @@ jobs:
             configuration=Debug-iphonesimulator
           fi
           app="$IOS_DERIVED_DATA/Build/Products/$configuration/freetune.app"
+          test ! -e "$app/PlugIns/PlaybackBroadcast.appex"
           for extension in RecognitionControl; do
             bundle="$app/PlugIns/$extension.appex"
             test -s "$bundle/$extension"
