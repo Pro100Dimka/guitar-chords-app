@@ -549,19 +549,25 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   };
   useEffect(() => {
     if (!active || !isChromatic) setReferencePlaying(false);
+    if (!active) return;
     return () => {
       pendingPreview.current?.abort();
+      pendingPreview.current = null;
       if (referenceTimer.current !== undefined)
         clearTimeout(referenceTimer.current);
+      referenceTimer.current = undefined;
       performanceAudio.stopPlayback();
     };
   }, [active, isChromatic]);
   const stopReference = useCallback(() => {
-    pendingPreview.current?.abort();
+    const preview = pendingPreview.current;
+    pendingPreview.current = null;
+    preview?.abort();
     previewUntil.current = Math.min(previewUntil.current, Date.now() + 180);
     if (referenceTimer.current !== undefined)
       clearTimeout(referenceTimer.current);
-    performanceAudio.stopPlayback();
+    referenceTimer.current = undefined;
+    if (preview) performanceAudio.stopPlayback();
     setReferencePlaying(false);
   }, []);
   useEffect(() => {

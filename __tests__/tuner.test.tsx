@@ -19,6 +19,7 @@ import MicrophoneStream from "../src/screens/tuner/MicrophoneStream";
 import checkMicPermission from "../src/components/permissions";
 import { chromaticLayout } from "../src/screens/tuner/chromatic-layout";
 import * as guitarAudio from "../src/components/guitar-audio";
+import { performanceAudio } from "../src/components/performance-audio";
 import {
   calibratedNote,
   signalLevels
@@ -655,6 +656,25 @@ test("silence does not repeatedly restart the recorder", async () => {
   });
   expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(1);
   expect(MicrophoneStream.stopRecording).not.toHaveBeenCalled();
+});
+
+test("inactive tuner changes and cleanup cannot stop audio from another screen", async () => {
+  const previous = usePreferences.getState();
+  usePreferences.setState({ instrument: "chromatic", chromaticOctave: 4 });
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Tuner active={false} />);
+    });
+    expect(performanceAudio.stopPlayback).not.toHaveBeenCalled();
+    await act(async () =>
+      usePreferences.setState({ chromaticOctave: 5, instrument: "guitar" })
+    );
+    expect(performanceAudio.stopPlayback).not.toHaveBeenCalled();
+    await act(async () => screen.unmount());
+    expect(performanceAudio.stopPlayback).not.toHaveBeenCalled();
+  } finally {
+    usePreferences.setState(previous);
+  }
 });
 
 test("an inactive tuner keeps its view without capturing or restarting the microphone", async () => {
