@@ -93,6 +93,7 @@
   "ErrorSavingItem": "Не удалось сохранить запись.",
   "TunerChromatic": "Хроматический",
   "TunerListening": "Ожидание звука",
+  "TunerCaptureUnavailable": "Микрофон не передаёт звук. Попробуйте запустить его снова.",
   "TunerPlayNote": "Сыграйте ноту",
   "TunerInTune": "Настроено",
   "TunerTuneUp": "Ниже эталона",

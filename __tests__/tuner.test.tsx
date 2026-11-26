@@ -2,6 +2,9 @@ import React from "react";
 import Renderer, { act } from "react-test-renderer";
 import {
   AppState,
+  Alert,
+  Linking,
+  Platform,
   ImageBackground,
   TextInput,
   Dimensions,
@@ -438,6 +441,75 @@ test("a stalled microphone restarts after three seconds and stops recovery when 
   await act(async () => jest.advanceTimersByTime(6000));
   expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(starts);
 });
+
+test("a synchronous microphone bridge error does not permanently lock recovery", async () => {
+  jest.useFakeTimers();
+  jest.spyOn(console, "warn").mockImplementation(() => {});
+  jest.mocked(MicrophoneStream.restartRecording).mockImplementationOnce(() => {
+    throw new Error("Native bridge unavailable");
+  });
+  await act(async () => {
+    screen = Renderer.create(<Tuner active />);
+  });
+  for (let i = 0; i < 6; i++)
+    await act(async () => jest.advanceTimersByTimeAsync(1500));
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(2);
+});
+
+test("late microphone buffers revive bounded recovery after an exhausted attempt", async () => {
+  jest.useFakeTimers();
+  jest.spyOn(console, "warn").mockImplementation(() => {});
+  await act(async () => {
+    screen = Renderer.create(<Tuner active />);
+  });
+  for (let i = 0; i < 30; i++)
+    await act(async () => jest.advanceTimersByTimeAsync(1500));
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(3);
+  const receive = jest.mocked(MicrophoneStream.addListener).mock.calls.at(-1)![0];
+  await act(async () =>
+    receive({
+      note: "Silence", rms: 0, pitch: 0, refFreq: 0, octave: 0,
+      direction: "=", diff: 0
+    })
+  );
+  await act(async () => jest.advanceTimersByTimeAsync(3000));
+  expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(4);
+});
+
+test("missing graphics readiness presents a retry instead of an invisible tuner", async () => {
+  jest.useFakeTimers();
+  await act(async () => {
+    screen = Renderer.create(<Tuner active />);
+  });
+  await act(async () => jest.advanceTimersByTimeAsync(7999));
+  const retry = () =>
+    screen.root.findAllByType(Action).find((node) => node.props.label === "Retry");
+  expect(retry()).toBeUndefined();
+  await act(async () => jest.advanceTimersByTimeAsync(1));
+  expect(retry()).toBeDefined();
+  await act(async () => retry()!.props.onPress());
+  expect(retry()).toBeUndefined();
+  await act(async () => jest.advanceTimersByTimeAsync(8000));
+  expect(retry()).toBeDefined();
+});
+
+test.each(["android", "ios"] as const)(
+  "denied microphone access reports settings navigation failures on %s",
+  async (os) => {
+    jest.replaceProperty(Platform, "OS", os);
+    jest.mocked(checkMicPermission).mockResolvedValue(false);
+    const open = os === "ios"
+      ? jest.spyOn(Linking, "openURL")
+      : jest.spyOn(Linking, "openSettings");
+    open.mockRejectedValue(new Error("Settings unavailable"));
+    const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+    await act(async () => {
+      screen = Renderer.create(<RequireMicAccess />);
+    });
+    await act(async () => screen.root.findByType(Action).props.onPress());
+    expect(alert).toHaveBeenCalledWith("LinkOpenError");
+  }
+);
 
 test("microphone recovery is bounded when no buffers ever arrive", async () => {
   jest.useFakeTimers();

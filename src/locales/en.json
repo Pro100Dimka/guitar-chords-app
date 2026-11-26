@@ -93,6 +93,7 @@
   "ErrorSavingItem": "Unable to save item.",
   "TunerChromatic": "Chromatic",
   "TunerListening": "Listening",
+  "TunerCaptureUnavailable": "The microphone is not providing audio. Try starting it again.",
   "TunerPlayNote": "Play a note",
   "TunerInTune": "In tune",
   "TunerTuneUp": "Below target",

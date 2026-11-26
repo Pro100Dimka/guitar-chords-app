@@ -62,6 +62,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const [painted, setPainted] = useState(false);
   const [renderError, setRenderError] = useState(false);
   const [renderAttempt, setRenderAttempt] = useState(0);
+  const [captureAttempt, setCaptureAttempt] = useState(0);
+  const [captureFailed, setCaptureFailed] = useState(false);
   const markStringsReady = useCallback(() => setStringsReady(true), []);
   const markDialReady = useCallback(() => setDialReady(true), []);
   const markChromaticReady = useCallback(() => setChromaticReady(true), []);
@@ -141,6 +143,12 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
   const backgroundReady = isChromatic || loadedBackground === backgroundKey;
   const graphicsReady =
     controlsReady && (isChromatic ? chromaticReady : stringsReady && dialReady);
+  useEffect(() => {
+    // Missing font/image callbacks must not leave a permanently invisible tuner.
+    if (!active || renderError || (painted && backgroundReady)) return;
+    const timeout = setTimeout(() => setRenderError(true), 8000);
+    return () => clearTimeout(timeout);
+  }, [active, backgroundReady, painted, renderAttempt, renderError]);
   useEffect(() => {
     if (
       !active ||
@@ -300,6 +308,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     MicrophoneStream.setTargetNotes(stringNotes ?? []);
   }, [active, stringNotes]);
   useEffect(() => {
+    setCaptureFailed(false);
     if (!active) {
       setAccessibleReading(null);
       note.value = null;
@@ -319,6 +328,13 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     let attempts = 0;
     let nextAttemptAt = 0;
     const id = MicrophoneStream.addListener((input: AudioBufferEvent) => {
+      if (captureState === "stopped") return;
+      if (captureState === "failed") {
+        captureState = "running";
+        attempts = 0;
+        nextAttemptAt = 0;
+        setCaptureFailed(false);
+      }
       const calibrated = isChromatic
         ? calibratedNote(input.pitch, referenceRef.current)
         : null;
@@ -417,7 +433,11 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         pitch: buffer.pitch
       };
     });
-    MicrophoneStream.startRecording();
+    try {
+      MicrophoneStream.startRecording();
+    } catch (error) {
+      console.warn("Microphone start failed", error);
+    }
     const recoveryTimer = setInterval(() => {
       const now = Date.now();
       if (
@@ -428,6 +448,8 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         return;
       if (attempts >= 3) {
         captureState = "failed";
+        setCaptureFailed(true);
+        setAccessibleReading(null);
         console.warn("Microphone recovery exhausted");
         return;
       }
@@ -435,22 +457,28 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
       attempts++;
       note.value = null;
       rms.value = 0;
-      void MicrophoneStream.restartRecording().then(
-        (started) => {
-          if (captureState === "stopped") return;
-          captureState = "running";
-          lastBufferAt = Date.now();
-          nextAttemptAt = lastBufferAt + 1500 * 2 ** (attempts - 1);
-          if (!started)
-            console.warn("Microphone recovery did not start capture");
-        },
-        (error) => {
-          if (captureState === "stopped") return;
-          captureState = "running";
-          nextAttemptAt = Date.now() + 1500 * 2 ** (attempts - 1);
-          console.warn("Microphone recovery failed", error);
-        }
-      );
+      void Promise.resolve()
+        .then(() =>
+          captureState === "stopped"
+            ? false
+            : MicrophoneStream.restartRecording()
+        )
+        .then(
+          (started) => {
+            if (captureState === "stopped") return;
+            captureState = "running";
+            lastBufferAt = Date.now();
+            nextAttemptAt = lastBufferAt + 1500 * 2 ** (attempts - 1);
+            if (!started)
+              console.warn("Microphone recovery did not start capture");
+          },
+          (error) => {
+            if (captureState === "stopped") return;
+            captureState = "running";
+            nextAttemptAt = Date.now() + 1500 * 2 ** (attempts - 1);
+            console.warn("Microphone recovery failed", error);
+          }
+        );
     }, 1500);
     return () => {
       captureState = "stopped";
@@ -470,6 +498,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
     signal,
     isChromatic,
     chromaticOctave,
+    captureAttempt,
     setAccessibleReading
   ]);
   const previewUntil = useRef(0);
@@ -615,7 +644,12 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
           />
         )}
         <GestureDetector gesture={tapGesture}>
-          <Canvas ref={canvas} style={styles.flex} accessible={false}>
+          <Canvas
+            key={renderAttempt}
+            ref={canvas}
+            style={styles.flex}
+            accessible={false}
+          >
             {config.selectedInstrument === "guitar" ? (
               <>
                 <NoteIndicator
@@ -881,6 +915,17 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         </Sheet>
       )}
       {chooseTuning && <TuningSheet onClose={() => setChooseTuning(false)} />}
+      {captureFailed && active && painted && backgroundReady && !renderError && (
+        <View style={styles.renderError}>
+          <Text accessibilityRole="alert" style={styles.octaveHint}>
+            {t("TunerCaptureUnavailable")}
+          </Text>
+          <Action
+            label={t("Retry")}
+            onPress={() => setCaptureAttempt((value) => value + 1)}
+          />
+        </View>
+      )}
       {renderError && (
         <View style={styles.renderError} onLayout={reportReady}>
           <Text style={styles.octaveHint}>{t("ErrorStartingApp")}</Text>
@@ -888,6 +933,11 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
             label={t("Retry")}
             onPress={() => {
               setLoadedBackground("");
+              setPainted(false);
+              setStringsReady(false);
+              setDialReady(false);
+              setChromaticReady(false);
+              setControlsReady(false);
               setRenderError(false);
               setRenderAttempt((value) => value + 1);
             }}

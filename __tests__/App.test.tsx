@@ -199,3 +199,28 @@ test("backgrounding during a failed preference load never overwrites storage", a
     log.mockRestore();
   }
 });
+
+test("missing splash art and tuner callbacks cannot block an initialized application forever", async () => {
+  jest.useFakeTimers();
+  const originalOS = Platform.OS;
+  Platform.OS = "android";
+  jest.mocked(SplashScreen.hide).mockClear();
+  let screen: ReactTestRenderer.ReactTestRenderer | undefined;
+  try {
+    await ReactTestRenderer.act(async () => {
+      screen = ReactTestRenderer.create(<App />);
+    });
+    expect(screen!.root.findAllByType(Router)).toHaveLength(1);
+    await ReactTestRenderer.act(async () =>
+      screen!.root.findByType(Router).props.onReady()
+    );
+    await ReactTestRenderer.act(async () => jest.advanceTimersByTimeAsync(9999));
+    expect(SplashScreen.hide).not.toHaveBeenCalled();
+    await ReactTestRenderer.act(async () => jest.advanceTimersByTimeAsync(40));
+    expect(SplashScreen.hide).toHaveBeenCalledTimes(1);
+  } finally {
+    if (screen) await ReactTestRenderer.act(async () => screen!.unmount());
+    Platform.OS = originalOS;
+    jest.useRealTimers();
+  }
+});

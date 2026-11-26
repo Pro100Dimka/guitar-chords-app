@@ -1,7 +1,14 @@
 import React, { FC, useContext, useEffect, useState } from "react";
 import checkMicPermission from "@/components/permissions";
 import { useTranslation } from "react-i18next";
-import { View, StyleSheet, Linking, Platform, AppState } from "react-native";
+import {
+  Alert,
+  View,
+  StyleSheet,
+  Linking,
+  Platform,
+  AppState
+} from "react-native";
 import Text from "../../components/styled-text";
 import palette from "@/theme/palette";
 import Tuner from "./tuner";
@@ -17,10 +24,14 @@ const RequireMicAccess: FC = () => {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
   const [canRecord, setCanRecord] = useState(false);
   const [appState, setAppState] = useState(AppState.currentState ?? "active");
-  const openAppSettings = async () =>
-    Platform.OS === "ios"
-      ? await Linking.openURL("app-settings:")
-      : await Linking.openSettings();
+  const openAppSettings = async () => {
+    try {
+      if (Platform.OS === "ios") await Linking.openURL("app-settings:");
+      else await Linking.openSettings();
+    } catch {
+      Alert.alert(t("LinkOpenError"));
+    }
+  };
   useEffect(() => {
     let mounted = true;
     let pending = false;
