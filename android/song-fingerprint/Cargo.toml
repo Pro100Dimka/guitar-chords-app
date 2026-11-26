@@ -2,6 +2,7 @@
 name = "freetune_song_fingerprint"
 version = "0.1.0"
 edition = "2021"
+rust-version = "1.91"
 license = "MIT"
 publish = false
 
@@ -13,6 +14,7 @@ jni = "0.21.1"
 chfft = "0.3.4"
 crc32fast = "1.5.0"
 base64 = "0.23.1"
+tract-nnef = { version = "=0.23.9", default-features = false }
 
 [profile.release]
 strip = "symbols"

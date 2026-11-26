@@ -86,7 +86,11 @@ jobs:
           key: android-ndk-${{ steps.android-ndk.outputs.version }}-cargo-ndk-4.1.2-arm64-armv7-x86_64-release
           cache-bin: false
       - name: Native host fingerprint compilation
-        run: cargo test --locked --manifest-path android/song-fingerprint/Cargo.toml
+        # Exercise the same optimized inference kernels shipped in the app.
+        # Debug-mode tensor execution makes the audio regression matrix impractical.
+        run: cargo test --locked --release --manifest-path android/song-fingerprint/Cargo.toml
+      - name: Chord evaluation semantics
+        run: python3 scripts/evaluate-offline-chords-extended.py self-test
       - name: Deterministic capture, recording stop and audio checks
         run: |
           KOTLIN_BIN=$(readlink -f "$(command -v kotlinc)")
