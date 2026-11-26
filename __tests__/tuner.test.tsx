@@ -725,6 +725,38 @@ test("backgrounding stops capture and returning checks permission before restart
   expect(MicrophoneStream.startRecording).toHaveBeenCalledTimes(2);
 });
 
+test("reference playback stops on a second tap or at its natural timeout", async () => {
+  jest.useFakeTimers();
+  const previous = usePreferences.getState();
+  usePreferences.setState({ instrument: "chromatic", chromaticOctave: 4 });
+  const play = jest
+    .spyOn(guitarAudio, "playGuitar")
+    .mockResolvedValue(undefined);
+  try {
+    await act(async () => {
+      screen = Renderer.create(<Tuner active />);
+    });
+    const buttons = () => screen.root.findByType(Buttons).props;
+    await act(async () => buttons().onReference());
+    expect(buttons().referencePlaying).toBe(true);
+    const signal = play.mock.calls.at(-1)![2]!;
+    expect(signal.aborted).toBe(false);
+    await act(async () => buttons().onReference());
+    expect(buttons().referencePlaying).toBe(false);
+    expect(signal.aborted).toBe(true);
+    await act(async () => buttons().onReference());
+    expect(buttons().referencePlaying).toBe(true);
+    const nextSignal = play.mock.calls.at(-1)![2]!;
+    await act(async () => jest.advanceTimersByTimeAsync(3099));
+    expect(buttons().referencePlaying).toBe(true);
+    await act(async () => jest.advanceTimersByTimeAsync(1));
+    expect(buttons().referencePlaying).toBe(false);
+    expect(nextSignal.aborted).toBe(true);
+  } finally {
+    await act(async () => usePreferences.setState(previous));
+  }
+});
+
 test("changing octave stops the reference and the next tap plays again", async () => {
   const previous = usePreferences.getState();
   usePreferences.setState({ instrument: "chromatic", chromaticOctave: 4 });

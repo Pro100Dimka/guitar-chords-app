@@ -26,8 +26,14 @@ name: FreeTune full application journey
 - tapOn: "Calibration"
 - tapOn: "A4 · ${AUDIT_HZ} Hz"
 - tapOn: "Reference note: A"
-- tapOn: "Play reference note"
-- tapOn: "Stop reference note"
+# The preview expires after 3.1 s. Separate Maestro commands can take
+# much longer on software-rendered devices; exercise both taps together.
+- tapOn:
+    text: "Play reference note"
+    repeat: 2
+    delay: 200
+    waitToSettleTimeoutMs: 100
+- assertVisible: "Play reference note"
 - tapOn: "Choose octave"
 - tapOn: "(?s)^Octave: 4.*"
 - tapOn: "Switch tuner: Guitar"
