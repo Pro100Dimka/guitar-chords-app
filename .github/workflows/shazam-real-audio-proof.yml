@@ -1,15 +1,13 @@
 name: shazam-real-audio-proof
 on:
   push:
-    branches: [main, feature/song-autofill]
+    branches: [main]
     paths:
       - .github/workflows/shazam-real-audio-proof.yml
       - android/song-fingerprint/**
       - android/app/src/main/java/com/freetune/SongRecognitionModule.kt
       - android/app/src/main/java/com/freetune/SongFingerprint.kt
       - scripts/verify-shazam.cjs
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read

@@ -1,7 +1,7 @@
 name: song-autofill-checks
 on:
   push:
-    branches: [main, feature/song-autofill]
+    branches: [main]
   pull_request:
     branches: [main]
   workflow_dispatch:

@@ -1,12 +1,5 @@
 name: full-application-audit
 on:
-  push:
-    branches: [fix/cross-platform-root-cause-audit-20261126]
-    paths:
-      - '.github/workflows/full-application-audit.yml'
-      - 'e2e/**'
-      - 'scripts/*app-audit*'
-      - 'scripts/install-audit-maestro.sh'
   workflow_dispatch:
 permissions:
   contents: read
