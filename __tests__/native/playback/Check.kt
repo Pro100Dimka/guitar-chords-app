@@ -112,11 +112,11 @@ fun main() {
     val unsupported = Attempt(); unsupported.finish(); unsupported.close()
     check(unsupported.error() == "PlaybackCaptureUnavailable")
     val legacyTile = RecognitionTileService(); legacyTile.onStartListening(); legacyTile.onClick()
-    check(!legacyTile.pendingLaunch && legacyTile.launched!!.data.toString().contains("/mic?autoStart=true"))
+    check(!legacyTile.pendingLaunch && legacyTile.launched!!.data.toString().contains("/auto?autoStart=true"))
     Build.VERSION.SDK_INT=36
     val tile = RecognitionTileService(); tile.onClick()
     val first = tile.launched!!.data.toString()
-    check(tile.pendingLaunch && first.contains("/playback?autoStart=true&requestId="))
+    check(tile.pendingLaunch && first.contains("/auto?autoStart=true&requestId="))
     tile.onClick(); check(first != tile.launched!!.data.toString())
     check(!RecognitionTileService.recognitionIntent(Context(), false).data.toString().contains("requestId"))
     println("PASS: Android playback consent, grant/deny, early cancel, late consent/binding, revocation, startup failure, deadlines, notification stop, foreground cleanup and API-specific Quick Settings launch. Android/React services are controlled test doubles.")
