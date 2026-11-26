@@ -936,10 +936,16 @@ function SongTablature({
       />
       <TablatureBar
         tab={transport.tab}
-        bar={bar}
+        bar={Math.floor(bar / 2) * 2}
+        barCount={Math.min(2, bars - Math.floor(bar / 2) * 2)}
         tick={tick}
         readOnly
-        readingScale={0.6}
+        notation
+        readingScale={1}
+        onSeek={(position) => {
+          transport.seek(position);
+          if (running) void transport.play();
+        }}
       />
       <View style={[styles.row, { justifyContent: "space-between" }]}>
         <Action

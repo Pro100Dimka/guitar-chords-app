@@ -21,7 +21,7 @@ import Text from "../../components/styled-text";
 import { tabBarTicks, tablatureLength } from "../../components/tablature";
 import type { TabPracticeSettings } from "../../components/tablature-practice";
 import palette from "../../theme/palette";
-import { TablatureBar } from "./tablature-panel";
+import { TablatureBar, tablatureSystemLayout } from "./tablature-panel";
 import { useTablaturePosition } from "./use-tablature";
 import type { useTablature } from "./use-tablature";
 
@@ -45,16 +45,21 @@ export function TablaturePractice({
   const { t } = useTranslation();
   const { width, height, fontScale } = useWindowDimensions();
   const landscape = width > height;
-  const columns = landscape && width >= 740 ? 2 : 1;
   const list = useRef<FlatList<number[]>>(null);
   const [following, setFollowing] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [size, setSize] = useState(2);
+  const [size, setSize] = useState(1);
   const [laidOut, setLaidOut] = useState(false);
   const { tab, status, practice, countIn, range } = transport;
   const tick = useTablaturePosition(transport);
   const scale = sizes[size] * (landscape ? 0.8 : 1) * fontScale;
-  const barHeadingHeight = 32 * Math.max(1, fontScale);
+  const columns = Math.max(
+    2,
+    Math.min(
+      4,
+      Math.floor((width - (landscape ? 124 : 0) - 20) / (160 * scale))
+    )
+  );
   const barTicks = tabBarTicks(tab);
   const length = useMemo(() => tablatureLength(tab), [tab]);
   const bars = Math.max(1, Math.ceil(length / barTicks));
@@ -62,8 +67,6 @@ export function TablaturePractice({
     0,
     Math.min(bars - 1, Math.floor(tick / barTicks))
   );
-  // Card padding + heading + staff margins; every readonly staff has seven rows.
-  const rowHeight = 38 + barHeadingHeight + 244 * scale;
   const rows = useMemo(
     () =>
       Array.from({ length: Math.ceil(bars / columns) }, (_, row) =>
@@ -74,6 +77,16 @@ export function TablaturePractice({
       ),
     [bars, columns]
   );
+  const layouts = useMemo(() => {
+    let offset = 0;
+    return rows.map((row, index) => {
+      const length =
+        tablatureSystemLayout(tab, row[0], row.length, scale).height + 12;
+      const layout = { length, offset, index };
+      offset += length;
+      return layout;
+    });
+  }, [rows, tab, scale]);
   const counting = status === "countingIn";
   const preparing = status === "preparing";
   const running = status === "playing" || preparing || counting;
@@ -103,7 +116,7 @@ export function TablaturePractice({
       animated: true,
       viewPosition: 0
     });
-  }, [active, currentBar, columns, following, laidOut, rowHeight]);
+  }, [active, currentBar, columns, following, laidOut, layouts]);
 
   const updatePractice = (patch: Partial<TabPracticeSettings>) => {
     if (!settingsLocked) transport.setPractice({ ...practice, ...patch });
@@ -270,102 +283,37 @@ export function TablaturePractice({
                 initialNumToRender={3}
                 windowSize={5}
                 maxToRenderPerBatch={4}
-                getItemLayout={(_, index) => ({
-                  length: rowHeight,
-                  offset: rowHeight * index,
-                  index
-                })}
+                getItemLayout={(_, index) => layouts[index]}
                 onLayout={() => setLaidOut(true)}
                 onScrollBeginDrag={stopFollowing}
-                renderItem={({ item }) => (
-                  <View style={[styles.barRow, { height: rowHeight }]}>
-                    {item.map((bar) => {
-                      const outsideRange =
-                        !!range &&
-                        (bar * barTicks < range.start ||
-                          bar * barTicks >= range.end);
-                      const selected = bar === currentBar;
-                      const seekBar = () => {
-                        if (locked || outsideRange) return;
-                        transport.seek(bar * barTicks);
+                renderItem={({ item, index }) => (
+                  <View
+                    style={[styles.barRow, { height: layouts[index].length }]}
+                  >
+                    <TablatureBar
+                      tab={tab}
+                      bar={item[0]}
+                      barCount={item.length}
+                      tick={tick}
+                      readOnly
+                      notation
+                      readingScale={scale}
+                      disabled={locked}
+                      selectedRange={range}
+                      followPlayback={following}
+                      onManualScroll={stopFollowing}
+                      onSeek={(position) => {
+                        if (
+                          locked ||
+                          (range &&
+                            (position < range.start || position >= range.end))
+                        )
+                          return;
+                        transport.seek(position);
+                        if (running) void transport.play();
                         setFollowing(true);
-                      };
-                      return (
-                        <Pressable
-                          key={bar}
-                          testID={`practice-bar-${bar}`}
-                          accessible={false}
-                          accessibilityRole="button"
-                          accessibilityLabel={t("TabPracticeSeekBar", {
-                            bar: bar + 1
-                          })}
-                          accessibilityHint={t(
-                            outsideRange
-                              ? "TabPracticeOutsideRange"
-                              : "TabPracticeSeekHint"
-                          )}
-                          accessibilityState={{
-                            selected,
-                            disabled: locked || outsideRange
-                          }}
-                          disabled={locked || outsideRange}
-                          onPress={seekBar}
-                          style={[
-                            styles.bar,
-                            selected && styles.currentBar,
-                            outsideRange && styles.outsideRange
-                          ]}
-                        >
-                          <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel={t("TabPracticeSeekBar", {
-                              bar: bar + 1
-                            })}
-                            accessibilityHint={t(
-                              outsideRange
-                                ? "TabPracticeOutsideRange"
-                                : "TabPracticeSeekHint"
-                            )}
-                            accessibilityState={{
-                              selected,
-                              disabled: locked || outsideRange
-                            }}
-                            disabled={locked || outsideRange}
-                            onPress={seekBar}
-                            style={[
-                              styles.barHeading,
-                              { height: barHeadingHeight }
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.barNumber,
-                                selected && styles.accent
-                              ]}
-                            >
-                              {t("TabPracticeBar", { bar: bar + 1 })}
-                            </Text>
-                            {selected && (
-                              <MaterialCommunityIcons
-                                name="play"
-                                size={18}
-                                color={palette.glass.accent}
-                              />
-                            )}
-                          </Pressable>
-                          <TablatureBar
-                            tab={tab}
-                            bar={bar}
-                            tick={selected ? tick : -1}
-                            readOnly
-                            readingScale={scale}
-                            followPlayback={following}
-                            onManualScroll={stopFollowing}
-                          />
-                        </Pressable>
-                      );
-                    })}
-                    {item.length < columns && <View style={styles.emptyBar} />}
+                      }}
+                    />
                   </View>
                 )}
               />
@@ -769,30 +717,7 @@ const styles = StyleSheet.create({
   manual: { fontSize: 12, color: palette.glass.accent },
   barList: { flex: 1 },
   barListContent: { paddingHorizontal: 10, paddingBottom: 8 },
-  barRow: { flexDirection: "row", gap: 10, paddingBottom: 12 },
-  bar: {
-    flex: 1,
-    minWidth: 0,
-    padding: 8,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: palette.glass.edge,
-    backgroundColor: palette.glass.control
-  },
-  currentBar: {
-    borderColor: palette.glass.accent,
-    backgroundColor: palette.paper.soft
-  },
-  outsideRange: { opacity: 0.45 },
-  emptyBar: { flex: 1 },
-  barHeading: {
-    height: 32,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between"
-  },
-  barNumber: { fontSize: 13, color: palette.glass.muted },
-  accent: { color: palette.glass.accent },
+  barRow: { paddingBottom: 12 },
   transport: {
     flexDirection: "row",
     justifyContent: "space-around",
