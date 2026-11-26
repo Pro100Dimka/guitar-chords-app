@@ -18,7 +18,8 @@ source += (root / "ios/PlaybackCaptureStore.swift").read_text(encoding="utf-8").
 source += ((root / "ios/PlaybackBroadcast/SampleHandler.swift").read_text(encoding="utf-8")
            .replace("import ReplayKit", "").replace("private ", "")
            .replace("SongFingerprintRecognizer().identify(captured, cancelled:", "captureFixture(captured, cancelled:")
-           .replace("RecognitionNotice.show(song, requestId: self.requestId, error: status, startedAt: self.startedAt, playback: true)", "recordExtensionNotice(song, requestId: self.requestId, error: status, startedAt: self.startedAt, playback: true)"))
+           .replace("RecognitionNotice.show(song,", "recordExtensionNotice(song,")
+           .replace("DispatchQueue.main.async { self.finishBroadcastWithError(completion) }", "self.finishBroadcastWithError(completion)"))
 source += ((root / "ios/OpenRecognitionIntent.swift").read_text(encoding="utf-8").split("@available", 1)[0]
            .replace("import AppIntents", "").replace("import ActivityKit", "").replace("private ", ""))
 fixture = r'''
@@ -32,7 +33,8 @@ class RPBroadcastSampleHandler {
   func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {}
   func processSampleBuffer(_ sampleBuffer: CMSampleBuffer, with sampleBufferType: RPSampleBufferType) {}
   func broadcastFinished() {}
-  func finishBroadcastWithError(_ error: Error) {}
+  var broadcastStopped = false
+  func finishBroadcastWithError(_ error: Error) { broadcastStopped = true }
 }
 let CaptureSessionInterruptionTypeKey = "type"
 final class CaptureSession {
@@ -101,13 +103,14 @@ let extensionReady = DispatchSemaphore(value: 0)
 let extensionCaptureLock = NSLock()
 var extensionCapture = [Int16]()
 var extensionPayload = [AnyHashable: Any]()
+var extensionCompletion: (() -> Void)?
 func captureFixture(_ samples: [Int16], cancelled: () -> Bool, attach: (URLSessionDataTask) -> Void) throws -> [String: Any]? {
   extensionCaptureLock.lock(); extensionCapture = samples; extensionCaptureLock.unlock()
   return try SongFingerprintRecognizer().identify(samples, cancelled: cancelled, attach: attach)
 }
-func recordExtensionNotice(_ song: [String: Any]?, requestId: String, error: String?, startedAt: Date, playback: Bool) {
+func recordExtensionNotice(_ song: [String: Any]?, requestId: String, error: String?, startedAt: Date, playback: Bool, completion: @escaping () -> Void = {}) {
   let content = RecognitionNotice.content(song, requestId: requestId, error: error, startedAt: startedAt, playback: playback)
-  extensionCaptureLock.lock(); extensionPayload = content.userInfo; extensionCaptureLock.unlock()
+  extensionCaptureLock.lock(); extensionPayload = content.userInfo; extensionCompletion = completion; extensionCaptureLock.unlock()
   extensionReady.signal()
 }
 URLProtocol.registerClass(HTTPFixture.self)
@@ -284,6 +287,10 @@ for rate in [16000.0, 44100.0, 48000.0] {
       precondition(extensionReady.wait(timeout: .now() + 10) == .success)
       extensionCaptureLock.lock(); let captured = extensionCapture; let payload = extensionPayload; extensionCaptureLock.unlock()
       precondition(payload["recognitionError"] as? String == "" && handler.finished)
+      precondition(!handler.broadcastStopped, "The extension stopped before its notification was scheduled")
+      extensionCaptureLock.lock(); let completeNotice = extensionCompletion!; extensionCompletion = nil; extensionCaptureLock.unlock()
+      completeNotice()
+      precondition(handler.broadcastStopped, "A scheduled notification did not finish the broadcast")
       let song = RecognitionNotice.song(payload)!
       precondition(song["title"] as? String == "Example", "The extension failed to identify audio independently")
       precondition(captured.count == SampleHandler.maximumSamples, "Capture exceeded 12 seconds")

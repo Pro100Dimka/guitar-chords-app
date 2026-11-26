@@ -114,18 +114,14 @@ final class SampleHandler: RPBroadcastSampleHandler {
           song = try SongFingerprintRecognizer().identify(captured, cancelled: { self.capture.cancelled }, attach: { self.capture.attach($0) })
         } catch { status = (error as NSError).domain }
       }
-      if !self.capture.cancelled {
-        RecognitionNotice.show(song, requestId: self.requestId, error: status, startedAt: self.startedAt, playback: true)
-      }
-      if stopBroadcast {
-        let message = status != nil
-          ? RecognitionNotice.text("Recognition failed. Check the connection and audio access.", "Не удалось распознать. Проверьте подключение и доступ к звуку.", "Не вдалося розпізнати. Перевірте з’єднання та доступ до звуку.")
-          : song == nil
-          ? RecognitionNotice.text("Song not found", "Песня не найдена", "Пісню не знайдено")
-          : RecognitionNotice.text("Song found. Open the notification to find chords.", "Песня найдена. Откройте уведомление для поиска аккордов.", "Пісню знайдено. Відкрийте сповіщення для пошуку акордів.")
+      let finishBroadcast = {
+        guard stopBroadcast else { return }
+        let message = RecognitionNotice.content(song, requestId: self.requestId, error: status).body
         let completion = NSError(domain: "FreeTunePlaybackCapture", code: status == nil ? 0 : 1, userInfo: [NSLocalizedDescriptionKey: message])
         DispatchQueue.main.async { self.finishBroadcastWithError(completion) }
       }
+      if self.capture.cancelled { finishBroadcast() }
+      else { RecognitionNotice.show(song, requestId: self.requestId, error: status, startedAt: self.startedAt, playback: true, completion: finishBroadcast) }
     }
   }
 }
