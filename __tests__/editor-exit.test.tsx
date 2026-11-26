@@ -266,10 +266,15 @@ test("reusing a song route cannot carry a dirty editor into another song", async
   });
   await act(async () => screen.root.findByType(Menu).props.setIsEdit(true));
   await change();
-  expect(screen.root.findAllByType(Editor)).toHaveLength(1);
+  const editorFields = () =>
+    screen.root.findAll(
+      (node) => node.props.formik && node.props.name === "title"
+    );
+  expect(editorFields()).not.toHaveLength(0);
+  expect(editorFields()[0].props.formik.values.title).toBe("Draft");
   mockParams = { id: "2" };
   await act(async () => screen.update(<Song />));
-  expect(screen.root.findAllByType(Editor)).toHaveLength(0);
+  expect(editorFields()).toHaveLength(0);
   expect(JSON.stringify(screen.toJSON())).toContain("Song 2");
 });
 

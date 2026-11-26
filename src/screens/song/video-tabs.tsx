@@ -12,13 +12,7 @@ import YoutubePlayer from "react-native-youtube-iframe";
 import extractYoutubeId from "../../components/utils/extract-youtube-id";
 import palette from "../../theme/palette";
 import { ISong } from "@/@interfaces";
-function VideoFrame({
-  videoId,
-  width
-}: {
-  videoId: string;
-  width: number;
-}) {
+function VideoFrame({ videoId, width }: { videoId: string; width: number }) {
   const { t } = useTranslation();
   const [failed, setFailed] = useState(false);
   const attempt = useRef(0);
