@@ -1285,6 +1285,7 @@ function RhythmPlayer({
     async function play(){
       const token=++playToken;wantsPlay=true;button.disabled=true;
       try{
+        if(window.navigator?.audioSession)window.navigator.audioSession.type='playback';
         const prepared=prepareAudio();await context.resume();await prepared;
         if(token!==playToken||document.hidden)return;
         step=0;bar=0;slot=0;patternStep=0;planKey='';scheduled=[];lastChord=-1;start=context.currentTime+.015;next=start;playing=true;
