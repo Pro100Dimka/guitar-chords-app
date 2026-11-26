@@ -1,9 +1,5 @@
 import { sourceArrangement } from "../../screens/song/rhythms";
-import {
-  isChordLine,
-  isSectionBoundary,
-  playingInstruction
-} from "../../screens/song/chords";
+import { isChordLine, isSectionBoundary } from "../../screens/song/chords";
 import {
   emptyTablature,
   normalizeTablature,
@@ -163,16 +159,9 @@ export function sourceSong(text: string, tempo?: number) {
       : firstSection >= 0 && firstSection < firstTab
         ? firstSection
         : 0;
-  let instruction: Parameters<typeof playingInstruction>[1];
-  let changed = start > 0 || removed.size > 0;
+  const changed = start > 0 || removed.size > 0;
   const cleaned = lines
-    .flatMap((line, index) => {
-      if (index < start || removed.has(index)) return [];
-      const playing = playingInstruction(line, instruction);
-      instruction = playing.next;
-      if (playing.metadata) changed = true;
-      return playing.metadata ? [] : [line];
-    })
+    .filter((_, index) => index >= start && !removed.has(index))
     .join("\n")
     .replace(/\n{3,}/g, "\n\n")
     .trim();

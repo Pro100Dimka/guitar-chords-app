@@ -1146,10 +1146,7 @@ type PlayingInstruction = "tempo" | "rhythm";
 // This is lyric validation only, not a second rhythm/tempo importer. Keep its
 // label vocabulary aligned with sourceRhythm without importing rhythms.ts,
 // which already depends on this module for section parsing.
-export function playingInstruction(
-  line: string,
-  previous?: PlayingInstruction
-) {
+function playingInstruction(line: string, previous?: PlayingInstruction) {
   let text = line.replace(/[BБ]₂/gi, "A").normalize("NFKC").trim();
   if (/^(?:\{[^{}]*\}|\[[^\[\]]*\])$/.test(text))
     text = text

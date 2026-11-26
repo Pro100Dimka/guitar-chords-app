@@ -19,7 +19,6 @@ import CreateChordSong, {
   type FormValues
 } from "../src/screens/create-song-chords";
 import { sourceArrangement } from "../src/screens/song/rhythms";
-import { sourceSong } from "../src/components/song-autofill/source-metadata";
 import { Action } from "../src/screens/song/tools";
 
 jest.mock("react-native-safe-area-context", () => ({
@@ -318,7 +317,7 @@ test.each(["recognized", "looked up"])(
     ).toMatchObject({
       args: [
         "Track",
-        "[Verse]\n[Am]First example words [G]for this verse\n[Chorus]\n[F]Other example words [C]for the chorus",
+        arrangementText,
         11,
         "",
         "",
@@ -347,7 +346,7 @@ test.each([
     await press("ChooseLyricsVersion");
     await choose(next.album);
     const draft = await openEditor();
-    expect(draft.content).toBe(sourceSong(next.content).content);
+    expect(draft.content).toBe(next.content);
     expect(draft.tempo).toBe(expectedTempo);
     expect(draft.rhythm).toEqual(next.rhythm);
     const persisted = await save();
