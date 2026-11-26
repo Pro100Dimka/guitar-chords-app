@@ -169,7 +169,7 @@ final class SongRecognition: NSObject, RCTBridgeModule {
           @unknown default: throw self.error("RecognitionFailed")
           }
           guard signature.duration >= 2 else { continue }
-          let uri = "data:audio/vnd.shazam.sig;base64," + (try signature.dataRepresentation()).base64EncodedString()
+          let uri = "data:audio/vnd.shazam.sig;base64," + signature.dataRepresentation.base64EncodedString()
           result = try self.fingerprint.identify(signature: uri, sampleMilliseconds: Int(signature.duration * 1000), cancelled: { capture.cancelled }, attach: { capture.attach($0) })
           if result != nil { break }
         }

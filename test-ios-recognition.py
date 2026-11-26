@@ -242,6 +242,7 @@ precondition(!CaptureSession.instance.active, "File recognition activated the mi
 
 if #available(macOS 14.0, *) {
   let signature = TestManagedSession.signature
+  precondition(Array(signature.dataRepresentation.prefix(4)) == [0x80, 0x25, 0xfe, 0xca], "System signatures must use the existing recognizer wire format")
   let catalog = try running.recognitionCatalog()
   let localCatalogDone = DispatchSemaphore(value: 0)
   Task.detached {
@@ -254,7 +255,7 @@ if #available(macOS 14.0, *) {
   }
   precondition(localCatalogDone.wait(timeout: .now() + 10) == .success)
 
-  HTTPFixture.expectedSignature = "data:audio/vnd.shazam.sig;base64," + (try signature.dataRepresentation()).base64EncodedString()
+  HTTPFixture.expectedSignature = "data:audio/vnd.shazam.sig;base64," + signature.dataRepresentation.base64EncodedString()
   let managed = SongRecognition()
   let managedDone = DispatchSemaphore(value: 0)
   managed.control.async {
