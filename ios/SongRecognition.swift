@@ -125,11 +125,31 @@ final class SongRecognition: NSObject, RCTBridgeModule {
   }
 
   @available(iOS 17.0, macOS 14.0, *)
+  private func recognitionCatalog() throws -> SHCustomCatalog {
+    let format = AVAudioFormat(standardFormatWithSampleRate: 16000, channels: 1)!
+    let reference = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: 64000)!
+    reference.frameLength = reference.frameCapacity
+    var seed: UInt32 = 0x4654554E
+    for frame in 0..<Int(reference.frameLength) {
+      seed = 1664525 &* seed &+ 1013904223
+      reference.floatChannelData![0][frame] = Float(Int32(bitPattern: seed)) / Float(Int32.max) * 0.25
+    }
+    let generator = SHSignatureGenerator()
+    try generator.append(reference, at: nil)
+    let catalog = SHCustomCatalog()
+    // The framework requires a reference. Only captured query signatures are identified.
+    try catalog.addReferenceSignature(generator.signature(), representing: [SHMediaItem(properties: [.title: "Input reference"])])
+    return catalog
+  }
+
+  @available(iOS 17.0, macOS 14.0, *)
   private func startManagedRecognition(_ resolve: @escaping RCTPromiseResolveBlock, rejecter reject: @escaping RCTPromiseRejectBlock, allowsBackground: Bool) {
     let capture = RecognitionCapture(allowsBackground: allowsBackground, ignoresAudioInterruptions: true)
     active = capture
     // A local catalog lets the system capture audio without requiring an App ID service.
-    let session = SHManagedSession(catalog: SHCustomCatalog())
+    let session: SHManagedSession
+    do { session = SHManagedSession(catalog: try recognitionCatalog()) }
+    catch { active = nil; reject("AudioDeviceUnavailable", "AudioDeviceUnavailable", error); return }
     capture.attach { session.cancel() }
     managedTask = Task {
       var result: [String: Any]?

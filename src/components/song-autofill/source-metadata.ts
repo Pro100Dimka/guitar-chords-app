@@ -81,24 +81,36 @@ export function sourceSong(text: string, tempo?: number) {
     };
     const events = rows.flatMap((row, string) => {
       const body = row![2].replace(/\|/g, "");
-      return [...body.matchAll(/\d{1,2}|[OoXx]/g)].map(
-        (match, index, matches) => ({
-          string: 5 - string,
-          fret: /[OoXx]/.test(match[0]) ? 0 : Number(match[0]),
-          column: match.index!,
-          dead: /[Xx]/.test(match[0]),
-          techniques: [
-            body[match.index! - 1]?.toLowerCase(),
-            body[match.index! + match[0].length]
-          ].flatMap((symbol) => techniques[symbol] ?? []),
-          sourceFret:
-            ["/", "\\"].includes(body[match.index! - 1]) && index
-              ? Number(matches[index - 1][0])
-              : undefined
-        })
+      const tokens = [...body.matchAll(/\d+|[OoXx]/g)].flatMap((match) =>
+        (/^0+$|^([1-9])\1{2,}$/.test(match[0])
+          ? [...match[0]]
+          : [match[0]]
+        ).map((value, offset) => ({ value, column: match.index! + offset }))
       );
+      return tokens.map((token, index) => ({
+        string: 5 - string,
+        fret: /[OoXx]/.test(token.value)
+          ? 0
+          : token.value.length <= 2
+            ? Number(token.value)
+            : NaN,
+        column: token.column,
+        dead: /[Xx]/.test(token.value),
+        techniques: [
+          body[token.column - 1]?.toLowerCase(),
+          body[token.column + token.value.length]
+        ].flatMap((symbol) => techniques[symbol] ?? []),
+        sourceFret:
+          ["/", "\\"].includes(body[token.column - 1]) && index
+            ? Number(tokens[index - 1].value)
+            : undefined
+      }));
     });
-    if (!events.length || events.some((event) => event.fret > 24)) continue;
+    if (
+      !events.length ||
+      events.some((event) => !Number.isInteger(event.fret) || event.fret > 24)
+    )
+      continue;
     if (notes.length + events.length > TAB_MAX_NOTES) return { content: text };
     const columns = [...new Set(events.map((event) => event.column))].sort(
       (a, b) => a - b

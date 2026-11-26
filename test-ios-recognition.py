@@ -14,7 +14,7 @@ source = (source.replace("import React", "").replace("import UIKit", "")
           .replace(", RCTBridgeModule", "").replace("@objc(SongRecognition)", "")
           .replace("@objc ", "").replace("private ", "")
           .replace("AVAudioSession", "CaptureSession").replace("AVAudioEngine", "CaptureEngine"))
-source = source.replace("SHManagedSession", "TestManagedSession").replace("SHCustomCatalog", "TestCustomCatalog").replace("SHSignature", "TestSignature")
+source = source.replace("SHManagedSession", "TestManagedSession")
 source += (root / "ios/PlaybackCaptureStore.swift").read_text(encoding="utf-8").replace("private ", "")
 source += ((root / "ios/PlaybackBroadcast/SampleHandler.swift").read_text(encoding="utf-8")
            .replace("import ReplayKit", "").replace("private ", "")
@@ -29,20 +29,18 @@ import Foundation
 typealias RCTPromiseResolveBlock = (Any?) -> Void
 typealias RCTPromiseRejectBlock = (String?, String?, Error?) -> Void
 enum UIApplication { static let didEnterBackgroundNotification = Notification.Name("background") }
-struct TestCustomCatalog {}
-struct TestSignature {
-  let duration: TimeInterval = 3
-  func dataRepresentation() throws -> Data { Data([1, 2, 3]) }
-}
-struct TestMatch { let querySignature: TestSignature }
-enum TestQuery { case match(TestMatch), noMatch(TestSignature), error(Error, TestSignature) }
 final class TestManagedSession {
   static var feed = true, stopped = 0
+  static let signature: SHSignature = {
+    let generator = SHSignatureGenerator()
+    try! generator.append(pcm(48000, 144000), at: nil)
+    return generator.signature()
+  }()
   private var cancelled = false
-  init(catalog: TestCustomCatalog) {}
-  func result() async -> TestQuery {
+  init(catalog: SHCatalog) {}
+  func result() async -> SHSession.Result {
     while !Self.feed && !cancelled { try? await Task.sleep(nanoseconds: 1_000_000) }
-    return .noMatch(TestSignature())
+    return .noMatch(Self.signature)
   }
   func cancel() { cancelled = true; Self.stopped += 1 }
 }
@@ -243,21 +241,20 @@ timedOut.finishReading()
 precondition(!CaptureSession.instance.active, "File recognition activated the microphone")
 
 if #available(macOS 14.0, *) {
-  let generated = SHSignatureGenerator()
-  try generated.append(pcm(48000, 144000), at: nil)
-  let signature = generated.signature()
+  let signature = TestManagedSession.signature
+  let catalog = try running.recognitionCatalog()
   let localCatalogDone = DispatchSemaphore(value: 0)
   Task.detached {
-    let result = await SHSession(catalog: SHCustomCatalog()).result(from: signature)
+    let result = await SHSession(catalog: catalog).result(from: signature)
     switch result {
     case .noMatch(let captured): precondition(captured.duration >= 2)
-    default: fatalError("An empty local catalog must return the captured query signature without an App ID service")
+    default: fatalError("The local catalog must return the captured query signature without an App ID service")
     }
     localCatalogDone.signal()
   }
   precondition(localCatalogDone.wait(timeout: .now() + 10) == .success)
 
-  HTTPFixture.expectedSignature = "data:audio/vnd.shazam.sig;base64,AQID"
+  HTTPFixture.expectedSignature = "data:audio/vnd.shazam.sig;base64," + (try signature.dataRepresentation()).base64EncodedString()
   let managed = SongRecognition()
   let managedDone = DispatchSemaphore(value: 0)
   managed.control.async {

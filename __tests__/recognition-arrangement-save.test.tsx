@@ -124,6 +124,13 @@ test("imports the published Behind Blue Eyes picking as playable tabs and saves 
     "D|----2-----2---0----0-0--------0---------2--------2--------2--------2----------|",
     "A|---2---------2-------------------------3--------3--------0--------0-----------|",
     "E|--0---------3-----------------------------------------------------------------|",
+    "verse 1",
+    "E|------0-------0-------0--------0--------0--------0----000-0-0-|",
+    "B|-----0-0-----3-3----3--3-3---3--3-3---3--3-3---3--3-3-000-0-0-|",
+    "G|--------0-------0--2-2--2---2-2--2-----0--0-----0--0--222-2-2-|",
+    "D|----2-------0-----0--------0---------2--------2-------222-2-2-|",
+    "A|---2-------2------------------------3--------3--------000-0-0-|",
+    "E|--0-------3-------------------------------------------000-0-0-|",
     "Chorus",
     "   C    D    G",
     "|-0----0----3-",
@@ -149,6 +156,9 @@ test("imports the published Behind Blue Eyes picking as playable tabs and saves 
   expect(draft.content).toContain("no one knows what it's like");
   expect(draft.content).toContain("but my dreams they aren't as empty");
   const persisted = await save();
+  expect(
+    persisted.tablature.notes.every((note: { fret: number }) => note.fret <= 3)
+  ).toBe(true);
   expect(persisted.tablature.notes).toContainEqual(
     expect.objectContaining({ string: 0, fret: 0, tick: 0 })
   );
