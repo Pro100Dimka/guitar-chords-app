@@ -158,6 +158,23 @@ test("unified recognition opens the form without another tap or version choice",
   });
 });
 
+test("an expired notification result can start a fresh recognition", async () => {
+  mockMode = "result";
+  mockAutoStart = true;
+  mockRequestId = "expired";
+  NativeModules.SongRecognition.consumeResult.mockResolvedValue(null);
+  await act(async () => {
+    screen = Renderer.create(<RecognizeSong />);
+  });
+  expect(JSON.stringify(screen!.toJSON())).toContain("AutofillResultExpired");
+  await press("AddSongStart");
+  expect(mockNavigation.replace).toHaveBeenCalledWith("recognizeSong", {
+    mode: "auto",
+    autoStart: true,
+    requestId: expect.any(String)
+  });
+});
+
 test("recognition remains usable when the native motion-preference query fails", async () => {
   jest
     .mocked(AccessibilityInfo.isReduceMotionEnabled)

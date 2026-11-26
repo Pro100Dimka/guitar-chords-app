@@ -504,6 +504,12 @@ export default function RecognizeSong() {
                 if (cancellation.current) return;
                 if (busy) {
                   stop();
+                } else if (mode === "result") {
+                  navigation.replace("recognizeSong", {
+                    mode: "auto",
+                    autoStart: true,
+                    requestId: String(Date.now())
+                  });
                 } else void start();
               }}
               style={({ pressed }) => [

@@ -86,7 +86,7 @@ struct PlaybackCaptureStore {
 enum RecognitionNotice {
   static func text(_ en: String, _ ru: String, _ uk: String) -> String {
     let language = Locale.preferredLanguages.first?.prefix(2).lowercased()
-    return language == "ru" ? ru : language == "uk" ? uk : en
+    return ["ru": ru, "uk": uk][language ?? ""] ?? en
   }
   static func show(_ song: [String: Any]?, requestId: String, error: String? = nil, completion: (() -> Void)? = nil) {
     let content = UNMutableNotificationContent()

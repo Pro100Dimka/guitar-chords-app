@@ -12,18 +12,14 @@ final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentat
   }
   var onCancel: (() -> Void)?
   private var completed = false
-  private static var language: String { Locale.preferredLanguages.first?.prefix(2).lowercased() ?? "en" }
-  static func text(_ en: String, _ ru: String, _ uk: String) -> String {
-    language == "ru" ? ru : language == "uk" ? uk : en
-  }
   override func viewDidLoad() {
     super.viewDidLoad()
     view.backgroundColor = .systemBackground
     let title = UILabel()
     title.font = .preferredFont(forTextStyle: .title2)
-    title.text = Self.text("Recognize phone audio", "Распознать звук телефона", "Розпізнати звук телефона")
+    title.text = RecognitionNotice.text("Recognize phone audio", "Распознать звук телефона", "Розпізнати звук телефона")
     let instructions = UILabel()
-    instructions.text = Self.text(
+    instructions.text = RecognitionNotice.text(
       "Tap the broadcast button and choose Start Broadcast, then return to your player. FreeTune will notify you of the result. Tap a found song to open its form. Only audio is used; protected audio may be unavailable.",
       "Нажмите кнопку трансляции и выберите «Начать вещание», затем вернитесь к плееру. FreeTune сообщит результат уведомлением. Нажмите на найденную песню, чтобы открыть форму. Используется только звук; защищённое аудио может быть недоступно.",
       "Натисніть кнопку трансляції та виберіть «Почати трансляцію», потім поверніться до плеєра. FreeTune повідомить результат сповіщенням. Натисніть знайдену пісню, щоб відкрити форму. Використовується лише звук; захищене аудіо може бути недоступне.")
@@ -33,7 +29,7 @@ final class PlaybackCaptureViewController: UIViewController, UIAdaptivePresentat
     picker.preferredExtension = Self.broadcastExtension
     picker.showsMicrophoneButton = false
     let cancel = UIButton(type: .system)
-    cancel.setTitle(Self.text("Cancel", "Отмена", "Скасувати"), for: .normal)
+    cancel.setTitle(RecognitionNotice.text("Cancel", "Отмена", "Скасувати"), for: .normal)
     cancel.addTarget(self, action: #selector(cancelCapture), for: .touchUpInside)
     let stack = UIStackView(arrangedSubviews: [title, instructions, picker, cancel])
     stack.axis = .vertical; stack.spacing = 24; stack.alignment = .center
