@@ -842,7 +842,10 @@ function PlaybackLyricLine({
     return () => progress.removeListener(id);
   }, [progress, place]);
   return (
-    <View onLayout={onLayout} style={{ position: "relative" }}>
+    <View
+      onLayout={onLayout}
+      style={{ position: "relative", backgroundColor: "rgba(218,177,97,0.14)" }}
+    >
       <Text
         {...props}
         onTextLayout={({ nativeEvent }) => {
