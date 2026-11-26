@@ -127,7 +127,12 @@ final class HTTPFixture: URLProtocol {
       }
       let data = try! JSONSerialization.jsonObject(with: bytes) as! [String: Any]
       let signature = data["signature"] as! [String: Any]
-      precondition(signature["uri"] as? String == expected)
+      let prefix = "data:audio/vnd.shazam.sig;base64,"
+      let uri = signature["uri"] as! String
+      let wire = Data(base64Encoded: String(uri.dropFirst(prefix.count)))!
+      let original = Data(base64Encoded: String(expected.dropFirst(prefix.count)))!
+      precondition(wire.starts(with: [0x80, 0x25, 0xfe, 0xca]))
+      precondition(original.suffix(wire.count) == wire)
       precondition(signature["samplems"] as? Int == Self.expectedMilliseconds)
     }
     let body = #"{"track":{"title":"Example","subtitle":"Performer","sections":[{"type":"LYRICS","text":["Example words"],"footer":"Source"},{"metadata":[{"title":"BPM","text":"123"}]}]}}"#.data(using: .utf8)!

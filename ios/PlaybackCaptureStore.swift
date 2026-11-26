@@ -165,8 +165,14 @@ final class SongFingerprintRecognizer {
     let signature = String(cString: pointer)
     return try identify(signature: signature, sampleMilliseconds: samples.count * 1000 / 16000, cancelled: cancelled, attach: attach)
   }
-  func identify(signature: String, sampleMilliseconds: Int, cancelled: () -> Bool = { false }, attach: (URLSessionDataTask) -> Void = { _ in }) throws -> [String: Any]? {
+  func identify(signature encodedSignature: String, sampleMilliseconds: Int, cancelled: () -> Bool = { false }, attach: (URLSessionDataTask) -> Void = { _ in }) throws -> [String: Any]? {
     if cancelled() { throw error("Cancelled") }
+    let prefix = "data:audio/vnd.shazam.sig;base64,"
+    guard encodedSignature.hasPrefix(prefix),
+          let data = Data(base64Encoded: String(encodedSignature.dropFirst(prefix.count))),
+          let header = data.range(of: Data([0x80, 0x25, 0xfe, 0xca])) else { throw error("RecognitionFailed") }
+    // ShazamKit data includes a container; the service expects the embedded wire signature.
+    let signature = prefix + data[header.lowerBound...].base64EncodedString()
     if let (until, result) = cached[signature], until > Date() { return result }
     guard Date() >= retryAfter else { throw error("RateLimited") }
     let url = URL(string: "https://amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag/\(UUID().uuidString)/\(UUID().uuidString)?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3&sharehub=true&hubv5minorversion=v5.1&hidelb=true&video=v3")!
