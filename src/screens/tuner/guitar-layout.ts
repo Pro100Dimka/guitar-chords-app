@@ -72,7 +72,11 @@ export function guitarLayout(
   const fittedScale =
     !width || !height || (complete && zoom === undefined)
       ? baseScale
-      : Math.min(baseScale, Math.max(1, width / 2 - 26) / outerString, dialScale);
+      : Math.min(
+          baseScale,
+          Math.max(1, width / 2 - 26) / outerString,
+          dialScale
+        );
   const maximumZoom =
     fittedScale > 0 && zoom !== undefined
       ? Math.min(

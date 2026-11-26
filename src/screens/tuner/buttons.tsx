@@ -130,7 +130,9 @@ const Buttons = ({
       <View
         pointerEvents="box-none"
         style={
-          compactControls ? styles.compactChromatic : StyleSheet.absoluteFillObject
+          compactControls
+            ? styles.compactChromatic
+            : StyleSheet.absoluteFillObject
         }
       >
         {controls.map((control, index) => (
