@@ -300,6 +300,27 @@ test.each(["null", "[]", "123"])(
   }
 );
 
+test("malformed rhythm division in a saved song cannot block the library", async () => {
+  const invalid = { toString: null, valueOf: null };
+  const raw = {
+    tempo: 123,
+    strumDivision: invalid,
+    rhythmSections: { verse: { strumDivision: [invalid] } }
+  };
+  jest.mocked(getAllItems).mockImplementation(async (query) =>
+    query.parameters?.[0] === "song:%"
+      ? [{ key: "song:17:0", value: JSON.stringify(raw) }]
+      : []
+  );
+  await loadPreferences();
+  expect(usePreferences.getState().songs[17]).toMatchObject({
+    tempo: 123,
+    strumDivision: 2,
+    rhythmSections: { verse: { strumDivision: 2 } }
+  });
+  expect(normalizeSongPreferences({ strumDivision: "3" }).strumDivision).toBe(3);
+});
+
 test("a valid 38-cover library exports completely in individually restorable parts", async () => {
   const image =
     "data:image/jpeg;base64," +

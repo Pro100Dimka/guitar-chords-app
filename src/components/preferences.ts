@@ -330,6 +330,11 @@ export function preserveSongPreferenceChanges(
 
 export function normalizeRhythm(value: unknown): SongRhythm {
   const rhythm = record(value) ? value : {};
+  const division = rhythm.strumDivision;
+  const numericDivision =
+    typeof division === "number" || typeof division === "string"
+      ? Number(division)
+      : NaN;
   return {
     strum:
       typeof rhythm.strum === "string"
@@ -337,9 +342,7 @@ export function normalizeRhythm(value: unknown): SongRhythm {
         : "",
     strumMeter:
       ([2, 3, 4] as const).find((meter) => meter === rhythm.strumMeter) ?? 4,
-    strumDivision:
-      [2, 3, 4].find((division) => division === Number(rhythm.strumDivision)) ??
-      2,
+    strumDivision: [2, 3, 4].find((entry) => entry === numericDivision) ?? 2,
     strumPreset:
       typeof rhythm.strumPreset === "string"
         ? rhythm.strumPreset.slice(0, 32)
