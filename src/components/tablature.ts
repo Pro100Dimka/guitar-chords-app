@@ -1,6 +1,6 @@
 /** Musical ticks always count quarter notes, independently of the meter. */
 export const TAB_TICKS_PER_BEAT = 24;
-export const TAB_MAX_NOTES = 2048;
+export const TAB_MAX_NOTES = 4096;
 export const TAB_MAX_BARS = 128;
 export const TAB_TUNING = [40, 45, 50, 55, 59, 64] as const;
 export const TAB_TECHNIQUES = {
@@ -65,7 +65,11 @@ export interface Tablature {
   /** Retains intentionally empty final bars. */
   barCount?: number;
   notes: TabNote[];
+  tuning?: number[];
   rests?: TabRest[];
+  chords?: { tick: number; name: string }[];
+  sourceText?: string;
+  arrangementSource?: { name: string; url: string };
 }
 
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -133,6 +137,10 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     (value.barCount !== undefined &&
       !integer(value.barCount, 1, TAB_MAX_BARS)) ||
     !Array.isArray(value.notes) ||
+    (value.tuning !== undefined &&
+      (!Array.isArray(value.tuning) ||
+        value.tuning.length !== 6 ||
+        !value.tuning.every((pitch) => integer(pitch, 24, 88)))) ||
     (value.rests !== undefined && !Array.isArray(value.rests))
   )
     return undefined;
@@ -262,6 +270,24 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
   const notes = [...uniqueNotes.values()].sort(
     (a, b) => a.tick - b.tick || a.string - b.string
   );
+  const chords: NonNullable<Tablature["chords"]> = [];
+  if (value.chords !== undefined) {
+    if (!Array.isArray(value.chords) || value.chords.length > TAB_MAX_NOTES)
+      return undefined;
+    for (const chord of value.chords) {
+      if (
+        !record(chord) ||
+        !musicalTick(chord.tick, 0, end - 1 / 960) ||
+        typeof chord.name !== "string" ||
+        !chord.name.trim() ||
+        chord.name.length > 40 ||
+        /[\r\n]/.test(chord.name) ||
+        (chords.length && chord.tick <= chords[chords.length - 1].tick)
+      )
+        return undefined;
+      chords.push({ tick: chord.tick, name: chord.name });
+    }
+  }
   const rests: TabRest[] = [];
   for (const rest of inputRests) {
     if (
@@ -329,7 +355,27 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     beatUnit,
     barCount: (value.barCount as number | undefined) ?? 1,
     notes,
-    rests
+    ...(Array.isArray(value.tuning) ? { tuning: [...value.tuning] } : {}),
+    rests,
+    ...(chords.length ? { chords } : {}),
+    ...(record(value.arrangementSource) &&
+    typeof value.arrangementSource.name === "string" &&
+    value.arrangementSource.name.length <= 100 &&
+    typeof value.arrangementSource.url === "string" &&
+    /^(?:https:\/\/www\.youtube\.com\/watch\?v=[\w-]{11}|https:\/\/(?:www\.gtp-tabs\.ru\/n|gtptabs\.com)\/tabs\/\d+\/[a-z0-9_-]+\/[a-z0-9_-]+\.html)$/.test(
+      value.arrangementSource.url
+    )
+      ? {
+          arrangementSource: {
+            name: value.arrangementSource.name,
+            url: value.arrangementSource.url
+          }
+        }
+      : {}),
+    ...(typeof value.sourceText === "string" &&
+    value.sourceText.length <= 200000
+      ? { sourceText: value.sourceText }
+      : {})
   };
   tab.barCount = tablatureLength(tab) / barTicks;
   return tab;

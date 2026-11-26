@@ -38,6 +38,7 @@ import {
   LyricsOption,
   lookupSongContent,
   lookupSongTempo,
+  matchedSongArrangement,
   hasSongChordsAsync
 } from "../../components/song-autofill/lyrics";
 import {
@@ -281,7 +282,7 @@ export default function RecognizeSong() {
           result.album,
           result.duration
         );
-        setAvailableVersions(candidates);
+        setAvailableVersions(playable);
         if (!candidates.length) {
           setFound(null);
           setDraft(null);
@@ -307,11 +308,14 @@ export default function RecognizeSong() {
         }
         const imported = sourceSong(
           selected.content,
-          selected.tempo ?? fallbackTempo.current
+          selected.tempo ?? fallbackTempo.current,
+          true,
+          matchedSongArrangement(result.title, result.artist)
         );
         next = {
           ...next,
           ...imported,
+          tablature: selected.tablature ?? imported.tablature,
           cover,
           tempo: selected.tempo ?? imported.tempo ?? fallbackTempo.current,
           capo: selected?.capo,
@@ -654,7 +658,9 @@ export default function RecognizeSong() {
               onPress={() => {
                 const imported = sourceSong(
                   option.content,
-                  option.tempo ?? fallbackTempo.current
+                  option.tempo ?? fallbackTempo.current,
+                  true,
+                  matchedSongArrangement(option.title, option.artist)
                 );
                 if (versionResolver.current) versionResolver.current(option);
                 else
@@ -663,7 +669,7 @@ export default function RecognizeSong() {
                       previous && {
                         ...previous,
                         ...imported,
-                        tablature: imported.tablature,
+                        tablature: option.tablature ?? imported.tablature,
                         tempo:
                           option.tempo ??
                           imported.tempo ??

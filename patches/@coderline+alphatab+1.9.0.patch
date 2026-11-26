@@ -1,0 +1,13 @@
+diff --git a/node_modules/@coderline/alphatab/dist/alphaTab.js b/node_modules/@coderline/alphatab/dist/alphaTab.js
+index 0934d6f..0401dfd 100644
+--- a/node_modules/@coderline/alphatab/dist/alphaTab.js
++++ b/node_modules/@coderline/alphatab/dist/alphaTab.js
+@@ -133,7 +133,7 @@
+ 	// src/alphaTab.polyfills.ts
+ 	(() => {
+ 		if (typeof Symbol.dispose === "undefined") Symbol.dispose = Symbol("Symbol.dispose");
+-		if (typeof window !== "undefined") {
++		if (typeof window !== "undefined" && typeof document !== "undefined" && typeof Element !== "undefined") {
+ 			if (!("ResizeObserver" in globalThis)) globalThis.ResizeObserver = ResizeObserverPolyfill;
+ 			if (!("IntersectionObserver" in globalThis)) globalThis.IntersectionObserver = IntersectionObserverPolyfill;
+ 			if (!("replaceChildren" in Element.prototype)) {

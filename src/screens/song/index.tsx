@@ -6,7 +6,9 @@ import React, {
   useState
 } from "react";
 import {
+  Alert,
   AppState,
+  Animated,
   FlatList,
   ImageBackground,
   Modal,
@@ -14,6 +16,7 @@ import {
   ScrollView,
   type ScrollViewProps,
   type ViewToken,
+  type TextProps,
   StyleSheet,
   Text,
   View
@@ -53,9 +56,18 @@ import {
   chordLineParts,
   isChordLine,
   songChords,
+  songPlaybackLines,
+  timedSongContent,
   transposeSong
 } from "./chords";
-import { Action, ChordSheet, SongTools } from "./tools";
+import { Action, ChordSheet, SongTools, SongPlayback } from "./tools";
+import { sourceSong } from "../../components/song-autofill/source-metadata";
+import {
+  lookupChordPage,
+  matchedSongArrangement
+} from "../../components/song-autofill/lyrics";
+import { db } from "../../components/database";
+import { tabBarTicks, tablatureLength } from "../../components/tablature";
 
 const SongDetail: React.FC = () => {
   const route = useRoute<RouteProp<RootStackParamList, "Song">>();
@@ -70,6 +82,12 @@ const SongDetail: React.FC = () => {
   const editorExitAllowed = useRef(false);
   const deletedSong = useRef<number | null>(null);
   const [playing, setPlaying] = useState(false);
+  const [accompaniment, setAccompaniment] = useState(false);
+  const [playbackStart, setPlaybackStart] = useState({ index: 0, request: 0 });
+  const [activeLine, setActiveLine] = useState<number | null>(null);
+  const playhead = useRef(new Animated.Value(0)).current;
+  const horizontalLines = useRef(new Map<number, ScrollView>());
+  const blockPositions = useRef(new Map<number, number>());
   const [tools, setTools] = useState<false | "reading" | "rhythm">(false);
   const [tuner, setTuner] = useState(false);
   const [chord, setChord] = useState("");
@@ -89,11 +107,17 @@ const SongDetail: React.FC = () => {
     position: 0,
     content: 0,
     viewport: 0,
+    viewportWidth: 0,
     restored: false,
     target: preferences.position,
     endVisible: false
   });
   const hasSong = !loading && song?.id === songId;
+  const stopAccompaniment = useCallback(() => setAccompaniment(false), []);
+  useEffect(() => {
+    if (!focused || tuner || tools || chord || isEdit || loading)
+      setAccompaniment(false);
+  }, [focused, tuner, tools, chord, isEdit, loading]);
   const change = (patch: Partial<typeof preferences>) => {
     if (hasSong && deletedSong.current !== songId) updateSong(songId, patch);
   };
@@ -128,6 +152,7 @@ const SongDetail: React.FC = () => {
         return;
       }
       let active = true;
+      const controller = new AbortController();
       metrics.current.restored = false;
       metrics.current.endVisible = false;
       metrics.current.target =
@@ -142,10 +167,123 @@ const SongDetail: React.FC = () => {
         joins: ["LEFT JOIN bands fk_band ON songs.band_id = fk_band.id"],
         limit: 1
       })
-        .then(([found]) => {
+        .then(async ([found]) => {
           if (active && deletedSong.current !== songId) {
-            setSong(found);
-            if (found) updateSong(songId, { opened: Date.now() });
+            if (!found) {
+              setSong(undefined);
+              return;
+            }
+            const saved = usePreferences.getState().songs[songId];
+            const arrangement = matchedSongArrangement(
+              found.title,
+              found.band_name ?? ""
+            );
+            const imported = sourceSong(
+              found.content ?? "",
+              saved?.tempo,
+              true,
+              arrangement
+            );
+            setSong({ ...found, content: imported.content });
+            updateSong(songId, {
+              opened: Date.now(),
+              ...((!saved?.tablature ||
+                (!saved.tablature.chords?.length &&
+                  imported.tablature?.chords?.length &&
+                  JSON.stringify(saved.tablature.notes) ===
+                    JSON.stringify(
+                      sourceSong(found.content ?? "", saved.tempo, false)
+                        .tablature?.notes
+                    ))) &&
+              imported.tablature
+                ? { tablature: imported.tablature }
+                : {})
+            });
+            setLoading(false);
+            const provider = (
+              [
+                "Cifra Club",
+                "E-Chords",
+                "Cifras",
+                "GuitareTab",
+                "Akkords.pro"
+              ] as const
+            ).find((name) => name === saved?.contentSource?.name);
+            if (
+              !saved?.tablature ||
+              saved.tablature.arrangementSource ||
+              (!saved.tablature.sourceText &&
+                (!provider || !saved.contentSource))
+            )
+              return;
+            try {
+              const options =
+                !saved.tablature.sourceText && provider && saved.contentSource
+                  ? await lookupChordPage(
+                      found.title,
+                      found.band_name ?? "",
+                      provider,
+                      controller.signal,
+                      saved.contentSource.url
+                    )
+                  : [];
+              const option = options.find(
+                (option) => option.url === saved.contentSource?.url
+              );
+              const rawText = saved.tablature.sourceText ?? option?.content;
+              if (!rawText || !active || deletedSong.current === songId) return;
+              const legacy = sourceSong(rawText, saved.tempo, false);
+              const baseline = sourceSong(rawText, saved.tempo);
+              const replacement = sourceSong(
+                rawText,
+                saved.tempo,
+                true,
+                arrangement
+              );
+              const canonical = (text: string) =>
+                createSongEditorState(text).text.replace(/\s+/g, "");
+              const current = usePreferences.getState().songs[songId];
+              const savedNotes = JSON.stringify(saved.tablature.notes);
+              if (
+                !replacement.tablature?.chords?.length ||
+                current?.tablature !== saved.tablature ||
+                ![legacy, baseline, replacement].some(
+                  (parsed) =>
+                    JSON.stringify(parsed.tablature?.notes) === savedNotes
+                ) ||
+                JSON.stringify(replacement.tablature) ===
+                  JSON.stringify(saved.tablature) ||
+                ![
+                  canonical(legacy.content),
+                  canonical(baseline.content),
+                  canonical(replacement.content)
+                ].includes(canonical(found.content ?? ""))
+              )
+                return;
+              await new Promise<void>((resolve, reject) =>
+                db.transaction(
+                  (tx) => {
+                    tx.executeSql(
+                      "UPDATE songs SET content = ? WHERE id = ? AND content = ?",
+                      [replacement.content, songId, found.content],
+                      (_, result) => {
+                        if (result.rowsAffected !== 1)
+                          throw new Error("SongMissing");
+                      }
+                    );
+                  },
+                  reject,
+                  resolve
+                )
+              );
+              if (!active || deletedSong.current === songId) return;
+              setAccompaniment(false);
+              updateSong(songId, { tablature: replacement.tablature });
+              setSong({ ...found, content: replacement.content });
+            } catch (error) {
+              if (!controller.signal.aborted)
+                console.warn("Song arrangement refresh failed", error);
+            }
           }
         })
         .catch((error) => {
@@ -157,6 +295,7 @@ const SongDetail: React.FC = () => {
         });
       return () => {
         active = false;
+        controller.abort();
         setPlaying(false);
         savePosition();
         flushPreferences();
@@ -168,6 +307,7 @@ const SongDetail: React.FC = () => {
       position: 0,
       content: 0,
       viewport: 0,
+      viewportWidth: 0,
       restored: false,
       target: usePreferences.getState().songs[songId]?.position ?? 0,
       endVisible: false
@@ -180,6 +320,7 @@ const SongDetail: React.FC = () => {
     const subscription = AppState.addEventListener("change", (state) => {
       updateAwake(state === "active");
       if (state !== "active") {
+        setAccompaniment(false);
         setPlaying(false);
         setVideos(false);
         setTools(false);
@@ -266,11 +407,101 @@ const SongDetail: React.FC = () => {
     () =>
       createSongEditorState(
         transposeSong(
-          song?.content ?? "",
+          timedSongContent(
+            song?.content ?? "",
+            preferences.accompaniment === "pattern"
+              ? undefined
+              : preferences.tablature
+          ),
           preferences.transpose - preferences.capo
         )
       ),
-    [song?.content, preferences.transpose, preferences.capo]
+    [
+      song?.content,
+      preferences.transpose,
+      preferences.capo,
+      preferences.accompaniment,
+      preferences.tablature
+    ]
+  );
+  const playbackLines = useMemo(
+    () => songPlaybackLines(display.text),
+    [display.text]
+  );
+  const playbackPosition = useCallback(
+    (position: number, lineProgress?: number) => {
+      const line = playbackLines[Math.floor(position)];
+      if (line === undefined) {
+        setActiveLine(null);
+        return;
+      }
+      const first = playbackLines.indexOf(line);
+      const last = playbackLines.lastIndexOf(line);
+      playhead.setValue(
+        lineProgress ??
+          Math.max(0, Math.min(1, (position - first) / (last - first + 1)))
+      );
+      setActiveLine(line);
+    },
+    [playbackLines, playhead]
+  );
+  const startAccompaniment = useCallback(
+    (index = 0) => {
+      const score =
+        preferences.accompaniment === "pattern"
+          ? undefined
+          : preferences.tablature;
+      if (
+        !score?.notes.length &&
+        !preferences.strum &&
+        !Object.values(preferences.rhythmSections).some(
+          (section) => section.strum
+        )
+      ) {
+        setTools("rhythm");
+        return;
+      }
+      if (
+        score?.notes.length &&
+        (score.chords?.length
+          ? index >= score.chords.length
+          : index * tabBarTicks(score) >= tablatureLength(score))
+      ) {
+        Alert.alert(t("SongLineWithoutTabs"));
+        return;
+      }
+      setPlaying(false);
+      setVideos(false);
+      playbackPosition(index);
+      setPlaybackStart((previous) => ({
+        index,
+        request: previous.request + 1
+      }));
+      setAccompaniment(true);
+    },
+    [preferences, playbackPosition, t]
+  );
+  useEffect(() => {
+    if (accompaniment) return;
+    if (preferences.playOnLineSelect === false)
+      playbackPosition(playbackStart.index);
+    else setActiveLine(null);
+  }, [
+    accompaniment,
+    preferences.playOnLineSelect,
+    playbackStart.index,
+    playbackPosition
+  ]);
+  const selectPlaybackLine = useCallback(
+    (index: number) => {
+      if (preferences.playOnLineSelect !== false) {
+        startAccompaniment(index);
+        return;
+      }
+      setAccompaniment(false);
+      setPlaybackStart((previous) => ({ ...previous, index }));
+    },
+    [preferences.playOnLineSelect, startAccompaniment]
   );
   const content = useMemo(() => {
     const renderChord = (displayed: string, key: number) => {
@@ -279,7 +510,8 @@ const SongDetail: React.FC = () => {
           key={key}
           accessibilityRole="button"
           accessibilityLabel={`${displayed}, ${t("Fingering")}`}
-          onPress={() => {
+          onPress={(event) => {
+            event.stopPropagation();
             setPlaying(false);
             setChord(displayed);
           }}
@@ -298,18 +530,34 @@ const SongDetail: React.FC = () => {
       const parts = onlyChords
         ? chordLineParts(line)
         : line.split(/(\[[^\[\]]+\])/);
-      return (
-        <Text
-          key={index}
-          numberOfLines={paired ? 1 : undefined}
-          style={[
-            styles.content,
-            {
-              fontSize: preferences.fontSize,
-              lineHeight: preferences.fontSize * 1.65
+      const start = playbackLines.indexOf(index);
+      const props: TextProps = {
+        ...(start >= 0
+          ? {
+              accessibilityRole: "button" as const,
+              accessibilityHint: t(
+                preferences.playOnLineSelect === false
+                  ? "SongSelectPlaybackLine"
+                  : "SongPlayFromLine"
+              ),
+              onPress: () => selectPlaybackLine(start)
             }
-          ]}
-        >
+          : {}),
+        onLayout: paired
+          ? undefined
+          : ({ nativeEvent }) =>
+              blockPositions.current.set(index, nativeEvent.layout.y),
+        numberOfLines: paired ? 1 : undefined,
+        style: [
+          styles.content,
+          {
+            fontSize: preferences.fontSize,
+            lineHeight: preferences.fontSize * 1.65
+          }
+        ]
+      };
+      const children = (
+        <>
           {parts.length > 256
             ? line
             : parts.map((part, i) => {
@@ -320,6 +568,26 @@ const SongDetail: React.FC = () => {
                   : part;
               })}
           {line ? "" : " "}
+        </>
+      );
+      return index === activeLine ? (
+        <PlaybackLyricLine
+          key={index}
+          {...props}
+          progress={playhead}
+          background={!paired}
+          onCursor={(x) =>
+            horizontalLines.current.get(index)?.scrollTo({
+              x: Math.max(0, x - metrics.current.viewportWidth * 0.35),
+              animated: false
+            })
+          }
+        >
+          {children}
+        </PlaybackLyricLine>
+      ) : (
+        <Text key={index} {...props}>
+          {children}
         </Text>
       );
     };
@@ -365,11 +633,24 @@ const SongDetail: React.FC = () => {
       return (
         <ScrollView
           key={row.index}
+          ref={(node) =>
+            block.forEach((item) => {
+              if (node) horizontalLines.current.set(item.index, node);
+              else horizontalLines.current.delete(item.index);
+            })
+          }
           horizontal
           nestedScrollEnabled
           directionalLockEnabled
           showsHorizontalScrollIndicator={false}
-          style={styles.pairedLines}
+          style={[
+            styles.pairedLines,
+            block.some((item) => item.index === activeLine) &&
+              styles.activeLines
+          ]}
+          onLayout={({ nativeEvent }) =>
+            blockPositions.current.set(row.index, nativeEvent.layout.y)
+          }
           onScrollBeginDrag={() => setPlaying(false)}
         >
           <View>
@@ -385,7 +666,33 @@ const SongDetail: React.FC = () => {
       renderBlock,
       virtualized
     };
-  }, [display, preferences.fontSize, t]);
+  }, [
+    display,
+    preferences.fontSize,
+    t,
+    activeLine,
+    playhead,
+    playbackLines,
+    preferences.playOnLineSelect,
+    selectPlaybackLine
+  ]);
+  useEffect(() => {
+    if (activeLine === null) return;
+    const index = content.blocks.findIndex((block) =>
+      block.some((row) => row.index === activeLine)
+    );
+    if (index < 0) return;
+    if (list.current)
+      list.current.scrollToIndex({ index, viewPosition: 0.3, animated: true });
+    else {
+      const y = blockPositions.current.get(content.blocks[index][0].index);
+      if (y !== undefined)
+        scroll.current?.scrollTo({
+          y: Math.max(0, y - metrics.current.viewport * 0.3),
+          animated: true
+        });
+    }
+  }, [activeLine, content.blocks]);
   const lastBlock = useRef(0);
   lastBlock.current = content.blocks.length - 1;
   const viewableItemsChanged = useRef(
@@ -408,6 +715,7 @@ const SongDetail: React.FC = () => {
   > = {
     onLayout: ({ nativeEvent }) => {
       metrics.current.viewport = nativeEvent.layout.height;
+      metrics.current.viewportWidth = nativeEvent.layout.width;
       restorePosition();
     },
     onContentSizeChange: (_, height) => {
@@ -443,25 +751,6 @@ const SongDetail: React.FC = () => {
       )}
       {!!song?.band_name && (
         <Text style={styles.metadata}>{song.band_name}</Text>
-      )}
-      {!!(
-        preferences.tablature?.notes.length ||
-        preferences.tablature?.rests?.length
-      ) && (
-        <Action
-          glass
-          label={t("TabOpenInPlay")}
-          icon="guitar-acoustic"
-          onPress={() => {
-            setPlaying(false);
-            setVideos(false);
-            savePosition();
-            navigation.popTo("Tabs", {
-              screen: "play",
-              params: { tablatureSongId: songId, tablatureRequest: Date.now() }
-            });
-          }}
-        />
       )}
     </>
   );
@@ -621,12 +910,39 @@ const SongDetail: React.FC = () => {
             <Action
               glass
               compact
+              label={t("SongAccompaniment")}
+              icon="music-note"
+              accessibilityLabel={t(
+                accompaniment ? "StopSongAccompaniment" : "SongAccompaniment"
+              )}
+              selected={accompaniment}
+              onPress={() => {
+                if (accompaniment) {
+                  setAccompaniment(false);
+                  return;
+                }
+                startAccompaniment(playbackStart.index);
+              }}
+            />
+            <Action
+              glass
+              compact
               label="⚙"
               icon="cog"
               accessibilityLabel={t("SongTools")}
               onPress={openTools}
             />
           </View>
+          {accompaniment && (
+            <SongPlayback
+              key={playbackStart.request}
+              content={song.content}
+              value={preferences}
+              startIndex={playbackStart.index}
+              onPosition={playbackPosition}
+              onStopped={stopAccompaniment}
+            />
+          )}
           {tools && (
             <SongTools
               initialTab={tools}
@@ -634,6 +950,17 @@ const SongDetail: React.FC = () => {
               value={preferences}
               onChange={change}
               onClose={() => setTools(false)}
+              onOpenTabs={() => {
+                setTools(false);
+                savePosition();
+                navigation.popTo("Tabs", {
+                  screen: "play",
+                  params: {
+                    tablatureSongId: songId,
+                    tablatureRequest: Date.now()
+                  }
+                });
+              }}
             />
           )}
           {!!previewChord && (
@@ -668,6 +995,76 @@ const SongDetail: React.FC = () => {
     </ImageBackground>
   );
 };
+function PlaybackLyricLine({
+  progress,
+  background = true,
+  onCursor,
+  onLayout,
+  ...props
+}: TextProps & {
+  progress: Animated.Value;
+  background?: boolean;
+  onCursor: (x: number) => void;
+}) {
+  const lines = useRef<
+    { text: string; x: number; y: number; width: number; height: number }[]
+  >([]);
+  const current = useRef(0);
+  const x = useRef(new Animated.Value(0)).current;
+  const y = useRef(new Animated.Value(0)).current;
+  const [height, setHeight] = useState(24);
+  const place = useCallback(
+    ({ value }: { value: number }) => {
+      current.current = value;
+      let remaining =
+        lines.current.reduce((sum, line) => sum + line.text.length, 0) *
+        Math.min(0.99999, value);
+      for (const line of lines.current) {
+        if (remaining >= line.text.length) {
+          remaining -= line.text.length;
+          continue;
+        }
+        const left =
+          line.x + (line.width * remaining) / Math.max(1, line.text.length);
+        x.setValue(left);
+        y.setValue(line.y);
+        onCursor(left);
+        return;
+      }
+    },
+    [x, y, onCursor]
+  );
+  useEffect(() => {
+    const id = progress.addListener(place);
+    return () => progress.removeListener(id);
+  }, [progress, place]);
+  return (
+    <View
+      onLayout={onLayout}
+      style={[styles.playbackLine, background && styles.activeLines]}
+    >
+      <Text
+        {...props}
+        onTextLayout={({ nativeEvent }) => {
+          lines.current = nativeEvent.lines;
+          setHeight(nativeEvent.lines[0]?.height ?? 24);
+          place({ value: current.current });
+        }}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          styles.playbackCursor,
+          {
+            height,
+            transform: [{ translateX: x }, { translateY: y }]
+          }
+        ]}
+      />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   background: { flex: 1 },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
@@ -688,6 +1085,15 @@ const styles = StyleSheet.create({
     backgroundColor: palette.colors.transparent
   },
   pairedLines: { flexGrow: 0, flexShrink: 0 },
+  activeLines: { backgroundColor: palette.glass.activeLine },
+  playbackLine: { position: "relative" },
+  playbackCursor: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 2,
+    backgroundColor: palette.glass.play
+  },
   content: {
     color: palette.glass.ink,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace"

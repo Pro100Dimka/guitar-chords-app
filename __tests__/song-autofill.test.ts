@@ -853,7 +853,7 @@ describe("content provider failover", () => {
       await jest.advanceTimersByTimeAsync(100);
       expect(done).toBe(false);
       if (cancel) controller.abort();
-      await jest.advanceTimersByTimeAsync(cancel ? 0 : 1500);
+      await jest.advanceTimersByTimeAsync(cancel ? 0 : 4500);
       expect(done).toBe(true);
       const value = await result;
       if (cancel) expect(value).toEqual(new Error("Cancelled"));
@@ -1609,13 +1609,27 @@ test("duplicate charts prefer verified tempo, tuning and rhythm without discardi
       rhythmSections: {}
     }
   };
-  expect(preferredSongContent([base, complete], "Studio", 200)).toEqual([complete]);
-  expect(preferredSongContent([complete, base], "Studio", 200)).toEqual([complete]);
+  expect(preferredSongContent([base, complete], "Studio", 200)).toEqual([
+    complete
+  ]);
+  expect(preferredSongContent([complete, base], "Studio", 200)).toEqual([
+    complete
+  ]);
   const conflict = { ...complete, id: 3, tempo: 104 };
-  expect(preferredSongContent([base, complete, conflict])).toEqual([complete, conflict]);
+  expect(preferredSongContent([base, complete, conflict])).toEqual([
+    complete,
+    conflict
+  ]);
   const duplicate = { ...complete, id: 4 };
   expect(preferredSongContent([complete, duplicate])).toEqual([complete]);
   expect(
-    preferredSongContent([{ ...base, album: "Studio" }, { ...complete, album: "Live" }], "Studio", 200)
+    preferredSongContent(
+      [
+        { ...base, album: "Studio" },
+        { ...complete, album: "Live" }
+      ],
+      "Studio",
+      200
+    )
   ).toEqual([base]);
 });

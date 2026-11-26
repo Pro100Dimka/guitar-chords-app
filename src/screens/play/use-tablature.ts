@@ -141,7 +141,7 @@ export class TablatureTransport {
 
   constructor(private onNotes: (notes: TabNote[]) => void) {}
   private keyFor(note: TabNote) {
-    return guitarNoteKey(note, this.state.practiceBpm);
+    return guitarNoteKey(note, this.state.practiceBpm, this.state.tab.tuning);
   }
 
   getSnapshot = () => this.state;
@@ -628,7 +628,7 @@ export class TablatureTransport {
         if (signal.aborted || generation !== this.generation) return;
         if (this.ready.has(key)) continue;
         await warmGuitar(
-          [TAB_TUNING[note.string] + note.fret],
+          [(this.state.tab.tuning ?? TAB_TUNING)[note.string] + note.fret],
           440,
           signal,
           note.string,

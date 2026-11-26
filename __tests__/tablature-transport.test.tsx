@@ -211,7 +211,9 @@ test("recording limits keep the completed take and stop timers", () => {
     status: "idle",
     error: "TabRecordingLimit"
   });
-  expect(transport.getSnapshot().tab.notes.length).toBe(2046);
+  expect(transport.getSnapshot().tab.notes.length).toBe(
+    Math.floor(TAB_MAX_NOTES / 6) * 6
+  );
   expect(jest.getTimerCount()).toBe(0);
 });
 
@@ -1612,7 +1614,7 @@ test("waiting between attacks does not rescan a maximum-size score each frame", 
       ...Array.from({ length: TAB_MAX_NOTES - 1 }, (_, index) => ({
         string: 0,
         fret: 0,
-        tick: 4000 + index * 4,
+        tick: 4000 + index * 2,
         duration: 1
       }))
     ])
@@ -1639,7 +1641,7 @@ test("waiting between attacks does not rescan a maximum-size score each frame", 
 
 test("advancing attacks searches sample occurrences without scanning the remaining score", async () => {
   transport.setTab({
-    ...emptyTablature(200),
+    ...emptyTablature(200, 8),
     notes: Array.from({ length: TAB_MAX_NOTES }, (_, index) => ({
       string: 0,
       fret: 0,

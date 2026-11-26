@@ -146,9 +146,14 @@ test("rhythm timing survives preference normalization and legacy songs use eight
     rhythms.find((rhythm) => rhythm.id === "nine")!.pattern.replace(/-/g, "")
   ).toBe("DUDUUUDUD");
   expect(
-    normalizeSongPreferences({ strumPreset: "nine", strum: "D-DU-UD-D-DU--D-" })
-      .strum
-  ).toBe("D-U-D--U-U-U-DUD");
+    [...rhythms.find((rhythm) => rhythm.id === "nine")!.pattern].flatMap(
+      (hit, slot) => (hit === "-" ? [] : [slot])
+    )
+  ).toEqual([0, 3, 4, 7, 9, 11, 12, 13, 14]);
+  for (const strum of ["D-DU-UD-D-DU--D-", "D-U-D--U-U-U-DUD"])
+    expect(normalizeSongPreferences({ strumPreset: "nine", strum }).strum).toBe(
+      "D--UD--U-U-UDUD-"
+    );
   expect(
     normalizeSongPreferences({ strumPreset: "", strum: "D-DU-UD-D-DU--D-" })
       .strum

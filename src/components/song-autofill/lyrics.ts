@@ -6,6 +6,9 @@ import {
 } from "../../screens/song/chords";
 import { Parser, DomHandler, DomUtils } from "htmlparser2";
 import { sourceMetadata } from "./source-metadata";
+import { readGuitarPro } from "./guitar-pro";
+import type { Tablature } from "../tablature";
+import { songArrangements } from "../../screens/song/rhythms";
 import { lookupChordsAndTabs } from "./chords-and-tabs";
 import { lookupSonidos } from "./sonidos";
 import { lookupWeingGuitar } from "./weing-guitar";
@@ -25,6 +28,7 @@ export interface LyricsOption {
   tuning?: string;
   tempo?: number;
   rhythm?: ReturnType<typeof sourceMetadata>["rhythm"];
+  tablature?: Tablature;
   sourceArtist?: string;
   identityReference?: {
     source: "LRCLIB";
@@ -161,6 +165,7 @@ export function preferredSongContent(
 ) {
   const score = (option: LyricsOption) =>
     (option.hasChords ? 1000 : 0) +
+    (hasSourceRhythm(option) ? 10 : 0) +
     (album && normalize(album) === normalize(option.album) ? 100 : 0) +
     (duration &&
     duration > 0 &&
@@ -504,8 +509,23 @@ async function parseSource(html: string, signal?: AbortSignal) {
 async function fetchSource(
   url: string,
   signal?: AbortSignal,
+  timeout?: number,
+  form?: URLSearchParams,
+  binary?: false
+): Promise<string | null>;
+async function fetchSource(
+  url: string,
+  signal: AbortSignal | undefined,
+  timeout: number,
+  form: undefined,
+  binary: true
+): Promise<Uint8Array | null>;
+async function fetchSource(
+  url: string,
+  signal?: AbortSignal,
   timeout = 12000,
-  form?: URLSearchParams
+  form?: URLSearchParams,
+  binary = false
 ) {
   if (signal?.aborted) throw new Error("Cancelled");
   const origin = new URL(url).origin;
@@ -518,10 +538,13 @@ async function fetchSource(
   try {
     const response = await fetch(url, {
       signal: controller.signal,
+      headers: {
+        "User-Agent": "FreeTune/1.0",
+        ...(form ? { "Content-Type": "application/x-www-form-urlencoded" } : {})
+      },
       ...(form
         ? {
             method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: form.toString()
           }
         : {})
@@ -540,6 +563,14 @@ async function fetchSource(
       );
     }
     if (!response.ok) throw new Error("LyricsServiceUnavailable");
+    if (binary) {
+      if (Number(response.headers.get("Content-Length")) > 2000000)
+        throw new Error("InvalidLyricsResponse");
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      if (bytes.length > 2000000) throw new Error("InvalidLyricsResponse");
+      if (controller.signal.aborted) throw new Error("Cancelled");
+      return bytes;
+    }
     const text = await response.text();
     if (text.length > 2000000) throw new Error("InvalidLyricsResponse");
     if (controller.signal.aborted) throw new Error("Cancelled");
@@ -1039,7 +1070,13 @@ const contentCache = new Map<
   string,
   { until: number; options: LyricsOption[] }
 >();
-async function lookupChordPage(
+const hasSourceRhythm = (option: LyricsOption) =>
+  !!option.tablature?.notes.length ||
+  !!option.rhythm?.strum ||
+  Object.values(option.rhythm?.rhythmSections ?? {}).some(
+    (rhythm) => !!rhythm.strum
+  );
+export async function lookupChordPage(
   title: string,
   artist: string,
   source: keyof typeof chordSources,
@@ -1412,7 +1449,7 @@ async function lookupOvh(
   ];
 }
 
-const providerContext: ChordProviderContext = {
+export const providerContext: ChordProviderContext = {
   fetchSource,
   parseSource,
   sourceBody,
@@ -1423,6 +1460,140 @@ const providerContext: ChordProviderContext = {
   trackTitle,
   primaryArtist
 };
+
+async function enrichGuitarPart(
+  title: string,
+  artist: string,
+  options: LyricsOption[],
+  signal?: AbortSignal
+) {
+  if (
+    options.some(
+      (option) => option.rhythm?.strum || option.tablature?.arrangementSource
+    )
+  )
+    return options;
+  const origin = "https://gtptabs.com";
+  const matchesTitle = (value: string) => {
+    const caption = value.replace(/\s+\(\d+\)$/, "").trim();
+    return (
+      matchingIdentity(title, caption) &&
+      (normalize(caption) === normalize(trackTitle(caption)) ||
+        normalize(title) !== normalize(trackTitle(title)))
+    );
+  };
+  const absolute = (href = "") =>
+    href.startsWith("/") && !href.startsWith("//") ? origin + href : href;
+  const home = await fetchSource(origin + "/main-ru.html", signal, 5000);
+  if (!home) return options;
+  const initial = primaryArtist(artist).trim()[0]?.toUpperCase();
+  const alphabet = DomUtils.getElementsByTagName(
+    "a",
+    (await parseSource(home, signal)).children
+  ).find(
+    (link) =>
+      /^https:\/\/gtptabs\.com\/tabs\/\d+\/$/.test(
+        absolute(link.attribs.href)
+      ) && DomUtils.textContent(link).trim().toUpperCase() === initial
+  );
+  if (!alphabet) return options;
+  const letterURL = absolute(alphabet.attribs.href);
+  const letter = await fetchSource(letterURL, signal, 5000);
+  if (!letter) return options;
+  const performers = DomUtils.getElementsByTagName(
+    "a",
+    (await parseSource(letter, signal)).children
+  ).filter(
+    (link) =>
+      absolute(link.attribs.href).startsWith(letterURL) &&
+      /^https:\/\/gtptabs\.com\/tabs\/\d+\/[a-z0-9_-]+\.html$/.test(
+        absolute(link.attribs.href)
+      ) &&
+      sameArtist(artist, DomUtils.textContent(link).trim())
+  );
+  for (const performer of performers.slice(0, 2)) {
+    const artistURL = absolute(performer.attribs.href);
+    const catalog = await fetchSource(artistURL, signal, 5000);
+    if (!catalog) continue;
+    const document = await parseSource(catalog, signal);
+    const prefix = artistURL.replace(/\.html$/, "/");
+    const candidates = new Set(
+      DomUtils.getElementsByTagName("a", document.children)
+        .filter(
+          (link) =>
+            absolute(link.attribs.href).startsWith(prefix) &&
+            /^https:\/\/gtptabs\.com\/tabs\/\d+\/[a-z0-9_-]+\/[a-z0-9_-]+\.html$/.test(
+              absolute(link.attribs.href)
+            ) &&
+            matchesTitle(DomUtils.textContent(link).trim())
+        )
+        .map((link) => absolute(link.attribs.href))
+    );
+    for (const url of [...candidates].slice(0, 3)) {
+      const detail = await fetchSource(url, signal, 5000);
+      if (!detail) continue;
+      const page = await parseSource(detail, signal);
+      const heading = DomUtils.getElementsByTagName("h1", page.children)[0];
+      const label = heading
+        ? DomUtils.textContent(heading).replace(/\s+/g, " ").trim()
+        : "";
+      const credit = DomUtils.getElementsByTagName("a", page.children).find(
+        (link) => absolute(link.attribs.href) === artistURL
+      );
+      if (
+        !credit ||
+        !sameArtist(artist, DomUtils.textContent(credit).trim()) ||
+        !matchesTitle(label)
+      )
+        continue;
+      const download = DomUtils.getElementsByTagName("a", page.children).find(
+        (link) =>
+          /^https:\/\/gtptabs\.com\/tabs\/download\/\d+\.html$/.test(
+            absolute(link.attribs.href)
+          ) &&
+          ["Download file", "Скачать файл"].includes(
+            DomUtils.textContent(link).trim()
+          )
+      );
+      if (!download) continue;
+      const bytes = await fetchSource(
+        absolute(download.attribs.href),
+        signal,
+        5000,
+        undefined,
+        true
+      );
+      if (!bytes) continue;
+      const enriched: LyricsOption[] = [];
+      for (const option of options) {
+        try {
+          const imported = await readGuitarPro({
+            data: bytes,
+            content: option.content,
+            title,
+            artist,
+            source: { name: "GtpTabs.com", url },
+            context: providerContext,
+            signal
+          });
+          if (imported) enriched.push({ ...option, ...imported });
+        } catch (error) {
+          if (signal?.aborted) throw error;
+        }
+      }
+      if (enriched.length) return [...enriched, ...options];
+    }
+  }
+  return options;
+}
+
+export function matchedSongArrangement(title: string, artist: string) {
+  return songArrangements.find(
+    (arrangement) =>
+      matchingIdentity(title, arrangement.title) &&
+      sameArtist(artist, arrangement.artist)
+  );
+}
 
 export async function lookupSongContent(
   title: string,
@@ -1467,8 +1638,7 @@ export async function lookupSongContent(
     ];
     const primaryCompleted = Promise.allSettled(primaryRequests);
     const lyricRequest = lookupLyrics(title, artist, controller.signal);
-    // Consult extra catalogues only after the existing providers cannot find
-    // a playable arrangement. Successful lookups retain their request path.
+    // A chord chart alone does not establish its accompaniment.
     const fallbackProviders: Array<
       (
         name: string,
@@ -1510,7 +1680,9 @@ export async function lookupSongContent(
             results.some(
               (result) =>
                 result.status === "fulfilled" &&
-                result.value.some((option) => option.hasChords)
+                result.value.some(
+                  (option) => option.hasChords && hasSourceRhythm(option)
+                )
             )
           )
             return [];
@@ -1541,7 +1713,10 @@ export async function lookupSongContent(
         controller.signal.aborted
           ? collected
           : new Promise<LyricsOption[]>((resolve) => {
-              collectionTimer = setTimeout(() => resolve(collected), 1500);
+              collectionTimer = setTimeout(
+                () => resolve(collected),
+                collected.some(hasSourceRhythm) ? 1500 : 4500
+              );
             })
       ),
       cancelled,
@@ -1554,13 +1729,24 @@ export async function lookupSongContent(
     if (signal?.aborted) throw new Error("Cancelled");
     const withChords = options.filter((option) => option.hasChords);
     if (withChords.length) {
+      let playable = withChords;
+      try {
+        playable = await enrichGuitarPart(
+          title,
+          artist,
+          withChords,
+          controller.signal
+        );
+      } catch {
+        if (signal?.aborted) throw new Error("Cancelled");
+      }
       if (contentCache.size >= 20)
         contentCache.delete(contentCache.keys().next().value!);
       contentCache.set(cacheKey, {
         until: Date.now() + 10 * 60 * 1000,
-        options: withChords.map((option) => ({ ...option }))
+        options: playable.map((option) => ({ ...option }))
       });
-      return withChords;
+      return playable;
     }
     const results = await completed;
     if (

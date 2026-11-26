@@ -68,9 +68,13 @@ export function tabNoteExpression(
     repeatSeconds: 60 / tempo / 8
   };
 }
-export const guitarNoteKey = (note: TabNote, tempo: number) =>
+export const guitarNoteKey = (
+  note: TabNote,
+  tempo: number,
+  tuning: readonly number[] = TAB_TUNING
+) =>
   guitarKey(
-    [TAB_TUNING[note.string] + note.fret],
+    [tuning[note.string] + note.fret],
     440,
     note.string,
     tabNoteExpression(note, tempo)
