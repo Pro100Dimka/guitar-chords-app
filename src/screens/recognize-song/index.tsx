@@ -380,6 +380,7 @@ export default function RecognizeSong() {
           PlaybackCaptureTimeout: "AutofillPlaybackTimeout",
           PlaybackAudioUnavailable: "AutofillPlaybackNoAudio",
           PlaybackCaptureFailed: "AutofillPlaybackFailed",
+          PlaybackNotificationsDenied: "AutofillPlaybackNotificationsDenied",
           RecognitionResultExpired: "AutofillResultExpired"
         };
         const code =

@@ -1055,6 +1055,7 @@ test("immediate retry waits until native cancellation finishes", async () => {
 });
 
 test.each([
+  ["PlaybackNotificationsDenied", "AutofillPlaybackNotificationsDenied"],
   ["AudioTooShort", "AutofillAudioTooShort"],
   ["FileUnavailable", "AutofillFileUnavailable"],
   ["FileReadTimeout", "AutofillFileReadTimeout"],

@@ -962,6 +962,7 @@
   "AddSongQuickTile": "Add to Quick Settings",
   "AddSongQuickTileAdded": "FreeTune is available in Quick Settings.",
   "AddSongQuickTileHint": "Open Quick Settings, tap Edit and add FreeTune. Tap its tile to recognize phone audio.",
+  "AutofillPlaybackNotificationsDenied": "Allow FreeTune notifications in iPhone Settings to receive the recognition result.",
   "AutofillPlaybackUnavailable": "Phone audio capture could not start. Try again and confirm the system request.",
   "AutofillPlaybackTimeout": "Audio capture did not start in time. Start again and confirm the system prompt.",
   "AutofillPlaybackNoAudio": "No audio was captured. Play music in the selected app. Some players prevent audio capture.",

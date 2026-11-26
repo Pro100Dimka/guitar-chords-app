@@ -1,104 +1,143 @@
+import AVFoundation
+import CoreFoundation
 import Foundation
 import UserNotifications
 
-/// Only the app and its signed ReplayKit extension can access these short-lived samples.
-struct PlaybackCaptureStore {
-  static let appGroup = "group.com.freetune.recognition"
-  static let maximumSamples = 12 * 16000
-  struct Request: Codable {
-    let id: UUID
-    let expires: Date
-  }
-  struct Result: Codable {
-    let id: UUID
-    let error: String?
-    var song: Data? = nil
-    var identified: Bool = false
-  }
-  let directory: URL
+final class RecognitionCapture {
+  let allowsBackground: Bool
+  let ignoresAudioInterruptions: Bool
+  let createdAt = Date()
+  private let lock = NSLock()
+  private var receivedPlayback: [AnyHashable: Any]?
+  private var stopped = false
+  private var samples = [Int16]()
+  private var task: URLSessionDataTask?
+  private var fileCoordinator: NSFileCoordinator?
+  private var readExpired = false
 
-  static func shared() throws -> PlaybackCaptureStore {
-    guard let container = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroup) else {
-      throw failure("PlaybackCaptureUnavailable")
-    }
-    return PlaybackCaptureStore(directory: container.appendingPathComponent("SongRecognition", isDirectory: true))
+  init(allowsBackground: Bool = false, ignoresAudioInterruptions: Bool = false) {
+    self.allowsBackground = allowsBackground
+    self.ignoresAudioInterruptions = ignoresAudioInterruptions
   }
-  static func failure(_ code: String) -> NSError { NSError(domain: code, code: 1) }
-  private var requestURL: URL { directory.appendingPathComponent("request.json") }
-  private func session(_ request: Request) -> URL { directory.appendingPathComponent(request.id.uuidString, isDirectory: true) }
 
-  func begin() throws -> Request {
-    // A previous process may have died while recording. Its UUID can never be reused.
-    if let old = request() { remove(old) }
-    if let files = try? FileManager.default.contentsOfDirectory(at: directory, includingPropertiesForKeys: nil) {
-      for file in files where UUID(uuidString: file.lastPathComponent) != nil { try? FileManager.default.removeItem(at: file) }
+  func receivePlayback(_ payload: [AnyHashable: Any]) {
+    guard payload["recognitionPlayback"] as? Bool == true,
+          let started = payload["recognitionStartedAt"] as? Double,
+          started >= createdAt.timeIntervalSince1970 - 1 else { return }
+    lock.lock(); defer { lock.unlock() }
+    if !stopped { receivedPlayback = payload }
+  }
+  var playbackResult: [AnyHashable: Any]? {
+    lock.lock(); defer { lock.unlock() }
+    return receivedPlayback
+  }
+  var fileReadExpired: Bool {
+    lock.lock(); defer { lock.unlock() }
+    return readExpired
+  }
+  func attach(_ coordinator: NSFileCoordinator) {
+    lock.lock()
+    fileCoordinator = coordinator
+    let cancel = stopped
+    lock.unlock()
+    if cancel { coordinator.cancel() }
+  }
+  func finishReading() {
+    lock.lock(); defer { lock.unlock() }
+    fileCoordinator = nil
+  }
+  func expireReading() {
+    lock.lock()
+    let coordinator = fileCoordinator
+    if coordinator != nil { readExpired = true }
+    lock.unlock()
+    coordinator?.cancel()
+  }
+  private var inputFrames: Int64 = 0
+  private var outputFrames: Int64 = 0
+  private var sampleSum: Float = 0
+  private var sampleCount = 0
+
+  var cancelled: Bool {
+    lock.lock(); defer { lock.unlock() }
+    return stopped
+  }
+  func cancel() {
+    lock.lock()
+    stopped = true
+    let pending = task
+    let coordinator = fileCoordinator
+    lock.unlock()
+    pending?.cancel()
+    coordinator?.cancel()
+  }
+  func attach(_ value: URLSessionDataTask) {
+    lock.lock(); defer { lock.unlock() }
+    task = value
+    if stopped { value.cancel() }
+  }
+  func append(_ buffer: AVAudioPCMBuffer) {
+    guard let channels = buffer.floatChannelData else { return }
+    lock.lock(); defer { lock.unlock() }
+    guard !stopped, samples.count < 320000 else { return }
+    let rate = buffer.format.sampleRate
+    for frame in 0..<Int(buffer.frameLength) {
+      var value: Float = 0
+      for channel in 0..<Int(buffer.format.channelCount) { value += channels[channel][frame] }
+      value /= Float(buffer.format.channelCount)
+      sampleSum += value
+      sampleCount += 1
+      inputFrames += 1
+      let count = Int64(Double(inputFrames) * 16000 / rate)
+      let previous = outputFrames
+      while outputFrames < count, samples.count < 320000 {
+        let average = sampleSum / Float(sampleCount)
+        samples.append(Int16(max(-32767, min(32767, average.isFinite ? average * 32767 : 0))))
+        outputFrames += 1
+      }
+      if previous < outputFrames { sampleSum = 0; sampleCount = 0 }
     }
-    let next = Request(id: UUID(), expires: Date().addingTimeInterval(180))
-    try FileManager.default.createDirectory(at: session(next), withIntermediateDirectories: true)
-    var values = URLResourceValues(); values.isExcludedFromBackup = true
-    var location = directory; try? location.setResourceValues(values)
-    try JSONEncoder().encode(next).write(to: requestURL, options: .atomic)
-    return next
   }
-  func request() -> Request? {
-    guard let data = try? Data(contentsOf: requestURL), data.count <= 4096 else { return nil }
-    return try? JSONDecoder().decode(Request.self, from: data)
-  }
-  func isCurrent(_ value: Request) -> Bool {
-    guard let current = request() else { return false }
-    return current.id == value.id && current.expires > Date() && FileManager.default.fileExists(atPath: session(value).path)
-  }
-  func result(_ value: Request) throws -> Result? {
-    let url = session(value).appendingPathComponent("result.json")
-    guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-    let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.intValue ?? 0
-    guard size <= 512000 else { throw Self.failure("PlaybackCaptureFailed") }
-    let data = try Data(contentsOf: url)
-    let result = try JSONDecoder().decode(Result.self, from: data)
-    guard result.id == value.id else { throw Self.failure("PlaybackCaptureFailed") }
-    return result
-  }
-  func samples(_ value: Request) throws -> [Int16] {
-    let url = session(value).appendingPathComponent("audio.pcm")
-    let size = (try FileManager.default.attributesOfItem(atPath: url.path)[.size] as? NSNumber)?.intValue ?? 0
-    guard (64000...Self.maximumSamples * 2).contains(size), size % 2 == 0 else { throw Self.failure("PlaybackAudioUnavailable") }
-    let bytes = [UInt8](try Data(contentsOf: url))
-    guard bytes.count == size else { throw Self.failure("PlaybackCaptureFailed") }
-    return stride(from: 0, to: bytes.count, by: 2).map { Int16(bitPattern: UInt16(bytes[$0]) | UInt16(bytes[$0 + 1]) << 8) }
-  }
-  func complete(_ value: Request, samples: [Int16], error: String? = nil, song: [String: Any]? = nil, identified: Bool = false) throws {
-    guard isCurrent(value) else { throw Self.failure("Cancelled") }
-    if error == nil && !identified {
-      guard (32000...Self.maximumSamples).contains(samples.count) else { throw Self.failure("PlaybackAudioUnavailable") }
-      let littleEndian = samples.map(\.littleEndian)
-      try littleEndian.withUnsafeBufferPointer { Data(buffer: $0) }.write(to: session(value).appendingPathComponent("audio.pcm"), options: .atomic)
-    }
-    guard isCurrent(value) else { remove(value); throw Self.failure("Cancelled") }
-    let data = try song.map { try JSONSerialization.data(withJSONObject: $0) }
-    try JSONEncoder().encode(Result(id: value.id, error: error, song: data, identified: identified)).write(to: session(value).appendingPathComponent("result.json"), options: .atomic)
-  }
-  func remove(_ value: Request) {
-    // Deleting the UUID directory revokes this request without racing a newer request.json.
-    try? FileManager.default.removeItem(at: session(value))
+  func snapshot(_ count: Int) -> [Int16]? {
+    lock.lock(); defer { lock.unlock() }
+    return samples.count >= count ? Array(samples.suffix(min(samples.count, 192000))) : nil
   }
 }
 
 enum RecognitionNotice {
+  static let received = Notification.Name("FreeTunePlaybackRecognitionResult")
+  static let cancellationName = "com.freetune.recognition.cancel" as CFString
+  static func cancelCapture() {
+    CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), CFNotificationName(rawValue: cancellationName), nil, nil, true)
+  }
+  static func deliver(_ payload: [AnyHashable: Any]) {
+    NotificationCenter.default.post(name: received, object: nil, userInfo: payload)
+  }
   static func text(_ en: String, _ ru: String, _ uk: String) -> String {
     let language = Locale.preferredLanguages.first?.prefix(2).lowercased()
     return ["ru": ru, "uk": uk][language ?? ""] ?? en
   }
-  static func show(_ song: [String: Any]?, requestId: String, error: String? = nil, completion: (() -> Void)? = nil) {
+  static func song(_ payload: [AnyHashable: Any]) -> [String: Any]? {
+    guard let data = payload["recognitionSong"] as? Data else { return nil }
+    return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+  }
+  static func content(_ song: [String: Any]?, requestId: String, error: String? = nil, startedAt: Date = Date(), playback: Bool = false) -> UNMutableNotificationContent {
     let content = UNMutableNotificationContent()
     content.title = "FreeTune"
+    content.userInfo = ["recognitionRequestId": requestId, "recognitionStartedAt": startedAt.timeIntervalSince1970, "recognitionPlayback": playback, "recognitionError": error ?? ""]
     if let song = song, let title = song["title"] as? String, let artist = song["artist"] as? String {
       content.body = "\(artist): \(title)"
-      content.userInfo = ["recognitionRequestId": requestId]
+      let metadata = song.filter { !["lyrics", "lyricsCredit"].contains($0.key) }
+      if let data = try? JSONSerialization.data(withJSONObject: metadata) { content.userInfo["recognitionSong"] = data }
     } else {
       content.body = error == nil
         ? text("Song not found", "Песня не найдена", "Пісню не знайдено")
         : text("Recognition failed. Check the connection and audio access.", "Не удалось распознать. Проверьте подключение и доступ к звуку.", "Не вдалося розпізнати. Перевірте з’єднання та доступ до звуку.")
     }
+    return content
+  }
+  static func show(_ song: [String: Any]?, requestId: String, error: String? = nil, startedAt: Date = Date(), playback: Bool = false, completion: (() -> Void)? = nil) {
+    let content = content(song, requestId: requestId, error: error, startedAt: startedAt, playback: playback)
     UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "recognition-\(requestId)", content: content, trigger: nil)) { _ in completion?() }
   }
 }

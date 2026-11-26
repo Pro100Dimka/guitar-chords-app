@@ -18,11 +18,14 @@ class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterD
   private var recognitionLaunchObserver: NSObjectProtocol?
 
   func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+    RecognitionNotice.deliver(notification.request.content.userInfo)
     completionHandler([.banner, .sound])
   }
 
   func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-    if let requestId = response.notification.request.content.userInfo["recognitionRequestId"] as? String {
+    let payload = response.notification.request.content.userInfo
+    if let requestId = payload["recognitionRequestId"] as? String, let song = RecognitionNotice.song(payload) {
+      RecognitionLaunch.saveSong(song, requestId: requestId)
       RecognitionLaunch.open("result", requestId: requestId)
     }
     completionHandler()

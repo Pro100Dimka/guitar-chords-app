@@ -5,8 +5,10 @@ import ReplayKit
 final class SampleHandler: RPBroadcastSampleHandler {
   private let captureQueue = DispatchQueue(label: "freetune.playback.capture")
   private let recognitionQueue = DispatchQueue(label: "freetune.playback.recognition", qos: .userInitiated)
-  private var store: PlaybackCaptureStore?
-  private var request: PlaybackCaptureStore.Request?
+  private let capture = RecognitionCapture(allowsBackground: true, ignoresAudioInterruptions: true)
+  private let requestId = UUID().uuidString
+  private var startedAt = Date()
+  private static let maximumSamples = 12 * 16000
   private var timer: DispatchSourceTimer?
   private var samples = [Int16]()
   private var inputFrames: Int64 = 0
@@ -17,23 +19,33 @@ final class SampleHandler: RPBroadcastSampleHandler {
   private var audible = false
   private var finished = false
 
+  override init() {
+    super.init()
+    CFNotificationCenterAddObserver(CFNotificationCenterGetDarwinNotifyCenter(), Unmanaged.passUnretained(self).toOpaque(), { _, observer, _, _, _ in
+      guard let observer = observer else { return }
+      let handler = Unmanaged<SampleHandler>.fromOpaque(observer).takeUnretainedValue()
+      handler.capture.cancel()
+      handler.captureQueue.async { handler.finish("Cancelled") }
+    }, RecognitionNotice.cancellationName, nil, .deliverImmediately)
+  }
+  deinit {
+    timer?.cancel()
+    capture.cancel()
+    CFNotificationCenterRemoveObserver(CFNotificationCenterGetDarwinNotifyCenter(), Unmanaged.passUnretained(self).toOpaque(), CFNotificationName(rawValue: RecognitionNotice.cancellationName), nil)
+  }
   override func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {
     captureQueue.sync {
-      do {
-        let shared = try PlaybackCaptureStore.shared()
-        guard let pending = shared.request(), shared.isCurrent(pending) else { throw PlaybackCaptureStore.failure("PlaybackCaptureUnavailable") }
-        store = shared; request = pending
-        samples.reserveCapacity(PlaybackCaptureStore.maximumSamples)
-        let deadline = Date().addingTimeInterval(20)
-        let timeout = DispatchSource.makeTimerSource(queue: captureQueue)
-        timeout.schedule(deadline: .now() + 0.25, repeating: 0.25)
-        timeout.setEventHandler { [weak self] in
-          guard let self = self, !self.finished else { return }
-          if !shared.isCurrent(pending) { self.finish("Cancelled") }
-          else if Date() >= deadline { self.finish(self.samples.count >= 32000 ? nil : "PlaybackAudioUnavailable") }
-        }
-        timer = timeout; timeout.resume()
-      } catch { finish("PlaybackCaptureUnavailable") }
+      startedAt = Date()
+      samples.reserveCapacity(Self.maximumSamples)
+      let deadline = startedAt.addingTimeInterval(20)
+      let timeout = DispatchSource.makeTimerSource(queue: captureQueue)
+      timeout.schedule(deadline: .now() + 0.25, repeating: 0.25)
+      timeout.setEventHandler { [weak self] in
+        guard let self = self, !self.finished else { return }
+        if self.capture.cancelled { self.finish("Cancelled") }
+        else if Date() >= deadline { self.finish(self.samples.count >= 32000 ? nil : "PlaybackAudioUnavailable") }
+      }
+      timer = timeout; timeout.resume()
     }
   }
 
@@ -41,8 +53,8 @@ final class SampleHandler: RPBroadcastSampleHandler {
     guard sampleBufferType == .audioApp else { return }
     // Process synchronously: ReplayKit owns the sample buffer only until this callback returns.
     captureQueue.sync {
-      guard !finished, let store = store, let request = request else { return }
-      guard store.isCurrent(request) else { finish("Cancelled"); return }
+      guard !finished else { return }
+      guard !capture.cancelled else { finish("Cancelled"); return }
       guard let description = CMSampleBufferGetFormatDescription(sampleBuffer),
             let stream = CMAudioFormatDescriptionGetStreamBasicDescription(description),
             let format = AVAudioFormat(streamDescription: stream) else { finish("PlaybackCaptureFailed"); return }
@@ -75,12 +87,12 @@ final class SampleHandler: RPBroadcastSampleHandler {
         sampleSum += mono; sampleCount += 1; inputFrames += 1
         let target = Int64(Double(inputFrames) * 16000 / sampleRate)
         let before = outputFrames
-        while outputFrames < target, samples.count < PlaybackCaptureStore.maximumSamples {
+        while outputFrames < target, samples.count < Self.maximumSamples {
           samples.append(Int16(max(-32767, min(32767, sampleSum / Float(sampleCount) * 32767))))
           outputFrames += 1
         }
         if before < outputFrames { sampleSum = 0; sampleCount = 0 }
-        if samples.count == PlaybackCaptureStore.maximumSamples { finish(nil); break }
+        if samples.count == Self.maximumSamples { finish(nil); break }
       }
     }
   }
@@ -97,17 +109,14 @@ final class SampleHandler: RPBroadcastSampleHandler {
     recognitionQueue.async {
       var status = error
       var song: [String: Any]?
-      if let store = self.store, let request = self.request, store.isCurrent(request) {
-        if error == nil {
-          do {
-            song = try SongFingerprintRecognizer().identify(captured, cancelled: { !store.isCurrent(request) })
-          } catch { status = (error as NSError).domain }
-        }
+      if error == nil {
         do {
-          try store.complete(request, samples: [], error: status, song: song, identified: true)
-          if status != "Cancelled" { RecognitionNotice.show(song, requestId: request.id.uuidString, error: status) }
-        } catch { status = "Cancelled" }
-      } else { status = error ?? "Cancelled" }
+          song = try SongFingerprintRecognizer().identify(captured, cancelled: { self.capture.cancelled }, attach: { self.capture.attach($0) })
+        } catch { status = (error as NSError).domain }
+      }
+      if !self.capture.cancelled {
+        RecognitionNotice.show(song, requestId: self.requestId, error: status, startedAt: self.startedAt, playback: true)
+      }
       if stopBroadcast {
         let message = status != nil
           ? RecognitionNotice.text("Recognition failed. Check the connection and audio access.", "Не удалось распознать. Проверьте подключение и доступ к звуку.", "Не вдалося розпізнати. Перевірте з’єднання та доступ до звуку.")

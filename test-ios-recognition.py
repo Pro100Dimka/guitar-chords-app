@@ -18,7 +18,7 @@ source += (root / "ios/PlaybackCaptureStore.swift").read_text(encoding="utf-8").
 source += ((root / "ios/PlaybackBroadcast/SampleHandler.swift").read_text(encoding="utf-8")
            .replace("import ReplayKit", "").replace("private ", "")
            .replace("SongFingerprintRecognizer().identify(captured, cancelled:", "captureFixture(captured, cancelled:")
-           .replace("RecognitionNotice.show(song, requestId: request.id.uuidString, error: status)", "extensionReady.signal()"))
+           .replace("RecognitionNotice.show(song, requestId: self.requestId, error: status, startedAt: self.startedAt, playback: true)", "recordExtensionNotice(song, requestId: self.requestId, error: status, startedAt: self.startedAt, playback: true)"))
 source += ((root / "ios/OpenRecognitionIntent.swift").read_text(encoding="utf-8").split("@available", 1)[0]
            .replace("import AppIntents", "").replace("import ActivityKit", "").replace("private ", ""))
 fixture = r'''
@@ -100,9 +100,15 @@ final class HTTPFixture: URLProtocol {
 let extensionReady = DispatchSemaphore(value: 0)
 let extensionCaptureLock = NSLock()
 var extensionCapture = [Int16]()
-func captureFixture(_ samples: [Int16], cancelled: () -> Bool) throws -> [String: Any]? {
+var extensionPayload = [AnyHashable: Any]()
+func captureFixture(_ samples: [Int16], cancelled: () -> Bool, attach: (URLSessionDataTask) -> Void) throws -> [String: Any]? {
   extensionCaptureLock.lock(); extensionCapture = samples; extensionCaptureLock.unlock()
-  return try SongFingerprintRecognizer().identify(samples, cancelled: cancelled)
+  return try SongFingerprintRecognizer().identify(samples, cancelled: cancelled, attach: attach)
+}
+func recordExtensionNotice(_ song: [String: Any]?, requestId: String, error: String?, startedAt: Date, playback: Bool) {
+  let content = RecognitionNotice.content(song, requestId: requestId, error: error, startedAt: startedAt, playback: playback)
+  extensionCaptureLock.lock(); extensionPayload = content.userInfo; extensionCaptureLock.unlock()
+  extensionReady.signal()
 }
 URLProtocol.registerClass(HTTPFixture.self)
 '''
@@ -219,23 +225,21 @@ running.control.sync { running.active = foreground }
 NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
 running.control.sync { precondition(foreground.cancelled); running.active = nil }
 
-let store = PlaybackCaptureStore(directory: directory.appendingPathComponent("capture"))
-let older = try store.begin(), newer = try store.begin()
-precondition(!store.isCurrent(older) && store.isCurrent(newer))
-store.remove(older)
-precondition(store.isCurrent(newer), "Cancelling an old capture revoked a newer request")
-do { try store.complete(older, samples: samples); fatalError("Stale capture accepted") }
-catch { precondition((error as NSError).domain == "Cancelled") }
-try store.complete(newer, samples: samples)
-let stored = try store.samples(newer)
-precondition(stored == samples, "PCM changed during the extension handoff")
-store.remove(newer)
-precondition(!store.isCurrent(newer))
-let removed = try store.result(newer)
-precondition(removed == nil)
-let shortRequest = try store.begin()
-do { try store.complete(shortRequest, samples: [1]); fatalError("Short capture accepted") }
-catch { precondition((error as NSError).domain == "PlaybackAudioUnavailable") }
+let notificationCapture = RecognitionCapture(allowsBackground: true, ignoresAudioInterruptions: true)
+let metadata = ["title": "Example", "artist": "Performer", "source": "Shazam", "lyrics": "Not transferred"]
+let notification = RecognitionNotice.content(metadata, requestId: "notice", startedAt: notificationCapture.createdAt, playback: true)
+let encodedNotice = try PropertyListSerialization.data(fromPropertyList: notification.userInfo, format: .binary, options: 0)
+let decodedNotice = try PropertyListSerialization.propertyList(from: encodedNotice, format: nil) as! [AnyHashable: Any]
+notificationCapture.receivePlayback(decodedNotice)
+precondition(RecognitionNotice.song(notificationCapture.playbackResult!)?["title"] as? String == "Example")
+precondition(RecognitionNotice.song(decodedNotice)?["lyrics"] == nil, "Lyrics unnecessarily enlarge notification metadata")
+let oldNotification = RecognitionNotice.content(metadata, requestId: "old", startedAt: Date().addingTimeInterval(-60), playback: true)
+let laterCapture = RecognitionCapture(allowsBackground: true, ignoresAudioInterruptions: true)
+laterCapture.receivePlayback(oldNotification.userInfo)
+precondition(laterCapture.playbackResult == nil, "A stale notification completed a newer capture")
+laterCapture.cancel()
+laterCapture.receivePlayback(notification.userInfo)
+precondition(laterCapture.playbackResult == nil, "A cancelled capture accepted a late result")
 
 func broadcastBuffer(rate: Double, common: AVAudioCommonFormat, interleaved: Bool, silent: Bool = false) -> CMSampleBuffer {
   let format = AVAudioFormat(commonFormat: common, sampleRate: rate, channels: 2, interleaved: interleaved)!
@@ -271,44 +275,36 @@ func broadcastBuffer(rate: Double, common: AVAudioCommonFormat, interleaved: Boo
 for rate in [16000.0, 44100.0, 48000.0] {
   for common in [AVAudioCommonFormat.pcmFormatFloat32, .pcmFormatInt16, .pcmFormatInt32] {
     for interleaved in [false, true] {
-      let request = try store.begin(), handler = SampleHandler()
-      handler.store = store; handler.request = request
+      let handler = SampleHandler()
       let buffer = broadcastBuffer(rate: rate, common: common, interleaved: interleaved)
       handler.processSampleBuffer(buffer, with: .video)
       handler.processSampleBuffer(buffer, with: .audioMic)
       precondition(handler.samples.isEmpty, "Private video or microphone data was captured")
       for _ in 0..<14 { handler.processSampleBuffer(buffer, with: .audioApp) }
       precondition(extensionReady.wait(timeout: .now() + 10) == .success)
-      let result = try store.result(request)
-      extensionCaptureLock.lock(); let captured = extensionCapture; extensionCaptureLock.unlock()
-      precondition(result?.error == nil && result?.identified == true && handler.finished)
-      let song = try JSONSerialization.jsonObject(with: result!.song!) as! [String: Any]
+      extensionCaptureLock.lock(); let captured = extensionCapture; let payload = extensionPayload; extensionCaptureLock.unlock()
+      precondition(payload["recognitionError"] as? String == "" && handler.finished)
+      let song = RecognitionNotice.song(payload)!
       precondition(song["title"] as? String == "Example", "The extension failed to identify audio independently")
-      precondition(captured.count == PlaybackCaptureStore.maximumSamples, "Capture exceeded 12 seconds")
+      precondition(captured.count == SampleHandler.maximumSamples, "Capture exceeded 12 seconds")
       precondition(captured.allSatisfy { abs(Int($0) - 12287) <= 1 }, "Channel mixing/resampling corrupts the fingerprint input")
       precondition(handler.samples.isEmpty, "Completed audio remains in extension memory")
-      store.remove(request)
     }
   }
 }
-let silentRequest = try store.begin(), silentHandler = SampleHandler()
-silentHandler.store = store; silentHandler.request = silentRequest
+let silentHandler = SampleHandler()
 silentHandler.processSampleBuffer(broadcastBuffer(rate: 48000, common: .pcmFormatFloat32, interleaved: false, silent: true), with: .audioApp)
 silentHandler.broadcastFinished()
 precondition(extensionReady.wait(timeout: .now() + 10) == .success)
-let silentResult = try store.result(silentRequest)
-precondition(silentResult?.error == "PlaybackAudioUnavailable", "Protected or silent playback was reported as a usable capture")
-store.remove(silentRequest)
-let cancelledRequest = try store.begin(), cancelledHandler = SampleHandler()
-cancelledHandler.store = store; cancelledHandler.request = cancelledRequest
+extensionCaptureLock.lock(); let silentPayload = extensionPayload; extensionCaptureLock.unlock()
+precondition(silentPayload["recognitionError"] as? String == "PlaybackAudioUnavailable", "Protected or silent playback was reported as usable")
+let cancelledHandler = SampleHandler()
 let audio = broadcastBuffer(rate: 48000, common: .pcmFormatFloat32, interleaved: true)
 cancelledHandler.processSampleBuffer(audio, with: .audioApp)
-store.remove(cancelledRequest)
-let following = try store.begin()
+cancelledHandler.capture.cancel()
 cancelledHandler.processSampleBuffer(audio, with: .audioApp)
-let followingResult = try store.result(following)
-precondition(cancelledHandler.finished && cancelledHandler.samples.isEmpty && followingResult == nil && store.isCurrent(following))
-store.remove(following)
+precondition(cancelledHandler.finished && cancelledHandler.samples.isEmpty)
+precondition(extensionReady.wait(timeout: .now() + 0.1) == .timedOut, "Cancellation posted a result notification")
 
 RecognitionLaunch.open("playback")
 let firstLaunch = RecognitionLaunch.consume()!
