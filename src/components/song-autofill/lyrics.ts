@@ -1039,7 +1039,7 @@ const contentCache = new Map<
   string,
   { until: number; options: LyricsOption[] }
 >();
-async function lookupChordPage(
+export async function lookupChordPage(
   title: string,
   artist: string,
   source: keyof typeof chordSources,

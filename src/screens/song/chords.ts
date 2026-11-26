@@ -485,7 +485,7 @@ function* reflowChordPairsWork(
 }
 
 const sectionNames =
-  "intro|verse|chorus|bridge|outro|solo|interlude|instrumental|pre-chorus|post-chorus|refrain|coda|приспів|куплет|припев|вступ|вступление|бридж|брідж|програш|проигрыш|інтро|интро|аутро|соло|кода|рефрен|предприпев|передприспів";
+  "intro|verse|chorus|bridge|outro|solo|interlude|instrumental|pre-chorus|post-chorus|refrain|coda|verso|estrofe|refrão|refrao|ponte|final|приспів|куплет|припев|вступ|вступление|бридж|брідж|програш|проигрыш|інтро|интро|аутро|соло|кода|рефрен|предприпев|передприспів";
 const sectionPattern = new RegExp(`\\[(?:${sectionNames})[^\\[\\]]*\\]`, "gi");
 const sectionHeading = new RegExp(
   `^((?:${sectionNames})(?:\\s+(?:\\d+|[ivx]+))?(?:\\s*\\([^()\\n]{0,70}\\))?)(?:\\s*:\\s*(.*)|\\s*)$`,
@@ -893,6 +893,7 @@ export function songPlaybackLines(text: string) {
   const lines = text.split(/\r?\n/);
   return lines.flatMap((line, index) => {
     let target = index;
+    if (!isChordLine(line)) return songChordSequence(line).map(() => index);
     while (target + 1 < lines.length && isChordLine(lines[target + 1]))
       target++;
     if (lines[target + 1]?.trim() && !isSectionBoundary(lines[target + 1]))

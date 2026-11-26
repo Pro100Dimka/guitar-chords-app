@@ -61,6 +61,8 @@ import {
 } from "./chords";
 import { Action, ChordSheet, SongTools, SongPlayback } from "./tools";
 import { sourceSong } from "../../components/song-autofill/source-metadata";
+import { lookupChordPage } from "../../components/song-autofill/lyrics";
+import { db } from "../../components/database";
 import { tabBarTicks, tablatureLength } from "../../components/tablature";
 
 const SongDetail: React.FC = () => {
@@ -149,6 +151,7 @@ const SongDetail: React.FC = () => {
         return;
       }
       let active = true;
+      const controller = new AbortController();
       metrics.current.restored = false;
       metrics.current.endVisible = false;
       metrics.current.target =
@@ -163,7 +166,7 @@ const SongDetail: React.FC = () => {
         joins: ["LEFT JOIN bands fk_band ON songs.band_id = fk_band.id"],
         limit: 1
       })
-        .then(([found]) => {
+        .then(async ([found]) => {
           if (active && deletedSong.current !== songId) {
             if (!found) {
               setSong(undefined);
@@ -174,10 +177,95 @@ const SongDetail: React.FC = () => {
             setSong({ ...found, content: imported.content });
             updateSong(songId, {
               opened: Date.now(),
-              ...(!saved?.tablature && imported.tablature
+              ...((!saved?.tablature ||
+                (!saved.tablature.chords?.length &&
+                  imported.tablature?.chords?.length &&
+                  JSON.stringify(saved.tablature.notes) ===
+                    JSON.stringify(
+                      sourceSong(found.content ?? "", saved.tempo, false)
+                        .tablature?.notes
+                    ))) &&
+              imported.tablature
                 ? { tablature: imported.tablature }
                 : {})
             });
+            setLoading(false);
+            const provider = (
+              [
+                "Cifra Club",
+                "E-Chords",
+                "Cifras",
+                "GuitareTab",
+                "Akkords.pro"
+              ] as const
+            ).find((name) => name === saved?.contentSource?.name);
+            if (
+              !saved?.tablature ||
+              (!saved.tablature.sourceText &&
+                (!provider || !saved.contentSource))
+            )
+              return;
+            try {
+              const options =
+                !saved.tablature.sourceText && provider && saved.contentSource
+                  ? await lookupChordPage(
+                      found.title,
+                      found.band_name ?? "",
+                      provider,
+                      controller.signal,
+                      saved.contentSource.url
+                    )
+                  : [];
+              const option = options.find(
+                (option) => option.url === saved.contentSource?.url
+              );
+              const rawText = saved.tablature.sourceText ?? option?.content;
+              if (!rawText || !active || deletedSong.current === songId) return;
+              const legacy = sourceSong(rawText, saved.tempo, false);
+              const replacement = sourceSong(rawText, saved.tempo);
+              const canonical = (text: string) =>
+                createSongEditorState(text).text.replace(/\s+/g, "");
+              const current = usePreferences.getState().songs[songId];
+              if (
+                !replacement.tablature?.chords?.length ||
+                current?.tablature !== saved.tablature ||
+                ![legacy, replacement].some(
+                  (parsed) =>
+                    JSON.stringify(parsed.tablature?.notes) ===
+                    JSON.stringify(saved.tablature.notes)
+                ) ||
+                JSON.stringify(replacement.tablature) ===
+                  JSON.stringify(saved.tablature) ||
+                ![
+                  canonical(legacy.content),
+                  canonical(replacement.content)
+                ].includes(canonical(found.content ?? ""))
+              )
+                return;
+              await new Promise<void>((resolve, reject) =>
+                db.transaction(
+                  (tx) => {
+                    tx.executeSql(
+                      "UPDATE songs SET content = ? WHERE id = ? AND content = ?",
+                      [replacement.content, songId, found.content],
+                      (_, result) => {
+                        if (result.rowsAffected !== 1)
+                          throw new Error("SongMissing");
+                      }
+                    );
+                  },
+                  reject,
+                  resolve
+                )
+              );
+              if (!active || deletedSong.current === songId) return;
+              setAccompaniment(false);
+              updateSong(songId, { tablature: replacement.tablature });
+              setSong({ ...found, content: replacement.content });
+            } catch (error) {
+              if (!controller.signal.aborted)
+                console.warn("Song arrangement refresh failed", error);
+            }
           }
         })
         .catch((error) => {
@@ -189,6 +277,7 @@ const SongDetail: React.FC = () => {
         });
       return () => {
         active = false;
+        controller.abort();
         setPlaying(false);
         savePosition();
         flushPreferences();
@@ -344,7 +433,9 @@ const SongDetail: React.FC = () => {
       }
       if (
         score?.notes.length &&
-        index * tabBarTicks(score) >= tablatureLength(score)
+        (score.chords?.length
+          ? index >= score.chords.length
+          : index * tabBarTicks(score) >= tablatureLength(score))
       ) {
         Alert.alert(t("SongLineWithoutTabs"));
         return;
@@ -389,7 +480,7 @@ const SongDetail: React.FC = () => {
         : line.split(/(\[[^\[\]]+\])/);
       const start = playbackLines.indexOf(index);
       const props: TextProps = {
-        ...(!onlyChords && start >= 0
+        ...(start >= 0
           ? {
               accessibilityRole: "button" as const,
               accessibilityHint: t("SongPlayFromLine"),
@@ -428,6 +519,7 @@ const SongDetail: React.FC = () => {
           key={index}
           {...props}
           progress={playhead}
+          background={!paired}
           onCursor={(x) =>
             horizontalLines.current.get(index)?.scrollTo({
               x: Math.max(0, x - metrics.current.viewportWidth * 0.35),
@@ -495,7 +587,11 @@ const SongDetail: React.FC = () => {
           nestedScrollEnabled
           directionalLockEnabled
           showsHorizontalScrollIndicator={false}
-          style={styles.pairedLines}
+          style={[
+            styles.pairedLines,
+            block.some((item) => item.index === activeLine) &&
+              styles.activeLines
+          ]}
           onLayout={({ nativeEvent }) =>
             blockPositions.current.set(row.index, nativeEvent.layout.y)
           }
@@ -844,11 +940,13 @@ const SongDetail: React.FC = () => {
 };
 function PlaybackLyricLine({
   progress,
+  background = true,
   onCursor,
   onLayout,
   ...props
 }: TextProps & {
   progress: Animated.Value;
+  background?: boolean;
   onCursor: (x: number) => void;
 }) {
   const lines = useRef<
@@ -886,7 +984,10 @@ function PlaybackLyricLine({
   return (
     <View
       onLayout={onLayout}
-      style={{ position: "relative", backgroundColor: "rgba(218,177,97,0.14)" }}
+      style={{
+        position: "relative",
+        backgroundColor: background ? "rgba(218,177,97,0.14)" : undefined
+      }}
     >
       <Text
         {...props}
@@ -932,6 +1033,7 @@ const styles = StyleSheet.create({
     backgroundColor: palette.colors.transparent
   },
   pairedLines: { flexGrow: 0, flexShrink: 0 },
+  activeLines: { backgroundColor: "rgba(218,177,97,0.14)" },
   content: {
     color: palette.glass.ink,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace"

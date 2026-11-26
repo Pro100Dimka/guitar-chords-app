@@ -66,6 +66,8 @@ export interface Tablature {
   barCount?: number;
   notes: TabNote[];
   rests?: TabRest[];
+  chords?: { tick: number; name: string }[];
+  sourceText?: string;
 }
 
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -262,6 +264,24 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
   const notes = [...uniqueNotes.values()].sort(
     (a, b) => a.tick - b.tick || a.string - b.string
   );
+  const chords: NonNullable<Tablature["chords"]> = [];
+  if (value.chords !== undefined) {
+    if (!Array.isArray(value.chords) || value.chords.length > TAB_MAX_NOTES)
+      return undefined;
+    for (const chord of value.chords) {
+      if (
+        !record(chord) ||
+        !musicalTick(chord.tick, 0, end - 1 / 960) ||
+        typeof chord.name !== "string" ||
+        !chord.name.trim() ||
+        chord.name.length > 40 ||
+        /[\r\n]/.test(chord.name) ||
+        (chords.length && chord.tick <= chords[chords.length - 1].tick)
+      )
+        return undefined;
+      chords.push({ tick: chord.tick, name: chord.name });
+    }
+  }
   const rests: TabRest[] = [];
   for (const rest of inputRests) {
     if (
@@ -329,7 +349,12 @@ export function normalizeTablature(value: unknown): Tablature | undefined {
     beatUnit,
     barCount: (value.barCount as number | undefined) ?? 1,
     notes,
-    rests
+    rests,
+    ...(chords.length ? { chords } : {}),
+    ...(typeof value.sourceText === "string" &&
+    value.sourceText.length <= 200000
+      ? { sourceText: value.sourceText }
+      : {})
   };
   tab.barCount = tablatureLength(tab) / barTicks;
   return tab;

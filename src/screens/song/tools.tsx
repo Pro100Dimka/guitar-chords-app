@@ -1016,12 +1016,24 @@ export function SongPlayback({
   const tick = useTablaturePosition(transport);
   const { replaceTab, seek, play, status, error } = transport;
   useEffect(() => {
-    if (score && status === "playing") onPosition(tick / tabBarTicks(score));
+    if (score && status === "playing") {
+      if (!score.chords?.length) {
+        onPosition(tick / tabBarTicks(score));
+        return;
+      }
+      const next = score.chords.findIndex((chord) => chord.tick > tick);
+      const index = next < 0 ? score.chords.length - 1 : Math.max(0, next - 1);
+      const start = score.chords[index].tick;
+      const end = score.chords[index + 1]?.tick ?? tablatureLength(score);
+      onPosition(
+        index + Math.min(0.99999, Math.max(0, (tick - start) / (end - start)))
+      );
+    }
   }, [tick, score, status, onPosition]);
   useEffect(() => {
     if (score) {
       replaceTab({ ...score, tempo: value.tempo });
-      seek(startIndex * tabBarTicks(score));
+      seek(score.chords?.[startIndex]?.tick ?? startIndex * tabBarTicks(score));
       void play();
     }
   }, [score, value.tempo, replaceTab, seek, play, startIndex]);
