@@ -845,6 +845,7 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
           onError={() => setRenderError(true)}
           onOpenTuning={() => setChooseTuning(true)}
           compact={layout.height < 420}
+          compactControls={octaveLayout.compactControls}
           spectrum={tunerSpectrum}
           referencePlaying={referencePlaying}
           onVisualization={() =>

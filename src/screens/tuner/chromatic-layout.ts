@@ -1,5 +1,6 @@
 export function chromaticLayout(width: number, height: number) {
   const landscape = width > height;
+  const compactControls = !landscape && height < 292;
   const landscapeDiameter = Math.max(
     80,
     Math.min(width * 0.52, height - 40, 2 * (width * 0.71 - 236))
@@ -30,24 +31,28 @@ export function chromaticLayout(width: number, height: number) {
   const panelHeight = (12 / columns) * rowHeight + 16;
   const diameter = landscape
     ? landscapeDiameter
-    : Math.max(80, Math.min(width - 40, height - panelHeight - 156));
+    : compactControls
+      ? Math.max(32, Math.min(width - 40, height - panelHeight - 136))
+      : Math.max(80, Math.min(width - 40, height - panelHeight - 156));
   const hole = {
     x: landscape ? (width * 0.58 - diameter) / 2 : (width - diameter) / 2,
     y: landscape
       ? (height - diameter) / 2
-      : Math.max(
-          64,
-          Math.min(
-            (height - 160 - diameter) / 2,
-            height - diameter - panelHeight - 92
-          )
-        ),
+      : compactControls
+        ? 65
+        : Math.max(
+            64,
+            Math.min(
+              (height - 160 - diameter) / 2,
+              height - diameter - panelHeight - 92
+            )
+          ),
     width: diameter,
     height: diameter
   };
   const panelTop = landscape
     ? Math.max(0, (height - panelHeight - 62) / 2)
-    : hole.y + diameter + 22;
+    : hole.y + diameter + (compactControls ? 17 : 22);
   return {
     hole,
     panelWidth,
@@ -56,7 +61,8 @@ export function chromaticLayout(width: number, height: number) {
     panelTop,
     columns,
     rowHeight,
-    octaveTop: panelTop + panelHeight + 18,
+    compactControls,
+    octaveTop: panelTop + panelHeight + (compactControls ? 6 : 18),
     octaveLeft: panelLeft + panelWidth * 0.15,
     octaveWidth: panelWidth * 0.7
   };

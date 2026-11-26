@@ -95,18 +95,9 @@ jest.mock("../src/screens/tuner/note-indicator", () => () => null);
 jest.mock("../src/screens/tuner/chormatic-wheel", () => ({
   __esModule: true,
   default: () => null,
-  chromaticLayout: () => ({
-    hole: { x: 0, y: 0, width: 100, height: 100 },
-    panelWidth: 300,
-    panelHeight: 104,
-    panelLeft: 0,
-    panelTop: 100,
-    columns: 6,
-    rowHeight: 44,
-    octaveLeft: 0,
-    octaveTop: 0,
-    octaveWidth: 100
-  })
+  chromaticLayout: jest.requireActual(
+    "../src/screens/tuner/chromatic-layout"
+  ).chromaticLayout
 }));
 jest.mock("../src/screens/tuner/chormatic", () => () => null);
 jest.mock("../src/screens/tuner/buttons", () => () => null);

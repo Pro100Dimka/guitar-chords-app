@@ -55,11 +55,24 @@ export function guitarLayout(
   );
   // Leave room for the outer strings' labels and touch targets. A very narrow
   // stage gets a fitted 100% baseline instead of an unreachable sixth string.
-  // The tuner omits zoom and keeps its existing framing.
+  // Keep the tuner dial visible as well as its outer string labels.
+  const outerDial = Math.max(
+    center - source.hole.x,
+    source.hole.x + source.hole.width - center
+  );
+  const dialScale =
+    zoom === undefined && !complete
+      ? Math.min(
+          Math.max(1, width / 2 - 8) / outerDial,
+          landscape
+            ? Math.max(1, height - 16) / source.hole.height
+            : Math.max(1, height - 8) / (source.height - source.hole.y)
+        )
+      : Infinity;
   const fittedScale =
-    zoom === undefined || !width || !height
+    !width || !height || (complete && zoom === undefined)
       ? baseScale
-      : Math.min(baseScale, Math.max(1, width / 2 - 26) / outerString);
+      : Math.min(baseScale, Math.max(1, width / 2 - 26) / outerString, dialScale);
   const maximumZoom =
     fittedScale > 0 && zoom !== undefined
       ? Math.min(

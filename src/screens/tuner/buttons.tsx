@@ -23,6 +23,7 @@ const Buttons = ({
   onReady,
   onError,
   compact = false,
+  compactControls = false,
   spectrum = false,
   referencePlaying = false,
   onVisualization,
@@ -36,6 +37,7 @@ const Buttons = ({
   onReady?: () => void;
   onError?: () => void;
   compact?: boolean;
+  compactControls?: boolean;
   spectrum?: boolean;
   referencePlaying?: boolean;
   onVisualization?: () => void;
@@ -125,7 +127,12 @@ const Buttons = ({
       }
     ];
     return (
-      <View pointerEvents="box-none" style={StyleSheet.absoluteFillObject}>
+      <View
+        pointerEvents="box-none"
+        style={
+          compactControls ? styles.compactChromatic : StyleSheet.absoluteFillObject
+        }
+      >
         {controls.map((control, index) => (
           <Pressable
             key={control.label}
@@ -135,9 +142,11 @@ const Buttons = ({
             onPress={control.onPress}
             style={({ pressed }) => [
               styles.round,
-              index === 0
-                ? { left: 12, top: 12 }
-                : { right: 12, top: 12 + (index - 1) * 52 },
+              compactControls
+                ? styles.flowRound
+                : index === 0
+                  ? { left: 12, top: 12 }
+                  : { right: 12, top: 12 + (index - 1) * 52 },
               pressed && styles.pressed
             ]}
           >
@@ -270,6 +279,16 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     elevation: 5
   },
+  compactChromatic: {
+    position: "absolute",
+    left: 8,
+    right: 8,
+    top: 8,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center"
+  },
+  flowRound: { position: "relative" },
   roundRim: { flex: 1, padding: 1, borderRadius: 22 },
   roundFace: {
     flex: 1,
