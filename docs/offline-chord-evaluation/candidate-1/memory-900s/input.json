@@ -1,0 +1,11 @@
+{
+  "purpose": "Maximum supported duration; host runtime and peak memory only, no accuracy reference",
+  "durationSeconds": 900,
+  "sampleRate": 16000,
+  "channels": 1,
+  "format": "PCM16LE",
+  "bytes": 28800000,
+  "sha256": "35c844a059f52b80aeaea4b0fcd0e255f6dd41deb0e237ac23427642df890b4e",
+  "sourcePcmSha256": "6d0b56247bb8b6fcfc0ed47b469cfaea04284510f43f94e307396b26a909d4c7",
+  "construction": "Repeat the complete development GuitarSet PCM and truncate at exactly 900 seconds; no whole PCM retained by tested CLI."
+}

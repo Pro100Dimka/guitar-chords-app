@@ -1,0 +1,27 @@
+{
+  "status": "completed",
+  "completedUtc": "2026-11-26T22:15:14.579405+00:00",
+  "freezeSha256": "fe223a7191a302321bbbfd31a90bbb249042342ca7805e40310c23cc7e27f4fb",
+  "candidateBinarySha256": "840356f71e7fdbad4c209b55c234bedc9e97c59b2ca03a0355308334b217e27a",
+  "baselineBinarySha256": "58764da6a69558abfeced1ba5f3708f453e032e94ab258db48cb9cc07b2b504a",
+  "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "runnerSha256": "e514e33e062f035f410f120df12e226a43bee3a9a24ed3456aee1434143de8eb",
+  "comparisons": {
+    "fresh-holdout": {
+      "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/comparison.json",
+      "sha256": "4df7cb09fb4b5f2b3d53d84ad53a6e35a152222c3d3c34f44388cc52fd1be41b",
+      "bytes": 88471
+    },
+    "development-after-evaluation": {
+      "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/comparison.json",
+      "sha256": "d3ad242d8af05054745a4f7687a32411662980b889562192ad6a0d71c6784f4e",
+      "bytes": 131860
+    }
+  },
+  "noBestCandidateSelectionOnFreshHoldout": true,
+  "cohorts": {
+    "fresh-holdout": "Primary new holdout; selection and acquisition frozen before this candidate's evaluation. One candidate evaluation only.",
+    "development-after-evaluation": "Original12 previously evaluated, diagnosed, and used to motivate the new fix. This is development-after-evaluation, not a new heldout claim."
+  }
+}

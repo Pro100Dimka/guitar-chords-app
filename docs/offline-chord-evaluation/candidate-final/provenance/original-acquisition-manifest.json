@@ -1,0 +1,199 @@
+{
+  "selection": "selection.json",
+  "audio": [
+    {
+      "track": "00_BN1-129-Eb_comp",
+      "path": "audio/00_BN1-129-Eb_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "00_BN1-129-Eb_comp_mic.wav",
+      "bytes": 1969056,
+      "sha256": "59e1e3c9bebdabd48afe28050a2c031e6cf36e5697268301cdf2e74bc66b71f1"
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "path": "audio/00_Rock3-117-Bb_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "00_Rock3-117-Bb_comp_mic.wav",
+      "bytes": 2894450,
+      "sha256": "fd88ab632cc5f7717ca9e500f674886f80e0224c42abebde1b01a604a7affebb"
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "path": "audio/01_SS1-68-E_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "01_SS1-68-E_comp_mic.wav",
+      "bytes": 3734996,
+      "sha256": "278b9058cde0102ad19c58e22415fc73788a85a074b765250fea1370a0ed25d5"
+    },
+    {
+      "track": "01_Jazz2-110-Bb_comp",
+      "path": "audio/01_Jazz2-110-Bb_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "01_Jazz2-110-Bb_comp_mic.wav",
+      "bytes": 3078506,
+      "sha256": "58f53e19e2420391afba687c7a10f2d1c80a89cf0392821729549e629b9ba55a"
+    },
+    {
+      "track": "02_Funk1-97-C_comp",
+      "path": "audio/02_Funk1-97-C_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "02_Funk1-97-C_comp_mic.wav",
+      "bytes": 2618560,
+      "sha256": "297b0e0cda8e9e7018801b6adba68f19cfeccd5df48377285a204411648a4f81"
+    },
+    {
+      "track": "02_BN3-119-G_comp",
+      "path": "audio/02_BN3-119-G_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "02_BN3-119-G_comp_mic.wav",
+      "bytes": 2845658,
+      "sha256": "b72774cb9f5aeadf66ecd12124604c4d45b95721283f868db0e6abb5a2f62bb7"
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "path": "audio/03_Rock1-130-A_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "03_Rock1-130-A_comp_mic.wav",
+      "bytes": 1953428,
+      "sha256": "5e71387daf08213651f8b8f0d9b1db7d589cbc6b9fefd8e052e13a1f8f7286ca"
+    },
+    {
+      "track": "03_Jazz3-150-C_comp",
+      "path": "audio/03_Jazz3-150-C_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "03_Jazz3-150-C_comp_mic.wav",
+      "bytes": 2257964,
+      "sha256": "f6640808cd13b2f0a0f7ed4c4f6ae460ee9d05aaa7ce6ca0f9edc3ff0bfdf000"
+    },
+    {
+      "track": "04_SS2-107-Ab_comp",
+      "path": "audio/04_SS2-107-Ab_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "04_SS2-107-Ab_comp_mic.wav",
+      "bytes": 3165224,
+      "sha256": "6222641015ef25c1423453949988509353c7bd6cae2b16032a3c64b9d990cd7b"
+    },
+    {
+      "track": "04_Funk2-119-G_comp",
+      "path": "audio/04_Funk2-119-G_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "04_Funk2-119-G_comp_mic.wav",
+      "bytes": 2845658,
+      "sha256": "a1241d1af68f1bad6b3eceb491d8bf9ccf91a14ab822ff5ee88d5ff170d53669"
+    },
+    {
+      "track": "05_BN2-166-Ab_comp",
+      "path": "audio/05_BN2-166-Ab_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "05_BN2-166-Ab_comp_mic.wav",
+      "bytes": 2040110,
+      "sha256": "58e771edbaedf69eb0216b8e77c82f468e8f0dd6045bfdcda585a0f346f86213"
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "path": "audio/05_SS3-84-Bb_comp_mic.wav",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "archiveMember": "05_SS3-84-Bb_comp_mic.wav",
+      "bytes": 4031454,
+      "sha256": "a687478848bc80c8d0441856fd251df72c048bc856820653ca2b0106717f87dd"
+    }
+  ],
+  "annotations": [
+    {
+      "track": "00_BN1-129-Eb_comp",
+      "path": "annotations/00_BN1-129-Eb_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "00_BN1-129-Eb_comp.jams",
+      "bytes": 1702653,
+      "sha256": "cd79564c51d0dec7d04e010d31525e9f7d2b9d41cf6116118a66ac5a8c181007"
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "path": "annotations/00_Rock3-117-Bb_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "00_Rock3-117-Bb_comp.jams",
+      "bytes": 4116563,
+      "sha256": "98caeb42548422bbb558f663fa104146450266f7bd4667304b13a440432ba655"
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "path": "annotations/01_SS1-68-E_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "01_SS1-68-E_comp.jams",
+      "bytes": 5447348,
+      "sha256": "1bea54e6d3f003e519d0afa5eee57bce7df57a535ef8c218198591fe096a52b8"
+    },
+    {
+      "track": "01_Jazz2-110-Bb_comp",
+      "path": "annotations/01_Jazz2-110-Bb_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "01_Jazz2-110-Bb_comp.jams",
+      "bytes": 2352952,
+      "sha256": "15ec1c9307608366b20c469a6d61e8192304a787edcc209aaaf658c27cd85882"
+    },
+    {
+      "track": "02_Funk1-97-C_comp",
+      "path": "annotations/02_Funk1-97-C_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "02_Funk1-97-C_comp.jams",
+      "bytes": 1295451,
+      "sha256": "292c8330635f53e35587e796c76ea47358647474471dfaeb8869167ff34a2549"
+    },
+    {
+      "track": "02_BN3-119-G_comp",
+      "path": "annotations/02_BN3-119-G_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "02_BN3-119-G_comp.jams",
+      "bytes": 3030987,
+      "sha256": "e29cf0c5a0841468c6f40242cf2193766730ef9679d590a0b7f81add6fbeccbb"
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "path": "annotations/03_Rock1-130-A_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "03_Rock1-130-A_comp.jams",
+      "bytes": 1694925,
+      "sha256": "502ab4f7788bad71bafe9572ba185e698b3cf82576be105acd6d4112b711f1fa"
+    },
+    {
+      "track": "03_Jazz3-150-C_comp",
+      "path": "annotations/03_Jazz3-150-C_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "03_Jazz3-150-C_comp.jams",
+      "bytes": 1069266,
+      "sha256": "f6582b8b45efe6661354788330a64a2f6a148134976d8f7f71a86cdaaddf92b5"
+    },
+    {
+      "track": "04_SS2-107-Ab_comp",
+      "path": "annotations/04_SS2-107-Ab_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "04_SS2-107-Ab_comp.jams",
+      "bytes": 2912820,
+      "sha256": "af25369890af9f973ff2452806a919bbb4db344dbe329c1aad88f29c4d3179de"
+    },
+    {
+      "track": "04_Funk2-119-G_comp",
+      "path": "annotations/04_Funk2-119-G_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "04_Funk2-119-G_comp.jams",
+      "bytes": 2034348,
+      "sha256": "7453b7207b821d89933e7d0e20c5189f284aec5d6736a0669d93ceed96fed578"
+    },
+    {
+      "track": "05_BN2-166-Ab_comp",
+      "path": "annotations/05_BN2-166-Ab_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "05_BN2-166-Ab_comp.jams",
+      "bytes": 1518258,
+      "sha256": "410e7373f7753871225bdc99f0f96d4f9e911fb72602427e1b177458430a4fda"
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "path": "annotations/05_SS3-84-Bb_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "05_SS3-84-Bb_comp.jams",
+      "bytes": 3052760,
+      "sha256": "93d6dbe0f9bee79ca03b11f5d1c0d7691e88c3f6d7a6cf41df8fe1e9aee5e09e"
+    }
+  ]
+}

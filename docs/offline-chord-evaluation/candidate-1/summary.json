@@ -1,0 +1,1365 @@
+{
+  "interpretation": "Mixed result: performed exact/root/pitch-class similarity improved, instructed exact and both major/minor projections regressed. This does not establish professional-quality recognition of arbitrary songs.",
+  "trainingOverlapCaveat": "These 12 GuitarSet takes were held out from our decoder tuning. They are not certified unseen by the pretrained Basic Pitch model: GuitarSet was a training dataset and this checkpoint has no verified track-membership manifest here. The takes cover six performers and five styles, not twelve independent songs. Instructed and sheet-informed semi-automatic performed annotations remain separate.",
+  "freezeSha256": "df569e59acfe00e2971fa4b4eeb6ec0235263e8c967d30d1c2c59ca5681f4a1f",
+  "binarySha256": "c6e3ba0623c08c1be73b605b0380e523349942978981c557ec271c0a63ef90bf",
+  "builderSourceBundleSha256": "757b24fe28ea1c40e44028427a8cd6db9a50badbf1426f9906c899d5eb469b2a",
+  "sourceBundleHashDefinition": "SHA256 of UTF-8 compact sorted JSON mapping the listed relative source paths to their SHA256 hashes",
+  "modelFiles": [
+    {
+      "path": "android/song-fingerprint/models/basic-pitch/nmp.nnef.tar",
+      "sha256": "274e46d8b4eec2d6a9da1d52d60744feb7f7dfdf6207dc12db10f5ddd9f3416f",
+      "bytes": 196096
+    },
+    {
+      "path": "android/song-fingerprint/models/basic-pitch/nmp.onnx",
+      "sha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+      "bytes": 230444
+    },
+    {
+      "path": "android/song-fingerprint/models/basic-pitch/provenance.json",
+      "sha256": "1582a76022087dcfae953653989fae3d61dd893edbd3d9de066f68e48e80d2a3",
+      "bytes": 2490
+    }
+  ],
+  "aggregate": {
+    "instructed": {
+      "exactRootAndFormula": {
+        "baselinePercent": 65.66618429681132,
+        "candidatePercent": 52.236333493395236,
+        "deltaPercentagePoints": -13.429850803416088,
+        "evaluatedSeconds": 379.0764000000001
+      },
+      "rootOnly": {
+        "baselinePercent": 72.47405652479003,
+        "candidatePercent": 77.61333805883032,
+        "deltaPercentagePoints": 5.139281534040297,
+        "evaluatedSeconds": 379.0764000000001
+      },
+      "majorMinorProjection": {
+        "baselinePercent": 72.79552292420381,
+        "candidatePercent": 67.75939157530098,
+        "deltaPercentagePoints": -5.036131348902828,
+        "evaluatedSeconds": 363.3016026175141
+      },
+      "pitchClassJaccard": {
+        "baselinePercent": 79.0636362793218,
+        "candidatePercent": 78.56940967358989,
+        "deltaPercentagePoints": -0.4942266057319178,
+        "evaluatedSeconds": 379.0764000000001
+      }
+    },
+    "performed": {
+      "exactRootAndFormula": {
+        "baselinePercent": 49.96404702305869,
+        "candidatePercent": 57.50615792064345,
+        "deltaPercentagePoints": 7.542110897584764,
+        "evaluatedSeconds": 379.0764000000001
+      },
+      "rootOnly": {
+        "baselinePercent": 72.47405652479003,
+        "candidatePercent": 77.61333805883032,
+        "deltaPercentagePoints": 5.139281534040297,
+        "evaluatedSeconds": 379.0764000000001
+      },
+      "majorMinorProjection": {
+        "baselinePercent": 86.64210790800055,
+        "candidatePercent": 81.26468953963911,
+        "deltaPercentagePoints": -5.377418368361453,
+        "evaluatedSeconds": 265.2893190506972
+      },
+      "pitchClassJaccard": {
+        "baselinePercent": 78.38156330222662,
+        "candidatePercent": 83.52485410841965,
+        "deltaPercentagePoints": 5.143290806193024,
+        "evaluatedSeconds": 379.0764000000001
+      }
+    }
+  },
+  "clips": [
+    {
+      "track": "00_BN1-129-Eb_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 59.21980038110358,
+            "candidatePercent": 6.630350856066151,
+            "deltaPercentagePoints": -52.58944952503744,
+            "evaluatedSeconds": 22.32439999999997
+          },
+          "rootOnly": {
+            "baselinePercent": 59.21980038110358,
+            "candidatePercent": 78.03079579627766,
+            "deltaPercentagePoints": 18.81099541517408,
+            "evaluatedSeconds": 22.32439999999997
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 59.21980038110358,
+            "candidatePercent": 69.60585716410836,
+            "deltaPercentagePoints": 10.386056783004783,
+            "evaluatedSeconds": 22.32439999999997
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 72.48785664908104,
+            "candidatePercent": 65.78851921712806,
+            "deltaPercentagePoints": -6.69933743195299,
+            "evaluatedSeconds": 22.32439999999997
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 4.623577997669057,
+            "candidatePercent": 23.297899513849313,
+            "deltaPercentagePoints": 18.674321516180257,
+            "evaluatedSeconds": 22.32439999999997
+          },
+          "rootOnly": {
+            "baselinePercent": 59.21980038110358,
+            "candidatePercent": 78.03079579627766,
+            "deltaPercentagePoints": 18.81099541517408,
+            "evaluatedSeconds": 22.32439999999997
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 57.15925922592188,
+            "candidatePercent": 55.9191017259194,
+            "deltaPercentagePoints": -1.2401575000024812,
+            "evaluatedSeconds": 9.30114418604648
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 54.487216119154525,
+            "candidatePercent": 69.3406840727564,
+            "deltaPercentagePoints": 14.853467953601884,
+            "evaluatedSeconds": 22.32439999999997
+          }
+        }
+      }
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 95.81189900671926,
+            "candidatePercent": 80.35030921062297,
+            "deltaPercentagePoints": -15.461589796096298,
+            "evaluatedSeconds": 32.816400000000016
+          },
+          "rootOnly": {
+            "baselinePercent": 95.81189900671926,
+            "candidatePercent": 95.12681315689872,
+            "deltaPercentagePoints": -0.6850858498205326,
+            "evaluatedSeconds": 32.816400000000016
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 95.81189900671926,
+            "candidatePercent": 83.05532490165174,
+            "deltaPercentagePoints": -12.75657410506752,
+            "evaluatedSeconds": 32.816400000000016
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 96.24745358715262,
+            "candidatePercent": 89.61845338535652,
+            "deltaPercentagePoints": -6.629000201796098,
+            "evaluatedSeconds": 32.816400000000016
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 84.10293172675699,
+            "candidatePercent": 74.66709703309695,
+            "deltaPercentagePoints": -9.43583469366004,
+            "evaluatedSeconds": 32.816400000000016
+          },
+          "rootOnly": {
+            "baselinePercent": 95.81189900671926,
+            "candidatePercent": 95.12681315689872,
+            "deltaPercentagePoints": -0.6850858498205326,
+            "evaluatedSeconds": 32.816400000000016
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 95.95137758413705,
+            "candidatePercent": 88.59308677593238,
+            "deltaPercentagePoints": -7.358290808204682,
+            "evaluatedSeconds": 30.765117948717965
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 92.81960736850667,
+            "candidatePercent": 89.15510365517679,
+            "deltaPercentagePoints": -3.664503713329892,
+            "evaluatedSeconds": 32.816400000000016
+          }
+        }
+      }
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 98.46192564740548,
+            "candidatePercent": 92.7025430872101,
+            "deltaPercentagePoints": -5.75938256019537,
+            "evaluatedSeconds": 42.34640000000002
+          },
+          "rootOnly": {
+            "baselinePercent": 98.46192564740548,
+            "candidatePercent": 98.3996938138223,
+            "deltaPercentagePoints": -0.06223183358318174,
+            "evaluatedSeconds": 42.34640000000002
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 98.46192564740548,
+            "candidatePercent": 92.7025430872101,
+            "deltaPercentagePoints": -5.75938256019537,
+            "evaluatedSeconds": 42.34640000000002
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 98.68418219591688,
+            "candidatePercent": 95.76502310727247,
+            "deltaPercentagePoints": -2.9191590886444185,
+            "evaluatedSeconds": 42.34640000000002
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 90.55403765137055,
+            "candidatePercent": 84.9946859848354,
+            "deltaPercentagePoints": -5.55935166653515,
+            "evaluatedSeconds": 42.34640000000002
+          },
+          "rootOnly": {
+            "baselinePercent": 98.46192564740548,
+            "candidatePercent": 98.3996938138223,
+            "deltaPercentagePoints": -0.06223183358318174,
+            "evaluatedSeconds": 42.34640000000002
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 98.46192564740548,
+            "candidatePercent": 92.7025430872101,
+            "deltaPercentagePoints": -5.75938256019537,
+            "evaluatedSeconds": 42.34640000000002
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 96.77833229243178,
+            "candidatePercent": 93.9634115250392,
+            "deltaPercentagePoints": -2.8149207673925702,
+            "evaluatedSeconds": 42.34640000000002
+          }
+        }
+      }
+    },
+    {
+      "track": "01_Jazz2-110-Bb_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 55.19240434323297,
+            "candidatePercent": 68.29184534265165,
+            "deltaPercentagePoints": 13.099440999418688,
+            "evaluatedSeconds": 34.90319999999997
+          },
+          "rootOnly": {
+            "baselinePercent": 90.73173493860433,
+            "candidatePercent": 92.14030596829895,
+            "deltaPercentagePoints": 1.4085710296946052,
+            "evaluatedSeconds": 34.90319999999997
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 87.78808174909932,
+            "candidatePercent": 78.04970512170215,
+            "deltaPercentagePoints": -9.738376627397184,
+            "evaluatedSeconds": 30.53956363636361
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 75.52666908374131,
+            "candidatePercent": 81.91251032292266,
+            "deltaPercentagePoints": 6.385841239181356,
+            "evaluatedSeconds": 34.90319999999997
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 45.47409771232233,
+            "candidatePercent": 92.0875275306876,
+            "deltaPercentagePoints": 46.61342981836526,
+            "evaluatedSeconds": 34.90319999999997
+          },
+          "rootOnly": {
+            "baselinePercent": 90.73173493860433,
+            "candidatePercent": 92.14030596829895,
+            "deltaPercentagePoints": 1.4085710296946052,
+            "evaluatedSeconds": 34.90319999999997
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 89.99803176326874,
+            "candidatePercent": 91.15699486091378,
+            "deltaPercentagePoints": 1.1589630976450493,
+            "evaluatedSeconds": 30.539563636363606
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 79.22132033391755,
+            "candidatePercent": 93.47624741784315,
+            "deltaPercentagePoints": 14.254927083925617,
+            "evaluatedSeconds": 34.90319999999997
+          }
+        }
+      }
+    },
+    {
+      "track": "02_Funk1-97-C_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 68.34201063222027,
+            "candidatePercent": 16.66797000932156,
+            "deltaPercentagePoints": -51.6740406228987,
+            "evaluatedSeconds": 29.6884
+          },
+          "rootOnly": {
+            "baselinePercent": 83.33762765060658,
+            "candidatePercent": 95.47400633549539,
+            "deltaPercentagePoints": 12.136378684888815,
+            "evaluatedSeconds": 29.6884
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 68.34201063222027,
+            "candidatePercent": 49.327190445586226,
+            "deltaPercentagePoints": -19.014820186634037,
+            "evaluatedSeconds": 29.6884
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 78.80847054429394,
+            "candidatePercent": 71.52724986226933,
+            "deltaPercentagePoints": -7.281220682024614,
+            "evaluatedSeconds": 29.6884
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 16.069034286986604,
+            "candidatePercent": 22.81721386686209,
+            "deltaPercentagePoints": 6.7481795798754876,
+            "evaluatedSeconds": 29.6884
+          },
+          "rootOnly": {
+            "baselinePercent": 83.33762765060658,
+            "candidatePercent": 95.47400633549539,
+            "deltaPercentagePoints": 12.136378684888815,
+            "evaluatedSeconds": 29.6884
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 96.40666666666664,
+            "candidatePercent": 0.0,
+            "deltaPercentagePoints": -96.40666666666664,
+            "evaluatedSeconds": 4.948453608247423
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 59.648558644817186,
+            "candidatePercent": 63.79615893344622,
+            "deltaPercentagePoints": 4.147600288629039,
+            "evaluatedSeconds": 29.6884
+          }
+        }
+      }
+    },
+    {
+      "track": "02_BN3-119-G_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 92.10606657302516,
+            "candidatePercent": 87.2462377460097,
+            "deltaPercentagePoints": -4.8598288270154555,
+            "evaluatedSeconds": 32.26319999999998
+          },
+          "rootOnly": {
+            "baselinePercent": 92.10606657302516,
+            "candidatePercent": 93.37815566232449,
+            "deltaPercentagePoints": 1.272089089299333,
+            "evaluatedSeconds": 32.26319999999998
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 92.10606657302516,
+            "candidatePercent": 87.2462377460097,
+            "deltaPercentagePoints": -4.8598288270154555,
+            "evaluatedSeconds": 32.26319999999998
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 93.16742096675021,
+            "candidatePercent": 91.04499298417579,
+            "deltaPercentagePoints": -2.1224279825744263,
+            "evaluatedSeconds": 32.26319999999998
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 80.79906664741331,
+            "candidatePercent": 81.3226900185054,
+            "deltaPercentagePoints": 0.5236233710920857,
+            "evaluatedSeconds": 32.26319999999998
+          },
+          "rootOnly": {
+            "baselinePercent": 92.10606657302516,
+            "candidatePercent": 93.37815566232449,
+            "deltaPercentagePoints": 1.272089089299333,
+            "evaluatedSeconds": 32.26319999999998
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 92.32295637554736,
+            "candidatePercent": 93.06375116660904,
+            "deltaPercentagePoints": 0.740794791061683,
+            "evaluatedSeconds": 30.246393277310908
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 90.00141653527194,
+            "candidatePercent": 90.64664474855385,
+            "deltaPercentagePoints": 0.6452282132819009,
+            "evaluatedSeconds": 32.26319999999998
+          }
+        }
+      }
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 95.74316739466285,
+            "candidatePercent": 41.85544100730218,
+            "deltaPercentagePoints": -53.88772638736068,
+            "evaluatedSeconds": 22.1472
+          },
+          "rootOnly": {
+            "baselinePercent": 95.74316739466285,
+            "candidatePercent": 87.66296555633355,
+            "deltaPercentagePoints": -8.080201838329303,
+            "evaluatedSeconds": 22.1472
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 95.74316739466285,
+            "candidatePercent": 54.95271741244595,
+            "deltaPercentagePoints": -40.790449982216906,
+            "evaluatedSeconds": 22.1472
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 96.35668478321276,
+            "candidatePercent": 75.679334645301,
+            "deltaPercentagePoints": -20.677350137911755,
+            "evaluatedSeconds": 22.1472
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 70.73566514398766,
+            "candidatePercent": 51.59771542573883,
+            "deltaPercentagePoints": -19.137949718248827,
+            "evaluatedSeconds": 22.1472
+          },
+          "rootOnly": {
+            "baselinePercent": 95.74316739466285,
+            "candidatePercent": 87.66296555633355,
+            "deltaPercentagePoints": -8.080201838329303,
+            "evaluatedSeconds": 22.1472
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 95.74316739466285,
+            "candidatePercent": 54.95271741244595,
+            "deltaPercentagePoints": -40.790449982216906,
+            "evaluatedSeconds": 22.1472
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 90.10480922054394,
+            "candidatePercent": 80.18525862735673,
+            "deltaPercentagePoints": -9.919550593187221,
+            "evaluatedSeconds": 22.1472
+          }
+        }
+      }
+    },
+    {
+      "track": "03_Jazz3-150-C_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 11.0,
+            "candidatePercent": 0.0,
+            "deltaPercentagePoints": -11.0,
+            "evaluatedSeconds": 25.600000000000023
+          },
+          "rootOnly": {
+            "baselinePercent": 13.124999999999998,
+            "candidatePercent": 11.499999999999996,
+            "deltaPercentagePoints": -1.6250000000000013,
+            "evaluatedSeconds": 25.600000000000023
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 11.0,
+            "candidatePercent": 6.0,
+            "deltaPercentagePoints": -5.0,
+            "evaluatedSeconds": 25.600000000000023
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 38.71249999999998,
+            "candidatePercent": 44.31560377604163,
+            "deltaPercentagePoints": 5.603103776041651,
+            "evaluatedSeconds": 25.600000000000023
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 0.0,
+            "candidatePercent": 0.0,
+            "deltaPercentagePoints": 0.0,
+            "evaluatedSeconds": 25.600000000000023
+          },
+          "rootOnly": {
+            "baselinePercent": 13.124999999999998,
+            "candidatePercent": 11.499999999999996,
+            "deltaPercentagePoints": -1.6250000000000013,
+            "evaluatedSeconds": 25.600000000000023
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 0.0,
+            "candidatePercent": 0.0,
+            "deltaPercentagePoints": 0.0,
+            "evaluatedSeconds": 1.5999999999999979
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 55.59374999999995,
+            "candidatePercent": 67.68201539248508,
+            "deltaPercentagePoints": 12.08826539248513,
+            "evaluatedSeconds": 25.600000000000023
+          }
+        }
+      }
+    },
+    {
+      "track": "04_SS2-107-Ab_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 37.124055769129036,
+            "candidatePercent": 53.30500290011727,
+            "deltaPercentagePoints": 16.180947130988233,
+            "evaluatedSeconds": 35.88639999999998
+          },
+          "rootOnly": {
+            "baselinePercent": 59.40578965587363,
+            "candidatePercent": 72.41464876392929,
+            "deltaPercentagePoints": 13.00885910805566,
+            "evaluatedSeconds": 35.88639999999998
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 67.89272305077907,
+            "candidatePercent": 81.50035329012827,
+            "deltaPercentagePoints": 13.6076302393492,
+            "evaluatedSeconds": 31.40041869158876
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 73.77894001514512,
+            "candidatePercent": 85.99857893041244,
+            "deltaPercentagePoints": 12.219638915267305,
+            "evaluatedSeconds": 35.88639999999998
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 36.91821411636224,
+            "candidatePercent": 65.24881896268315,
+            "deltaPercentagePoints": 28.330604846320913,
+            "evaluatedSeconds": 35.88639999999998
+          },
+          "rootOnly": {
+            "baselinePercent": 59.40578965587363,
+            "candidatePercent": 72.41464876392929,
+            "deltaPercentagePoints": 13.00885910805566,
+            "evaluatedSeconds": 35.88639999999998
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 70.87500427106357,
+            "candidatePercent": 86.9995974088605,
+            "deltaPercentagePoints": 16.12459313779693,
+            "evaluatedSeconds": 26.914437383177546
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 76.72829532936683,
+            "candidatePercent": 90.7873419206944,
+            "deltaPercentagePoints": 14.059046591327572,
+            "evaluatedSeconds": 35.88639999999998
+          }
+        }
+      }
+    },
+    {
+      "track": "04_Funk2-119-G_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 9.068270617032026,
+            "candidatePercent": 3.2930824639608045,
+            "deltaPercentagePoints": -5.7751881530712215,
+            "evaluatedSeconds": 32.2632000000001
+          },
+          "rootOnly": {
+            "baselinePercent": 9.068270617032026,
+            "candidatePercent": 21.277930200570832,
+            "deltaPercentagePoints": 12.209659583538807,
+            "evaluatedSeconds": 32.2632000000001
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 10.363999770429746,
+            "candidatePercent": 10.445921092144545,
+            "deltaPercentagePoints": 0.08192132171479793,
+            "evaluatedSeconds": 28.229586554621946
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 44.109423583462856,
+            "candidatePercent": 48.738638870336345,
+            "deltaPercentagePoints": 4.6292152868734835,
+            "evaluatedSeconds": 32.2632000000001
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 6.171924992566373,
+            "candidatePercent": 5.8468674980220285,
+            "deltaPercentagePoints": -0.3250574945443445,
+            "evaluatedSeconds": 32.2632000000001
+          },
+          "rootOnly": {
+            "baselinePercent": 9.068270617032026,
+            "candidatePercent": 21.277930200570832,
+            "deltaPercentagePoints": 12.209659583538807,
+            "evaluatedSeconds": 32.2632000000001
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 16.455555555555552,
+            "candidatePercent": 15.58888888888889,
+            "deltaPercentagePoints": -0.86666666666666,
+            "evaluatedSeconds": 12.100840336134453
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 58.13482439890071,
+            "candidatePercent": 68.18745623928343,
+            "deltaPercentagePoints": 10.05263184038272,
+            "evaluatedSeconds": 32.2632000000001
+          }
+        }
+      }
+    },
+    {
+      "track": "05_BN2-166-Ab_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 35.546283708113904,
+            "candidatePercent": 4.678845082014179,
+            "deltaPercentagePoints": -30.86743862609972,
+            "evaluatedSeconds": 23.129999999999995
+          },
+          "rootOnly": {
+            "baselinePercent": 37.32147786997537,
+            "candidatePercent": 57.24365685830222,
+            "deltaPercentagePoints": 19.92217898832685,
+            "evaluatedSeconds": 23.129999999999995
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 40.624959072264986,
+            "candidatePercent": 58.352811184731436,
+            "deltaPercentagePoints": 17.72785211246645,
+            "evaluatedSeconds": 20.238433734939754
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 58.20098378815738,
+            "candidatePercent": 63.97466033388077,
+            "deltaPercentagePoints": 5.773676545723394,
+            "evaluatedSeconds": 23.129999999999995
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 0.0,
+            "candidatePercent": 30.17402945113788,
+            "deltaPercentagePoints": 30.17402945113788,
+            "evaluatedSeconds": 23.129999999999995
+          },
+          "rootOnly": {
+            "baselinePercent": 37.32147786997537,
+            "candidatePercent": 57.24365685830222,
+            "deltaPercentagePoints": 19.92217898832685,
+            "evaluatedSeconds": 23.129999999999995
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 69.91122410703123,
+            "candidatePercent": 80.4787507467456,
+            "deltaPercentagePoints": 10.567526639714375,
+            "evaluatedSeconds": 8.672168674698788
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 59.34512901832767,
+            "candidatePercent": 74.01129314366975,
+            "deltaPercentagePoints": 14.666164125342075,
+            "evaluatedSeconds": 23.129999999999995
+          }
+        }
+      }
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "references": {
+        "instructed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 98.0297118453574,
+            "candidatePercent": 95.02689112032637,
+            "deltaPercentagePoints": -3.00282072503103,
+            "evaluatedSeconds": 45.70760000000001
+          },
+          "rootOnly": {
+            "baselinePercent": 98.0297118453574,
+            "candidatePercent": 98.06971769621309,
+            "deltaPercentagePoints": 0.04000585085568442,
+            "evaluatedSeconds": 45.70760000000001
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 98.0297118453574,
+            "candidatePercent": 95.02689112032637,
+            "deltaPercentagePoints": -3.00282072503103,
+            "evaluatedSeconds": 45.70760000000001
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 98.27174724303431,
+            "candidatePercent": 97.35748634487797,
+            "deltaPercentagePoints": -0.9142608981563494,
+            "evaluatedSeconds": 45.70760000000001
+          }
+        },
+        "performed": {
+          "exactRootAndFormula": {
+            "baselinePercent": 98.0297118453574,
+            "candidatePercent": 95.02689112032637,
+            "deltaPercentagePoints": -3.00282072503103,
+            "evaluatedSeconds": 45.70760000000001
+          },
+          "rootOnly": {
+            "baselinePercent": 98.0297118453574,
+            "candidatePercent": 98.06971769621309,
+            "deltaPercentagePoints": 0.04000585085568442,
+            "evaluatedSeconds": 45.70760000000001
+          },
+          "majorMinorProjection": {
+            "baselinePercent": 98.0297118453574,
+            "candidatePercent": 95.02689112032637,
+            "deltaPercentagePoints": -3.00282072503103,
+            "evaluatedSeconds": 45.70760000000001
+          },
+          "pitchClassJaccard": {
+            "baselinePercent": 98.27174724303431,
+            "candidatePercent": 97.35748634487797,
+            "deltaPercentagePoints": -0.9142608981563494,
+            "evaluatedSeconds": 45.70760000000001
+          }
+        }
+      }
+    }
+  ],
+  "allPerClipRegressions": [
+    {
+      "track": "00_BN1-129-Eb_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 59.21980038110358,
+      "candidatePercent": 6.630350856066151,
+      "deltaPercentagePoints": -52.58944952503744,
+      "evaluatedSeconds": 22.32439999999997
+    },
+    {
+      "track": "00_BN1-129-Eb_comp",
+      "reference": "instructed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 72.48785664908104,
+      "candidatePercent": 65.78851921712806,
+      "deltaPercentagePoints": -6.69933743195299,
+      "evaluatedSeconds": 22.32439999999997
+    },
+    {
+      "track": "00_BN1-129-Eb_comp",
+      "reference": "performed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 57.15925922592188,
+      "candidatePercent": 55.9191017259194,
+      "deltaPercentagePoints": -1.2401575000024812,
+      "evaluatedSeconds": 9.30114418604648
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 95.81189900671926,
+      "candidatePercent": 80.35030921062297,
+      "deltaPercentagePoints": -15.461589796096298,
+      "evaluatedSeconds": 32.816400000000016
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "reference": "instructed",
+      "metric": "rootOnly",
+      "baselinePercent": 95.81189900671926,
+      "candidatePercent": 95.12681315689872,
+      "deltaPercentagePoints": -0.6850858498205326,
+      "evaluatedSeconds": 32.816400000000016
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "reference": "instructed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 95.81189900671926,
+      "candidatePercent": 83.05532490165174,
+      "deltaPercentagePoints": -12.75657410506752,
+      "evaluatedSeconds": 32.816400000000016
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "reference": "instructed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 96.24745358715262,
+      "candidatePercent": 89.61845338535652,
+      "deltaPercentagePoints": -6.629000201796098,
+      "evaluatedSeconds": 32.816400000000016
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "reference": "performed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 84.10293172675699,
+      "candidatePercent": 74.66709703309695,
+      "deltaPercentagePoints": -9.43583469366004,
+      "evaluatedSeconds": 32.816400000000016
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "reference": "performed",
+      "metric": "rootOnly",
+      "baselinePercent": 95.81189900671926,
+      "candidatePercent": 95.12681315689872,
+      "deltaPercentagePoints": -0.6850858498205326,
+      "evaluatedSeconds": 32.816400000000016
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "reference": "performed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 95.95137758413705,
+      "candidatePercent": 88.59308677593238,
+      "deltaPercentagePoints": -7.358290808204682,
+      "evaluatedSeconds": 30.765117948717965
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "reference": "performed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 92.81960736850667,
+      "candidatePercent": 89.15510365517679,
+      "deltaPercentagePoints": -3.664503713329892,
+      "evaluatedSeconds": 32.816400000000016
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 98.46192564740548,
+      "candidatePercent": 92.7025430872101,
+      "deltaPercentagePoints": -5.75938256019537,
+      "evaluatedSeconds": 42.34640000000002
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "reference": "instructed",
+      "metric": "rootOnly",
+      "baselinePercent": 98.46192564740548,
+      "candidatePercent": 98.3996938138223,
+      "deltaPercentagePoints": -0.06223183358318174,
+      "evaluatedSeconds": 42.34640000000002
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "reference": "instructed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 98.46192564740548,
+      "candidatePercent": 92.7025430872101,
+      "deltaPercentagePoints": -5.75938256019537,
+      "evaluatedSeconds": 42.34640000000002
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "reference": "instructed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 98.68418219591688,
+      "candidatePercent": 95.76502310727247,
+      "deltaPercentagePoints": -2.9191590886444185,
+      "evaluatedSeconds": 42.34640000000002
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "reference": "performed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 90.55403765137055,
+      "candidatePercent": 84.9946859848354,
+      "deltaPercentagePoints": -5.55935166653515,
+      "evaluatedSeconds": 42.34640000000002
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "reference": "performed",
+      "metric": "rootOnly",
+      "baselinePercent": 98.46192564740548,
+      "candidatePercent": 98.3996938138223,
+      "deltaPercentagePoints": -0.06223183358318174,
+      "evaluatedSeconds": 42.34640000000002
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "reference": "performed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 98.46192564740548,
+      "candidatePercent": 92.7025430872101,
+      "deltaPercentagePoints": -5.75938256019537,
+      "evaluatedSeconds": 42.34640000000002
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "reference": "performed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 96.77833229243178,
+      "candidatePercent": 93.9634115250392,
+      "deltaPercentagePoints": -2.8149207673925702,
+      "evaluatedSeconds": 42.34640000000002
+    },
+    {
+      "track": "01_Jazz2-110-Bb_comp",
+      "reference": "instructed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 87.78808174909932,
+      "candidatePercent": 78.04970512170215,
+      "deltaPercentagePoints": -9.738376627397184,
+      "evaluatedSeconds": 30.53956363636361
+    },
+    {
+      "track": "02_Funk1-97-C_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 68.34201063222027,
+      "candidatePercent": 16.66797000932156,
+      "deltaPercentagePoints": -51.6740406228987,
+      "evaluatedSeconds": 29.6884
+    },
+    {
+      "track": "02_Funk1-97-C_comp",
+      "reference": "instructed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 68.34201063222027,
+      "candidatePercent": 49.327190445586226,
+      "deltaPercentagePoints": -19.014820186634037,
+      "evaluatedSeconds": 29.6884
+    },
+    {
+      "track": "02_Funk1-97-C_comp",
+      "reference": "instructed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 78.80847054429394,
+      "candidatePercent": 71.52724986226933,
+      "deltaPercentagePoints": -7.281220682024614,
+      "evaluatedSeconds": 29.6884
+    },
+    {
+      "track": "02_Funk1-97-C_comp",
+      "reference": "performed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 96.40666666666664,
+      "candidatePercent": 0.0,
+      "deltaPercentagePoints": -96.40666666666664,
+      "evaluatedSeconds": 4.948453608247423
+    },
+    {
+      "track": "02_BN3-119-G_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 92.10606657302516,
+      "candidatePercent": 87.2462377460097,
+      "deltaPercentagePoints": -4.8598288270154555,
+      "evaluatedSeconds": 32.26319999999998
+    },
+    {
+      "track": "02_BN3-119-G_comp",
+      "reference": "instructed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 92.10606657302516,
+      "candidatePercent": 87.2462377460097,
+      "deltaPercentagePoints": -4.8598288270154555,
+      "evaluatedSeconds": 32.26319999999998
+    },
+    {
+      "track": "02_BN3-119-G_comp",
+      "reference": "instructed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 93.16742096675021,
+      "candidatePercent": 91.04499298417579,
+      "deltaPercentagePoints": -2.1224279825744263,
+      "evaluatedSeconds": 32.26319999999998
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 95.74316739466285,
+      "candidatePercent": 41.85544100730218,
+      "deltaPercentagePoints": -53.88772638736068,
+      "evaluatedSeconds": 22.1472
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "reference": "instructed",
+      "metric": "rootOnly",
+      "baselinePercent": 95.74316739466285,
+      "candidatePercent": 87.66296555633355,
+      "deltaPercentagePoints": -8.080201838329303,
+      "evaluatedSeconds": 22.1472
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "reference": "instructed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 95.74316739466285,
+      "candidatePercent": 54.95271741244595,
+      "deltaPercentagePoints": -40.790449982216906,
+      "evaluatedSeconds": 22.1472
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "reference": "instructed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 96.35668478321276,
+      "candidatePercent": 75.679334645301,
+      "deltaPercentagePoints": -20.677350137911755,
+      "evaluatedSeconds": 22.1472
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "reference": "performed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 70.73566514398766,
+      "candidatePercent": 51.59771542573883,
+      "deltaPercentagePoints": -19.137949718248827,
+      "evaluatedSeconds": 22.1472
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "reference": "performed",
+      "metric": "rootOnly",
+      "baselinePercent": 95.74316739466285,
+      "candidatePercent": 87.66296555633355,
+      "deltaPercentagePoints": -8.080201838329303,
+      "evaluatedSeconds": 22.1472
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "reference": "performed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 95.74316739466285,
+      "candidatePercent": 54.95271741244595,
+      "deltaPercentagePoints": -40.790449982216906,
+      "evaluatedSeconds": 22.1472
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "reference": "performed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 90.10480922054394,
+      "candidatePercent": 80.18525862735673,
+      "deltaPercentagePoints": -9.919550593187221,
+      "evaluatedSeconds": 22.1472
+    },
+    {
+      "track": "03_Jazz3-150-C_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 11.0,
+      "candidatePercent": 0.0,
+      "deltaPercentagePoints": -11.0,
+      "evaluatedSeconds": 25.600000000000023
+    },
+    {
+      "track": "03_Jazz3-150-C_comp",
+      "reference": "instructed",
+      "metric": "rootOnly",
+      "baselinePercent": 13.124999999999998,
+      "candidatePercent": 11.499999999999996,
+      "deltaPercentagePoints": -1.6250000000000013,
+      "evaluatedSeconds": 25.600000000000023
+    },
+    {
+      "track": "03_Jazz3-150-C_comp",
+      "reference": "instructed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 11.0,
+      "candidatePercent": 6.0,
+      "deltaPercentagePoints": -5.0,
+      "evaluatedSeconds": 25.600000000000023
+    },
+    {
+      "track": "03_Jazz3-150-C_comp",
+      "reference": "performed",
+      "metric": "rootOnly",
+      "baselinePercent": 13.124999999999998,
+      "candidatePercent": 11.499999999999996,
+      "deltaPercentagePoints": -1.6250000000000013,
+      "evaluatedSeconds": 25.600000000000023
+    },
+    {
+      "track": "04_Funk2-119-G_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 9.068270617032026,
+      "candidatePercent": 3.2930824639608045,
+      "deltaPercentagePoints": -5.7751881530712215,
+      "evaluatedSeconds": 32.2632000000001
+    },
+    {
+      "track": "04_Funk2-119-G_comp",
+      "reference": "performed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 6.171924992566373,
+      "candidatePercent": 5.8468674980220285,
+      "deltaPercentagePoints": -0.3250574945443445,
+      "evaluatedSeconds": 32.2632000000001
+    },
+    {
+      "track": "04_Funk2-119-G_comp",
+      "reference": "performed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 16.455555555555552,
+      "candidatePercent": 15.58888888888889,
+      "deltaPercentagePoints": -0.86666666666666,
+      "evaluatedSeconds": 12.100840336134453
+    },
+    {
+      "track": "05_BN2-166-Ab_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 35.546283708113904,
+      "candidatePercent": 4.678845082014179,
+      "deltaPercentagePoints": -30.86743862609972,
+      "evaluatedSeconds": 23.129999999999995
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "reference": "instructed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 98.0297118453574,
+      "candidatePercent": 95.02689112032637,
+      "deltaPercentagePoints": -3.00282072503103,
+      "evaluatedSeconds": 45.70760000000001
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "reference": "instructed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 98.0297118453574,
+      "candidatePercent": 95.02689112032637,
+      "deltaPercentagePoints": -3.00282072503103,
+      "evaluatedSeconds": 45.70760000000001
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "reference": "instructed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 98.27174724303431,
+      "candidatePercent": 97.35748634487797,
+      "deltaPercentagePoints": -0.9142608981563494,
+      "evaluatedSeconds": 45.70760000000001
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "reference": "performed",
+      "metric": "exactRootAndFormula",
+      "baselinePercent": 98.0297118453574,
+      "candidatePercent": 95.02689112032637,
+      "deltaPercentagePoints": -3.00282072503103,
+      "evaluatedSeconds": 45.70760000000001
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "reference": "performed",
+      "metric": "majorMinorProjection",
+      "baselinePercent": 98.0297118453574,
+      "candidatePercent": 95.02689112032637,
+      "deltaPercentagePoints": -3.00282072503103,
+      "evaluatedSeconds": 45.70760000000001
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "reference": "performed",
+      "metric": "pitchClassJaccard",
+      "baselinePercent": 98.27174724303431,
+      "candidatePercent": 97.35748634487797,
+      "deltaPercentagePoints": -0.9142608981563494,
+      "evaluatedSeconds": 45.70760000000001
+    }
+  ],
+  "behindBlueEyes": {
+    "duration": 276.456813,
+    "segments": 110,
+    "intro": [
+      {
+        "start": 0.0,
+        "end": 0.288,
+        "chord": "N",
+        "confidence": 0.0
+      },
+      {
+        "start": 0.288,
+        "end": 2.464,
+        "chord": "Em",
+        "confidence": 0.5311
+      },
+      {
+        "start": 2.464,
+        "end": 4.576,
+        "chord": "G6",
+        "confidence": 0.5951
+      },
+      {
+        "start": 4.576,
+        "end": 8.48,
+        "chord": "Dsus2",
+        "confidence": 0.5978
+      },
+      {
+        "start": 8.48,
+        "end": 12.448,
+        "chord": "Cadd9",
+        "confidence": 0.6531
+      },
+      {
+        "start": 12.448,
+        "end": 15.968,
+        "chord": "Asus2",
+        "confidence": 0.6041
+      }
+    ],
+    "sequenceComparisons": {
+      "baseline": {
+        "timingStatus": "Untimed user-supplied chord order. It cannot support whole-song duration-weighted chord accuracy or transition-time accuracy. No section boundaries or E/Esus4 durations are assumed.",
+        "comparisonPolicy": "Only event-order edit counts against both structural variants. Ignore chord duration, merge consecutive identical canonical predictions, trim leading/trailing N only, retain internal N or X as explicit mismatch events. Report exact root/formula and root-only edit counts independently. Do not label an edit statistic as full-song chord accuracy.",
+        "metricWarning": "These are unit-cost ordered event edit counts, not duration-weighted accuracy. Counts describe one optimal alignment; no best structural variant is selected. Root-only sequences additionally merge consecutive equal roots.",
+        "engine": "chroma-v1",
+        "variants": [
+          {
+            "name": "printed-one-instrumental-cycle",
+            "status": "Exactly the supplied printed repetition count.",
+            "exactRootAndFormula": {
+              "editDistance": 73,
+              "expectedEventCount": 87,
+              "predictedEventCount": 100,
+              "matchedEvents": 27,
+              "substitutionEvents": 60,
+              "missingExpectedEvents": 0,
+              "extraPredictedEvents": 13
+            },
+            "rootOnly": {
+              "editDistance": 24,
+              "expectedEventCount": 75,
+              "predictedEventCount": 93,
+              "matchedEvents": 71,
+              "substitutionEvents": 2,
+              "missingExpectedEvents": 2,
+              "extraPredictedEvents": 20
+            }
+          },
+          {
+            "name": "two-instrumental-cycles-hypothesis",
+            "status": "The available audio appears to repeat this cycle twice; the supplied chart prints one. This is an unverified structural hypothesis and is reported separately, not selected to maximize a score.",
+            "exactRootAndFormula": {
+              "editDistance": 74,
+              "expectedEventCount": 92,
+              "predictedEventCount": 100,
+              "matchedEvents": 26,
+              "substitutionEvents": 66,
+              "missingExpectedEvents": 0,
+              "extraPredictedEvents": 8
+            },
+            "rootOnly": {
+              "editDistance": 21,
+              "expectedEventCount": 80,
+              "predictedEventCount": 93,
+              "matchedEvents": 75,
+              "substitutionEvents": 2,
+              "missingExpectedEvents": 3,
+              "extraPredictedEvents": 16
+            }
+          }
+        ]
+      },
+      "candidate": {
+        "timingStatus": "Untimed user-supplied chord order. It cannot support whole-song duration-weighted chord accuracy or transition-time accuracy. No section boundaries or E/Esus4 durations are assumed.",
+        "comparisonPolicy": "Only event-order edit counts against both structural variants. Ignore chord duration, merge consecutive identical canonical predictions, trim leading/trailing N only, retain internal N or X as explicit mismatch events. Report exact root/formula and root-only edit counts independently. Do not label an edit statistic as full-song chord accuracy.",
+        "metricWarning": "These are unit-cost ordered event edit counts, not duration-weighted accuracy. Counts describe one optimal alignment; no best structural variant is selected. Root-only sequences additionally merge consecutive equal roots.",
+        "engine": "chroma-v2",
+        "variants": [
+          {
+            "name": "printed-one-instrumental-cycle",
+            "status": "Exactly the supplied printed repetition count.",
+            "exactRootAndFormula": {
+              "editDistance": 66,
+              "expectedEventCount": 87,
+              "predictedEventCount": 108,
+              "matchedEvents": 46,
+              "substitutionEvents": 37,
+              "missingExpectedEvents": 4,
+              "extraPredictedEvents": 25
+            },
+            "rootOnly": {
+              "editDistance": 4,
+              "expectedEventCount": 75,
+              "predictedEventCount": 79,
+              "matchedEvents": 75,
+              "substitutionEvents": 0,
+              "missingExpectedEvents": 0,
+              "extraPredictedEvents": 4
+            }
+          },
+          {
+            "name": "two-instrumental-cycles-hypothesis",
+            "status": "The available audio appears to repeat this cycle twice; the supplied chart prints one. This is an unverified structural hypothesis and is reported separately, not selected to maximize a score.",
+            "exactRootAndFormula": {
+              "editDistance": 66,
+              "expectedEventCount": 92,
+              "predictedEventCount": 108,
+              "matchedEvents": 47,
+              "substitutionEvents": 40,
+              "missingExpectedEvents": 5,
+              "extraPredictedEvents": 21
+            },
+            "rootOnly": {
+              "editDistance": 1,
+              "expectedEventCount": 80,
+              "predictedEventCount": 79,
+              "matchedEvents": 79,
+              "substitutionEvents": 0,
+              "missingExpectedEvents": 1,
+              "extraPredictedEvents": 0
+            }
+          }
+        ]
+      }
+    }
+  },
+  "hostTiming": {
+    "holdoutAudioSeconds": 379.076376,
+    "holdoutProcessWallSeconds": 27.084198058997572,
+    "holdoutAnalyzerSeconds": 26.657332,
+    "behindBlueEyesProcessWallSeconds": 18.430971207000766,
+    "behindBlueEyesAnalyzerSeconds": 18.398856,
+    "warning": "Candidate wall time includes each CLI process startup and model initialization. CLI elapsedMs and the archived baseline elapsedMs have their own implementation-defined scope; these are host timings, not phone benchmarks."
+  },
+  "postEvaluationTuning": false
+}

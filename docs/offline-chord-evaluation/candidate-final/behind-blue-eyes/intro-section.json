@@ -1,0 +1,71 @@
+{
+  "engine": "chroma-v2",
+  "recordingSeconds": 276.456813,
+  "start": 0.0,
+  "end": 15.968,
+  "intervalSeconds": 15.968,
+  "context": "Supplied full-recording prediction; absolute times retained; analyzer not rerun.",
+  "segments": [
+    {
+      "start": 0.0,
+      "end": 0.288,
+      "chord": "N",
+      "sourceStart": 0.0,
+      "sourceEnd": 0.288,
+      "startClipped": false,
+      "endClipped": false
+    },
+    {
+      "start": 0.288,
+      "end": 2.464,
+      "chord": "Em",
+      "sourceStart": 0.288,
+      "sourceEnd": 2.464,
+      "startClipped": false,
+      "endClipped": false
+    },
+    {
+      "start": 2.464,
+      "end": 4.576,
+      "chord": "G6",
+      "sourceStart": 2.464,
+      "sourceEnd": 4.576,
+      "startClipped": false,
+      "endClipped": false
+    },
+    {
+      "start": 4.576,
+      "end": 8.48,
+      "chord": "Dsus2",
+      "sourceStart": 4.576,
+      "sourceEnd": 8.48,
+      "startClipped": false,
+      "endClipped": false
+    },
+    {
+      "start": 8.48,
+      "end": 12.448,
+      "chord": "Cadd9",
+      "sourceStart": 8.48,
+      "sourceEnd": 12.448,
+      "startClipped": false,
+      "endClipped": false
+    },
+    {
+      "start": 12.448,
+      "end": 15.968,
+      "chord": "Asus2",
+      "sourceStart": 12.448,
+      "sourceEnd": 15.968,
+      "startClipped": false,
+      "endClipped": false
+    }
+  ],
+  "predictionGaps": [],
+  "predictionGapSeconds": 0,
+  "predictedNSeconds": 0.288,
+  "predictedXSeconds": 0,
+  "evaluation": "No timed reference supplied; raw predictions only, no accuracy claim.",
+  "predictionSha256": "bd218d778cf0870fbd4bab39d21903d12d8d7a9e88ae17606ad15bf27e0af092",
+  "evaluatorSha256": "c7fb0879858ae5149d10b35d6f05877bcccd2a97a3f4ed5e5a839a03b8bd540e"
+}

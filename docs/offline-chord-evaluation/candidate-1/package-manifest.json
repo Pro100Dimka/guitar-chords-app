@@ -1,0 +1,415 @@
+{
+  "schemaVersion": 1,
+  "packagedUTC": "2026-11-26T21:47:44.442780+00:00",
+  "package": "candidate-1",
+  "purpose": "Historical first frozen evaluation; original recordings are now development-after-evaluation",
+  "copiedFiles": 48,
+  "allCopiedFilesByteIdenticalToSources": true,
+  "allowedExtensions": [
+    ".json",
+    ".md",
+    ".txt"
+  ],
+  "excludedArtifacts": [
+    "executables",
+    "audio",
+    "PCM",
+    "original JAMS",
+    "NPZ",
+    "source-tree snapshots"
+  ],
+  "inspection": "JSON keys and text inspected; no credential-shaped keys or values found in copied evidence. Largest copied file is 108709 bytes.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 3302,
+      "sha256": "f70dec811a60968feffdd922791278cc0d930c62bc4996141e356e281b3db2b1",
+      "role": "new packaging metadata",
+      "byteIdenticalToSource": false
+    },
+    {
+      "path": "baseline/frozen-manifest.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/frozen-manifest.json",
+      "bytes": 6768,
+      "sha256": "95eb52bae8ef8163bcf6745f619302006f338c2b1165400469da85668e275044",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/00_BN1-129-Eb_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/00_BN1-129-Eb_comp.json",
+      "bytes": 988,
+      "sha256": "7c1cc0937dfd05cc1948ccb115c05400e204b6b3106cbf6b7f8b517a1944eaf3",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/00_Rock3-117-Bb_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/00_Rock3-117-Bb_comp.json",
+      "bytes": 1192,
+      "sha256": "45d8c94b91afea0e89d4e421c63182d9b1666c50d1070d6209065257febde157",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/01_Jazz2-110-Bb_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/01_Jazz2-110-Bb_comp.json",
+      "bytes": 1400,
+      "sha256": "f9fac7368959fd5cf3aa434ff14badf38bd23b0961e3b197b38aaf1be7873140",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/01_SS1-68-E_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/01_SS1-68-E_comp.json",
+      "bytes": 508,
+      "sha256": "919238255df98539b1767d69af6242ba0b46c3e90d059d0b261e1ad65d758195",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/02_BN3-119-G_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/02_BN3-119-G_comp.json",
+      "bytes": 1315,
+      "sha256": "437052336f6133eb2464d38cb32aaabed1d066c55a50eb69ccb9a75c7130baa7",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/02_Funk1-97-C_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/02_Funk1-97-C_comp.json",
+      "bytes": 981,
+      "sha256": "b979399097a125ab0da830841b76338ef68c3c33bd3bfa4bd97010f318d8ba85",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/03_Jazz3-150-C_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/03_Jazz3-150-C_comp.json",
+      "bytes": 1254,
+      "sha256": "f7b1c45717b829e883bd09db6eb13cdbaca99098219fcce9d998f6453f6c4ba3",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/03_Rock1-130-A_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/03_Rock1-130-A_comp.json",
+      "bytes": 506,
+      "sha256": "b549017590480e86fb46a117d05edbae29bc28350191400396a4b6408fd8b000",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/04_Funk2-119-G_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/04_Funk2-119-G_comp.json",
+      "bytes": 1191,
+      "sha256": "588976ca400a1a64a555ccda23655df5d48b3f7934455eaa6f974b08f94f04d0",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/04_SS2-107-Ab_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/04_SS2-107-Ab_comp.json",
+      "bytes": 1199,
+      "sha256": "e95f4660d61f340ae2e390b35aac4ef357118b7d502fb35eec158c180d651b8d",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/05_BN2-166-Ab_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/05_BN2-166-Ab_comp.json",
+      "bytes": 1196,
+      "sha256": "90fb6d2596978a412f25fb78f81ad71daa84530b5feb82252ce8eb78443df3f1",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/05_SS3-84-Bb_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/05_SS3-84-Bb_comp.json",
+      "bytes": 1194,
+      "sha256": "a0dfabccef5db05ba63496387f1f2ab05270919f931e472e74fef537a8852e4a",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "baseline/outputs/behind-blue-eyes.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/baseline/outputs/behind-blue-eyes.json",
+      "bytes": 7197,
+      "sha256": "3e4f127e1666a9bc70811e3c9d2c34da1dd45a279126b7f3c26da525b82ae44a",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "behind-blue-eyes-detected-chords.txt",
+      "source": "chord-pro-evidence/production-frozen-comparison/behind-blue-eyes-detected-chords.txt",
+      "bytes": 3131,
+      "sha256": "f6e548a55bfe6c220688f7f343cd57a230500ed817fc9e7983aca07540d10ece",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "behind-blue-eyes-sequence.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/behind-blue-eyes-sequence.json",
+      "bytes": 4893,
+      "sha256": "8f36f20738fdbd9e742defbc805583fcdbb16a95168ed2df3576b69ad999d730",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/00_BN1-129-Eb_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/00_BN1-129-Eb_comp.json",
+      "bytes": 741,
+      "sha256": "aa398bee5468591c684b9c6252e7fdfcc6841e111196e28017982d22e66db1a6",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/00_Rock3-117-Bb_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/00_Rock3-117-Bb_comp.json",
+      "bytes": 1625,
+      "sha256": "25c78f295e2536d990c67ca4fe435cb55693ceb2d3206a73ded196c66b8db40c",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/01_Jazz2-110-Bb_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/01_Jazz2-110-Bb_comp.json",
+      "bytes": 1208,
+      "sha256": "1abb2201eaaf57b43e3885fa0d828635e142805c8c4f95eedb03d05f1508be08",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/01_SS1-68-E_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/01_SS1-68-E_comp.json",
+      "bytes": 788,
+      "sha256": "76b80ce5f4e8c76572a491cae8646476456449dd16e0ed27495c27a6f180ac91",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/02_BN3-119-G_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/02_BN3-119-G_comp.json",
+      "bytes": 1255,
+      "sha256": "fb10fcdb02cc8594fd352f8bcee03340459579ef7e8eb2a88d86b40079b8091b",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/02_Funk1-97-C_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/02_Funk1-97-C_comp.json",
+      "bytes": 515,
+      "sha256": "5abd843f2b270b4169c84cb222230fc7ede29bad492b944f930a46a910819278",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/03_Jazz3-150-C_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/03_Jazz3-150-C_comp.json",
+      "bytes": 1220,
+      "sha256": "a0912974997ac87f668f3177853439e99b2f4d34d66a02b99b4f39fd0ba19871",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/03_Rock1-130-A_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/03_Rock1-130-A_comp.json",
+      "bytes": 582,
+      "sha256": "c92224752ce2fd9b809b8e274308728282484477773fbff32a23a815254f2ba2",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/04_Funk2-119-G_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/04_Funk2-119-G_comp.json",
+      "bytes": 1222,
+      "sha256": "e94111cddde18b9f66b478fd0cae0cc1773208bc5c9f51404fb17f22bbbc6770",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/04_SS2-107-Ab_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/04_SS2-107-Ab_comp.json",
+      "bytes": 1146,
+      "sha256": "75c622f3f1b96aa1dd8e587483c985908e0ce2e8d3ead5a2f99c6371b950970e",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/05_BN2-166-Ab_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/05_BN2-166-Ab_comp.json",
+      "bytes": 1307,
+      "sha256": "bdfc89d659fa760e235e211bac3646e48e4f07e90d3fc4489f0afd6f29516637",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/05_SS3-84-Bb_comp.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/05_SS3-84-Bb_comp.json",
+      "bytes": 1334,
+      "sha256": "e4772f354c39abf0cb310e6175b554ac4e6ce93455a1850203a467a8a78461bb",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "candidate/outputs/behind-blue-eyes.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/outputs/behind-blue-eyes.json",
+      "bytes": 7905,
+      "sha256": "ad1c08a269e938fee690479842af458eb86b21ca506dbd7a9f7d6259062ba159",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "comparison.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/comparison.json",
+      "bytes": 88616,
+      "sha256": "f79387d5646224e1eb7d4403fa9f8981415a8022adec6340684df596adbb5fcc",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "completion.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/completion.json",
+      "bytes": 1214,
+      "sha256": "bbe475dbe38fc7f0638b6ab9ee848e57a75411f516b62f816ba6e0afb22eba39",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "confusion-diagnosis.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/confusion-diagnosis.json",
+      "bytes": 108709,
+      "sha256": "63f7abee65c906386660886e46ba98688c2f5095f1d5e41d002a8cb6488867b7",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "confusion-diagnosis.md",
+      "source": "chord-pro-evidence/production-frozen-comparison/confusion-diagnosis.md",
+      "bytes": 7422,
+      "sha256": "ca6963889aa6c4d9a03a5522d1e69e5bb524d660ca9ab27d7467406de84252d9",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "evaluation-inputs/acquisition-manifest.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/evaluation-inputs/acquisition-manifest.json",
+      "bytes": 8614,
+      "sha256": "e7cbb1af4729d6f4e6a7bdef75fc2c52aa9f5de0c3c70a6529d38eba5d4ee564",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "evaluation-inputs/evaluation-protocol-frozen.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/evaluation-inputs/evaluation-protocol-frozen.json",
+      "bytes": 906,
+      "sha256": "63b60f0514429cc9816315e10e529943fd2eb02693314b2e9c0d0908a3479711",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "evaluation-inputs/selection.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/evaluation-inputs/selection.json",
+      "bytes": 960,
+      "sha256": "fd3676349d3b80770f18881e4467b1b5d88763cc5162999f8786e12678f998db",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "inputs.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/inputs.json",
+      "bytes": 9739,
+      "sha256": "c828e487cf69a9412ed1ca0fe7816c8cbe02a39707271bb12a25cb3b6ef80e74",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "memory-900s/input.json",
+      "source": "chord-pro-evidence/production-stress/input.json",
+      "bytes": 524,
+      "sha256": "f05ce8e4e4b6dfcaabcd78ec264a32169f91b362a6da25f8b13a3d93f31716a2",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "memory-900s/memory-frozen-bp-900s.output.json",
+      "source": "chord-pro-evidence/production-stress/memory-frozen-bp-900s.output.json",
+      "bytes": 29857,
+      "sha256": "9c81886b7fdbf4c8bce9b6ce7ecbffde41da7331fc8bffa88a4d18e8b16e2adf",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "memory-900s/memory-frozen-bp-900s.stderr.txt",
+      "source": "chord-pro-evidence/production-stress/memory-frozen-bp-900s.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "memory-900s/memory-frozen-bp-900s.summary.json",
+      "source": "chord-pro-evidence/production-stress/memory-frozen-bp-900s.summary.json",
+      "bytes": 2135,
+      "sha256": "5f0dd6178185d487c3de70e60f4182e122764b0338d939ce60261d396f05e76d",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "memory-900s/memory-frozen-bp-900s.time.json",
+      "source": "chord-pro-evidence/production-stress/memory-frozen-bp-900s.time.json",
+      "bytes": 92,
+      "sha256": "abb2256e6261c1e3077d45b22bee345be6fd9663cee4f55f6380d1be9a658fa0",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "production-freeze.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/candidate/freeze.json",
+      "bytes": 4323,
+      "sha256": "df569e59acfe00e2971fa4b4eeb6ec0235263e8c967d30d1c2c59ca5681f4a1f",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "reference-coverage.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/reference-coverage.json",
+      "bytes": 6403,
+      "sha256": "750f6c0ab94134bf1edb862b6d10ad6327d6009207bed87a50eac33c86d83566",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "runs.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/runs.json",
+      "bytes": 11926,
+      "sha256": "1860059b42caeedfec186677a014ac78dfac8e7ce4c869a82a81318452ec336d",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "summary.json",
+      "source": "chord-pro-evidence/production-frozen-comparison/summary.json",
+      "bytes": 50687,
+      "sha256": "b1d472e7570abf48009898c30875aaef4bff3941c0a46548204f4e824534a5b2",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "summary.md",
+      "source": "chord-pro-evidence/production-frozen-comparison/summary.md",
+      "bytes": 4799,
+      "sha256": "010380124cdf5289ba87236326da108529acdb34b6419fe3a012e8c5aacd6a2e",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "third-loss-diagnosis.json",
+      "source": "chord-pro-evidence/third-loss-note-probes/third-loss-diagnosis.json",
+      "bytes": 6808,
+      "sha256": "8af8f38d01303bc7cc53bec27b04033a13746851ea4f4d791b621e1dd512278d",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    }
+  ]
+}

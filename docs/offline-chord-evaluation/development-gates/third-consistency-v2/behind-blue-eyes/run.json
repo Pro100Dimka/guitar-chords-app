@@ -1,0 +1,50 @@
+{
+  "candidateId": "third-consistency-v2",
+  "binarySha256": "015894ac74c96bdc804c3fe1ce4269acd541c9952f44e34f285cd3cad7345a03",
+  "inputPcmSha256": "2392aa27f470ea9e0c73ce62893b094b70c850ef19e979d9e464a24a9e56be51",
+  "inputSeconds": 276.4568125,
+  "returnCode": 0,
+  "wallSeconds": 18.375609783000982,
+  "command": [
+    "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-candidate-2/chord_probe",
+    "/workspace/scratch/4d3df6e78b9e/evidence/behind-blue-eyes/behind-blue-eyes-full-16k.pcm"
+  ],
+  "scope": "Known development recording, full-context prediction, never a blind test.",
+  "engine": "chroma-v2",
+  "elapsedMs": 18341.715,
+  "segmentCount": 116,
+  "firstFiveDetermined": [
+    {
+      "start": 0.288,
+      "end": 2.464,
+      "chord": "Em",
+      "confidence": 0.5311
+    },
+    {
+      "start": 2.464,
+      "end": 4.576,
+      "chord": "G6",
+      "confidence": 0.5951
+    },
+    {
+      "start": 4.576,
+      "end": 5.407891,
+      "chord": "D5",
+      "confidence": 0.5761
+    },
+    {
+      "start": 5.407891,
+      "end": 8.48,
+      "chord": "Dsus2",
+      "confidence": 0.6022
+    },
+    {
+      "start": 8.48,
+      "end": 12.448,
+      "chord": "Cadd9",
+      "confidence": 0.6531
+    }
+  ],
+  "introGatePassed": false,
+  "outputSha256": "72a874d41993f848c6659a724d08f4f63ed5c548b2e3d20d62f12517360c0c62"
+}

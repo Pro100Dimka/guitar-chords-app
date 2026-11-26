@@ -109,6 +109,7 @@ tasks.register("buildSongFingerprintNative", Exec) {
         .orElse("armeabi-v7a,arm64-v8a,x86_64").get().split(",").toList()
     workingDir file("../song-fingerprint")
     inputs.dir(file("../song-fingerprint/src"))
+    inputs.dir(file("../song-fingerprint/models"))
     inputs.files(file("../song-fingerprint/Cargo.toml"), file("../song-fingerprint/Cargo.lock"))
     inputs.property("architectures", architectures)
     inputs.property("ndkVersion", android.ndkVersion)

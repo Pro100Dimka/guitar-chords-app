@@ -1,0 +1,21 @@
+{
+  "status": "completed",
+  "completedUtc": "2026-11-26T21:10:50.791200+00:00",
+  "host": "Linux-6.18.57-x86_64-with-glibc2.41",
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "freezeSha256": "df569e59acfe00e2971fa4b4eeb6ec0235263e8c967d30d1c2c59ca5681f4a1f",
+  "baselineBinarySha256": "58764da6a69558abfeced1ba5f3708f453e032e94ab258db48cb9cc07b2b504a",
+  "candidateBinarySha256": "c6e3ba0623c08c1be73b605b0380e523349942978981c557ec271c0a63ef90bf",
+  "runnerSha256": "d09882d4158c190ccd581df99cdb6f9bbd02f313b67337cbd4d4e51aac34bf69",
+  "comparison": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-frozen-comparison/comparison.json",
+    "sha256": "f79387d5646224e1eb7d4403fa9f8981415a8022adec6340684df596adbb5fcc",
+    "bytes": 88616
+  },
+  "sequence": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-frozen-comparison/behind-blue-eyes-sequence.json",
+    "sha256": "8f36f20738fdbd9e742defbc805583fcdbb16a95168ed2df3576b69ad999d730",
+    "bytes": 4893
+  },
+  "chartTimingWarning": "Untimed event edit counts only; both printed and two-cycle structures remain separate, with no duration accuracy and no best-variant selection."
+}

@@ -1,0 +1,4099 @@
+{
+  "scope": "Post-evaluation descriptive confusion audit only. Original scores unchanged; no clip excluded and no decoder tuning or inference.",
+  "totalReferenceSeconds": 379.0764000000001,
+  "categories": {
+    "instructed": [
+      {
+        "category": "correct",
+        "seconds": 198.01561249875698
+      },
+      {
+        "category": "wrong_root",
+        "seconds": 84.57071516675602
+      },
+      {
+        "category": "same_root_extra_notes",
+        "seconds": 45.08782652286122
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "seconds": 36.03775621228519
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "seconds": 10.082674565551963
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "seconds": 2.884856538461541
+      },
+      {
+        "category": "same_root_missing_notes",
+        "seconds": 2.1051214953271042
+      },
+      {
+        "category": "undetermined_N_prediction",
+        "seconds": 0.2917010000000033
+      },
+      {
+        "category": "prediction_gap",
+        "seconds": 0.00013600000008295865
+      }
+    ],
+    "performed": [
+      {
+        "category": "correct",
+        "seconds": 217.99227322389004
+      },
+      {
+        "category": "wrong_root",
+        "seconds": 84.57071516675602
+      },
+      {
+        "category": "same_root_third_inserted",
+        "seconds": 22.01163660824743
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "seconds": 18.17578952790347
+      },
+      {
+        "category": "same_root_missing_notes",
+        "seconds": 11.56521369144581
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "seconds": 11.437552591868357
+      },
+      {
+        "category": "same_root_extra_notes",
+        "seconds": 10.640828350762806
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "seconds": 2.390553839126011
+      },
+      {
+        "category": "undetermined_N_prediction",
+        "seconds": 0.2917010000000033
+      },
+      {
+        "category": "prediction_gap",
+        "seconds": 0.00013600000008295865
+      }
+    ]
+  },
+  "concreteConfusions": {
+    "instructed": [
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "C7",
+        "seconds": 9.696
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "C5",
+        "seconds": 9.618106958762885
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "D#maj7",
+        "seconds": 8.91211323255814
+      },
+      {
+        "referenceLabel": "B:maj",
+        "predictionLabel": "Bmaj7",
+        "seconds": 7.231300979619414
+      },
+      {
+        "referenceLabel": "A#:hdim7",
+        "predictionLabel": "C#m6",
+        "seconds": 7.067715797770527
+      },
+      {
+        "referenceLabel": "G:min",
+        "predictionLabel": "A#maj7",
+        "seconds": 6.823187999999998
+      },
+      {
+        "referenceLabel": "G:maj",
+        "predictionLabel": "Bdim",
+        "seconds": 4.6720000000000015
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Em",
+        "seconds": 4.640000000000001
+      },
+      {
+        "referenceLabel": "G#:min",
+        "predictionLabel": "G#m6",
+        "seconds": 4.345131349397587
+      },
+      {
+        "referenceLabel": "A#:min",
+        "predictionLabel": "A#5",
+        "seconds": 4.302545454545454
+      },
+      {
+        "referenceLabel": "C:hdim7",
+        "predictionLabel": "C7",
+        "seconds": 4.002909090909094
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "F5",
+        "seconds": 3.8907617628866005
+      },
+      {
+        "referenceLabel": "A:maj",
+        "predictionLabel": "Asus4",
+        "seconds": 3.685661538461538
+      },
+      {
+        "referenceLabel": "G#:maj",
+        "predictionLabel": "G#6",
+        "seconds": 3.59813953488372
+      },
+      {
+        "referenceLabel": "A:maj",
+        "predictionLabel": "A5",
+        "seconds": 3.5710330407239805
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "Gm7",
+        "seconds": 3.4123999999999697
+      },
+      {
+        "referenceLabel": "D:7",
+        "predictionLabel": "Dm7",
+        "seconds": 3.0354118403361348
+      },
+      {
+        "referenceLabel": "D:maj",
+        "predictionLabel": "D6",
+        "seconds": 2.9006799999999995
+      },
+      {
+        "referenceLabel": "G:maj",
+        "predictionLabel": "Gsus2",
+        "seconds": 2.254185567010307
+      },
+      {
+        "referenceLabel": "C#:min",
+        "predictionLabel": "E6",
+        "seconds": 2.184074766355142
+      },
+      {
+        "referenceLabel": "C#:min",
+        "predictionLabel": "Esus4",
+        "seconds": 2.144
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "D#sus2",
+        "seconds": 2.1246270000000003
+      },
+      {
+        "referenceLabel": "D#:7",
+        "predictionLabel": "D#",
+        "seconds": 2.1051214953271042
+      },
+      {
+        "referenceLabel": "A:maj",
+        "predictionLabel": "Asus2",
+        "seconds": 2.069659999999999
+      },
+      {
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "Gm",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "referenceLabel": "A:hdim7",
+        "predictionLabel": "G#maj7",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "referenceLabel": "D:maj",
+        "predictionLabel": "Dsus4",
+        "seconds": 1.9900185565610862
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Faug",
+        "seconds": 1.9224615384615404
+      },
+      {
+        "referenceLabel": "F:7",
+        "predictionLabel": "G#5",
+        "seconds": 1.9191932773109244
+      },
+      {
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "A#maj7",
+        "seconds": 1.8863865546218488
+      },
+      {
+        "referenceLabel": "D:maj",
+        "predictionLabel": "Asus4",
+        "seconds": 1.8461538461538467
+      },
+      {
+        "referenceLabel": "C:min",
+        "predictionLabel": "D#",
+        "seconds": 1.76
+      },
+      {
+        "referenceLabel": "D#:7",
+        "predictionLabel": "C#m6",
+        "seconds": 1.74678861445783
+      },
+      {
+        "referenceLabel": "C:min",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.7352605042016798
+      },
+      {
+        "referenceLabel": "A:hdim7",
+        "predictionLabel": "Cm",
+        "seconds": 1.6639999999999997
+      },
+      {
+        "referenceLabel": "F:7",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.6567394957983197
+      },
+      {
+        "referenceLabel": "E:min",
+        "predictionLabel": "Gadd9",
+        "seconds": 1.6000000000000014
+      },
+      {
+        "referenceLabel": "A:min",
+        "predictionLabel": "G6",
+        "seconds": 1.6000000000000005
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.5999999999999996
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Am7",
+        "seconds": 1.5680000000000014
+      },
+      {
+        "referenceLabel": "G#:maj",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.5486511627906978
+      },
+      {
+        "referenceLabel": "C#:min",
+        "predictionLabel": "C#madd9",
+        "seconds": 1.329734939759037
+      },
+      {
+        "referenceLabel": "E:maj",
+        "predictionLabel": "G#m",
+        "seconds": 1.3266506024096385
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.3090295094782078
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "Gmadd9",
+        "seconds": 1.299420831932773
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "Gm",
+        "seconds": 1.2589360504201688
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.248000000000001
+      },
+      {
+        "referenceLabel": "G#:min",
+        "predictionLabel": "G#aug",
+        "seconds": 1.2292059999999996
+      },
+      {
+        "referenceLabel": "E:maj",
+        "predictionLabel": "Emaj7",
+        "seconds": 1.216000000000001
+      },
+      {
+        "referenceLabel": "A:min",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.120000000000001
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Am",
+        "seconds": 1.0052790000000016
+      },
+      {
+        "referenceLabel": "F#:7",
+        "predictionLabel": "F#6",
+        "seconds": 0.9623950000000008
+      },
+      {
+        "referenceLabel": "F#:7",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.9372854408287354
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Esus4",
+        "seconds": 0.9279999999999999
+      },
+      {
+        "referenceLabel": "D#:7",
+        "predictionLabel": "C#madd9",
+        "seconds": 0.9011150000000026
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "D#add9",
+        "seconds": 0.8876887692307669
+      },
+      {
+        "referenceLabel": "D:7",
+        "predictionLabel": "Ddim",
+        "seconds": 0.8806890000000003
+      },
+      {
+        "referenceLabel": "G:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.8640000000000005
+      },
+      {
+        "referenceLabel": "E:min",
+        "predictionLabel": "G6",
+        "seconds": 0.863999999999999
+      },
+      {
+        "referenceLabel": "C#:min",
+        "predictionLabel": "Emaj7",
+        "seconds": 0.8320000000000001
+      },
+      {
+        "referenceLabel": "E:min",
+        "predictionLabel": "Esus4",
+        "seconds": 0.7360000000000007
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "C5",
+        "seconds": 0.6462680412371142
+      },
+      {
+        "referenceLabel": "D#:min",
+        "predictionLabel": "A#5",
+        "seconds": 0.625454545454545
+      },
+      {
+        "referenceLabel": "G:maj",
+        "predictionLabel": "Cmaj7",
+        "seconds": 0.5759999999999987
+      },
+      {
+        "referenceLabel": "G:min",
+        "predictionLabel": "Gsus4",
+        "seconds": 0.5359848974358981
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "G",
+        "seconds": 0.5265210084033587
+      },
+      {
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "A#5",
+        "seconds": 0.5129317435897445
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "D#5",
+        "seconds": 0.5080896923076939
+      },
+      {
+        "referenceLabel": "A:min",
+        "predictionLabel": "Gadd9",
+        "seconds": 0.4800000000000004
+      },
+      {
+        "referenceLabel": "C#:min",
+        "predictionLabel": "Em6",
+        "seconds": 0.48
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "G",
+        "seconds": 0.4735758907563019
+      },
+      {
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "D#",
+        "seconds": 0.4573772893772805
+      },
+      {
+        "referenceLabel": "A:maj",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.4406153846153851
+      },
+      {
+        "referenceLabel": "A:maj",
+        "predictionLabel": "E",
+        "seconds": 0.42381900452488885
+      },
+      {
+        "referenceLabel": "F#:maj",
+        "predictionLabel": "C7",
+        "seconds": 0.4130909090909043
+      },
+      {
+        "referenceLabel": "C#:maj",
+        "predictionLabel": "F#",
+        "seconds": 0.40145454545454484
+      },
+      {
+        "referenceLabel": "F#:7",
+        "predictionLabel": "F#m7",
+        "seconds": 0.39555834579439253
+      },
+      {
+        "referenceLabel": "D:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.393680672268907
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "A#",
+        "seconds": 0.39197069597069634
+      },
+      {
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "D#maj7",
+        "seconds": 0.3802790697674414
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "G#6",
+        "seconds": 0.3698604651162789
+      },
+      {
+        "referenceLabel": "C:hdim7",
+        "predictionLabel": "F7",
+        "seconds": 0.36072727272726723
+      },
+      {
+        "referenceLabel": "F:7",
+        "predictionLabel": "Gm",
+        "seconds": 0.3600672268907559
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "F5",
+        "seconds": 0.3520000000000003
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Amadd9",
+        "seconds": 0.3387209999999996
+      },
+      {
+        "referenceLabel": "E:maj",
+        "predictionLabel": "C#m6",
+        "seconds": 0.3323805877716408
+      },
+      {
+        "referenceLabel": "D:min",
+        "predictionLabel": "D#",
+        "seconds": 0.3267985347985327
+      },
+      {
+        "referenceLabel": "G#:7",
+        "predictionLabel": "C#",
+        "seconds": 0.32581818181817823
+      },
+      {
+        "referenceLabel": "E:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.3189221176470589
+      },
+      {
+        "referenceLabel": "G#:maj",
+        "predictionLabel": "A#",
+        "seconds": 0.3118139534883717
+      },
+      {
+        "referenceLabel": "G:maj",
+        "predictionLabel": "G6",
+        "seconds": 0.28800000000000026
+      },
+      {
+        "referenceLabel": "D#:min",
+        "predictionLabel": "G#dim",
+        "seconds": 0.2861500000000001
+      },
+      {
+        "referenceLabel": "A:hdim7",
+        "predictionLabel": "G",
+        "seconds": 0.28477310924369803
+      },
+      {
+        "referenceLabel": "C:min",
+        "predictionLabel": "Gm",
+        "seconds": 0.2815462184873958
+      },
+      {
+        "referenceLabel": "D:maj",
+        "predictionLabel": "N",
+        "seconds": 0.2796001596638682
+      },
+      {
+        "referenceLabel": "B:min",
+        "predictionLabel": "C",
+        "seconds": 0.26890756302520913
+      },
+      {
+        "referenceLabel": "E:maj",
+        "predictionLabel": "Asus4",
+        "seconds": 0.26338461538461644
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.2616470588235291
+      },
+      {
+        "referenceLabel": "C:min",
+        "predictionLabel": "G#5",
+        "seconds": 0.25680672268907556
+      },
+      {
+        "referenceLabel": "D#:7",
+        "predictionLabel": "G#m",
+        "seconds": 0.2518130841121451
+      },
+      {
+        "referenceLabel": "B:maj",
+        "predictionLabel": "A5",
+        "seconds": 0.24470588235294244
+      },
+      {
+        "referenceLabel": "D#:7",
+        "predictionLabel": "G#m6",
+        "seconds": 0.243662650602408
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Gsus2",
+        "seconds": 0.24181443298969185
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Fsus2",
+        "seconds": 0.23815000000000097
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "F",
+        "seconds": 0.2355463917525782
+      },
+      {
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "F",
+        "seconds": 0.22728205128205103
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Bdim",
+        "seconds": 0.2240000000000002
+      },
+      {
+        "referenceLabel": "G:maj",
+        "predictionLabel": "F5",
+        "seconds": 0.22004123711340284
+      },
+      {
+        "referenceLabel": "D#:min",
+        "predictionLabel": "G#m",
+        "seconds": 0.21236363636363365
+      },
+      {
+        "referenceLabel": "G#:min",
+        "predictionLabel": "C#madd9",
+        "seconds": 0.20626506024096436
+      },
+      {
+        "referenceLabel": "F#:7",
+        "predictionLabel": "F#m6",
+        "seconds": 0.2015568072289149
+      },
+      {
+        "referenceLabel": "C#:min",
+        "predictionLabel": "F#7",
+        "seconds": 0.1926990203805845
+      },
+      {
+        "referenceLabel": "D:min",
+        "predictionLabel": "Gm",
+        "seconds": 0.18789743589743502
+      },
+      {
+        "referenceLabel": "G#:min",
+        "predictionLabel": "E6",
+        "seconds": 0.1839252336448567
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "A#",
+        "seconds": 0.1798095238095243
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Gm",
+        "seconds": 0.17910622710622537
+      },
+      {
+        "referenceLabel": "G:min",
+        "predictionLabel": "Dm7",
+        "seconds": 0.17586554621848904
+      },
+      {
+        "referenceLabel": "A#:hdim7",
+        "predictionLabel": "D#7",
+        "seconds": 0.1749532710280377
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Am7",
+        "seconds": 0.16000000000000014
+      },
+      {
+        "referenceLabel": "E:min",
+        "predictionLabel": "Bm",
+        "seconds": 0.13929411764705968
+      },
+      {
+        "referenceLabel": "G:maj",
+        "predictionLabel": "D",
+        "seconds": 0.13606722689075745
+      },
+      {
+        "referenceLabel": "A#:hdim7",
+        "predictionLabel": "D#",
+        "seconds": 0.1348785046728942
+      },
+      {
+        "referenceLabel": "E:maj",
+        "predictionLabel": "A",
+        "seconds": 0.133647058823529
+      },
+      {
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "Gmadd9",
+        "seconds": 0.13042016806722678
+      },
+      {
+        "referenceLabel": "B:maj",
+        "predictionLabel": "E",
+        "seconds": 0.12889719626167917
+      },
+      {
+        "referenceLabel": "G#:maj",
+        "predictionLabel": "D#maj7",
+        "seconds": 0.12279069767441975
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "D#",
+        "seconds": 0.11885714285713789
+      },
+      {
+        "referenceLabel": "D:7",
+        "predictionLabel": "G#maj7",
+        "seconds": 0.1175126050420161
+      },
+      {
+        "referenceLabel": "C#:min",
+        "predictionLabel": "F#m6",
+        "seconds": 0.11604819277108369
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Gsus4",
+        "seconds": 0.1025641025641022
+      },
+      {
+        "referenceLabel": "C#:min",
+        "predictionLabel": "F#m7",
+        "seconds": 0.09899065420560715
+      },
+      {
+        "referenceLabel": "F:7",
+        "predictionLabel": "A#maj7",
+        "seconds": 0.0976134453781512
+      },
+      {
+        "referenceLabel": "E:maj",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.08741357955185247
+      },
+      {
+        "referenceLabel": "G:maj",
+        "predictionLabel": "C",
+        "seconds": 0.08013445378151118
+      },
+      {
+        "referenceLabel": "A:hdim7",
+        "predictionLabel": "Dm7",
+        "seconds": 0.06803361344537784
+      },
+      {
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "Faug",
+        "seconds": 0.06153846153846132
+      },
+      {
+        "referenceLabel": "A#:min",
+        "predictionLabel": "F7",
+        "seconds": 0.06109090909090931
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "F",
+        "seconds": 0.05497435897435743
+      },
+      {
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "D#5",
+        "seconds": 0.05169230769230637
+      },
+      {
+        "referenceLabel": "F:7",
+        "predictionLabel": "A#m",
+        "seconds": 0.04945454545454453
+      },
+      {
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "A#5",
+        "seconds": 0.048410256410255315
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "D#add9",
+        "seconds": 0.04676923076923245
+      },
+      {
+        "referenceLabel": "G:min",
+        "predictionLabel": "Dm",
+        "seconds": 0.0418461538461532
+      },
+      {
+        "referenceLabel": "D:maj",
+        "predictionLabel": "G",
+        "seconds": 0.03845378151260448
+      },
+      {
+        "referenceLabel": "D:maj",
+        "predictionLabel": "A5",
+        "seconds": 0.0369230769230775
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Gadd9",
+        "seconds": 0.031999999999996476
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.031999999999996476
+      },
+      {
+        "referenceLabel": "B:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.02070588235294224
+      },
+      {
+        "referenceLabel": "G#:7",
+        "predictionLabel": "G#m",
+        "seconds": 0.01842136363636726
+      },
+      {
+        "referenceLabel": "B:maj",
+        "predictionLabel": "G#m",
+        "seconds": 0.017349397590360915
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "N",
+        "seconds": 0.012100840336135121
+      },
+      {
+        "referenceLabel": "D#:min",
+        "predictionLabel": "G#7",
+        "seconds": 0.00766818181818163
+      },
+      {
+        "referenceLabel": "G:min",
+        "predictionLabel": "F",
+        "seconds": 0.00457142857142756
+      },
+      {
+        "referenceLabel": "F:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 2.500000001504077e-05
+      },
+      {
+        "referenceLabel": "E:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 2.500000001504077e-05
+      },
+      {
+        "referenceLabel": "C:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 2.5000000000829914e-05
+      },
+      {
+        "referenceLabel": "G#:min",
+        "predictionLabel": "<gap>",
+        "seconds": 2.4999999979513632e-05
+      },
+      {
+        "referenceLabel": "G:min",
+        "predictionLabel": "<gap>",
+        "seconds": 1.2000000097600605e-05
+      },
+      {
+        "referenceLabel": "D:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 1.1999999983913767e-05
+      },
+      {
+        "referenceLabel": "A#:min",
+        "predictionLabel": "<gap>",
+        "seconds": 1.1999999969702912e-05
+      },
+      {
+        "referenceLabel": "G:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 2.1316282072803006e-14
+      }
+    ],
+    "performed": [
+      {
+        "referenceLabel": "C:sus4/4",
+        "predictionLabel": "C7",
+        "seconds": 9.696
+      },
+      {
+        "referenceLabel": "A#:hdim7/1",
+        "predictionLabel": "C#m6",
+        "seconds": 7.067715797770527
+      },
+      {
+        "referenceLabel": "G:min9(*1)/b7",
+        "predictionLabel": "A#maj7",
+        "seconds": 6.823187999999998
+      },
+      {
+        "referenceLabel": "D#:sus2(7)/1",
+        "predictionLabel": "D#maj7",
+        "seconds": 5.1911830000000005
+      },
+      {
+        "referenceLabel": "F:(1,5)/1",
+        "predictionLabel": "F",
+        "seconds": 4.948453608247423
+      },
+      {
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "Bdim",
+        "seconds": 4.6720000000000015
+      },
+      {
+        "referenceLabel": "C:maj/3",
+        "predictionLabel": "C5",
+        "seconds": 4.671999999999999
+      },
+      {
+        "referenceLabel": "C:maj7(*1)/5",
+        "predictionLabel": "Em",
+        "seconds": 4.640000000000001
+      },
+      {
+        "referenceLabel": "A:maj/5",
+        "predictionLabel": "Asus4",
+        "seconds": 3.685661538461538
+      },
+      {
+        "referenceLabel": "G#:maj6(*5)/1",
+        "predictionLabel": "G#6",
+        "seconds": 3.59813953488372
+      },
+      {
+        "referenceLabel": "A:maj/5",
+        "predictionLabel": "A5",
+        "seconds": 3.547076923076924
+      },
+      {
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "Gm7",
+        "seconds": 3.4123999999999697
+      },
+      {
+        "referenceLabel": "B:maj(11)/1",
+        "predictionLabel": "B",
+        "seconds": 3.2639999999999993
+      },
+      {
+        "referenceLabel": "G:(1,5)/1",
+        "predictionLabel": "Gsus2",
+        "seconds": 2.254185567010307
+      },
+      {
+        "referenceLabel": "C#:min7/1",
+        "predictionLabel": "E6",
+        "seconds": 2.184074766355142
+      },
+      {
+        "referenceLabel": "E:(1,5,#11)/1",
+        "predictionLabel": "E",
+        "seconds": 2.176000000000001
+      },
+      {
+        "referenceLabel": "C#:min7(*5)/1",
+        "predictionLabel": "Esus4",
+        "seconds": 2.144
+      },
+      {
+        "referenceLabel": "A:maj/5",
+        "predictionLabel": "Asus2",
+        "seconds": 2.069659999999999
+      },
+      {
+        "referenceLabel": "D:9(#9,*5)/1",
+        "predictionLabel": "Dm7",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "referenceLabel": "A#:maj6(11,*5)/4",
+        "predictionLabel": "Gm",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "referenceLabel": "A:hdim7/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "referenceLabel": "D:(1,5)/5",
+        "predictionLabel": "Dsus4",
+        "seconds": 1.978352941176471
+      },
+      {
+        "referenceLabel": "F:maj(*5)/1",
+        "predictionLabel": "Faug",
+        "seconds": 1.9224615384615404
+      },
+      {
+        "referenceLabel": "F:7(7,#9,*5)/1",
+        "predictionLabel": "G#5",
+        "seconds": 1.9191932773109244
+      },
+      {
+        "referenceLabel": "B:min(4)/1",
+        "predictionLabel": "Bm",
+        "seconds": 1.9111260504201688
+      },
+      {
+        "referenceLabel": "D#:sus2(7)/1",
+        "predictionLabel": "D#sus2",
+        "seconds": 1.8808170000000004
+      },
+      {
+        "referenceLabel": "F:maj(#11)/b5",
+        "predictionLabel": "F",
+        "seconds": 1.8650256410256425
+      },
+      {
+        "referenceLabel": "D:maj(2)/2",
+        "predictionLabel": "Asus4",
+        "seconds": 1.8461538461538467
+      },
+      {
+        "referenceLabel": "C:min7/1",
+        "predictionLabel": "D#",
+        "seconds": 1.76
+      },
+      {
+        "referenceLabel": "D#:7(b9,*5)/1",
+        "predictionLabel": "C#m6",
+        "seconds": 1.74678861445783
+      },
+      {
+        "referenceLabel": "C:min/b3",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.7352605042016798
+      },
+      {
+        "referenceLabel": "A:hdim7/1",
+        "predictionLabel": "Cm",
+        "seconds": 1.6639999999999997
+      },
+      {
+        "referenceLabel": "F:9/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.6567394957983197
+      },
+      {
+        "referenceLabel": "E:sus4(6)/5",
+        "predictionLabel": "Gadd9",
+        "seconds": 1.6000000000000014
+      },
+      {
+        "referenceLabel": "A:min7(*1)/b7",
+        "predictionLabel": "G6",
+        "seconds": 1.6000000000000005
+      },
+      {
+        "referenceLabel": "F:sus2(7)/1",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.5999999999999996
+      },
+      {
+        "referenceLabel": "F:maj9/1",
+        "predictionLabel": "Am7",
+        "seconds": 1.5680000000000014
+      },
+      {
+        "referenceLabel": "G#:maj6(2,b5,*5)/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.5486511627906978
+      },
+      {
+        "referenceLabel": "G#:aug(b7)/1",
+        "predictionLabel": "G#m6",
+        "seconds": 1.4560952048192775
+      },
+      {
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "F5",
+        "seconds": 1.3908030000000018
+      },
+      {
+        "referenceLabel": "C#:min9(*5)/1",
+        "predictionLabel": "C#madd9",
+        "seconds": 1.329734939759037
+      },
+      {
+        "referenceLabel": "E:maj7(*1)/5",
+        "predictionLabel": "G#m",
+        "seconds": 1.3266506024096385
+      },
+      {
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.3090295094782078
+      },
+      {
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "Gmadd9",
+        "seconds": 1.299420831932773
+      },
+      {
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "Gm",
+        "seconds": 1.2589360504201688
+      },
+      {
+        "referenceLabel": "C:maj7(11,*1)/4",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.248000000000001
+      },
+      {
+        "referenceLabel": "G#:aug(b7)/1",
+        "predictionLabel": "G#aug",
+        "seconds": 1.2292059999999996
+      },
+      {
+        "referenceLabel": "A:min7(*1,*5)/b7",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.120000000000001
+      },
+      {
+        "referenceLabel": "F#:7(13,*5)/1",
+        "predictionLabel": "F#7",
+        "seconds": 1.0822168674698796
+      },
+      {
+        "referenceLabel": "G:min9(*1)/b7",
+        "predictionLabel": "Gm",
+        "seconds": 1.0624537815126054
+      },
+      {
+        "referenceLabel": "D:min9(*5)/1",
+        "predictionLabel": "Dm7",
+        "seconds": 1.0186051176470592
+      },
+      {
+        "referenceLabel": "F:maj7(*1)/7",
+        "predictionLabel": "Am",
+        "seconds": 1.0052790000000016
+      },
+      {
+        "referenceLabel": "F#:7(13,*5)/1",
+        "predictionLabel": "F#6",
+        "seconds": 0.9623950000000008
+      },
+      {
+        "referenceLabel": "F:(1,5,7)/1",
+        "predictionLabel": "Esus4",
+        "seconds": 0.9279999999999999
+      },
+      {
+        "referenceLabel": "D#:7(b9,*5)/1",
+        "predictionLabel": "C#madd9",
+        "seconds": 0.9011150000000026
+      },
+      {
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "D#add9",
+        "seconds": 0.8876887692307669
+      },
+      {
+        "referenceLabel": "D:min9(*5)/1",
+        "predictionLabel": "Ddim",
+        "seconds": 0.8806890000000003
+      },
+      {
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "Em",
+        "seconds": 0.8640000000000005
+      },
+      {
+        "referenceLabel": "E:min7(*1)/5",
+        "predictionLabel": "G6",
+        "seconds": 0.863999999999999
+      },
+      {
+        "referenceLabel": "C#:min9/5",
+        "predictionLabel": "Emaj7",
+        "seconds": 0.8320000000000001
+      },
+      {
+        "referenceLabel": "D:maj6/5",
+        "predictionLabel": "D",
+        "seconds": 0.7430389999999996
+      },
+      {
+        "referenceLabel": "E:min7(*1)/5",
+        "predictionLabel": "Esus4",
+        "seconds": 0.7360000000000007
+      },
+      {
+        "referenceLabel": "F:(1,5,7)/1",
+        "predictionLabel": "F5",
+        "seconds": 0.6719999999999997
+      },
+      {
+        "referenceLabel": "F:(1,5)/1",
+        "predictionLabel": "C5",
+        "seconds": 0.6462680412371142
+      },
+      {
+        "referenceLabel": "F#:7(13,*5)/1",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.645397590361446
+      },
+      {
+        "referenceLabel": "D#:min/1",
+        "predictionLabel": "A#5",
+        "seconds": 0.625454545454545
+      },
+      {
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "Cmaj7",
+        "seconds": 0.5759999999999987
+      },
+      {
+        "referenceLabel": "G:min/1",
+        "predictionLabel": "Gsus4",
+        "seconds": 0.5359848974358981
+      },
+      {
+        "referenceLabel": "C:maj/1",
+        "predictionLabel": "G",
+        "seconds": 0.5265210084033587
+      },
+      {
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "A#5",
+        "seconds": 0.5129317435897445
+      },
+      {
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "D#5",
+        "seconds": 0.5080896923076939
+      },
+      {
+        "referenceLabel": "A:min7(*1,*5)/b7",
+        "predictionLabel": "Gadd9",
+        "seconds": 0.4800000000000004
+      },
+      {
+        "referenceLabel": "C#:min9/5",
+        "predictionLabel": "Em6",
+        "seconds": 0.48
+      },
+      {
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "G",
+        "seconds": 0.4735758907563019
+      },
+      {
+        "referenceLabel": "A:maj/1",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.4406153846153851
+      },
+      {
+        "referenceLabel": "F#:maj/1",
+        "predictionLabel": "C7",
+        "seconds": 0.4130909090909043
+      },
+      {
+        "referenceLabel": "C#:maj/1",
+        "predictionLabel": "F#",
+        "seconds": 0.40145454545454484
+      },
+      {
+        "referenceLabel": "F#:7/1",
+        "predictionLabel": "F#m7",
+        "seconds": 0.39555834579439253
+      },
+      {
+        "referenceLabel": "D:maj/5",
+        "predictionLabel": "Em",
+        "seconds": 0.393680672268907
+      },
+      {
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "D#maj7",
+        "seconds": 0.3802790697674414
+      },
+      {
+        "referenceLabel": "D#:sus2(7)/1",
+        "predictionLabel": "G#6",
+        "seconds": 0.3698604651162789
+      },
+      {
+        "referenceLabel": "C:7/1",
+        "predictionLabel": "F7",
+        "seconds": 0.36072727272726723
+      },
+      {
+        "referenceLabel": "F:9/1",
+        "predictionLabel": "Gm",
+        "seconds": 0.3600672268907559
+      },
+      {
+        "referenceLabel": "C:maj7(11,*1)/4",
+        "predictionLabel": "F5",
+        "seconds": 0.3520000000000003
+      },
+      {
+        "referenceLabel": "F:maj7(*1)/7",
+        "predictionLabel": "Amadd9",
+        "seconds": 0.3387209999999996
+      },
+      {
+        "referenceLabel": "G#:7/1",
+        "predictionLabel": "C#",
+        "seconds": 0.32581818181817823
+      },
+      {
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "Em",
+        "seconds": 0.3189221176470589
+      },
+      {
+        "referenceLabel": "A#:maj/5",
+        "predictionLabel": "D#",
+        "seconds": 0.3154285714285656
+      },
+      {
+        "referenceLabel": "G#:maj6(2,b5,*5)/1",
+        "predictionLabel": "A#",
+        "seconds": 0.3118139534883717
+      },
+      {
+        "referenceLabel": "D:min/1",
+        "predictionLabel": "D#",
+        "seconds": 0.30851282051281714
+      },
+      {
+        "referenceLabel": "F#:7/1",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.2918878504672895
+      },
+      {
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "G6",
+        "seconds": 0.28800000000000026
+      },
+      {
+        "referenceLabel": "D#:min/1",
+        "predictionLabel": "G#dim",
+        "seconds": 0.2861500000000001
+      },
+      {
+        "referenceLabel": "A:hdim7/1",
+        "predictionLabel": "G",
+        "seconds": 0.28477310924369803
+      },
+      {
+        "referenceLabel": "C:min/b3",
+        "predictionLabel": "Gm",
+        "seconds": 0.2815462184873958
+      },
+      {
+        "referenceLabel": "D:maj/1",
+        "predictionLabel": "N",
+        "seconds": 0.2796001596638682
+      },
+      {
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "Asus4",
+        "seconds": 0.26338461538461644
+      },
+      {
+        "referenceLabel": "C:maj/1",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.2616470588235291
+      },
+      {
+        "referenceLabel": "C:min7/1",
+        "predictionLabel": "G#5",
+        "seconds": 0.25680672268907556
+      },
+      {
+        "referenceLabel": "B:maj(11)/1",
+        "predictionLabel": "A5",
+        "seconds": 0.24470588235294244
+      },
+      {
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "D#sus2",
+        "seconds": 0.24380999999999986
+      },
+      {
+        "referenceLabel": "D#:7(b9,*5)/1",
+        "predictionLabel": "G#m6",
+        "seconds": 0.243662650602408
+      },
+      {
+        "referenceLabel": "C:maj/3",
+        "predictionLabel": "Gsus2",
+        "seconds": 0.24181443298969185
+      },
+      {
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "Fsus2",
+        "seconds": 0.23815000000000097
+      },
+      {
+        "referenceLabel": "A:maj/5",
+        "predictionLabel": "E",
+        "seconds": 0.23370135746606202
+      },
+      {
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "F",
+        "seconds": 0.22728205128205103
+      },
+      {
+        "referenceLabel": "F:maj7(*1)/7",
+        "predictionLabel": "Bdim",
+        "seconds": 0.2240000000000002
+      },
+      {
+        "referenceLabel": "G:(1,5)/1",
+        "predictionLabel": "F5",
+        "seconds": 0.22004123711340284
+      },
+      {
+        "referenceLabel": "D#:min/1",
+        "predictionLabel": "G#m",
+        "seconds": 0.21236363636363365
+      },
+      {
+        "referenceLabel": "G#:aug(b7)/1",
+        "predictionLabel": "C#madd9",
+        "seconds": 0.20626506024096436
+      },
+      {
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "A#",
+        "seconds": 0.20571428571428774
+      },
+      {
+        "referenceLabel": "F#:7(13,*5)/1",
+        "predictionLabel": "F#m6",
+        "seconds": 0.2015568072289149
+      },
+      {
+        "referenceLabel": "C:sus4/4",
+        "predictionLabel": "F",
+        "seconds": 0.200907216494846
+      },
+      {
+        "referenceLabel": "A:maj/1",
+        "predictionLabel": "E",
+        "seconds": 0.19011764705882683
+      },
+      {
+        "referenceLabel": "F:maj(#11)/b5",
+        "predictionLabel": "A#",
+        "seconds": 0.1862564102564086
+      },
+      {
+        "referenceLabel": "G#:min/1",
+        "predictionLabel": "E6",
+        "seconds": 0.1839252336448567
+      },
+      {
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "A#",
+        "seconds": 0.1798095238095243
+      },
+      {
+        "referenceLabel": "G:min9(*1)/b7",
+        "predictionLabel": "Dm7",
+        "seconds": 0.17586554621848904
+      },
+      {
+        "referenceLabel": "A#:hdim7/1",
+        "predictionLabel": "D#7",
+        "seconds": 0.1749532710280377
+      },
+      {
+        "referenceLabel": "E:maj7/1",
+        "predictionLabel": "C#m6",
+        "seconds": 0.16539759036144375
+      },
+      {
+        "referenceLabel": "B:min/1",
+        "predictionLabel": "C",
+        "seconds": 0.16322689075630237
+      },
+      {
+        "referenceLabel": "C:maj7(*1)/5",
+        "predictionLabel": "Am7",
+        "seconds": 0.16000000000000014
+      },
+      {
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "D#",
+        "seconds": 0.1419487179487149
+      },
+      {
+        "referenceLabel": "E:min/1",
+        "predictionLabel": "Bm",
+        "seconds": 0.13929411764705968
+      },
+      {
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "G#m",
+        "seconds": 0.1378691588785017
+      },
+      {
+        "referenceLabel": "G:maj/1",
+        "predictionLabel": "D",
+        "seconds": 0.13606722689075745
+      },
+      {
+        "referenceLabel": "A#:hdim7/1",
+        "predictionLabel": "D#",
+        "seconds": 0.1348785046728942
+      },
+      {
+        "referenceLabel": "C#:min9/5",
+        "predictionLabel": "F#7",
+        "seconds": 0.13378313253012042
+      },
+      {
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "A",
+        "seconds": 0.133647058823529
+      },
+      {
+        "referenceLabel": "A#:maj7/1",
+        "predictionLabel": "Gmadd9",
+        "seconds": 0.13042016806722678
+      },
+      {
+        "referenceLabel": "B:maj7/1",
+        "predictionLabel": "E",
+        "seconds": 0.12889719626167917
+      },
+      {
+        "referenceLabel": "F:maj(*5)/1",
+        "predictionLabel": "Gm",
+        "seconds": 0.12882051282051066
+      },
+      {
+        "referenceLabel": "D:min/5",
+        "predictionLabel": "Gm",
+        "seconds": 0.12799999999999834
+      },
+      {
+        "referenceLabel": "G#:maj6(*5)/1",
+        "predictionLabel": "D#maj7",
+        "seconds": 0.12279069767441975
+      },
+      {
+        "referenceLabel": "E:maj7(*1)/5",
+        "predictionLabel": "C#m6",
+        "seconds": 0.1191325301204822
+      },
+      {
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "D#",
+        "seconds": 0.11885714285713789
+      },
+      {
+        "referenceLabel": "D:min9(*5)/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 0.1175126050420161
+      },
+      {
+        "referenceLabel": "C#:min9(*5)/1",
+        "predictionLabel": "F#m6",
+        "seconds": 0.11604819277108369
+      },
+      {
+        "referenceLabel": "D#:7/1",
+        "predictionLabel": "G#m",
+        "seconds": 0.11394392523364338
+      },
+      {
+        "referenceLabel": "B:min(4)/1",
+        "predictionLabel": "C",
+        "seconds": 0.10568067226890676
+      },
+      {
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "Gsus4",
+        "seconds": 0.1025641025641022
+      },
+      {
+        "referenceLabel": "C#:min7(*5)/1",
+        "predictionLabel": "F#m7",
+        "seconds": 0.09899065420560715
+      },
+      {
+        "referenceLabel": "F:7(7,#9,*5)/1",
+        "predictionLabel": "A#maj7",
+        "seconds": 0.0976134453781512
+      },
+      {
+        "referenceLabel": "G:maj/1",
+        "predictionLabel": "C",
+        "seconds": 0.08013445378151118
+      },
+      {
+        "referenceLabel": "A:hdim7/1",
+        "predictionLabel": "Dm7",
+        "seconds": 0.06803361344537784
+      },
+      {
+        "referenceLabel": "E:maj7/1",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.06438554216867409
+      },
+      {
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "Faug",
+        "seconds": 0.06153846153846132
+      },
+      {
+        "referenceLabel": "A#:(1,5)/1",
+        "predictionLabel": "F7",
+        "seconds": 0.06109090909090931
+      },
+      {
+        "referenceLabel": "D:min/1",
+        "predictionLabel": "Gm",
+        "seconds": 0.05989743589743668
+      },
+      {
+        "referenceLabel": "C#:min7/1",
+        "predictionLabel": "F#7",
+        "seconds": 0.05891588785046409
+      },
+      {
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "F",
+        "seconds": 0.05497435897435743
+      },
+      {
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "D#5",
+        "seconds": 0.05169230769230637
+      },
+      {
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "Gm",
+        "seconds": 0.05028571428571471
+      },
+      {
+        "referenceLabel": "F:7/1",
+        "predictionLabel": "A#m",
+        "seconds": 0.04945454545454453
+      },
+      {
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "A#5",
+        "seconds": 0.048410256410255315
+      },
+      {
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "D#add9",
+        "seconds": 0.04676923076923245
+      },
+      {
+        "referenceLabel": "E:(1,5,#11)/1",
+        "predictionLabel": "C#m6",
+        "seconds": 0.0439626168224283
+      },
+      {
+        "referenceLabel": "G:min/1",
+        "predictionLabel": "Dm",
+        "seconds": 0.0418461538461532
+      },
+      {
+        "referenceLabel": "D:(1,5)/5",
+        "predictionLabel": "G",
+        "seconds": 0.03845378151260448
+      },
+      {
+        "referenceLabel": "D:maj6/5",
+        "predictionLabel": "A5",
+        "seconds": 0.0369230769230775
+      },
+      {
+        "referenceLabel": "C:maj/3",
+        "predictionLabel": "F",
+        "seconds": 0.03463917525773219
+      },
+      {
+        "referenceLabel": "F:maj9/1",
+        "predictionLabel": "Gadd9",
+        "seconds": 0.031999999999996476
+      },
+      {
+        "referenceLabel": "F:maj7(*1)/7",
+        "predictionLabel": "Em",
+        "seconds": 0.031999999999996476
+      },
+      {
+        "referenceLabel": "A:maj/1",
+        "predictionLabel": "A5",
+        "seconds": 0.02395611764705663
+      },
+      {
+        "referenceLabel": "E:(1,5,#11)/1",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.02302803738317838
+      },
+      {
+        "referenceLabel": "B:maj(11)/1",
+        "predictionLabel": "Em",
+        "seconds": 0.02070588235294224
+      },
+      {
+        "referenceLabel": "G#:7/1",
+        "predictionLabel": "G#m",
+        "seconds": 0.01842136363636726
+      },
+      {
+        "referenceLabel": "D:min/5",
+        "predictionLabel": "D#",
+        "seconds": 0.01828571428571557
+      },
+      {
+        "referenceLabel": "B:maj7/1",
+        "predictionLabel": "G#m",
+        "seconds": 0.017349397590360915
+      },
+      {
+        "referenceLabel": "C:maj/1",
+        "predictionLabel": "N",
+        "seconds": 0.012100840336135121
+      },
+      {
+        "referenceLabel": "D:maj6/5",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.01166561538461508
+      },
+      {
+        "referenceLabel": "D#:min/1",
+        "predictionLabel": "G#7",
+        "seconds": 0.00766818181818163
+      },
+      {
+        "referenceLabel": "G:min/1",
+        "predictionLabel": "F",
+        "seconds": 0.00457142857142756
+      },
+      {
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "C#m6",
+        "seconds": 0.003887850467286569
+      },
+      {
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "<gap>",
+        "seconds": 2.500000001504077e-05
+      },
+      {
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "<gap>",
+        "seconds": 2.500000001504077e-05
+      },
+      {
+        "referenceLabel": "C:(1,5)/1",
+        "predictionLabel": "<gap>",
+        "seconds": 2.5000000000829914e-05
+      },
+      {
+        "referenceLabel": "G#:min/1",
+        "predictionLabel": "<gap>",
+        "seconds": 2.4999999979513632e-05
+      },
+      {
+        "referenceLabel": "G:min9(*1)/b7",
+        "predictionLabel": "<gap>",
+        "seconds": 1.2000000097600605e-05
+      },
+      {
+        "referenceLabel": "D:maj/1",
+        "predictionLabel": "<gap>",
+        "seconds": 1.1999999983913767e-05
+      },
+      {
+        "referenceLabel": "A#:min/1",
+        "predictionLabel": "<gap>",
+        "seconds": 1.1999999969702912e-05
+      },
+      {
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "<gap>",
+        "seconds": 2.1316282072803006e-14
+      }
+    ]
+  },
+  "confusionsByCategory": {
+    "instructed": [
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "C7",
+        "seconds": 9.696
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "C5",
+        "seconds": 9.618106958762885
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "D#maj7",
+        "seconds": 8.91211323255814
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "B:maj",
+        "predictionLabel": "Bmaj7",
+        "seconds": 7.231300979619414
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:hdim7",
+        "predictionLabel": "C#m6",
+        "seconds": 7.067715797770527
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:min",
+        "predictionLabel": "A#maj7",
+        "seconds": 6.823187999999998
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:maj",
+        "predictionLabel": "Bdim",
+        "seconds": 4.6720000000000015
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Em",
+        "seconds": 4.640000000000001
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "G#:min",
+        "predictionLabel": "G#m6",
+        "seconds": 4.345131349397587
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A#:min",
+        "predictionLabel": "A#5",
+        "seconds": 4.302545454545454
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "C:hdim7",
+        "predictionLabel": "C7",
+        "seconds": 4.002909090909094
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "F5",
+        "seconds": 3.8907617628866005
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A:maj",
+        "predictionLabel": "Asus4",
+        "seconds": 3.685661538461538
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "G#:maj",
+        "predictionLabel": "G#6",
+        "seconds": 3.59813953488372
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A:maj",
+        "predictionLabel": "A5",
+        "seconds": 3.5710330407239805
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "Gm7",
+        "seconds": 3.4123999999999697
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "D:7",
+        "predictionLabel": "Dm7",
+        "seconds": 3.0354118403361348
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "D:maj",
+        "predictionLabel": "D6",
+        "seconds": 2.9006799999999995
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "G:maj",
+        "predictionLabel": "Gsus2",
+        "seconds": 2.254185567010307
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min",
+        "predictionLabel": "E6",
+        "seconds": 2.184074766355142
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min",
+        "predictionLabel": "Esus4",
+        "seconds": 2.144
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "D#sus2",
+        "seconds": 2.1246270000000003
+      },
+      {
+        "category": "same_root_missing_notes",
+        "referenceLabel": "D#:7",
+        "predictionLabel": "D#",
+        "seconds": 2.1051214953271042
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A:maj",
+        "predictionLabel": "Asus2",
+        "seconds": 2.069659999999999
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "Gm",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:hdim7",
+        "predictionLabel": "G#maj7",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "D:maj",
+        "predictionLabel": "Dsus4",
+        "seconds": 1.9900185565610862
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Faug",
+        "seconds": 1.9224615384615404
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:7",
+        "predictionLabel": "G#5",
+        "seconds": 1.9191932773109244
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "A#maj7",
+        "seconds": 1.8863865546218488
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:maj",
+        "predictionLabel": "Asus4",
+        "seconds": 1.8461538461538467
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:min",
+        "predictionLabel": "D#",
+        "seconds": 1.76
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:7",
+        "predictionLabel": "C#m6",
+        "seconds": 1.74678861445783
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:min",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.7352605042016798
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:hdim7",
+        "predictionLabel": "Cm",
+        "seconds": 1.6639999999999997
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:7",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.6567394957983197
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:min",
+        "predictionLabel": "Gadd9",
+        "seconds": 1.6000000000000014
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:min",
+        "predictionLabel": "G6",
+        "seconds": 1.6000000000000005
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.5999999999999996
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Am7",
+        "seconds": 1.5680000000000014
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "G#:maj",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.5486511627906978
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "C#:min",
+        "predictionLabel": "C#madd9",
+        "seconds": 1.329734939759037
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj",
+        "predictionLabel": "G#m",
+        "seconds": 1.3266506024096385
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.3090295094782078
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "Gmadd9",
+        "seconds": 1.299420831932773
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "Gm",
+        "seconds": 1.2589360504201688
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.248000000000001
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "G#:min",
+        "predictionLabel": "G#aug",
+        "seconds": 1.2292059999999996
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "E:maj",
+        "predictionLabel": "Emaj7",
+        "seconds": 1.216000000000001
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:min",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.120000000000001
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Am",
+        "seconds": 1.0052790000000016
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "F#:7",
+        "predictionLabel": "F#6",
+        "seconds": 0.9623950000000008
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F#:7",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.9372854408287354
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Esus4",
+        "seconds": 0.9279999999999999
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:7",
+        "predictionLabel": "C#madd9",
+        "seconds": 0.9011150000000026
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "D#add9",
+        "seconds": 0.8876887692307669
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "D:7",
+        "predictionLabel": "Ddim",
+        "seconds": 0.8806890000000003
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.8640000000000005
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:min",
+        "predictionLabel": "G6",
+        "seconds": 0.863999999999999
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min",
+        "predictionLabel": "Emaj7",
+        "seconds": 0.8320000000000001
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "E:min",
+        "predictionLabel": "Esus4",
+        "seconds": 0.7360000000000007
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "C5",
+        "seconds": 0.6462680412371142
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:min",
+        "predictionLabel": "A#5",
+        "seconds": 0.625454545454545
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:maj",
+        "predictionLabel": "Cmaj7",
+        "seconds": 0.5759999999999987
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "G:min",
+        "predictionLabel": "Gsus4",
+        "seconds": 0.5359848974358981
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "G",
+        "seconds": 0.5265210084033587
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "A#5",
+        "seconds": 0.5129317435897445
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "D#5",
+        "seconds": 0.5080896923076939
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:min",
+        "predictionLabel": "Gadd9",
+        "seconds": 0.4800000000000004
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min",
+        "predictionLabel": "Em6",
+        "seconds": 0.48
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "G",
+        "seconds": 0.4735758907563019
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "D#",
+        "seconds": 0.4573772893772805
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:maj",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.4406153846153851
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:maj",
+        "predictionLabel": "E",
+        "seconds": 0.42381900452488885
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F#:maj",
+        "predictionLabel": "C7",
+        "seconds": 0.4130909090909043
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:maj",
+        "predictionLabel": "F#",
+        "seconds": 0.40145454545454484
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "F#:7",
+        "predictionLabel": "F#m7",
+        "seconds": 0.39555834579439253
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.393680672268907
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "A#",
+        "seconds": 0.39197069597069634
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "D#maj7",
+        "seconds": 0.3802790697674414
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "G#6",
+        "seconds": 0.3698604651162789
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:hdim7",
+        "predictionLabel": "F7",
+        "seconds": 0.36072727272726723
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:7",
+        "predictionLabel": "Gm",
+        "seconds": 0.3600672268907559
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "F5",
+        "seconds": 0.3520000000000003
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Amadd9",
+        "seconds": 0.3387209999999996
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj",
+        "predictionLabel": "C#m6",
+        "seconds": 0.3323805877716408
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:min",
+        "predictionLabel": "D#",
+        "seconds": 0.3267985347985327
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:7",
+        "predictionLabel": "C#",
+        "seconds": 0.32581818181817823
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "E:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.3189221176470589
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:maj",
+        "predictionLabel": "A#",
+        "seconds": 0.3118139534883717
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "G:maj",
+        "predictionLabel": "G6",
+        "seconds": 0.28800000000000026
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:min",
+        "predictionLabel": "G#dim",
+        "seconds": 0.2861500000000001
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:hdim7",
+        "predictionLabel": "G",
+        "seconds": 0.28477310924369803
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:min",
+        "predictionLabel": "Gm",
+        "seconds": 0.2815462184873958
+      },
+      {
+        "category": "undetermined_N_prediction",
+        "referenceLabel": "D:maj",
+        "predictionLabel": "N",
+        "seconds": 0.2796001596638682
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:min",
+        "predictionLabel": "C",
+        "seconds": 0.26890756302520913
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj",
+        "predictionLabel": "Asus4",
+        "seconds": 0.26338461538461644
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.2616470588235291
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:min",
+        "predictionLabel": "G#5",
+        "seconds": 0.25680672268907556
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:7",
+        "predictionLabel": "G#m",
+        "seconds": 0.2518130841121451
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:maj",
+        "predictionLabel": "A5",
+        "seconds": 0.24470588235294244
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:7",
+        "predictionLabel": "G#m6",
+        "seconds": 0.243662650602408
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Gsus2",
+        "seconds": 0.24181443298969185
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Fsus2",
+        "seconds": 0.23815000000000097
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "F",
+        "seconds": 0.2355463917525782
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "F",
+        "seconds": 0.22728205128205103
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Bdim",
+        "seconds": 0.2240000000000002
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:maj",
+        "predictionLabel": "F5",
+        "seconds": 0.22004123711340284
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:min",
+        "predictionLabel": "G#m",
+        "seconds": 0.21236363636363365
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:min",
+        "predictionLabel": "C#madd9",
+        "seconds": 0.20626506024096436
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "F#:7",
+        "predictionLabel": "F#m6",
+        "seconds": 0.2015568072289149
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min",
+        "predictionLabel": "F#7",
+        "seconds": 0.1926990203805845
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:min",
+        "predictionLabel": "Gm",
+        "seconds": 0.18789743589743502
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:min",
+        "predictionLabel": "E6",
+        "seconds": 0.1839252336448567
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "A#",
+        "seconds": 0.1798095238095243
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Gm",
+        "seconds": 0.17910622710622537
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:min",
+        "predictionLabel": "Dm7",
+        "seconds": 0.17586554621848904
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:hdim7",
+        "predictionLabel": "D#7",
+        "seconds": 0.1749532710280377
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "Am7",
+        "seconds": 0.16000000000000014
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:min",
+        "predictionLabel": "Bm",
+        "seconds": 0.13929411764705968
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:maj",
+        "predictionLabel": "D",
+        "seconds": 0.13606722689075745
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:hdim7",
+        "predictionLabel": "D#",
+        "seconds": 0.1348785046728942
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj",
+        "predictionLabel": "A",
+        "seconds": 0.133647058823529
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "Gmadd9",
+        "seconds": 0.13042016806722678
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:maj",
+        "predictionLabel": "E",
+        "seconds": 0.12889719626167917
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:maj",
+        "predictionLabel": "D#maj7",
+        "seconds": 0.12279069767441975
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "D#",
+        "seconds": 0.11885714285713789
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:7",
+        "predictionLabel": "G#maj7",
+        "seconds": 0.1175126050420161
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min",
+        "predictionLabel": "F#m6",
+        "seconds": 0.11604819277108369
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Gsus4",
+        "seconds": 0.1025641025641022
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min",
+        "predictionLabel": "F#m7",
+        "seconds": 0.09899065420560715
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:7",
+        "predictionLabel": "A#maj7",
+        "seconds": 0.0976134453781512
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.08741357955185247
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:maj",
+        "predictionLabel": "C",
+        "seconds": 0.08013445378151118
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:hdim7",
+        "predictionLabel": "Dm7",
+        "seconds": 0.06803361344537784
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "Faug",
+        "seconds": 0.06153846153846132
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:min",
+        "predictionLabel": "F7",
+        "seconds": 0.06109090909090931
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "F",
+        "seconds": 0.05497435897435743
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj",
+        "predictionLabel": "D#5",
+        "seconds": 0.05169230769230637
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:7",
+        "predictionLabel": "A#m",
+        "seconds": 0.04945454545454453
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj",
+        "predictionLabel": "A#5",
+        "seconds": 0.048410256410255315
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "D#add9",
+        "seconds": 0.04676923076923245
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:min",
+        "predictionLabel": "Dm",
+        "seconds": 0.0418461538461532
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:maj",
+        "predictionLabel": "G",
+        "seconds": 0.03845378151260448
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:maj",
+        "predictionLabel": "A5",
+        "seconds": 0.0369230769230775
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Gadd9",
+        "seconds": 0.031999999999996476
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.031999999999996476
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:maj",
+        "predictionLabel": "Em",
+        "seconds": 0.02070588235294224
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "G#:7",
+        "predictionLabel": "G#m",
+        "seconds": 0.01842136363636726
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:maj",
+        "predictionLabel": "G#m",
+        "seconds": 0.017349397590360915
+      },
+      {
+        "category": "undetermined_N_prediction",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "N",
+        "seconds": 0.012100840336135121
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:min",
+        "predictionLabel": "G#7",
+        "seconds": 0.00766818181818163
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:min",
+        "predictionLabel": "F",
+        "seconds": 0.00457142857142756
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "F:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 2.500000001504077e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "E:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 2.500000001504077e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "C:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 2.5000000000829914e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "G#:min",
+        "predictionLabel": "<gap>",
+        "seconds": 2.4999999979513632e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "G:min",
+        "predictionLabel": "<gap>",
+        "seconds": 1.2000000097600605e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "D:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 1.1999999983913767e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "A#:min",
+        "predictionLabel": "<gap>",
+        "seconds": 1.1999999969702912e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "G:maj",
+        "predictionLabel": "<gap>",
+        "seconds": 2.1316282072803006e-14
+      }
+    ],
+    "performed": [
+      {
+        "category": "same_root_third_inserted",
+        "referenceLabel": "C:sus4/4",
+        "predictionLabel": "C7",
+        "seconds": 9.696
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:hdim7/1",
+        "predictionLabel": "C#m6",
+        "seconds": 7.067715797770527
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:min9(*1)/b7",
+        "predictionLabel": "A#maj7",
+        "seconds": 6.823187999999998
+      },
+      {
+        "category": "same_root_third_inserted",
+        "referenceLabel": "D#:sus2(7)/1",
+        "predictionLabel": "D#maj7",
+        "seconds": 5.1911830000000005
+      },
+      {
+        "category": "same_root_third_inserted",
+        "referenceLabel": "F:(1,5)/1",
+        "predictionLabel": "F",
+        "seconds": 4.948453608247423
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "Bdim",
+        "seconds": 4.6720000000000015
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "C:maj/3",
+        "predictionLabel": "C5",
+        "seconds": 4.671999999999999
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj7(*1)/5",
+        "predictionLabel": "Em",
+        "seconds": 4.640000000000001
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A:maj/5",
+        "predictionLabel": "Asus4",
+        "seconds": 3.685661538461538
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "G#:maj6(*5)/1",
+        "predictionLabel": "G#6",
+        "seconds": 3.59813953488372
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A:maj/5",
+        "predictionLabel": "A5",
+        "seconds": 3.547076923076924
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "Gm7",
+        "seconds": 3.4123999999999697
+      },
+      {
+        "category": "same_root_missing_notes",
+        "referenceLabel": "B:maj(11)/1",
+        "predictionLabel": "B",
+        "seconds": 3.2639999999999993
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "G:(1,5)/1",
+        "predictionLabel": "Gsus2",
+        "seconds": 2.254185567010307
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min7/1",
+        "predictionLabel": "E6",
+        "seconds": 2.184074766355142
+      },
+      {
+        "category": "same_root_third_inserted",
+        "referenceLabel": "E:(1,5,#11)/1",
+        "predictionLabel": "E",
+        "seconds": 2.176000000000001
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min7(*5)/1",
+        "predictionLabel": "Esus4",
+        "seconds": 2.144
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A:maj/5",
+        "predictionLabel": "Asus2",
+        "seconds": 2.069659999999999
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "D:9(#9,*5)/1",
+        "predictionLabel": "Dm7",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj6(11,*5)/4",
+        "predictionLabel": "Gm",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:hdim7/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 2.0168067226890756
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "D:(1,5)/5",
+        "predictionLabel": "Dsus4",
+        "seconds": 1.978352941176471
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "F:maj(*5)/1",
+        "predictionLabel": "Faug",
+        "seconds": 1.9224615384615404
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:7(7,#9,*5)/1",
+        "predictionLabel": "G#5",
+        "seconds": 1.9191932773109244
+      },
+      {
+        "category": "same_root_missing_notes",
+        "referenceLabel": "B:min(4)/1",
+        "predictionLabel": "Bm",
+        "seconds": 1.9111260504201688
+      },
+      {
+        "category": "same_root_missing_notes",
+        "referenceLabel": "D#:sus2(7)/1",
+        "predictionLabel": "D#sus2",
+        "seconds": 1.8808170000000004
+      },
+      {
+        "category": "same_root_missing_notes",
+        "referenceLabel": "F:maj(#11)/b5",
+        "predictionLabel": "F",
+        "seconds": 1.8650256410256425
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:maj(2)/2",
+        "predictionLabel": "Asus4",
+        "seconds": 1.8461538461538467
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:min7/1",
+        "predictionLabel": "D#",
+        "seconds": 1.76
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:7(b9,*5)/1",
+        "predictionLabel": "C#m6",
+        "seconds": 1.74678861445783
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:min/b3",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.7352605042016798
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:hdim7/1",
+        "predictionLabel": "Cm",
+        "seconds": 1.6639999999999997
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:9/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.6567394957983197
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:sus4(6)/5",
+        "predictionLabel": "Gadd9",
+        "seconds": 1.6000000000000014
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:min7(*1)/b7",
+        "predictionLabel": "G6",
+        "seconds": 1.6000000000000005
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:sus2(7)/1",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.5999999999999996
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj9/1",
+        "predictionLabel": "Am7",
+        "seconds": 1.5680000000000014
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "G#:maj6(2,b5,*5)/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.5486511627906978
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "G#:aug(b7)/1",
+        "predictionLabel": "G#m6",
+        "seconds": 1.4560952048192775
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "F5",
+        "seconds": 1.3908030000000018
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "C#:min9(*5)/1",
+        "predictionLabel": "C#madd9",
+        "seconds": 1.329734939759037
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj7(*1)/5",
+        "predictionLabel": "G#m",
+        "seconds": 1.3266506024096385
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 1.3090295094782078
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "Gmadd9",
+        "seconds": 1.299420831932773
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "Gm",
+        "seconds": 1.2589360504201688
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "C:maj7(11,*1)/4",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.248000000000001
+      },
+      {
+        "category": "same_root_missing_notes",
+        "referenceLabel": "G#:aug(b7)/1",
+        "predictionLabel": "G#aug",
+        "seconds": 1.2292059999999996
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:min7(*1,*5)/b7",
+        "predictionLabel": "Cmaj7",
+        "seconds": 1.120000000000001
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "F#:7(13,*5)/1",
+        "predictionLabel": "F#7",
+        "seconds": 1.0822168674698796
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "G:min9(*1)/b7",
+        "predictionLabel": "Gm",
+        "seconds": 1.0624537815126054
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "D:min9(*5)/1",
+        "predictionLabel": "Dm7",
+        "seconds": 1.0186051176470592
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj7(*1)/7",
+        "predictionLabel": "Am",
+        "seconds": 1.0052790000000016
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "F#:7(13,*5)/1",
+        "predictionLabel": "F#6",
+        "seconds": 0.9623950000000008
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:(1,5,7)/1",
+        "predictionLabel": "Esus4",
+        "seconds": 0.9279999999999999
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:7(b9,*5)/1",
+        "predictionLabel": "C#madd9",
+        "seconds": 0.9011150000000026
+      },
+      {
+        "category": "same_root_extra_notes",
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "D#add9",
+        "seconds": 0.8876887692307669
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "D:min9(*5)/1",
+        "predictionLabel": "Ddim",
+        "seconds": 0.8806890000000003
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "Em",
+        "seconds": 0.8640000000000005
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:min7(*1)/5",
+        "predictionLabel": "G6",
+        "seconds": 0.863999999999999
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min9/5",
+        "predictionLabel": "Emaj7",
+        "seconds": 0.8320000000000001
+      },
+      {
+        "category": "same_root_missing_notes",
+        "referenceLabel": "D:maj6/5",
+        "predictionLabel": "D",
+        "seconds": 0.7430389999999996
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "E:min7(*1)/5",
+        "predictionLabel": "Esus4",
+        "seconds": 0.7360000000000007
+      },
+      {
+        "category": "same_root_missing_notes",
+        "referenceLabel": "F:(1,5,7)/1",
+        "predictionLabel": "F5",
+        "seconds": 0.6719999999999997
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:(1,5)/1",
+        "predictionLabel": "C5",
+        "seconds": 0.6462680412371142
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F#:7(13,*5)/1",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.645397590361446
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:min/1",
+        "predictionLabel": "A#5",
+        "seconds": 0.625454545454545
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "Cmaj7",
+        "seconds": 0.5759999999999987
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "G:min/1",
+        "predictionLabel": "Gsus4",
+        "seconds": 0.5359848974358981
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj/1",
+        "predictionLabel": "G",
+        "seconds": 0.5265210084033587
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "A#5",
+        "seconds": 0.5129317435897445
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "D#5",
+        "seconds": 0.5080896923076939
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:min7(*1,*5)/b7",
+        "predictionLabel": "Gadd9",
+        "seconds": 0.4800000000000004
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min9/5",
+        "predictionLabel": "Em6",
+        "seconds": 0.48
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj7/1",
+        "predictionLabel": "G",
+        "seconds": 0.4735758907563019
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:maj/1",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.4406153846153851
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F#:maj/1",
+        "predictionLabel": "C7",
+        "seconds": 0.4130909090909043
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:maj/1",
+        "predictionLabel": "F#",
+        "seconds": 0.40145454545454484
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "F#:7/1",
+        "predictionLabel": "F#m7",
+        "seconds": 0.39555834579439253
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:maj/5",
+        "predictionLabel": "Em",
+        "seconds": 0.393680672268907
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "D#maj7",
+        "seconds": 0.3802790697674414
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:sus2(7)/1",
+        "predictionLabel": "G#6",
+        "seconds": 0.3698604651162789
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:7/1",
+        "predictionLabel": "F7",
+        "seconds": 0.36072727272726723
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:9/1",
+        "predictionLabel": "Gm",
+        "seconds": 0.3600672268907559
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj7(11,*1)/4",
+        "predictionLabel": "F5",
+        "seconds": 0.3520000000000003
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj7(*1)/7",
+        "predictionLabel": "Amadd9",
+        "seconds": 0.3387209999999996
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:7/1",
+        "predictionLabel": "C#",
+        "seconds": 0.32581818181817823
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "Em",
+        "seconds": 0.3189221176470589
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj/5",
+        "predictionLabel": "D#",
+        "seconds": 0.3154285714285656
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:maj6(2,b5,*5)/1",
+        "predictionLabel": "A#",
+        "seconds": 0.3118139534883717
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:min/1",
+        "predictionLabel": "D#",
+        "seconds": 0.30851282051281714
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F#:7/1",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.2918878504672895
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "G6",
+        "seconds": 0.28800000000000026
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:min/1",
+        "predictionLabel": "G#dim",
+        "seconds": 0.2861500000000001
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:hdim7/1",
+        "predictionLabel": "G",
+        "seconds": 0.28477310924369803
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:min/b3",
+        "predictionLabel": "Gm",
+        "seconds": 0.2815462184873958
+      },
+      {
+        "category": "undetermined_N_prediction",
+        "referenceLabel": "D:maj/1",
+        "predictionLabel": "N",
+        "seconds": 0.2796001596638682
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "Asus4",
+        "seconds": 0.26338461538461644
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj/1",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.2616470588235291
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:min7/1",
+        "predictionLabel": "G#5",
+        "seconds": 0.25680672268907556
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:maj(11)/1",
+        "predictionLabel": "A5",
+        "seconds": 0.24470588235294244
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "D#sus2",
+        "seconds": 0.24380999999999986
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:7(b9,*5)/1",
+        "predictionLabel": "G#m6",
+        "seconds": 0.243662650602408
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj/3",
+        "predictionLabel": "Gsus2",
+        "seconds": 0.24181443298969185
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "Fsus2",
+        "seconds": 0.23815000000000097
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:maj/5",
+        "predictionLabel": "E",
+        "seconds": 0.23370135746606202
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "F",
+        "seconds": 0.22728205128205103
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj7(*1)/7",
+        "predictionLabel": "Bdim",
+        "seconds": 0.2240000000000002
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:(1,5)/1",
+        "predictionLabel": "F5",
+        "seconds": 0.22004123711340284
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:min/1",
+        "predictionLabel": "G#m",
+        "seconds": 0.21236363636363365
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:aug(b7)/1",
+        "predictionLabel": "C#madd9",
+        "seconds": 0.20626506024096436
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "A#",
+        "seconds": 0.20571428571428774
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "F#:7(13,*5)/1",
+        "predictionLabel": "F#m6",
+        "seconds": 0.2015568072289149
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:sus4/4",
+        "predictionLabel": "F",
+        "seconds": 0.200907216494846
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:maj/1",
+        "predictionLabel": "E",
+        "seconds": 0.19011764705882683
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj(#11)/b5",
+        "predictionLabel": "A#",
+        "seconds": 0.1862564102564086
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:min/1",
+        "predictionLabel": "E6",
+        "seconds": 0.1839252336448567
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "A#",
+        "seconds": 0.1798095238095243
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:min9(*1)/b7",
+        "predictionLabel": "Dm7",
+        "seconds": 0.17586554621848904
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:hdim7/1",
+        "predictionLabel": "D#7",
+        "seconds": 0.1749532710280377
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj7/1",
+        "predictionLabel": "C#m6",
+        "seconds": 0.16539759036144375
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:min/1",
+        "predictionLabel": "C",
+        "seconds": 0.16322689075630237
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj7(*1)/5",
+        "predictionLabel": "Am7",
+        "seconds": 0.16000000000000014
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "D#",
+        "seconds": 0.1419487179487149
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:min/1",
+        "predictionLabel": "Bm",
+        "seconds": 0.13929411764705968
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "G#m",
+        "seconds": 0.1378691588785017
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:maj/1",
+        "predictionLabel": "D",
+        "seconds": 0.13606722689075745
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:hdim7/1",
+        "predictionLabel": "D#",
+        "seconds": 0.1348785046728942
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min9/5",
+        "predictionLabel": "F#7",
+        "seconds": 0.13378313253012042
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "A",
+        "seconds": 0.133647058823529
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj7/1",
+        "predictionLabel": "Gmadd9",
+        "seconds": 0.13042016806722678
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:maj7/1",
+        "predictionLabel": "E",
+        "seconds": 0.12889719626167917
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj(*5)/1",
+        "predictionLabel": "Gm",
+        "seconds": 0.12882051282051066
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:min/5",
+        "predictionLabel": "Gm",
+        "seconds": 0.12799999999999834
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G#:maj6(*5)/1",
+        "predictionLabel": "D#maj7",
+        "seconds": 0.12279069767441975
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj7(*1)/5",
+        "predictionLabel": "C#m6",
+        "seconds": 0.1191325301204822
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "D#",
+        "seconds": 0.11885714285713789
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:min9(*5)/1",
+        "predictionLabel": "G#maj7",
+        "seconds": 0.1175126050420161
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min9(*5)/1",
+        "predictionLabel": "F#m6",
+        "seconds": 0.11604819277108369
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:7/1",
+        "predictionLabel": "G#m",
+        "seconds": 0.11394392523364338
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:min(4)/1",
+        "predictionLabel": "C",
+        "seconds": 0.10568067226890676
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "Gsus4",
+        "seconds": 0.1025641025641022
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min7(*5)/1",
+        "predictionLabel": "F#m7",
+        "seconds": 0.09899065420560715
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:7(7,#9,*5)/1",
+        "predictionLabel": "A#maj7",
+        "seconds": 0.0976134453781512
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:maj/1",
+        "predictionLabel": "C",
+        "seconds": 0.08013445378151118
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A:hdim7/1",
+        "predictionLabel": "Dm7",
+        "seconds": 0.06803361344537784
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj7/1",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.06438554216867409
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "Faug",
+        "seconds": 0.06153846153846132
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:(1,5)/1",
+        "predictionLabel": "F7",
+        "seconds": 0.06109090909090931
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:min/1",
+        "predictionLabel": "Gm",
+        "seconds": 0.05989743589743668
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C#:min7/1",
+        "predictionLabel": "F#7",
+        "seconds": 0.05891588785046409
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "F",
+        "seconds": 0.05497435897435743
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "A#:maj/1",
+        "predictionLabel": "D#5",
+        "seconds": 0.05169230769230637
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "Gm",
+        "seconds": 0.05028571428571471
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:7/1",
+        "predictionLabel": "A#m",
+        "seconds": 0.04945454545454453
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:maj/5",
+        "predictionLabel": "A#5",
+        "seconds": 0.048410256410255315
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "D#add9",
+        "seconds": 0.04676923076923245
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:(1,5,#11)/1",
+        "predictionLabel": "C#m6",
+        "seconds": 0.0439626168224283
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:min/1",
+        "predictionLabel": "Dm",
+        "seconds": 0.0418461538461532
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:(1,5)/5",
+        "predictionLabel": "G",
+        "seconds": 0.03845378151260448
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:maj6/5",
+        "predictionLabel": "A5",
+        "seconds": 0.0369230769230775
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "C:maj/3",
+        "predictionLabel": "F",
+        "seconds": 0.03463917525773219
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj9/1",
+        "predictionLabel": "Gadd9",
+        "seconds": 0.031999999999996476
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "F:maj7(*1)/7",
+        "predictionLabel": "Em",
+        "seconds": 0.031999999999996476
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "A:maj/1",
+        "predictionLabel": "A5",
+        "seconds": 0.02395611764705663
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:(1,5,#11)/1",
+        "predictionLabel": "Bmaj7",
+        "seconds": 0.02302803738317838
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:maj(11)/1",
+        "predictionLabel": "Em",
+        "seconds": 0.02070588235294224
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "referenceLabel": "G#:7/1",
+        "predictionLabel": "G#m",
+        "seconds": 0.01842136363636726
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D:min/5",
+        "predictionLabel": "D#",
+        "seconds": 0.01828571428571557
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "B:maj7/1",
+        "predictionLabel": "G#m",
+        "seconds": 0.017349397590360915
+      },
+      {
+        "category": "undetermined_N_prediction",
+        "referenceLabel": "C:maj/1",
+        "predictionLabel": "N",
+        "seconds": 0.012100840336135121
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "referenceLabel": "D:maj6/5",
+        "predictionLabel": "Dsus4",
+        "seconds": 0.01166561538461508
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "D#:min/1",
+        "predictionLabel": "G#7",
+        "seconds": 0.00766818181818163
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "G:min/1",
+        "predictionLabel": "F",
+        "seconds": 0.00457142857142756
+      },
+      {
+        "category": "wrong_root",
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "C#m6",
+        "seconds": 0.003887850467286569
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "F:maj/1",
+        "predictionLabel": "<gap>",
+        "seconds": 2.500000001504077e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "E:maj/1",
+        "predictionLabel": "<gap>",
+        "seconds": 2.500000001504077e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "C:(1,5)/1",
+        "predictionLabel": "<gap>",
+        "seconds": 2.5000000000829914e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "G#:min/1",
+        "predictionLabel": "<gap>",
+        "seconds": 2.4999999979513632e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "G:min9(*1)/b7",
+        "predictionLabel": "<gap>",
+        "seconds": 1.2000000097600605e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "D:maj/1",
+        "predictionLabel": "<gap>",
+        "seconds": 1.1999999983913767e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "A#:min/1",
+        "predictionLabel": "<gap>",
+        "seconds": 1.1999999969702912e-05
+      },
+      {
+        "category": "prediction_gap",
+        "referenceLabel": "G:7(*1)/b7",
+        "predictionLabel": "<gap>",
+        "seconds": 2.1316282072803006e-14
+      }
+    ]
+  },
+  "baselineToCandidateTransitions": {
+    "instructed": [
+      {
+        "baseline": "baseline_correct",
+        "candidate": "candidate_correct",
+        "seconds": 178.35848654678517
+      },
+      {
+        "baseline": "baseline_wrong",
+        "candidate": "candidate_wrong",
+        "seconds": 110.49426659831047
+      },
+      {
+        "baseline": "baseline_correct",
+        "candidate": "candidate_wrong",
+        "seconds": 70.56652090293261
+      },
+      {
+        "baseline": "baseline_wrong",
+        "candidate": "candidate_correct",
+        "seconds": 19.657125951971814
+      }
+    ],
+    "performed": [
+      {
+        "baseline": "baseline_correct",
+        "candidate": "candidate_correct",
+        "seconds": 167.08302247709452
+      },
+      {
+        "baseline": "baseline_wrong",
+        "candidate": "candidate_wrong",
+        "seconds": 138.7652385038863
+      },
+      {
+        "baseline": "baseline_wrong",
+        "candidate": "candidate_correct",
+        "seconds": 50.90925074679562
+      },
+      {
+        "baseline": "baseline_correct",
+        "candidate": "candidate_wrong",
+        "seconds": 22.318888272223614
+      }
+    ]
+  },
+  "predictedRootMinusReferenceSemitones": [
+    {
+      "semitones": 3,
+      "seconds": 30.11491133723492
+    },
+    {
+      "semitones": 4,
+      "seconds": 19.994983375518856
+    },
+    {
+      "semitones": 5,
+      "seconds": 9.58337083908683
+    },
+    {
+      "semitones": 7,
+      "seconds": 7.509908698133851
+    },
+    {
+      "semitones": 10,
+      "seconds": 5.647621645365675
+    },
+    {
+      "semitones": 9,
+      "seconds": 3.520956876118305
+    },
+    {
+      "semitones": 11,
+      "seconds": 2.976806722689072
+    },
+    {
+      "semitones": 8,
+      "seconds": 2.1759924605356122
+    },
+    {
+      "semitones": 2,
+      "seconds": 1.6958536001162452
+    },
+    {
+      "semitones": 6,
+      "seconds": 0.7546035141329206
+    },
+    {
+      "semitones": 1,
+      "seconds": 0.5957060978237418
+    }
+  ],
+  "wrongRootSecondsByClip": [
+    {
+      "track": "04_Funk2-119-G_comp",
+      "seconds": 25.398246823529412
+    },
+    {
+      "track": "03_Jazz3-150-C_comp",
+      "seconds": 22.656
+    },
+    {
+      "track": "04_SS2-107-Ab_comp",
+      "seconds": 9.899364485981295
+    },
+    {
+      "track": "05_BN2-166-Ab_comp",
+      "seconds": 9.889542168674696
+    },
+    {
+      "track": "00_BN1-129-Eb_comp",
+      "seconds": 4.904493023255782
+    },
+    {
+      "track": "01_Jazz2-110-Bb_comp",
+      "seconds": 2.743272727272709
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "seconds": 2.732307692307695
+    },
+    {
+      "track": "02_BN3-119-G_comp",
+      "seconds": 1.8447058823529368
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "seconds": 1.599179487179473
+    },
+    {
+      "track": "02_Funk1-97-C_comp",
+      "seconds": 1.3436701030927871
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "seconds": 0.8822857142857061
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "seconds": 0.677647058823533
+    }
+  ],
+  "instructedSameRootExtraNotes": {
+    "totalSeconds": 45.08782652286122,
+    "performedAlsoDifferentSeconds": 25.243492611483504,
+    "performedExactMatchSeconds": 19.844333911377714
+  },
+  "performedExplicitRootOmissions": {
+    "performedRootOmittedSeconds": 28.70730246026134,
+    "candidateWrongRootWithinOmittedRootSeconds": 25.37283667874861
+  },
+  "newWrongSecondsByCategory": {
+    "instructed": [
+      {
+        "category": "same_root_extra_notes",
+        "seconds": 30.011782025885285
+      },
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "seconds": 28.982677899830517
+      },
+      {
+        "category": "wrong_root",
+        "seconds": 9.081165279091408
+      },
+      {
+        "category": "same_root_other_formula_change",
+        "seconds": 1.9224615384615404
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "seconds": 0.28883400000000137
+      },
+      {
+        "category": "undetermined_N_prediction",
+        "seconds": 0.2796001596638682
+      }
+    ],
+    "performed": [
+      {
+        "category": "same_root_third_missing_suspension_or_power",
+        "seconds": 17.130277758672705
+      },
+      {
+        "category": "wrong_root",
+        "seconds": 3.745693584656271
+      },
+      {
+        "category": "same_root_extra_notes",
+        "seconds": 0.8876887692307669
+      },
+      {
+        "category": "undetermined_N_prediction",
+        "seconds": 0.2796001596638682
+      },
+      {
+        "category": "same_root_major_minor_third_flip",
+        "seconds": 0.2756280000000011
+      }
+    ]
+  },
+  "wrongRootWithIdenticalPerformedPitchSet": {
+    "totalSeconds": 27.718908166535307,
+    "clips": [
+      {
+        "track": "03_Jazz3-150-C_comp",
+        "seconds": 10.317279000000003
+      },
+      {
+        "track": "04_Funk2-119-G_comp",
+        "seconds": 6.823187999999998
+      },
+      {
+        "track": "04_SS2-107-Ab_comp",
+        "seconds": 6.360224299065427
+      },
+      {
+        "track": "05_BN2-166-Ab_comp",
+        "seconds": 4.21821686746988
+      }
+    ]
+  },
+  "referenceDisagreementWithinNewInstructedErrors": {
+    "instructedNewWrongAndPerformedWrong": 52.91370883209352,
+    "instructedNewWrongButPerformedCorrect": 17.652812070839094,
+    "instructedNewExtraNotesButPerformedCorrect": 12.091080112076208
+  },
+  "categoryPolicy": "Disjoint candidate-error categories, evaluated on complete reference duration. Wrong root is separated first; same-root third changes precede set inclusion. Extra/missing notes are strict pitch-class formula subset relationships, not subjective musical error claims."
+}

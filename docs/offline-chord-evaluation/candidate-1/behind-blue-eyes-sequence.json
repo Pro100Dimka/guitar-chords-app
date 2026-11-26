@@ -1,0 +1,106 @@
+{
+  "baseline": {
+    "timingStatus": "Untimed user-supplied chord order. It cannot support whole-song duration-weighted chord accuracy or transition-time accuracy. No section boundaries or E/Esus4 durations are assumed.",
+    "comparisonPolicy": "Only event-order edit counts against both structural variants. Ignore chord duration, merge consecutive identical canonical predictions, trim leading/trailing N only, retain internal N or X as explicit mismatch events. Report exact root/formula and root-only edit counts independently. Do not label an edit statistic as full-song chord accuracy.",
+    "metricWarning": "These are unit-cost ordered event edit counts, not duration-weighted accuracy. Counts describe one optimal alignment; no best structural variant is selected. Root-only sequences additionally merge consecutive equal roots.",
+    "engine": "chroma-v1",
+    "variants": [
+      {
+        "name": "printed-one-instrumental-cycle",
+        "status": "Exactly the supplied printed repetition count.",
+        "exactRootAndFormula": {
+          "editDistance": 73,
+          "expectedEventCount": 87,
+          "predictedEventCount": 100,
+          "matchedEvents": 27,
+          "substitutionEvents": 60,
+          "missingExpectedEvents": 0,
+          "extraPredictedEvents": 13
+        },
+        "rootOnly": {
+          "editDistance": 24,
+          "expectedEventCount": 75,
+          "predictedEventCount": 93,
+          "matchedEvents": 71,
+          "substitutionEvents": 2,
+          "missingExpectedEvents": 2,
+          "extraPredictedEvents": 20
+        }
+      },
+      {
+        "name": "two-instrumental-cycles-hypothesis",
+        "status": "The available audio appears to repeat this cycle twice; the supplied chart prints one. This is an unverified structural hypothesis and is reported separately, not selected to maximize a score.",
+        "exactRootAndFormula": {
+          "editDistance": 74,
+          "expectedEventCount": 92,
+          "predictedEventCount": 100,
+          "matchedEvents": 26,
+          "substitutionEvents": 66,
+          "missingExpectedEvents": 0,
+          "extraPredictedEvents": 8
+        },
+        "rootOnly": {
+          "editDistance": 21,
+          "expectedEventCount": 80,
+          "predictedEventCount": 93,
+          "matchedEvents": 75,
+          "substitutionEvents": 2,
+          "missingExpectedEvents": 3,
+          "extraPredictedEvents": 16
+        }
+      }
+    ]
+  },
+  "candidate": {
+    "timingStatus": "Untimed user-supplied chord order. It cannot support whole-song duration-weighted chord accuracy or transition-time accuracy. No section boundaries or E/Esus4 durations are assumed.",
+    "comparisonPolicy": "Only event-order edit counts against both structural variants. Ignore chord duration, merge consecutive identical canonical predictions, trim leading/trailing N only, retain internal N or X as explicit mismatch events. Report exact root/formula and root-only edit counts independently. Do not label an edit statistic as full-song chord accuracy.",
+    "metricWarning": "These are unit-cost ordered event edit counts, not duration-weighted accuracy. Counts describe one optimal alignment; no best structural variant is selected. Root-only sequences additionally merge consecutive equal roots.",
+    "engine": "chroma-v2",
+    "variants": [
+      {
+        "name": "printed-one-instrumental-cycle",
+        "status": "Exactly the supplied printed repetition count.",
+        "exactRootAndFormula": {
+          "editDistance": 66,
+          "expectedEventCount": 87,
+          "predictedEventCount": 108,
+          "matchedEvents": 46,
+          "substitutionEvents": 37,
+          "missingExpectedEvents": 4,
+          "extraPredictedEvents": 25
+        },
+        "rootOnly": {
+          "editDistance": 4,
+          "expectedEventCount": 75,
+          "predictedEventCount": 79,
+          "matchedEvents": 75,
+          "substitutionEvents": 0,
+          "missingExpectedEvents": 0,
+          "extraPredictedEvents": 4
+        }
+      },
+      {
+        "name": "two-instrumental-cycles-hypothesis",
+        "status": "The available audio appears to repeat this cycle twice; the supplied chart prints one. This is an unverified structural hypothesis and is reported separately, not selected to maximize a score.",
+        "exactRootAndFormula": {
+          "editDistance": 66,
+          "expectedEventCount": 92,
+          "predictedEventCount": 108,
+          "matchedEvents": 47,
+          "substitutionEvents": 40,
+          "missingExpectedEvents": 5,
+          "extraPredictedEvents": 21
+        },
+        "rootOnly": {
+          "editDistance": 1,
+          "expectedEventCount": 80,
+          "predictedEventCount": 79,
+          "matchedEvents": 79,
+          "substitutionEvents": 0,
+          "missingExpectedEvents": 1,
+          "extraPredictedEvents": 0
+        }
+      }
+    ]
+  }
+}

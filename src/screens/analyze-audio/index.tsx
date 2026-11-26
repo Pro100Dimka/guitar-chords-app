@@ -88,7 +88,9 @@ export default function AnalyzeAudio() {
       <Text style={styles.time}>
         {chordTime(item.start)}–{chordTime(item.end)}
       </Text>
-      <Text style={styles.chord}>{item.chord === "N" ? "—" : item.chord}</Text>
+      <Text style={[styles.chord, item.chord === "N" && styles.unknownChord]}>
+        {item.chord === "N" ? t("OfflineChordsUnknown") : item.chord}
+      </Text>
     </View>
   );
   return (
@@ -180,7 +182,8 @@ export default function AnalyzeAudio() {
                       draft = offlineChordDraft(
                         result,
                         t("OfflineChordsTitle"),
-                        t("OfflineChordsChartNotice")
+                        t("OfflineChordsChartNotice"),
+                        t("OfflineChordsUnknown")
                       );
                     } catch {
                       setMessage(t("OfflineChordsChartTooLarge"));
@@ -223,5 +226,13 @@ const styles = StyleSheet.create({
     backgroundColor: palette.glass.card
   },
   time: { color: palette.glass.muted, fontSize: 15, flex: 1 },
-  chord: { color: palette.glass.accent, fontSize: 22, fontWeight: "600" }
+  chord: { color: palette.glass.accent, fontSize: 22, fontWeight: "600" },
+  unknownChord: {
+    color: palette.glass.muted,
+    fontSize: 14,
+    fontWeight: "400",
+    flexShrink: 1,
+    maxWidth: "45%",
+    textAlign: "right"
+  }
 });

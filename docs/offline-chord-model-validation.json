@@ -1,0 +1,105 @@
+{
+  "model_sha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+  "derived_model_sha256": "274e46d8b4eec2d6a9da1d52d60744feb7f7dfdf6207dc12db10f5ddd9f3416f",
+  "source_provenance": {
+    "production_source": "android/song-fingerprint/src/chord_notes.rs",
+    "source_sha256": "68cbc84e201469a2633ddf19e098d2ea08beb5a0315aef0a59481cbdf98c108a",
+    "probe_source": "Temporary diagnostic harness; not an app entry point",
+    "modifications": "Only embedded model path made absolute; appended scratch main calls the exact production resampler and predictor. No production behavior changed.",
+    "probe_sha256": "7d1022ee8fd32136dadef195f4834750b5706ba615e5542f9352c706c90f60ba",
+    "committed_source_sha256": "68cbc84e201469a2633ddf19e098d2ea08beb5a0315aef0a59481cbdf98c108a"
+  },
+  "scope": "Four consecutive model windows from first5s of16k PCM GuitarSet development recording, including initial context and final padded tail. Same production-resampled float windows fed to ORT and tract NNEF; raw probabilities compared before cropping/decoding. Host CPU only.",
+  "windows": [
+    {
+      "window": "window-0-input.f32",
+      "input_sha256": "83a2bc40fdad78719ac628643c8ec7e9b64f20c256abc3616bffb21738ef1f82",
+      "heads": {
+        "notes": {
+          "max_abs_error": 1.341104507446289e-06,
+          "mean_abs_error": 6.360755833156873e-08,
+          "allclose_atol1e-5_rtol1e-5": true
+        },
+        "onsets": {
+          "max_abs_error": 3.546476364135742e-06,
+          "mean_abs_error": 1.3894229766719945e-07,
+          "allclose_atol1e-5_rtol1e-5": true
+        }
+      }
+    },
+    {
+      "window": "window-1-input.f32",
+      "input_sha256": "1d53bc9ab4e1a7779e419933fe2dc6fd19b0cc58978870eb47fc1c93259c6d74",
+      "heads": {
+        "notes": {
+          "max_abs_error": 2.384185791015625e-06,
+          "mean_abs_error": 6.969955279600981e-08,
+          "allclose_atol1e-5_rtol1e-5": true
+        },
+        "onsets": {
+          "max_abs_error": 3.844499588012695e-06,
+          "mean_abs_error": 1.5479054127354175e-07,
+          "allclose_atol1e-5_rtol1e-5": true
+        }
+      }
+    },
+    {
+      "window": "window-2-input.f32",
+      "input_sha256": "c956cd290e8edd9b7ce595c0ed67b70e7acf7ff7f74975fccb5389f3f6f60aba",
+      "heads": {
+        "notes": {
+          "max_abs_error": 1.3113021850585938e-06,
+          "mean_abs_error": 7.151493974788536e-08,
+          "allclose_atol1e-5_rtol1e-5": true
+        },
+        "onsets": {
+          "max_abs_error": 4.649162292480469e-06,
+          "mean_abs_error": 1.4528632164001465e-07,
+          "allclose_atol1e-5_rtol1e-5": true
+        }
+      }
+    },
+    {
+      "window": "window-3-input.f32",
+      "input_sha256": "00dd67d05740481c2e587e85e8dbb5546b3e9af235a77916f8318c7bd8c72754",
+      "heads": {
+        "notes": {
+          "max_abs_error": 3.904104232788086e-06,
+          "mean_abs_error": 5.521187418366935e-08,
+          "allclose_atol1e-5_rtol1e-5": true
+        },
+        "onsets": {
+          "max_abs_error": 5.662441253662109e-06,
+          "mean_abs_error": 5.646807466064274e-08,
+          "allclose_atol1e-5_rtol1e-5": true
+        }
+      }
+    }
+  ],
+  "input": {
+    "fixture": "GuitarSet 1.1.0 / 00_SS3-98-C_comp_mic.wav",
+    "manifest": "docs/offline-chord-analysis-fixtures.json",
+    "license": "CC-BY-4.0",
+    "pcm_sample_rate": 16000,
+    "pcm_format": "mono signed PCM16LE",
+    "pcm_sha256": "6d0b56247bb8b6fcfc0ed47b469cfaea04284510f43f94e307396b26a909d4c7",
+    "excerpt_samples": 80000,
+    "excerpt_seconds": 5
+  },
+  "reference_runtime": {
+    "name": "ONNX Runtime",
+    "version": "1.32.0",
+    "provider": "CPUExecutionProvider"
+  },
+  "candidate_runtime": {
+    "name": "tract-nnef",
+    "version": "0.23.9",
+    "platform": "Linux x86_64 host",
+    "build": "Release optimization with LTO disabled for diagnostic build-cache reuse; not a mobile release build"
+  },
+  "limitations": [
+    "Only the four specified real-audio windows were compared.",
+    "These are raw model activations before chord inference; no chord-accuracy claim.",
+    "No phone latency, memory or installed/download size measurement."
+  ]
+}

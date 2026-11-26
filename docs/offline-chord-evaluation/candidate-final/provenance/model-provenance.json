@@ -1,0 +1,67 @@
+{
+  "source_model": {
+    "repository": "https://github.com/spotify/basic-pitch",
+    "commit": "fa5997af0a8210982619003269994a1be25eddf3",
+    "model_url": "https://raw.githubusercontent.com/spotify/basic-pitch/fa5997af0a8210982619003269994a1be25eddf3/basic_pitch/saved_models/icassp_2022/nmp.onnx",
+    "model_bytes": 230444,
+    "model_sha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+    "model_git_blob": "c30e5f9438e798604b7177aa26be1fe64482f767",
+    "license": "Apache-2.0",
+    "license_url": "https://github.com/spotify/basic-pitch/blob/fa5997af0a8210982619003269994a1be25eddf3/LICENSE",
+    "model_card": "https://huggingface.co/spotify/basic-pitch"
+  },
+  "derived_model": {
+    "file": "nmp.nnef.tar",
+    "bytes": 196096,
+    "sha256": "274e46d8b4eec2d6a9da1d52d60744feb7f7dfdf6207dc12db10f5ddd9f3416f",
+    "format": "NNEF tar",
+    "license": "Apache-2.0",
+    "tract_version": "0.23.9",
+    "transformation": "Fixed float32 input [1,43844,1]; selected note/onset/contour output order; into_typed then into_decluttered; canonical internal node names by evaluation order; preserved public input/output labels; deterministic write_to_tar_with_config(false,true). No quantization or training.",
+    "determinism": "Two independent converter processes produced identical SHA-256."
+  },
+  "runtime": {
+    "crate": "tract-nnef",
+    "version": "0.23.9",
+    "default_features": false,
+    "embedded_asset": "nmp.nnef.tar",
+    "source_onnx_bundled": false,
+    "runtime_network_or_download": false,
+    "input_shape": [
+      1,
+      43844,
+      1
+    ],
+    "output_labels": [
+      "StatefulPartitionedCall_1",
+      "StatefulPartitionedCall_2"
+    ],
+    "output_meanings": [
+      "note",
+      "onset"
+    ],
+    "output_shape": [
+      1,
+      172,
+      88
+    ],
+    "midi_range": [
+      21,
+      108
+    ]
+  },
+  "input_adapter": {
+    "input_sample_rate": 16000,
+    "model_sample_rate": 22050,
+    "ratio": [
+      441,
+      320
+    ],
+    "filter": "96-tap Blackman-windowed sinc, cutoff 0.94 of input Nyquist; compensated symmetric lookahead",
+    "window_samples": 43844,
+    "window_hop": 36164,
+    "crop_frames_each_side": 15,
+    "time_mapping": "Absolute source-window offset plus local 256-sample CQT frame center; midpoint interval boundaries; last interval ends at actual 16k PCM duration."
+  },
+  "reproduce": "See scripts/chord-model-converter; build-time tooling is separate from the mobile runtime dependency graph."
+}

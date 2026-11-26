@@ -3,6 +3,8 @@ mod algorithm;
 mod signature_format;
 mod chords;
 mod chord_notes;
+#[cfg(test)]
+mod chord_quality_tests;
 mod chord_bridge;
 
 #[cfg(target_os = "android")]

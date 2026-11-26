@@ -1,0 +1,81 @@
+{
+  "verifiedUTC": "2026-11-26T21:32:15.354960+00:00",
+  "selectionSHA256": "509037740ca700b9e3c08cef7687acb288a43a3b0f859204a254865913aca159",
+  "acquisitionManifestSHA256": "447f47970e82fb3ea2a6f0e4a6ac1ad45330552ebf2819c54f0e1b7edb7a18d2",
+  "verifiedFiles": 36,
+  "audioFiles": 12,
+  "jamsFiles": 12,
+  "pcmFiles": 12,
+  "players": {
+    "00": 2,
+    "01": 2,
+    "02": 2,
+    "03": 2,
+    "04": 2,
+    "05": 2
+  },
+  "styles": {
+    "Funk": 2,
+    "SS": 3,
+    "BN": 2,
+    "Jazz": 3,
+    "Rock": 2
+  },
+  "totalPcmDurationSeconds": 367.9884375,
+  "selectionSealedBeforeEveryMediaFile": true,
+  "previousSelectionUnchanged": true,
+  "excludedTrackOverlap": [],
+  "inferenceRuns": 0,
+  "predictionsRead": 0,
+  "annotationsParsedForSelection": false,
+  "trackDurations": [
+    {
+      "track": "00_Funk1-97-C_comp",
+      "durationSeconds": 29.688375
+    },
+    {
+      "track": "00_SS1-68-E_comp",
+      "durationSeconds": 42.346375
+    },
+    {
+      "track": "01_BN1-147-Gb_comp",
+      "durationSeconds": 19.585625
+    },
+    {
+      "track": "01_Jazz3-137-Eb_comp",
+      "durationSeconds": 28.0231875
+    },
+    {
+      "track": "02_Jazz1-130-D_comp",
+      "durationSeconds": 22.14725
+    },
+    {
+      "track": "02_Rock3-148-C_comp",
+      "durationSeconds": 25.9408125
+    },
+    {
+      "track": "03_BN3-154-E_comp",
+      "durationSeconds": 24.932
+    },
+    {
+      "track": "03_SS2-88-F_comp",
+      "durationSeconds": 43.6291875
+    },
+    {
+      "track": "04_Funk3-98-A_comp",
+      "durationSeconds": 39.1788125
+    },
+    {
+      "track": "04_SS1-68-E_comp",
+      "durationSeconds": 42.346375
+    },
+    {
+      "track": "05_Jazz3-137-Eb_comp",
+      "durationSeconds": 28.0231875
+    },
+    {
+      "track": "05_Rock1-130-A_comp",
+      "durationSeconds": 22.14725
+    }
+  ]
+}

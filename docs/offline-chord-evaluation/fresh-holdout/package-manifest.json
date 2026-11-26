@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "packagedUTC": "2026-11-26T21:47:44.447119+00:00",
+  "package": "fresh-holdout",
+  "purpose": "Fresh second holdout selection/acquisition provenance; no inference outputs",
+  "copiedFiles": 4,
+  "allCopiedFilesByteIdenticalToSources": true,
+  "allowedExtensions": [
+    ".json",
+    ".md",
+    ".txt"
+  ],
+  "excludedArtifacts": [
+    "executables",
+    "audio",
+    "PCM",
+    "original JAMS",
+    "NPZ",
+    "source-tree snapshots"
+  ],
+  "inspection": "JSON keys and text inspected; no credential-shaped keys or values found in copied evidence. Largest copied file is 108709 bytes.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2193,
+      "sha256": "7ecf33bf722ec53d1bfe016cff998de5a2c45b0aaf1bff3fa166fe98e1a670ce",
+      "role": "new packaging metadata",
+      "byteIdenticalToSource": false
+    },
+    {
+      "path": "acquisition-manifest.json",
+      "source": "chord-pro-evidence/fresh-holdout/acquisition-manifest.json",
+      "bytes": 17870,
+      "sha256": "447f47970e82fb3ea2a6f0e4a6ac1ad45330552ebf2819c54f0e1b7edb7a18d2",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "selection.json",
+      "source": "chord-pro-evidence/fresh-holdout/selection.json",
+      "bytes": 42642,
+      "sha256": "509037740ca700b9e3c08cef7687acb288a43a3b0f859204a254865913aca159",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "source-provenance.json",
+      "source": "chord-pro-evidence/fresh-holdout/source-provenance.json",
+      "bytes": 1281,
+      "sha256": "2d570d08814013bcddade0f7cd26a062de6c7fab1e7ef6042b4e61493a989a3b",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    },
+    {
+      "path": "verification.json",
+      "source": "chord-pro-evidence/fresh-holdout/verification.json",
+      "bytes": 1801,
+      "sha256": "54f441b00d30fb389f3039e4671e8142b55d0b36eaa5bb2778d0d6577e473ba1",
+      "byteIdenticalToSource": true,
+      "role": "unchanged source evidence"
+    }
+  ]
+}

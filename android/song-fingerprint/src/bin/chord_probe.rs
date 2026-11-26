@@ -1,6 +1,8 @@
 //! Exercise the exact mobile chord core on 16 kHz mono signed PCM16LE.
 //! ffmpeg -i song.mp3 -ac 1 -ar 16000 -f s16le song.pcm
 //! cargo run --release --bin chord_probe -- song.pcm
+#[path = "../chord_notes.rs"]
+mod chord_notes;
 #[path = "../chords.rs"]
 mod chords;
 use std::io::{Read, Write};

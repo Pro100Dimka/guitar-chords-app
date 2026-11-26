@@ -17,7 +17,7 @@ export interface ChordSegment {
 }
 
 export interface OfflineChordAnalysis {
-  engine: "chroma-v1";
+  engine: "chroma-v1" | "chroma-v2";
   duration: number;
   segments: ChordSegment[];
   key: string | null;
@@ -33,7 +33,10 @@ interface NativeAnalyzer {
 
 const finite = (value: unknown): value is number =>
   typeof value === "number" && Number.isFinite(value);
-const chordPattern = /^[A-G](?:#|b)?m?$/;
+const keyPattern = /^[A-G](?:#|b)?m?$/;
+// Native v2 uses canonical qualities, not the editor's wider notation grammar.
+const extendedChordPattern =
+  /^[A-G](?:#|b)?(?:m|5|sus2|sus4|6|m6|7|maj7|m7|dim|aug|add9|madd9)?$/;
 // The native core permits 900 seconds at 16 kHz, with one label per 1024 samples.
 const maxSegments = Math.ceil((900 * 16000) / 1024);
 const record = (value: unknown): value is Record<string, unknown> =>
@@ -45,10 +48,12 @@ export const chordAnalysisCancelled = (error: unknown) =>
   (record(error) && error.code === "Cancelled") ||
   (error instanceof Error && error.message === "Cancelled");
 
-function validateResult(value: unknown) {
+function validateResult(
+  value: unknown
+): Omit<OfflineChordAnalysis, "fileName"> {
   if (
     !record(value) ||
-    value.engine !== "chroma-v1" ||
+    (value.engine !== "chroma-v1" && value.engine !== "chroma-v2") ||
     !finite(value.duration) ||
     value.duration < 1 ||
     value.duration > 900.001 ||
@@ -57,11 +62,13 @@ function validateResult(value: unknown) {
     !Array.isArray(value.segments) ||
     value.segments.length > maxSegments ||
     (value.key !== null &&
-      (typeof value.key !== "string" || !chordPattern.test(value.key))) ||
+      (typeof value.key !== "string" || !keyPattern.test(value.key))) ||
     (value.tempo !== null &&
       (!finite(value.tempo) || value.tempo < 40 || value.tempo > 200))
   )
     throw new Error("InvalidChordAnalysis");
+  const chordPattern =
+    value.engine === "chroma-v2" ? extendedChordPattern : keyPattern;
   let previousEnd = 0;
   const segments = value.segments.map((segment: unknown): ChordSegment => {
     if (
@@ -88,7 +95,7 @@ function validateResult(value: unknown) {
     };
   });
   return {
-    engine: "chroma-v1" as const,
+    engine: value.engine,
     duration: value.duration,
     elapsedMs: value.elapsedMs,
     key: value.key as string | null,
@@ -173,14 +180,15 @@ export function chordTime(seconds: number) {
 export function offlineChordDraft(
   result: OfflineChordAnalysis,
   fallbackTitle: string,
-  notice: string
+  notice: string,
+  unknownLabel: string
 ): Partial<FormValues> {
   const content = [
     notice,
     "",
     ...result.segments.map(
       (segment) =>
-        `${segment.chord === "N" ? "—" : `[${segment.chord}]`} ${chordTime(
+        `${segment.chord === "N" ? unknownLabel : `[${segment.chord}]`} ${chordTime(
           segment.start
         )}–${chordTime(segment.end)}`
     )

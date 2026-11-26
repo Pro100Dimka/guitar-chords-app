@@ -1,0 +1,29 @@
+{
+  "dataset": "GuitarSet1.1.0",
+  "source": "https://zenodo.org/records/3371780",
+  "license": "CC-BY-4.0",
+  "purpose": "Preselected evaluation recordings; selection fixed before baseline or candidate results",
+  "tracks": [
+    "00_BN1-129-Eb_comp",
+    "00_Rock3-117-Bb_comp",
+    "01_SS1-68-E_comp",
+    "01_Jazz2-110-Bb_comp",
+    "02_Funk1-97-C_comp",
+    "02_BN3-119-G_comp",
+    "03_Rock1-130-A_comp",
+    "03_Jazz3-150-C_comp",
+    "04_SS2-107-Ab_comp",
+    "04_Funk2-119-G_comp",
+    "05_BN2-166-Ab_comp",
+    "05_SS3-84-Bb_comp"
+  ],
+  "excludedDevelopmentTracks": [
+    "00_SS3-98-C_comp"
+  ],
+  "excludedKnownTimingErrors": [
+    "04_BN3-154-E_comp",
+    "04_Jazz1-200-B_comp"
+  ],
+  "knownTimingErrorsSource": "https://github.com/marl/GuitarSet/issues/5",
+  "referencePolicy": "Report instructed and performed annotations separately. Performed labels are sheet-informed and semi-automatic, not independent manually exhaustive transcriptions."
+}

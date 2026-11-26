@@ -1,0 +1,31 @@
+{
+  "createdUTC": "2026-11-26T21:26:52.196527+00:00",
+  "helperSource": "/workspace/scratch/4d3df6e78b9e/guitar-chords-app/scripts/fetch-offline-chord-fixtures.py",
+  "helperSHA256": "eb2037f825fcdbb1e5b11cd9b073062c1b53ff859e88521fd2cc488ea25364e5",
+  "previousSelectionSource": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/selection.json",
+  "previousSelectionSHA256": "fd3676349d3b80770f18881e4467b1b5d88763cc5162999f8786e12678f998db",
+  "previousEvaluationTracks": [
+    "00_BN1-129-Eb_comp",
+    "00_Rock3-117-Bb_comp",
+    "01_SS1-68-E_comp",
+    "01_Jazz2-110-Bb_comp",
+    "02_Funk1-97-C_comp",
+    "02_BN3-119-G_comp",
+    "03_Rock1-130-A_comp",
+    "03_Jazz3-150-C_comp",
+    "04_SS2-107-Ab_comp",
+    "04_Funk2-119-G_comp",
+    "05_BN2-166-Ab_comp",
+    "05_SS3-84-Bb_comp"
+  ],
+  "previousEvaluationRole": "development-after-evaluation",
+  "excludedDevelopmentTracks": [
+    "00_SS3-98-C_comp"
+  ],
+  "excludedKnownTimingErrors": [
+    "04_BN3-154-E_comp",
+    "04_Jazz1-200-B_comp"
+  ],
+  "knownTimingErrorsSource": "https://github.com/marl/GuitarSet/issues/5",
+  "annotationReferencePolicy": "Report instructed and performed annotations separately. Performed labels are sheet-informed and semi-automatic, not independent manually exhaustive transcriptions."
+}

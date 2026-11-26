@@ -1,0 +1,3437 @@
+{
+  "cohortRole": "Original12 previously evaluated, diagnosed, and used to motivate the new fix. This is development-after-evaluation, not a new heldout claim.",
+  "trainingOverlapCaveat": "The new12 are held out from our decoder's current development, not certified unseen by Basic Pitch pretraining. GuitarSet was part of its training data; exact checkpoint track membership has not been established. Each cohort covers six performers and five styles, not twelve independent songs. Instructed and sheet-informed semi-automatic performed references remain separate. No accuracy claim for arbitrary full mixes follows.",
+  "metricDefinitions": {
+    "exactRootAndFormula": "Duration-weighted identical enharmonic root and relative pitch-class formula. Slash bass is ignored; added/omitted notes and dominant/major sevenths remain distinct.",
+    "rootOnly": "Duration-weighted identical enharmonic root, ignoring chord quality; N matches N only.",
+    "majorMinorProjection": "Secondary triad score. Eligible references contain a complete unambiguous major (1,3,5) or minor (1,b3,5) triad. Other reference duration is explicitly excluded; non-projectable predictions count wrong.",
+    "pitchClassJaccard": "Secondary harmonic similarity: mean intersection/union of absolute pitch-class sets. Can be high despite a wrong root or quality; not exact chord accuracy."
+  },
+  "evaluationPolicy": {
+    "unknownLabels": "X in the reference is excluded and its duration is reported. X in predictions counts wrong on known reference chords. Unsupported chord syntax raises an error instead of being dropped.",
+    "noChord": "N is a known no-chord label: N matches N. N is excluded from the separately denominated major/minor projection because it contains no triad.",
+    "predictionGaps": "Missing prediction time counts wrong on known reference intervals and is reported in missingPredictionSeconds. Overlapping or invalid intervals fail validation."
+  },
+  "freezeSha256": "fe223a7191a302321bbbfd31a90bbb249042342ca7805e40310c23cc7e27f4fb",
+  "timingNote": "All process times are CPU-host measurements including startup. Archived development-baseline timings were not rerun. CLI elapsedMs scope is preserved separately. No phone-performance claim.",
+  "baseline": {
+    "aggregate": {
+      "clipCount": 12,
+      "audioSeconds": 379.076376,
+      "references": {
+        "instructed": {
+          "metrics": {
+            "exactRootAndFormula": {
+              "value": 0.6566618429681133,
+              "weightedCorrectSeconds": 248.92500744971775,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.6297046632650016
+            },
+            "rootOnly": {
+              "value": 0.7247405652479003,
+              "weightedCorrectSeconds": 274.73204440813925,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.6936353929836381
+            },
+            "majorMinorProjection": {
+              "value": 0.727955229242038,
+              "weightedCorrectSeconds": 264.4673014174323,
+              "evaluatedSeconds": 363.3016026175141,
+              "meanAcrossClips": 0.6878202876025559
+            },
+            "pitchClassJaccard": {
+              "value": 0.790636362793218,
+              "weightedCorrectSeconds": 299.7115861167471,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.7702936103666237
+            }
+          },
+          "excludedUnknownReferenceSeconds": 0.0,
+          "excludedFromMajorMinorSeconds": 15.774797382485971,
+          "missingPredictionSeconds": 0.00013600000008295865
+        },
+        "performed": {
+          "metrics": {
+            "exactRootAndFormula": {
+              "value": 0.4996404702305869,
+              "weightedCorrectSeconds": 189.4019107493181,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.4445652184339937
+            },
+            "rootOnly": {
+              "value": 0.7247405652479003,
+              "weightedCorrectSeconds": 274.73204440813925,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.6936353929836381
+            },
+            "majorMinorProjection": {
+              "value": 0.8664210790800055,
+              "weightedCorrectSeconds": 229.85225808030495,
+              "evaluatedSeconds": 265.2893190506972,
+              "meanAcrossClips": 0.7344290670305148
+            },
+            "pitchClassJaccard": {
+              "value": 0.7838156330222662,
+              "weightedCorrectSeconds": 297.12600842980186,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.7592791720868942
+            }
+          },
+          "excludedUnknownReferenceSeconds": 0.0,
+          "excludedFromMajorMinorSeconds": 113.78708094930286,
+          "missingPredictionSeconds": 0.00013600000008295865
+        }
+      }
+    },
+    "tracks": [
+      {
+        "track": "00_BN1-129-Eb_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 22.324437,
+        "elapsedMs": 28.847,
+        "segmentCount": 13,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.5921980038110358,
+                "weightedCorrectSeconds": 13.220465116279069,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "rootOnly": {
+                "value": 0.5921980038110358,
+                "weightedCorrectSeconds": 13.220465116279069,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.5921980038110358,
+                "weightedCorrectSeconds": 13.220465116279069,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "pitchClassJaccard": {
+                "value": 0.7248785664908104,
+                "weightedCorrectSeconds": 16.182479069767425,
+                "evaluatedSeconds": 22.32439999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.046235779976690566,
+                "weightedCorrectSeconds": 1.0321860465116295,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "rootOnly": {
+                "value": 0.5921980038110358,
+                "weightedCorrectSeconds": 13.220465116279069,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.5715925922592188,
+                "weightedCorrectSeconds": 5.316465116279069,
+                "evaluatedSeconds": 9.30114418604648
+              },
+              "pitchClassJaccard": {
+                "value": 0.5448721611915452,
+                "weightedCorrectSeconds": 12.163944075304515,
+                "evaluatedSeconds": 22.32439999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 13.023255813953488,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "00_Rock3-117-Bb_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 32.816375,
+        "elapsedMs": 49.73,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9581189900671926,
+                "weightedCorrectSeconds": 31.442016025641035,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "rootOnly": {
+                "value": 0.9581189900671926,
+                "weightedCorrectSeconds": 31.442016025641035,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "majorMinorProjection": {
+                "value": 0.9581189900671926,
+                "weightedCorrectSeconds": 31.442016025641035,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "pitchClassJaccard": {
+                "value": 0.9624745358715262,
+                "weightedCorrectSeconds": 31.584949358974367,
+                "evaluatedSeconds": 32.816400000000016
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.8410293172675699,
+                "weightedCorrectSeconds": 27.599554487179496,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "rootOnly": {
+                "value": 0.9581189900671926,
+                "weightedCorrectSeconds": 31.442016025641035,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "majorMinorProjection": {
+                "value": 0.9595137758413705,
+                "weightedCorrectSeconds": 29.519554487179494,
+                "evaluatedSeconds": 30.765117948717965
+              },
+              "pitchClassJaccard": {
+                "value": 0.9281960736850667,
+                "weightedCorrectSeconds": 30.46005363247864,
+                "evaluatedSeconds": 32.816400000000016
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 2.051282051282051,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "01_SS1-68-E_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 42.346375,
+        "elapsedMs": 64.746,
+        "segmentCount": 6,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9846192564740548,
+                "weightedCorrectSeconds": 41.69508088235293,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "rootOnly": {
+                "value": 0.9846192564740548,
+                "weightedCorrectSeconds": 41.69508088235293,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "majorMinorProjection": {
+                "value": 0.9846192564740548,
+                "weightedCorrectSeconds": 41.69508088235293,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "pitchClassJaccard": {
+                "value": 0.9868418219591688,
+                "weightedCorrectSeconds": 41.78919852941176,
+                "evaluatedSeconds": 42.34640000000002
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9055403765137056,
+                "weightedCorrectSeconds": 38.346374999999995,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "rootOnly": {
+                "value": 0.9846192564740548,
+                "weightedCorrectSeconds": 41.69508088235293,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "majorMinorProjection": {
+                "value": 0.9846192564740548,
+                "weightedCorrectSeconds": 41.69508088235293,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "pitchClassJaccard": {
+                "value": 0.9677833229243178,
+                "weightedCorrectSeconds": 40.98213970588235,
+                "evaluatedSeconds": 42.34640000000002
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "01_Jazz2-110-Bb_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 34.903188,
+        "elapsedMs": 49.345,
+        "segmentCount": 19,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.5519240434323297,
+                "weightedCorrectSeconds": 19.263915272727274,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "rootOnly": {
+                "value": 0.9073173493860434,
+                "weightedCorrectSeconds": 31.668278909090922,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.8778808174909932,
+                "weightedCorrectSeconds": 26.810097090909096,
+                "evaluatedSeconds": 30.53956363636361
+              },
+              "pitchClassJaccard": {
+                "value": 0.755266690837413,
+                "weightedCorrectSeconds": 26.36122436363637,
+                "evaluatedSeconds": 34.90319999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.36363636363636,
+            "missingPredictionSeconds": 1.1999999969702912e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.4547409771232233,
+                "weightedCorrectSeconds": 15.871915272727273,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "rootOnly": {
+                "value": 0.9073173493860434,
+                "weightedCorrectSeconds": 31.668278909090922,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.8999803176326874,
+                "weightedCorrectSeconds": 27.48500618181819,
+                "evaluatedSeconds": 30.539563636363606
+              },
+              "pitchClassJaccard": {
+                "value": 0.7922132033391754,
+                "weightedCorrectSeconds": 27.650775878787883,
+                "evaluatedSeconds": 34.90319999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.363636363636363,
+            "missingPredictionSeconds": 1.1999999969702912e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "02_Funk1-97-C_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 29.688375,
+        "elapsedMs": 36.315,
+        "segmentCount": 13,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.6834201063222026,
+                "weightedCorrectSeconds": 20.28964948453608,
+                "evaluatedSeconds": 29.6884
+              },
+              "rootOnly": {
+                "value": 0.8333762765060657,
+                "weightedCorrectSeconds": 24.741608247422683,
+                "evaluatedSeconds": 29.6884
+              },
+              "majorMinorProjection": {
+                "value": 0.6834201063222026,
+                "weightedCorrectSeconds": 20.28964948453608,
+                "evaluatedSeconds": 29.6884
+              },
+              "pitchClassJaccard": {
+                "value": 0.7880847054429394,
+                "weightedCorrectSeconds": 23.396973969072164,
+                "evaluatedSeconds": 29.6884
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.5000000000829914e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.16069034286986603,
+                "weightedCorrectSeconds": 4.770639175257731,
+                "evaluatedSeconds": 29.6884
+              },
+              "rootOnly": {
+                "value": 0.8333762765060657,
+                "weightedCorrectSeconds": 24.741608247422683,
+                "evaluatedSeconds": 29.6884
+              },
+              "majorMinorProjection": {
+                "value": 0.9640666666666664,
+                "weightedCorrectSeconds": 4.770639175257731,
+                "evaluatedSeconds": 4.948453608247423
+              },
+              "pitchClassJaccard": {
+                "value": 0.5964855864481718,
+                "weightedCorrectSeconds": 17.708702684707905,
+                "evaluatedSeconds": 29.6884
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 24.73994639175258,
+            "missingPredictionSeconds": 2.5000000000829914e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "02_BN3-119-G_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 32.263188,
+        "elapsedMs": 40.511,
+        "segmentCount": 18,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9210606657302516,
+                "weightedCorrectSeconds": 29.71636447058824,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "rootOnly": {
+                "value": 0.9210606657302516,
+                "weightedCorrectSeconds": 29.71636447058824,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.9210606657302516,
+                "weightedCorrectSeconds": 29.71636447058824,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "pitchClassJaccard": {
+                "value": 0.9316742096675021,
+                "weightedCorrectSeconds": 30.05879136134454,
+                "evaluatedSeconds": 32.26319999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 1.1999999983913767e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.8079906664741331,
+                "weightedCorrectSeconds": 26.068364470588236,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "rootOnly": {
+                "value": 0.9210606657302516,
+                "weightedCorrectSeconds": 29.71636447058824,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.9232295637554736,
+                "weightedCorrectSeconds": 27.924364470588237,
+                "evaluatedSeconds": 30.246393277310908
+              },
+              "pitchClassJaccard": {
+                "value": 0.9000141653527195,
+                "weightedCorrectSeconds": 29.037337019607843,
+                "evaluatedSeconds": 32.26319999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 2.0168067226890756,
+            "missingPredictionSeconds": 1.1999999983913767e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "03_Rock1-130-A_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 22.14725,
+        "elapsedMs": 35.104,
+        "segmentCount": 6,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9574316739466285,
+                "weightedCorrectSeconds": 21.204430769230772,
+                "evaluatedSeconds": 22.1472
+              },
+              "rootOnly": {
+                "value": 0.9574316739466285,
+                "weightedCorrectSeconds": 21.204430769230772,
+                "evaluatedSeconds": 22.1472
+              },
+              "majorMinorProjection": {
+                "value": 0.9574316739466285,
+                "weightedCorrectSeconds": 21.204430769230772,
+                "evaluatedSeconds": 22.1472
+              },
+              "pitchClassJaccard": {
+                "value": 0.9635668478321275,
+                "weightedCorrectSeconds": 21.340307692307697,
+                "evaluatedSeconds": 22.1472
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.7073566514398766,
+                "weightedCorrectSeconds": 15.665969230769235,
+                "evaluatedSeconds": 22.1472
+              },
+              "rootOnly": {
+                "value": 0.9574316739466285,
+                "weightedCorrectSeconds": 21.204430769230772,
+                "evaluatedSeconds": 22.1472
+              },
+              "majorMinorProjection": {
+                "value": 0.9574316739466285,
+                "weightedCorrectSeconds": 21.204430769230772,
+                "evaluatedSeconds": 22.1472
+              },
+              "pitchClassJaccard": {
+                "value": 0.9010480922054395,
+                "weightedCorrectSeconds": 19.95569230769231,
+                "evaluatedSeconds": 22.1472
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "03_Jazz3-150-C_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 25.6,
+        "elapsedMs": 33.958,
+        "segmentCount": 17,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.11,
+                "weightedCorrectSeconds": 2.8160000000000025,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "rootOnly": {
+                "value": 0.13124999999999998,
+                "weightedCorrectSeconds": 3.360000000000002,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "majorMinorProjection": {
+                "value": 0.11,
+                "weightedCorrectSeconds": 2.8160000000000025,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "pitchClassJaccard": {
+                "value": 0.3871249999999998,
+                "weightedCorrectSeconds": 9.910400000000003,
+                "evaluatedSeconds": 25.600000000000023
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.1316282072803006e-14,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "rootOnly": {
+                "value": 0.13124999999999998,
+                "weightedCorrectSeconds": 3.360000000000002,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "majorMinorProjection": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 1.5999999999999979
+              },
+              "pitchClassJaccard": {
+                "value": 0.5559374999999995,
+                "weightedCorrectSeconds": 14.232000000000001,
+                "evaluatedSeconds": 25.600000000000023
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 24.000000000000025,
+            "missingPredictionSeconds": 2.1316282072803006e-14,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "04_SS2-107-Ab_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 35.886375,
+        "elapsedMs": 46.395,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.3712405576912904,
+                "weightedCorrectSeconds": 13.322487149532716,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "rootOnly": {
+                "value": 0.5940578965587363,
+                "weightedCorrectSeconds": 21.318599299065422,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.6789272305077907,
+                "weightedCorrectSeconds": 21.318599299065422,
+                "evaluatedSeconds": 31.40041869158876
+              },
+              "pitchClassJaccard": {
+                "value": 0.7377894001514512,
+                "weightedCorrectSeconds": 26.476605529595023,
+                "evaluatedSeconds": 35.88639999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.485981308411219,
+            "missingPredictionSeconds": 2.4999999979513632e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.3691821411636224,
+                "weightedCorrectSeconds": 13.248617990654212,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "rootOnly": {
+                "value": 0.5940578965587363,
+                "weightedCorrectSeconds": 21.318599299065422,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.7087500427106357,
+                "weightedCorrectSeconds": 19.075608644859816,
+                "evaluatedSeconds": 26.914437383177546
+              },
+              "pitchClassJaccard": {
+                "value": 0.7672829532936682,
+                "weightedCorrectSeconds": 27.53502297507788,
+                "evaluatedSeconds": 35.88639999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 8.971962616822434,
+            "missingPredictionSeconds": 2.4999999979513632e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "04_Funk2-119-G_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 32.263188,
+        "elapsedMs": 48.406,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.09068270617032026,
+                "weightedCorrectSeconds": 2.9257142857142853,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "rootOnly": {
+                "value": 0.09068270617032026,
+                "weightedCorrectSeconds": 2.9257142857142853,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.10363999770429747,
+                "weightedCorrectSeconds": 2.9257142857142853,
+                "evaluatedSeconds": 28.229586554621946
+              },
+              "pitchClassJaccard": {
+                "value": 0.4410942358346286,
+                "weightedCorrectSeconds": 14.231111549579833,
+                "evaluatedSeconds": 32.2632000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.033613445378151,
+            "missingPredictionSeconds": 1.2000000097600605e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.06171924992566373,
+                "weightedCorrectSeconds": 1.99126050420168,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "rootOnly": {
+                "value": 0.09068270617032026,
+                "weightedCorrectSeconds": 2.9257142857142853,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.1645555555555555,
+                "weightedCorrectSeconds": 1.99126050420168,
+                "evaluatedSeconds": 12.100840336134453
+              },
+              "pitchClassJaccard": {
+                "value": 0.5813482439890071,
+                "weightedCorrectSeconds": 18.75615466546619,
+                "evaluatedSeconds": 32.2632000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 20.162359663865644,
+            "missingPredictionSeconds": 1.2000000097600605e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "05_BN2-166-Ab_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 23.13,
+        "elapsedMs": 28.183,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.355462837081139,
+                "weightedCorrectSeconds": 8.221855421686744,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "rootOnly": {
+                "value": 0.37321477869975367,
+                "weightedCorrectSeconds": 8.6324578313253,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "majorMinorProjection": {
+                "value": 0.4062495907226498,
+                "weightedCorrectSeconds": 8.221855421686744,
+                "evaluatedSeconds": 20.238433734939754
+              },
+              "pitchClassJaccard": {
+                "value": 0.5820098378815738,
+                "weightedCorrectSeconds": 13.4618875502008,
+                "evaluatedSeconds": 23.129999999999995
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 2.8915662650602414,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "rootOnly": {
+                "value": 0.37321477869975367,
+                "weightedCorrectSeconds": 8.6324578313253,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "majorMinorProjection": {
+                "value": 0.6991122410703123,
+                "weightedCorrectSeconds": 6.062819277108431,
+                "evaluatedSeconds": 8.672168674698788
+              },
+              "pitchClassJaccard": {
+                "value": 0.5934512901832767,
+                "weightedCorrectSeconds": 13.726528341939186,
+                "evaluatedSeconds": 23.129999999999995
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 14.457831325301207,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "05_SS3-84-Bb_comp",
+        "engine": "chroma-v1",
+        "audioSeconds": 45.707625,
+        "elapsedMs": 56.276,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.980297118453574,
+                "weightedCorrectSeconds": 44.807028571428596,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "rootOnly": {
+                "value": 0.980297118453574,
+                "weightedCorrectSeconds": 44.807028571428596,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.980297118453574,
+                "weightedCorrectSeconds": 44.807028571428596,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "pitchClassJaccard": {
+                "value": 0.9827174724303431,
+                "weightedCorrectSeconds": 44.917657142857166,
+                "evaluatedSeconds": 45.70760000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.980297118453574,
+                "weightedCorrectSeconds": 44.807028571428596,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "rootOnly": {
+                "value": 0.980297118453574,
+                "weightedCorrectSeconds": 44.807028571428596,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.980297118453574,
+                "weightedCorrectSeconds": 44.807028571428596,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "pitchClassJaccard": {
+                "value": 0.9827174724303431,
+                "weightedCorrectSeconds": 44.917657142857166,
+                "evaluatedSeconds": 45.70760000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "candidate": {
+    "aggregate": {
+      "clipCount": 12,
+      "audioSeconds": 379.076376,
+      "references": {
+        "instructed": {
+          "metrics": {
+            "exactRootAndFormula": {
+              "value": 0.531720490702755,
+              "weightedCorrectSeconds": 201.56268942183388,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.47172036225956654
+            },
+            "rootOnly": {
+              "value": 0.7761333805883033,
+              "weightedCorrectSeconds": 294.21384783324396,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.7505989081737221
+            },
+            "majorMinorProjection": {
+              "value": 0.7103621126884685,
+              "weightedCorrectSeconds": 258.07569397848374,
+              "evaluatedSeconds": 363.3016026175141,
+              "meanAcrossClips": 0.6788832614176155
+            },
+            "pitchClassJaccard": {
+              "value": 0.7916698954372253,
+              "weightedCorrectSeconds": 300.10337395071986,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.7679775005892013
+            }
+          },
+          "excludedUnknownReferenceSeconds": 0.0,
+          "excludedFromMajorMinorSeconds": 15.774797382485971,
+          "missingPredictionSeconds": 0.00013600000008295865
+        },
+        "performed": {
+          "metrics": {
+            "exactRootAndFormula": {
+              "value": 0.584418734975237,
+              "weightedCorrectSeconds": 221.539350146967,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.5359144602430183
+            },
+            "rootOnly": {
+              "value": 0.7761333805883033,
+              "weightedCorrectSeconds": 294.21384783324396,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.7505989081737221
+            },
+            "majorMinorProjection": {
+              "value": 0.8575214440745587,
+              "weightedCorrectSeconds": 227.49127996991018,
+              "evaluatedSeconds": 265.2893190506972,
+              "meanAcrossClips": 0.7346276929812318
+            },
+            "pitchClassJaccard": {
+              "value": 0.8409806356040684,
+              "weightedCorrectSeconds": 318.7959118145022,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.8233545066450643
+            }
+          },
+          "excludedUnknownReferenceSeconds": 0.0,
+          "excludedFromMajorMinorSeconds": 113.78708094930286,
+          "missingPredictionSeconds": 0.00013600000008295865
+        }
+      }
+    },
+    "tracks": [
+      {
+        "track": "00_BN1-129-Eb_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 22.324437,
+        "elapsedMs": 1616.359,
+        "segmentCount": 9,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.06630350856066151,
+                "weightedCorrectSeconds": 1.4801860465116299,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "rootOnly": {
+                "value": 0.7803079579627766,
+                "weightedCorrectSeconds": 17.419906976744187,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.6960585716410836,
+                "weightedCorrectSeconds": 15.539089976744187,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "pitchClassJaccard": {
+                "value": 0.6578851921712805,
+                "weightedCorrectSeconds": 14.686892184108514,
+                "evaluatedSeconds": 22.32439999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.23297899513849313,
+                "weightedCorrectSeconds": 5.201116279069769,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "rootOnly": {
+                "value": 0.7803079579627766,
+                "weightedCorrectSeconds": 17.419906976744187,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.559191017259194,
+                "weightedCorrectSeconds": 5.201116279069769,
+                "evaluatedSeconds": 9.30114418604648
+              },
+              "pitchClassJaccard": {
+                "value": 0.6934068407275641,
+                "weightedCorrectSeconds": 15.47989167513841,
+                "evaluatedSeconds": 22.32439999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 13.023255813953488,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "00_Rock3-117-Bb_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 32.816375,
+        "elapsedMs": 2268.02,
+        "segmentCount": 22,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.8035030921062296,
+                "weightedCorrectSeconds": 26.368078871794886,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "rootOnly": {
+                "value": 0.9512681315689873,
+                "weightedCorrectSeconds": 31.217195512820528,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "majorMinorProjection": {
+                "value": 0.8305532490165174,
+                "weightedCorrectSeconds": 27.255767641025653,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "pitchClassJaccard": {
+                "value": 0.8961845338535652,
+                "weightedCorrectSeconds": 29.409550136752152,
+                "evaluatedSeconds": 32.816400000000016
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.7466709703309695,
+                "weightedCorrectSeconds": 24.50305323076924,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "rootOnly": {
+                "value": 0.9512681315689873,
+                "weightedCorrectSeconds": 31.217195512820528,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "majorMinorProjection": {
+                "value": 0.8859308677593237,
+                "weightedCorrectSeconds": 27.255767641025653,
+                "evaluatedSeconds": 30.765117948717965
+              },
+              "pitchClassJaccard": {
+                "value": 0.8915510365517678,
+                "weightedCorrectSeconds": 29.257495435897447,
+                "evaluatedSeconds": 32.816400000000016
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 2.051282051282051,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "01_SS1-68-E_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 42.346375,
+        "elapsedMs": 2820.188,
+        "segmentCount": 10,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9270254308721011,
+                "weightedCorrectSeconds": 39.256189705882356,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "rootOnly": {
+                "value": 0.983996938138223,
+                "weightedCorrectSeconds": 41.66872794117646,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "majorMinorProjection": {
+                "value": 0.9270254308721011,
+                "weightedCorrectSeconds": 39.256189705882356,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "pitchClassJaccard": {
+                "value": 0.9568808053873501,
+                "weightedCorrectSeconds": 40.520457337254896,
+                "evaluatedSeconds": 42.34640000000002
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.849946859848354,
+                "weightedCorrectSeconds": 35.99218970588235,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "rootOnly": {
+                "value": 0.983996938138223,
+                "weightedCorrectSeconds": 41.66872794117646,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "majorMinorProjection": {
+                "value": 0.9270254308721011,
+                "weightedCorrectSeconds": 39.256189705882356,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "pitchClassJaccard": {
+                "value": 0.9388483907514601,
+                "weightedCorrectSeconds": 39.756849494117645,
+                "evaluatedSeconds": 42.34640000000002
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "01_Jazz2-110-Bb_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 34.903188,
+        "elapsedMs": 2451.177,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.6829184534265166,
+                "weightedCorrectSeconds": 23.836039363636374,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "rootOnly": {
+                "value": 0.9214030596829894,
+                "weightedCorrectSeconds": 32.15991527272729,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.7804970512170214,
+                "weightedCorrectSeconds": 23.836039363636374,
+                "evaluatedSeconds": 30.53956363636361
+              },
+              "pitchClassJaccard": {
+                "value": 0.8191251032292266,
+                "weightedCorrectSeconds": 28.590087303030316,
+                "evaluatedSeconds": 34.90319999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.36363636363636,
+            "missingPredictionSeconds": 1.1999999969702912e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.920875275306876,
+                "weightedCorrectSeconds": 32.141493909090926,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "rootOnly": {
+                "value": 0.9214030596829894,
+                "weightedCorrectSeconds": 32.15991527272729,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.9115699486091379,
+                "weightedCorrectSeconds": 27.83894845454547,
+                "evaluatedSeconds": 30.539563636363606
+              },
+              "pitchClassJaccard": {
+                "value": 0.9347624741784316,
+                "weightedCorrectSeconds": 32.62620158874461,
+                "evaluatedSeconds": 34.90319999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.363636363636363,
+            "missingPredictionSeconds": 1.1999999969702912e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "02_Funk1-97-C_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 29.688375,
+        "elapsedMs": 2122.82,
+        "segmentCount": 6,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.16667970009321562,
+                "weightedCorrectSeconds": 4.948453608247423,
+                "evaluatedSeconds": 29.6884
+              },
+              "rootOnly": {
+                "value": 0.9547400633549539,
+                "weightedCorrectSeconds": 28.344704896907214,
+                "evaluatedSeconds": 29.6884
+              },
+              "majorMinorProjection": {
+                "value": 0.6506397653038702,
+                "weightedCorrectSeconds": 19.31645360824742,
+                "evaluatedSeconds": 29.6884
+              },
+              "pitchClassJaccard": {
+                "value": 0.728386487026694,
+                "weightedCorrectSeconds": 21.624629381443302,
+                "evaluatedSeconds": 29.6884
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.5000000000829914e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.2281721386686209,
+                "weightedCorrectSeconds": 6.774065721649485,
+                "evaluatedSeconds": 29.6884
+              },
+              "rootOnly": {
+                "value": 0.9547400633549539,
+                "weightedCorrectSeconds": 28.344704896907214,
+                "evaluatedSeconds": 29.6884
+              },
+              "majorMinorProjection": {
+                "value": 0.944133333333333,
+                "weightedCorrectSeconds": 4.671999999999999,
+                "evaluatedSeconds": 4.948453608247423
+              },
+              "pitchClassJaccard": {
+                "value": 0.6510755777384629,
+                "weightedCorrectSeconds": 19.329392182130583,
+                "evaluatedSeconds": 29.6884
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 24.73994639175258,
+            "missingPredictionSeconds": 2.5000000000829914e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "02_BN3-119-G_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 32.263188,
+        "elapsedMs": 2208.935,
+        "segmentCount": 17,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.872462377460097,
+                "weightedCorrectSeconds": 28.14842817647059,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "rootOnly": {
+                "value": 0.9337815566232449,
+                "weightedCorrectSeconds": 30.12678111764706,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.872462377460097,
+                "weightedCorrectSeconds": 28.14842817647059,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "pitchClassJaccard": {
+                "value": 0.9104499298417579,
+                "weightedCorrectSeconds": 29.37402817647059,
+                "evaluatedSeconds": 32.26319999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 1.1999999983913767e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.813226900185054,
+                "weightedCorrectSeconds": 26.23730212605042,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "rootOnly": {
+                "value": 0.9337815566232449,
+                "weightedCorrectSeconds": 30.12678111764706,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.9306375116660904,
+                "weightedCorrectSeconds": 28.14842817647059,
+                "evaluatedSeconds": 30.246393277310908
+              },
+              "pitchClassJaccard": {
+                "value": 0.9064664474855385,
+                "weightedCorrectSeconds": 29.24550828851541,
+                "evaluatedSeconds": 32.26319999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 2.0168067226890756,
+            "missingPredictionSeconds": 1.1999999983913767e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "03_Rock1-130-A_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 22.14725,
+        "elapsedMs": 1558.514,
+        "segmentCount": 7,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.5787135689317906,
+                "weightedCorrectSeconds": 12.816885153846155,
+                "evaluatedSeconds": 22.1472
+              },
+              "rootOnly": {
+                "value": 0.8766296555633355,
+                "weightedCorrectSeconds": 19.414892307692305,
+                "evaluatedSeconds": 22.1472
+              },
+              "majorMinorProjection": {
+                "value": 0.876102924627388,
+                "weightedCorrectSeconds": 19.40322669230769,
+                "evaluatedSeconds": 22.1472
+              },
+              "pitchClassJaccard": {
+                "value": 0.8429682730050497,
+                "weightedCorrectSeconds": 18.66938693589744,
+                "evaluatedSeconds": 22.1472
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.6761363131161571,
+                "weightedCorrectSeconds": 14.974526153846154,
+                "evaluatedSeconds": 22.1472
+              },
+              "rootOnly": {
+                "value": 0.8766296555633355,
+                "weightedCorrectSeconds": 19.414892307692305,
+                "evaluatedSeconds": 22.1472
+              },
+              "majorMinorProjection": {
+                "value": 0.876102924627388,
+                "weightedCorrectSeconds": 19.40322669230769,
+                "evaluatedSeconds": 22.1472
+              },
+              "pitchClassJaccard": {
+                "value": 0.8838873818974398,
+                "weightedCorrectSeconds": 19.57563062435898,
+                "evaluatedSeconds": 22.1472
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "03_Jazz3-150-C_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 25.6,
+        "elapsedMs": 1776.053,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "rootOnly": {
+                "value": 0.11499999999999996,
+                "weightedCorrectSeconds": 2.9440000000000017,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "majorMinorProjection": {
+                "value": 0.06,
+                "weightedCorrectSeconds": 1.5360000000000014,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "pitchClassJaccard": {
+                "value": 0.4431560377604163,
+                "weightedCorrectSeconds": 11.344794566666668,
+                "evaluatedSeconds": 25.600000000000023
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.1316282072803006e-14,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "rootOnly": {
+                "value": 0.11499999999999996,
+                "weightedCorrectSeconds": 2.9440000000000017,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "majorMinorProjection": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 1.5999999999999979
+              },
+              "pitchClassJaccard": {
+                "value": 0.6768201539248508,
+                "weightedCorrectSeconds": 17.326595940476196,
+                "evaluatedSeconds": 25.600000000000023
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 24.000000000000025,
+            "missingPredictionSeconds": 2.1316282072803006e-14,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "04_SS2-107-Ab_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 35.886375,
+        "elapsedMs": 2408.513,
+        "segmentCount": 15,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.5330500290011727,
+                "weightedCorrectSeconds": 19.129246560747674,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "rootOnly": {
+                "value": 0.7241464876392929,
+                "weightedCorrectSeconds": 25.987010514018706,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.8150035329012827,
+                "weightedCorrectSeconds": 25.591452168224315,
+                "evaluatedSeconds": 31.40041869158876
+              },
+              "pitchClassJaccard": {
+                "value": 0.8599857893041243,
+                "weightedCorrectSeconds": 30.86179402928351,
+                "evaluatedSeconds": 35.88639999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.485981308411219,
+            "missingPredictionSeconds": 2.4999999979513632e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.6524881896268315,
+                "weightedCorrectSeconds": 23.415452168224313,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "rootOnly": {
+                "value": 0.7241464876392929,
+                "weightedCorrectSeconds": 25.987010514018706,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.869995974088605,
+                "weightedCorrectSeconds": 23.415452168224313,
+                "evaluatedSeconds": 26.914437383177546
+              },
+              "pitchClassJaccard": {
+                "value": 0.907873419206944,
+                "weightedCorrectSeconds": 32.58030867102806,
+                "evaluatedSeconds": 35.88639999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 8.971962616822434,
+            "missingPredictionSeconds": 2.4999999979513632e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "04_Funk2-119-G_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 32.263188,
+        "elapsedMs": 2192.205,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.032930824639608045,
+                "weightedCorrectSeconds": 1.0624537815126054,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "rootOnly": {
+                "value": 0.21277930200570833,
+                "weightedCorrectSeconds": 6.864941176470589,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.10445921092144544,
+                "weightedCorrectSeconds": 2.948840336134454,
+                "evaluatedSeconds": 28.229586554621946
+              },
+              "pitchClassJaccard": {
+                "value": 0.4873863887033634,
+                "weightedCorrectSeconds": 15.724644536014402,
+                "evaluatedSeconds": 32.2632000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.033613445378151,
+            "missingPredictionSeconds": 1.2000000097600605e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.058468674980220285,
+                "weightedCorrectSeconds": 1.8863865546218488,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "rootOnly": {
+                "value": 0.21277930200570833,
+                "weightedCorrectSeconds": 6.864941176470589,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.1558888888888889,
+                "weightedCorrectSeconds": 1.8863865546218488,
+                "evaluatedSeconds": 12.100840336134453
+              },
+              "pitchClassJaccard": {
+                "value": 0.6818745623928343,
+                "weightedCorrectSeconds": 21.999455381392558,
+                "evaluatedSeconds": 32.2632000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 20.162359663865644,
+            "missingPredictionSeconds": 1.2000000097600605e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "05_BN2-166-Ab_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 23.13,
+        "elapsedMs": 1655.083,
+        "segmentCount": 17,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.0467884508201418,
+                "weightedCorrectSeconds": 1.0822168674698796,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "rootOnly": {
+                "value": 0.5724365685830222,
+                "weightedCorrectSeconds": 13.2404578313253,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "majorMinorProjection": {
+                "value": 0.5835281118473143,
+                "weightedCorrectSeconds": 11.809695024096385,
+                "evaluatedSeconds": 20.238433734939754
+              },
+              "pitchClassJaccard": {
+                "value": 0.6397466033388077,
+                "weightedCorrectSeconds": 14.79733893522662,
+                "evaluatedSeconds": 23.129999999999995
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 2.8915662650602414,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.3017402945113788,
+                "weightedCorrectSeconds": 6.97925301204819,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "rootOnly": {
+                "value": 0.5724365685830222,
+                "weightedCorrectSeconds": 13.2404578313253,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "majorMinorProjection": {
+                "value": 0.8047875074674561,
+                "weightedCorrectSeconds": 6.97925301204819,
+                "evaluatedSeconds": 8.672168674698788
+              },
+              "pitchClassJaccard": {
+                "value": 0.7401129314366974,
+                "weightedCorrectSeconds": 17.118812104130807,
+                "evaluatedSeconds": 23.129999999999995
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 14.457831325301207,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "05_SS3-84-Bb_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 45.707625,
+        "elapsedMs": 3156.368,
+        "segmentCount": 18,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9502689112032637,
+                "weightedCorrectSeconds": 43.43451128571431,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "rootOnly": {
+                "value": 0.9806971769621309,
+                "weightedCorrectSeconds": 44.825314285714306,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.9502689112032637,
+                "weightedCorrectSeconds": 43.43451128571431,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "pitchClassJaccard": {
+                "value": 0.9735748634487796,
+                "weightedCorrectSeconds": 44.49977042857145,
+                "evaluatedSeconds": 45.70760000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9502689112032637,
+                "weightedCorrectSeconds": 43.43451128571431,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "rootOnly": {
+                "value": 0.9806971769621309,
+                "weightedCorrectSeconds": 44.825314285714306,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.9502689112032637,
+                "weightedCorrectSeconds": 43.43451128571431,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "pitchClassJaccard": {
+                "value": 0.9735748634487796,
+                "weightedCorrectSeconds": 44.49977042857145,
+                "evaluatedSeconds": 45.70760000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      }
+    ]
+  },
+  "previous-production": {
+    "aggregate": {
+      "clipCount": 12,
+      "audioSeconds": 379.076376,
+      "references": {
+        "instructed": {
+          "metrics": {
+            "exactRootAndFormula": {
+              "value": 0.5223633349339524,
+              "weightedCorrectSeconds": 198.01561249875695,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.4583737656880025
+            },
+            "rootOnly": {
+              "value": 0.7761333805883033,
+              "weightedCorrectSeconds": 294.21384783324396,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.7505989081737221
+            },
+            "majorMinorProjection": {
+              "value": 0.6775939157530098,
+              "weightedCorrectSeconds": 246.17095551694527,
+              "evaluatedSeconds": 363.3016026175141,
+              "meanAcrossClips": 0.6385546271383707
+            },
+            "pitchClassJaccard": {
+              "value": 0.7856940967358989,
+              "weightedCorrectSeconds": 297.83808969189636,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.7597675431499792
+            }
+          },
+          "excludedUnknownReferenceSeconds": 0.0,
+          "excludedFromMajorMinorSeconds": 15.774797382485971,
+          "missingPredictionSeconds": 0.00013600000008295865
+        },
+        "performed": {
+          "metrics": {
+            "exactRootAndFormula": {
+              "value": 0.5750615792064345,
+              "weightedCorrectSeconds": 217.9922732238901,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.5225678636714542
+            },
+            "rootOnly": {
+              "value": 0.7761333805883033,
+              "weightedCorrectSeconds": 294.21384783324396,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.7505989081737221
+            },
+            "majorMinorProjection": {
+              "value": 0.812646895396391,
+              "weightedCorrectSeconds": 215.58654150837174,
+              "evaluatedSeconds": 265.2893190506972,
+              "meanAcrossClips": 0.62873526932821
+            },
+            "pitchClassJaccard": {
+              "value": 0.8352485410841964,
+              "weightedCorrectSeconds": 316.62301005944937,
+              "evaluatedSeconds": 379.0764000000001,
+              "meanAcrossClips": 0.8154909183509859
+            }
+          },
+          "excludedUnknownReferenceSeconds": 0.0,
+          "excludedFromMajorMinorSeconds": 113.78708094930286,
+          "missingPredictionSeconds": 0.00013600000008295865
+        }
+      }
+    },
+    "tracks": [
+      {
+        "track": "00_BN1-129-Eb_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 22.324437,
+        "elapsedMs": 1531.735,
+        "segmentCount": 9,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.06630350856066151,
+                "weightedCorrectSeconds": 1.4801860465116299,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "rootOnly": {
+                "value": 0.7803079579627766,
+                "weightedCorrectSeconds": 17.419906976744187,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.6960585716410836,
+                "weightedCorrectSeconds": 15.539089976744187,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "pitchClassJaccard": {
+                "value": 0.6578851921712805,
+                "weightedCorrectSeconds": 14.686892184108514,
+                "evaluatedSeconds": 22.32439999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.23297899513849313,
+                "weightedCorrectSeconds": 5.201116279069769,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "rootOnly": {
+                "value": 0.7803079579627766,
+                "weightedCorrectSeconds": 17.419906976744187,
+                "evaluatedSeconds": 22.32439999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.559191017259194,
+                "weightedCorrectSeconds": 5.201116279069769,
+                "evaluatedSeconds": 9.30114418604648
+              },
+              "pitchClassJaccard": {
+                "value": 0.6934068407275641,
+                "weightedCorrectSeconds": 15.47989167513841,
+                "evaluatedSeconds": 22.32439999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 13.023255813953488,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "00_Rock3-117-Bb_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 32.816375,
+        "elapsedMs": 2237.245,
+        "segmentCount": 22,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.8035030921062296,
+                "weightedCorrectSeconds": 26.368078871794886,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "rootOnly": {
+                "value": 0.9512681315689873,
+                "weightedCorrectSeconds": 31.217195512820528,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "majorMinorProjection": {
+                "value": 0.8305532490165174,
+                "weightedCorrectSeconds": 27.255767641025653,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "pitchClassJaccard": {
+                "value": 0.8961845338535652,
+                "weightedCorrectSeconds": 29.409550136752152,
+                "evaluatedSeconds": 32.816400000000016
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.7466709703309695,
+                "weightedCorrectSeconds": 24.50305323076924,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "rootOnly": {
+                "value": 0.9512681315689873,
+                "weightedCorrectSeconds": 31.217195512820528,
+                "evaluatedSeconds": 32.816400000000016
+              },
+              "majorMinorProjection": {
+                "value": 0.8859308677593237,
+                "weightedCorrectSeconds": 27.255767641025653,
+                "evaluatedSeconds": 30.765117948717965
+              },
+              "pitchClassJaccard": {
+                "value": 0.8915510365517678,
+                "weightedCorrectSeconds": 29.257495435897447,
+                "evaluatedSeconds": 32.816400000000016
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 2.051282051282051,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "01_SS1-68-E_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 42.346375,
+        "elapsedMs": 2903.441,
+        "segmentCount": 10,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9270254308721011,
+                "weightedCorrectSeconds": 39.256189705882356,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "rootOnly": {
+                "value": 0.983996938138223,
+                "weightedCorrectSeconds": 41.66872794117646,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "majorMinorProjection": {
+                "value": 0.9270254308721011,
+                "weightedCorrectSeconds": 39.256189705882356,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "pitchClassJaccard": {
+                "value": 0.9576502310727246,
+                "weightedCorrectSeconds": 40.55303974509804,
+                "evaluatedSeconds": 42.34640000000002
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.849946859848354,
+                "weightedCorrectSeconds": 35.99218970588235,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "rootOnly": {
+                "value": 0.983996938138223,
+                "weightedCorrectSeconds": 41.66872794117646,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "majorMinorProjection": {
+                "value": 0.9270254308721011,
+                "weightedCorrectSeconds": 39.256189705882356,
+                "evaluatedSeconds": 42.34640000000002
+              },
+              "pitchClassJaccard": {
+                "value": 0.9396341152503921,
+                "weightedCorrectSeconds": 39.79012209803922,
+                "evaluatedSeconds": 42.34640000000002
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.500000001504077e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "01_Jazz2-110-Bb_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 34.903188,
+        "elapsedMs": 2378.302,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.6829184534265166,
+                "weightedCorrectSeconds": 23.836039363636374,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "rootOnly": {
+                "value": 0.9214030596829894,
+                "weightedCorrectSeconds": 32.15991527272729,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.7804970512170214,
+                "weightedCorrectSeconds": 23.836039363636374,
+                "evaluatedSeconds": 30.53956363636361
+              },
+              "pitchClassJaccard": {
+                "value": 0.8191251032292266,
+                "weightedCorrectSeconds": 28.590087303030316,
+                "evaluatedSeconds": 34.90319999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.36363636363636,
+            "missingPredictionSeconds": 1.1999999969702912e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.920875275306876,
+                "weightedCorrectSeconds": 32.141493909090926,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "rootOnly": {
+                "value": 0.9214030596829894,
+                "weightedCorrectSeconds": 32.15991527272729,
+                "evaluatedSeconds": 34.90319999999997
+              },
+              "majorMinorProjection": {
+                "value": 0.9115699486091379,
+                "weightedCorrectSeconds": 27.83894845454547,
+                "evaluatedSeconds": 30.539563636363606
+              },
+              "pitchClassJaccard": {
+                "value": 0.9347624741784316,
+                "weightedCorrectSeconds": 32.62620158874461,
+                "evaluatedSeconds": 34.90319999999997
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.363636363636363,
+            "missingPredictionSeconds": 1.1999999969702912e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "02_Funk1-97-C_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 29.688375,
+        "elapsedMs": 2188.482,
+        "segmentCount": 6,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.16667970009321562,
+                "weightedCorrectSeconds": 4.948453608247423,
+                "evaluatedSeconds": 29.6884
+              },
+              "rootOnly": {
+                "value": 0.9547400633549539,
+                "weightedCorrectSeconds": 28.344704896907214,
+                "evaluatedSeconds": 29.6884
+              },
+              "majorMinorProjection": {
+                "value": 0.4932719044558623,
+                "weightedCorrectSeconds": 14.644453608247423,
+                "evaluatedSeconds": 29.6884
+              },
+              "pitchClassJaccard": {
+                "value": 0.7152724986226933,
+                "weightedCorrectSeconds": 21.23529604810997,
+                "evaluatedSeconds": 29.6884
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.5000000000829914e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.2281721386686209,
+                "weightedCorrectSeconds": 6.774065721649485,
+                "evaluatedSeconds": 29.6884
+              },
+              "rootOnly": {
+                "value": 0.9547400633549539,
+                "weightedCorrectSeconds": 28.344704896907214,
+                "evaluatedSeconds": 29.6884
+              },
+              "majorMinorProjection": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 4.948453608247423
+              },
+              "pitchClassJaccard": {
+                "value": 0.6379615893344622,
+                "weightedCorrectSeconds": 18.94005884879725,
+                "evaluatedSeconds": 29.6884
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 24.73994639175258,
+            "missingPredictionSeconds": 2.5000000000829914e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "02_BN3-119-G_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 32.263188,
+        "elapsedMs": 2331.812,
+        "segmentCount": 17,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.872462377460097,
+                "weightedCorrectSeconds": 28.14842817647059,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "rootOnly": {
+                "value": 0.9337815566232449,
+                "weightedCorrectSeconds": 30.12678111764706,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.872462377460097,
+                "weightedCorrectSeconds": 28.14842817647059,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "pitchClassJaccard": {
+                "value": 0.9104499298417579,
+                "weightedCorrectSeconds": 29.37402817647059,
+                "evaluatedSeconds": 32.26319999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 1.1999999983913767e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.813226900185054,
+                "weightedCorrectSeconds": 26.23730212605042,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "rootOnly": {
+                "value": 0.9337815566232449,
+                "weightedCorrectSeconds": 30.12678111764706,
+                "evaluatedSeconds": 32.26319999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.9306375116660904,
+                "weightedCorrectSeconds": 28.14842817647059,
+                "evaluatedSeconds": 30.246393277310908
+              },
+              "pitchClassJaccard": {
+                "value": 0.9064664474855385,
+                "weightedCorrectSeconds": 29.24550828851541,
+                "evaluatedSeconds": 32.26319999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 2.0168067226890756,
+            "missingPredictionSeconds": 1.1999999983913767e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "03_Rock1-130-A_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 22.14725,
+        "elapsedMs": 1571.073,
+        "segmentCount": 7,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.4185544100730218,
+                "weightedCorrectSeconds": 9.269808230769229,
+                "evaluatedSeconds": 22.1472
+              },
+              "rootOnly": {
+                "value": 0.8766296555633355,
+                "weightedCorrectSeconds": 19.414892307692305,
+                "evaluatedSeconds": 22.1472
+              },
+              "majorMinorProjection": {
+                "value": 0.5495271741244595,
+                "weightedCorrectSeconds": 12.17048823076923,
+                "evaluatedSeconds": 22.1472
+              },
+              "pitchClassJaccard": {
+                "value": 0.75679334645301,
+                "weightedCorrectSeconds": 16.760853602564104,
+                "evaluatedSeconds": 22.1472
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.5159771542573883,
+                "weightedCorrectSeconds": 11.42744923076923,
+                "evaluatedSeconds": 22.1472
+              },
+              "rootOnly": {
+                "value": 0.8766296555633355,
+                "weightedCorrectSeconds": 19.414892307692305,
+                "evaluatedSeconds": 22.1472
+              },
+              "majorMinorProjection": {
+                "value": 0.5495271741244595,
+                "weightedCorrectSeconds": 12.17048823076923,
+                "evaluatedSeconds": 22.1472
+              },
+              "pitchClassJaccard": {
+                "value": 0.8018525862735673,
+                "weightedCorrectSeconds": 17.75878959871795,
+                "evaluatedSeconds": 22.1472
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "03_Jazz3-150-C_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 25.6,
+        "elapsedMs": 1879.083,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "rootOnly": {
+                "value": 0.11499999999999996,
+                "weightedCorrectSeconds": 2.9440000000000017,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "majorMinorProjection": {
+                "value": 0.06,
+                "weightedCorrectSeconds": 1.5360000000000014,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "pitchClassJaccard": {
+                "value": 0.4431560377604163,
+                "weightedCorrectSeconds": 11.344794566666668,
+                "evaluatedSeconds": 25.600000000000023
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 2.1316282072803006e-14,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "rootOnly": {
+                "value": 0.11499999999999996,
+                "weightedCorrectSeconds": 2.9440000000000017,
+                "evaluatedSeconds": 25.600000000000023
+              },
+              "majorMinorProjection": {
+                "value": 0.0,
+                "weightedCorrectSeconds": 0.0,
+                "evaluatedSeconds": 1.5999999999999979
+              },
+              "pitchClassJaccard": {
+                "value": 0.6768201539248508,
+                "weightedCorrectSeconds": 17.326595940476196,
+                "evaluatedSeconds": 25.600000000000023
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 24.000000000000025,
+            "missingPredictionSeconds": 2.1316282072803006e-14,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "04_SS2-107-Ab_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 35.886375,
+        "elapsedMs": 2493.653,
+        "segmentCount": 15,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.5330500290011727,
+                "weightedCorrectSeconds": 19.129246560747674,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "rootOnly": {
+                "value": 0.7241464876392929,
+                "weightedCorrectSeconds": 25.987010514018706,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.8150035329012827,
+                "weightedCorrectSeconds": 25.591452168224315,
+                "evaluatedSeconds": 31.40041869158876
+              },
+              "pitchClassJaccard": {
+                "value": 0.8599857893041243,
+                "weightedCorrectSeconds": 30.86179402928351,
+                "evaluatedSeconds": 35.88639999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.485981308411219,
+            "missingPredictionSeconds": 2.4999999979513632e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.6524881896268315,
+                "weightedCorrectSeconds": 23.415452168224313,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "rootOnly": {
+                "value": 0.7241464876392929,
+                "weightedCorrectSeconds": 25.987010514018706,
+                "evaluatedSeconds": 35.88639999999998
+              },
+              "majorMinorProjection": {
+                "value": 0.869995974088605,
+                "weightedCorrectSeconds": 23.415452168224313,
+                "evaluatedSeconds": 26.914437383177546
+              },
+              "pitchClassJaccard": {
+                "value": 0.907873419206944,
+                "weightedCorrectSeconds": 32.58030867102806,
+                "evaluatedSeconds": 35.88639999999998
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 8.971962616822434,
+            "missingPredictionSeconds": 2.4999999979513632e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "04_Funk2-119-G_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 32.263188,
+        "elapsedMs": 2273.512,
+        "segmentCount": 16,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.032930824639608045,
+                "weightedCorrectSeconds": 1.0624537815126054,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "rootOnly": {
+                "value": 0.21277930200570833,
+                "weightedCorrectSeconds": 6.864941176470589,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.10445921092144544,
+                "weightedCorrectSeconds": 2.948840336134454,
+                "evaluatedSeconds": 28.229586554621946
+              },
+              "pitchClassJaccard": {
+                "value": 0.4873863887033634,
+                "weightedCorrectSeconds": 15.724644536014402,
+                "evaluatedSeconds": 32.2632000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 4.033613445378151,
+            "missingPredictionSeconds": 1.2000000097600605e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.058468674980220285,
+                "weightedCorrectSeconds": 1.8863865546218488,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "rootOnly": {
+                "value": 0.21277930200570833,
+                "weightedCorrectSeconds": 6.864941176470589,
+                "evaluatedSeconds": 32.2632000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.1558888888888889,
+                "weightedCorrectSeconds": 1.8863865546218488,
+                "evaluatedSeconds": 12.100840336134453
+              },
+              "pitchClassJaccard": {
+                "value": 0.6818745623928343,
+                "weightedCorrectSeconds": 21.999455381392558,
+                "evaluatedSeconds": 32.2632000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 20.162359663865644,
+            "missingPredictionSeconds": 1.2000000097600605e-05,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "05_BN2-166-Ab_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 23.13,
+        "elapsedMs": 1711.535,
+        "segmentCount": 17,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.0467884508201418,
+                "weightedCorrectSeconds": 1.0822168674698796,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "rootOnly": {
+                "value": 0.5724365685830222,
+                "weightedCorrectSeconds": 13.2404578313253,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "majorMinorProjection": {
+                "value": 0.5835281118473143,
+                "weightedCorrectSeconds": 11.809695024096385,
+                "evaluatedSeconds": 20.238433734939754
+              },
+              "pitchClassJaccard": {
+                "value": 0.6397466033388077,
+                "weightedCorrectSeconds": 14.79733893522662,
+                "evaluatedSeconds": 23.129999999999995
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 2.8915662650602414,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.3017402945113788,
+                "weightedCorrectSeconds": 6.97925301204819,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "rootOnly": {
+                "value": 0.5724365685830222,
+                "weightedCorrectSeconds": 13.2404578313253,
+                "evaluatedSeconds": 23.129999999999995
+              },
+              "majorMinorProjection": {
+                "value": 0.8047875074674561,
+                "weightedCorrectSeconds": 6.97925301204819,
+                "evaluatedSeconds": 8.672168674698788
+              },
+              "pitchClassJaccard": {
+                "value": 0.7401129314366974,
+                "weightedCorrectSeconds": 17.118812104130807,
+                "evaluatedSeconds": 23.129999999999995
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 14.457831325301207,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      },
+      {
+        "track": "05_SS3-84-Bb_comp",
+        "engine": "chroma-v2",
+        "audioSeconds": 45.707625,
+        "elapsedMs": 3157.459,
+        "segmentCount": 18,
+        "references": {
+          "instructed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9502689112032637,
+                "weightedCorrectSeconds": 43.43451128571431,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "rootOnly": {
+                "value": 0.9806971769621309,
+                "weightedCorrectSeconds": 44.825314285714306,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.9502689112032637,
+                "weightedCorrectSeconds": 43.43451128571431,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "pitchClassJaccard": {
+                "value": 0.9735748634487796,
+                "weightedCorrectSeconds": 44.49977042857145,
+                "evaluatedSeconds": 45.70760000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": "",
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "",
+              "validation": "",
+              "data_source": ""
+            }
+          },
+          "performed": {
+            "metrics": {
+              "exactRootAndFormula": {
+                "value": 0.9502689112032637,
+                "weightedCorrectSeconds": 43.43451128571431,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "rootOnly": {
+                "value": 0.9806971769621309,
+                "weightedCorrectSeconds": 44.825314285714306,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "majorMinorProjection": {
+                "value": 0.9502689112032637,
+                "weightedCorrectSeconds": 43.43451128571431,
+                "evaluatedSeconds": 45.70760000000001
+              },
+              "pitchClassJaccard": {
+                "value": 0.9735748634487796,
+                "weightedCorrectSeconds": 44.49977042857145,
+                "evaluatedSeconds": 45.70760000000001
+              }
+            },
+            "excludedUnknownReferenceSeconds": 0.0,
+            "excludedFromMajorMinorSeconds": 0.0,
+            "missingPredictionSeconds": 0.0,
+            "annotationMetadata": {
+              "curator": {
+                "name": "",
+                "email": ""
+              },
+              "annotator": {},
+              "version": 0.9,
+              "corpus": "",
+              "annotation_tools": "",
+              "annotation_rules": "Chord sheet-informed symbolic chord transcription based on the included separate string note transcriptions with the chord segmentation and root derived from sheet music.",
+              "validation": "",
+              "data_source": "Semi-automatic chord transcription with manual verification"
+            }
+          }
+        }
+      }
+    ]
+  }
+}

@@ -88,9 +88,15 @@ jobs:
       - name: Native host fingerprint compilation
         # Exercise the same optimized inference kernels shipped in the app.
         # Debug-mode tensor execution makes the audio regression matrix impractical.
-        run: cargo test --locked --release --manifest-path android/song-fingerprint/Cargo.toml
+        run: |
+          cargo test --locked --release --lib --manifest-path android/song-fingerprint/Cargo.toml
+          # The probe includes the production modules directly. Compile it too,
+          # without running the same acoustic regression matrix a second time.
+          cargo build --locked --release --bin chord_probe --manifest-path android/song-fingerprint/Cargo.toml
       - name: Chord evaluation semantics
-        run: python3 scripts/evaluate-offline-chords-extended.py self-test
+        run: |
+          python3 scripts/evaluate-offline-chords-extended.py self-test
+          python3 scripts/test-offline-chord-section.py
       - name: Deterministic capture, recording stop and audio checks
         run: |
           KOTLIN_BIN=$(readlink -f "$(command -v kotlinc)")
@@ -110,6 +116,8 @@ jobs:
             library="app/build/generated/fingerprint/jniLibs/$abi/libfreetune_song_fingerprint.so"
             test -s "$library"
             file "$library"
+            # Native library size is diagnostic, not the APK/store-download delta.
+            wc -c "$library"
           done
 
   ios:

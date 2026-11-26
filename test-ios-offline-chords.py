@@ -71,6 +71,7 @@ for aac in [false, true] {
   let (value, code) = analyze(module, file.absoluteString)
   precondition(code == nil, "Decode failed: \(code ?? "unknown")")
   let result = value as! [String: Any]
+  precondition(result["engine"] as? String == "chroma-v2", "Stale chord core linked")
   let duration = result["duration"] as! Double
   precondition(abs(duration - 16) < 0.1)
   precondition((result["elapsedMs"] as! Double) > 0)

@@ -13,7 +13,14 @@ import {
 } from "../src/components/offline-chords";
 import AnalyzeAudio from "../src/screens/analyze-audio";
 import { validationSchema } from "../src/screens/create-song-chords/formik/validation-schema";
-import { songChords } from "../src/screens/song/chords";
+import {
+  chordShapes,
+  createSongEditorState,
+  songChords,
+  songContentFromEditor,
+  transposeSong
+} from "../src/screens/song/chords";
+import { sourceSong } from "../src/components/song-autofill/source-metadata";
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
@@ -23,7 +30,14 @@ jest.mock("@react-navigation/native", () => ({
   useFocusEffect: (callback: () => void) =>
     require("react").useEffect(callback, [callback])
 }));
-jest.mock("react-i18next", () => ({ useTranslation: () => ({ t: String }) }));
+jest.mock("react-i18next", () => ({
+  useTranslation: () => ({
+    t: (key: string) =>
+      key === "OfflineChordsUnknown"
+        ? require("../src/locales/ru.json")[key]
+        : key
+  })
+}));
 jest.mock("../src/screens/song/tools", () => ({
   Action: (props: {
     label: string;
@@ -207,6 +221,7 @@ test("picker cancellation releases ownership and a stale signal cannot cancel th
 });
 
 test.each([
+  { engine: "chroma-v3" },
   { duration: Infinity },
   { duration: 900.5 },
   { key: "C<script>" },
@@ -226,14 +241,120 @@ test.each([
   await expect(analyzeAudioFile()).rejects.toThrow("InvalidChordAnalysis");
 });
 
+test.each([
+  "C9",
+  "Cm9",
+  "Cmaj9",
+  "D5(9)",
+  "A5(9)",
+  "C/G",
+  "Cdim7",
+  "Cadd11",
+  "Csus",
+  "C\n",
+  "[C]"
+])("v2 rejects a chord outside its canonical vocabulary: %s", async (chord) => {
+  native.analyzeFile.mockResolvedValueOnce({
+    ...nativeResult(),
+    engine: "chroma-v2",
+    segments: [{ start: 0, end: 6, chord, confidence: 0.8 }]
+  });
+  await expect(analyzeAudioFile()).rejects.toThrow("InvalidChordAnalysis");
+});
+
+test.each(["Cmaj7", "G6", "Asus2", "N"])(
+  "v2 keeps a key separate from an extended chord: %s",
+  async (key) => {
+    native.analyzeFile.mockResolvedValueOnce({
+      ...nativeResult(),
+      engine: "chroma-v2",
+      key
+    });
+    await expect(analyzeAudioFile()).rejects.toThrow("InvalidChordAnalysis");
+  }
+);
+
+test("v1 retains its original triad-only contract", async () => {
+  native.analyzeFile.mockResolvedValueOnce({
+    ...nativeResult(),
+    segments: [{ start: 0, end: 6, chord: "G6", confidence: 0.8 }]
+  });
+  await expect(analyzeAudioFile()).rejects.toThrow("InvalidChordAnalysis");
+});
+
+test("v2 canonical chord qualities survive editor, save normalization and transposition", async () => {
+  const qualities = [
+    "",
+    "m",
+    "5",
+    "sus2",
+    "sus4",
+    "6",
+    "m6",
+    "7",
+    "maj7",
+    "m7",
+    "dim",
+    "aug",
+    "add9",
+    "madd9"
+  ];
+  const labels = qualities.map((quality) => `C${quality}`);
+  native.analyzeFile.mockResolvedValueOnce({
+    ...nativeResult(),
+    engine: "chroma-v2",
+    duration: labels.length,
+    key: "Bbm",
+    segments: labels.map((chord, start) => ({
+      start,
+      end: start + 1,
+      chord,
+      confidence: 0.8
+    }))
+  });
+  const result = await analyzeAudioFile();
+  expect(result.engine).toBe("chroma-v2");
+  expect(result.key).toBe("Bbm");
+  expect(result.segments.map((segment) => segment.chord)).toEqual(labels);
+  const draft = offlineChordDraft(
+    result,
+    "Audio",
+    "Automatic estimate",
+    "Undetermined"
+  );
+  await expect(
+    validationSchema(String as never).validate(draft)
+  ).resolves.toMatchObject({
+    title: "Song"
+  });
+  const editor = createSongEditorState(draft.content!);
+  const edited = songContentFromEditor(draft.content!, editor.text, editor);
+  const saved = sourceSong(edited, draft.tempo).content;
+  expect(saved).toBe(draft.content);
+  expect(songChords(saved)).toEqual(labels);
+  expect(songChords(transposeSong(saved, 2))).toEqual(
+    qualities.map((quality) => `D${quality}`)
+  );
+  for (const label of labels)
+    expect(chordShapes(label).length).toBeGreaterThan(0);
+  // Imported user charts retain dominant ninths; they are not add9 aliases.
+  expect(songChords(transposeSong("[C9] 0:00.00–0:01.00", 2))).toEqual(["D9"]);
+});
+
 test("an imported chart preserves timings and can be saved without inventing an artist or lyrics", async () => {
   const result = await analyzeAudioFile();
-  const draft = offlineChordDraft(result, "Audio", "Automatic estimate");
+  const draft = offlineChordDraft(
+    result,
+    "Audio",
+    "Automatic estimate",
+    "Undetermined"
+  );
   expect(draft.title).toBe("Song");
   expect(draft.fk_band?.name).toBe("");
   expect(draft.content).toBe(
-    "Automatic estimate\n\n— 0:00.00–0:01.00\n[C] 0:01.00–0:03.50\n[Am] 0:03.50–0:06.00"
+    "Automatic estimate\n\nUndetermined 0:00.00–0:01.00\n[C] 0:01.00–0:03.50\n[Am] 0:03.50–0:06.00"
   );
+  expect(draft.content).not.toContain("[N]");
   expect(songChords(draft.content!)).toEqual(["C", "Am"]);
   await expect(
     validationSchema(String as never).validate(draft)
@@ -254,10 +375,15 @@ test("short native segments retain distinct displayed and exported boundaries", 
     ]
   });
   const result = await analyzeAudioFile();
-  const draft = offlineChordDraft(result, "Audio", "Automatic estimate");
+  const draft = offlineChordDraft(
+    result,
+    "Audio",
+    "Automatic estimate",
+    "Undetermined"
+  );
   expect(chordTime(0.16)).toBe("0:00.16");
   expect(chordTime(0.224)).toBe("0:00.22");
-  expect(draft.content).toContain("— 0:00.00–0:00.03");
+  expect(draft.content).toContain("Undetermined 0:00.00–0:00.03");
   expect(draft.content).toContain("[G] 0:00.16–0:00.22");
 });
 
@@ -271,6 +397,7 @@ test("the result screen shows estimates and opens an editable timestamped chart"
   expect(display).toContain("OfflineChordsNotice");
   expect(display).toContain("0:01.0");
   expect(display).toContain("Am");
+  expect(display).toContain("Не определён");
   await press("OfflineChordsEdit");
   expect(mockNavigate).toHaveBeenCalledWith("createSong", {
     draft: expect.objectContaining({
@@ -279,6 +406,31 @@ test("the result screen shows estimates and opens an editable timestamped chart"
     }),
     notice: "OfflineChordsNotice"
   });
+});
+
+test("the result screen imports extended labels and localized unknown passages without simplification", async () => {
+  native.analyzeFile.mockResolvedValueOnce({
+    ...nativeResult(),
+    engine: "chroma-v2",
+    segments: [
+      { start: 0, end: 1, chord: "N", confidence: 0 },
+      { start: 1, end: 2, chord: "G6", confidence: 0.8 },
+      { start: 2, end: 3, chord: "Dsus2", confidence: 0.8 },
+      { start: 3, end: 4, chord: "Cadd9", confidence: 0.8 },
+      { start: 4, end: 6, chord: "Asus2", confidence: 0.8 }
+    ]
+  });
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  for (const label of ["Не определён", "G6", "Dsus2", "Cadd9", "Asus2"])
+    expect(visibleText()).toContain(label);
+  await press("OfflineChordsEdit");
+  const content = mockNavigate.mock.calls[0][1].draft.content as string;
+  expect(content).toContain("Не определён 0:00.00–0:01.00");
+  expect(content).not.toContain("[N]");
+  expect(songChords(content)).toEqual(["G6", "Dsus2", "Cadd9", "Asus2"]);
 });
 
 test("silence does not offer to save a fake chord chart", async () => {

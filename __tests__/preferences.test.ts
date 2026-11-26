@@ -11,7 +11,7 @@ jest.mock("../src/components/support", () => ({
 }));
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert } from "react-native";
+import { Alert, Linking, Text as NativeText } from "react-native";
 import Settings from "../src/screens/settings";
 import { Action, Sheet } from "../src/screens/song/tools";
 import { db } from "../src/components/database";
@@ -41,6 +41,7 @@ import {
 import { SQLTransaction } from "react-native-sqlite-2";
 import { Tablature } from "../src/components/tablature";
 import { defaultTabPractice } from "../src/components/tablature-practice";
+import offlineChordNotices from "../assets/offline-chords-notices.json";
 
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
@@ -50,6 +51,100 @@ jest.mock("../src/components/database/crud", () => ({
 }));
 
 const cover = "data:image/jpeg;base64,/9j/2Q==";
+test("audio credits expose complete offline chord licenses in one sheet and preserve recording credits", async () => {
+  const fetch = jest
+    .spyOn(globalThis, "fetch")
+    .mockRejectedValue(new Error("Offline"));
+  const openURL = jest.spyOn(Linking, "openURL").mockResolvedValue(undefined);
+  let screen!: Renderer.ReactTestRenderer;
+  const pressAction = async (label: string) =>
+    act(async () => {
+      screen.root
+        .findAllByType(Action)
+        .find((node) => node.props.label === label)!
+        .props.onPress();
+    });
+  const openCredits = async () =>
+    act(async () => {
+      screen.root
+        .findAll(
+          (node) =>
+            typeof node.props.onPress === "function" &&
+            node.findAll((child) => child.props.children === "AudioCredits")
+              .length > 0
+        )[0]
+        .props.onPress();
+    });
+  try {
+    await act(async () => {
+      screen = Renderer.create(React.createElement(Settings));
+    });
+    await openCredits();
+    expect(screen.root.findAllByType(Sheet)).toHaveLength(1);
+    expect(screen.root.findByType(Sheet).props.title).toBe("AudioCredits");
+    expect(
+      screen.root
+        .findAllByType(NativeText)
+        .some((node) => node.props.children === "ChordRecordingCredits")
+    ).toBe(true);
+    await pressAction("ChordAnalysisLicenses");
+    expect(screen.root.findAllByType(Sheet)).toHaveLength(1);
+    expect(screen.root.findByType(Sheet).props.title).toBe(
+      "ChordAnalysisLicenses"
+    );
+    for (const document of offlineChordNotices.documents) {
+      expect(
+        screen.root
+          .findAllByType(NativeText)
+          .some(
+            (node) =>
+              node.props.children === document.text &&
+              node.props.selectable &&
+              node.props.numberOfLines === undefined
+          )
+      ).toBe(true);
+    }
+    const references = offlineChordNotices.components.flatMap(
+      (component) => component.documents
+    );
+    expect(
+      references.every((reference) =>
+        offlineChordNotices.documents.some(
+          (document) => document.sha256 === reference.sha256
+        )
+      )
+    ).toBe(true);
+    expect(
+      offlineChordNotices.components.some(
+        (component) => component.id === "foldhash@0.2.0"
+      )
+    ).toBe(true);
+    expect(
+      offlineChordNotices.components.some((component) =>
+        component.id.startsWith("borsh-derive@")
+      )
+    ).toBe(false);
+    expect(fetch).not.toHaveBeenCalled();
+    expect(openURL).not.toHaveBeenCalled();
+    await pressAction("Back");
+    expect(screen.root.findAllByType(Sheet)).toHaveLength(1);
+    expect(screen.root.findByType(Sheet).props.title).toBe("AudioCredits");
+    await pressAction("RecordedGuitar");
+    expect(openURL).toHaveBeenCalledWith(
+      "https://github.com/Pro100Dimka/guitar-chords-app#sound-bank"
+    );
+    await pressAction("ChordAnalysisLicenses");
+    await pressAction("Close");
+    expect(screen.root.findAllByType(Sheet)).toHaveLength(0);
+    await openCredits();
+    expect(screen.root.findByType(Sheet).props.title).toBe("AudioCredits");
+  } finally {
+    await act(async () => screen?.unmount());
+    fetch.mockRestore();
+    openURL.mockRestore();
+  }
+});
+
 test.each([
   ["Akkords.pro", "https://akkords.pro/songs/kino/gruppa-krovi/"],
   ["Musicaccord.ru", "https://musicaccord.ru/songs/tnmk-granuli/"],
