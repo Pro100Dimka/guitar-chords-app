@@ -87,7 +87,10 @@ export async function recognizeMicrophone(
   if (!granted) throw new Error("MicrophonePermissionDenied");
   return recognize(async (recognizer) => {
     // Cancellation can outlive an Activity pause; check foreground after it.
-    await waitForAppActive(signal);
+    do {
+      await waitForAppActive(signal);
+      if (signal?.aborted) throw new Error("Cancelled");
+    } while (AppState.currentState !== "active");
     onCaptureReady?.();
     if (signal?.aborted) throw new Error("Cancelled");
     return recognizer.recognizeMicrophone();
@@ -111,8 +114,10 @@ export async function recognizePlayback(
     if (!granted) throw new Error("MicrophonePermissionDenied");
   }
   return recognize(async (recognizer) => {
-    await waitForAppActive(signal);
-    if (signal?.aborted) throw new Error("Cancelled");
+    do {
+      await waitForAppActive(signal);
+      if (signal?.aborted) throw new Error("Cancelled");
+    } while (AppState.currentState !== "active");
     return recognizer.recognizePlayback!();
   }, signal);
 }

@@ -243,6 +243,53 @@ test.each(["android", "ios"])(
   }
 );
 
+test("cancelling immediately after foreground wait never notifies capture readiness", async () => {
+  AppState.currentState = "background";
+  let resume!: (state: AppStateStatus) => void;
+  jest.spyOn(AppState, "addEventListener").mockImplementation((_event, listener) => {
+    resume = listener;
+    return { remove: jest.fn() };
+  });
+  const controller = new AbortController();
+  const ready = jest.fn();
+  const pending = recognizeMicrophone(controller.signal, ready).catch((error) => error);
+  for (let i = 0; i < 20; i++) await Promise.resolve();
+  AppState.currentState = "active";
+  resume("active");
+  await Promise.resolve();
+  controller.abort();
+  expect(await pending).toEqual(new Error("Cancelled"));
+  expect(ready).not.toHaveBeenCalled();
+  expect(NativeModules.SongRecognition.recognizeMicrophone).not.toHaveBeenCalled();
+});
+
+test.each(["mic", "playback"])(
+  "%s waits again if the app leaves foreground after the wait resolves",
+  async (mode) => {
+    AppState.currentState = "background";
+    let resume!: (state: AppStateStatus) => void;
+    jest.spyOn(AppState, "addEventListener").mockImplementation((_event, listener) => {
+      resume = listener;
+      return { remove: jest.fn() };
+    });
+    const capture = mode === "mic"
+      ? NativeModules.SongRecognition.recognizeMicrophone
+      : NativeModules.SongRecognition.recognizePlayback;
+    const result = (mode === "mic" ? recognizeMicrophone : recognizePlayback)();
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    AppState.currentState = "active";
+    resume("active");
+    await Promise.resolve();
+    AppState.currentState = "background";
+    for (let i = 0; i < 20; i++) await Promise.resolve();
+    expect(capture).not.toHaveBeenCalled();
+    AppState.currentState = "active";
+    resume("active");
+    await expect(result).resolves.toMatchObject({ title: "Track" });
+    expect(capture).toHaveBeenCalledTimes(1);
+  }
+);
+
 test.each(["mic", "playback"])(
   "%s rechecks foreground after waiting for the previous capture to stop",
   async (mode) => {
