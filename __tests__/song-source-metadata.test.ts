@@ -3,6 +3,46 @@ import {
   sourceSong,
   sourceTempo
 } from "../src/components/song-autofill/source-metadata";
+import { matchedSongArrangement } from "../src/components/song-autofill/lyrics";
+
+test("a matched chorus uses timed strums while its verse retains the source picking", () => {
+  const text = [
+    "Intro",
+    "E|---------0-",
+    "B|-------0---",
+    "G|-----0-----",
+    "D|---2-------",
+    "A|--2--------",
+    "E|-0---------",
+    "Verse",
+    "[Em]Verse words",
+    "Chorus",
+    "[C]Dreams [D]aren't [G]empty",
+    "[C]Conscience [D]seems [E]to be[Esus4][E][Esus4][E]",
+    "[Bm]Hours [C9]lonely [D]vengeance [A5(9)]free"
+  ].join("\n");
+  const baseline = sourceSong(text, 120).tablature!;
+  const matched = sourceSong(
+    text,
+    120,
+    true,
+    matchedSongArrangement("Behind Blue Eyes", "Limp Bizkit")
+  ).tablature!;
+  const chorus = matched.chords!.find((chord) => chord.name === "C")!.tick;
+  expect(matched.notes.filter((note) => note.tick < chorus)).toEqual(
+    baseline.notes.filter((note) => note.tick < chorus)
+  );
+  const firstChord = matched.notes.filter(
+    (note) => note.tick >= chorus && note.tick < chorus + 96
+  );
+  expect([...new Set(firstChord.map((note) => note.tick - chorus))]).toEqual([
+    0, 48, 84
+  ]);
+  expect(
+    firstChord.every((note) => ["downBrush", "upBrush"].includes(note.pick!))
+  ).toBe(true);
+  expect(matchedSongArrangement("Behind Blue Eyes", "The Who")).toBeUndefined();
+});
 
 test.each(["Picking: B32123", "Tempo: 100-120"])(
   "keeps unresolved published instructions instead of silently deleting %s",
@@ -12,7 +52,7 @@ test.each(["Picking: B32123", "Tempo: 100-120"])(
   }
 );
 
-test("does not play chord diagrams with names embedded in the first tab row", () => {
+test("keeps labelled chord diagrams as chord changes rather than arpeggio attacks", () => {
   const imported = sourceSong(
     [
       "|-[D]0-----[A]0-",
@@ -25,7 +65,15 @@ test("does not play chord diagrams with names embedded in the first tab row", ()
       "[D]Example words [A]for this song"
     ].join("\n")
   );
-  expect(imported.tablature).toBeUndefined();
+  expect(imported.tablature?.chords?.map((chord) => chord.name)).toEqual([
+    "D",
+    "A",
+    "D",
+    "A"
+  ]);
+  expect([
+    ...new Set(imported.tablature?.notes.map((note) => note.tick))
+  ]).toEqual([0, 96, 192, 288]);
   expect(imported.content).not.toContain("|-");
   expect(imported.content).toContain("[D]Example words [A]for this song");
 });

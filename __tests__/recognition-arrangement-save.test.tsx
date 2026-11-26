@@ -152,8 +152,11 @@ test("imports the published Behind Blue Eyes picking as playable tabs and saves 
   expect(draft.content).not.toMatch(
     /E\||Tabber:|Artist:|very very beautiful|\|-0/
   );
-  expect(draft.content).toContain("no one knows what it's like");
-  expect(draft.content).toContain("but my dreams they aren't as empty");
+  const displayed = require("../src/screens/song/chords").createSongEditorState(
+    draft.content
+  ).text;
+  expect(displayed).toContain("no one knows what it's like");
+  expect(displayed).toContain("but my dreams they aren't as empty");
   const persisted = await save();
   expect(
     persisted.tablature.notes.every((note: { fret: number }) => note.fret <= 3)
@@ -185,9 +188,9 @@ test("imports chord annotations inside provider tab rows through the song form",
     "N[Em]o one knows what it's l[G6]ike, to be the b[D5(9)]ad man,",
     "To be the s[C9]ad man, beh[A5(9)]ind blue eyes"
   ].join("\n");
-  jest.mocked(lookupSongContent).mockResolvedValue([
-    { ...plainChart, content, source: "Cifra Club" }
-  ]);
+  jest
+    .mocked(lookupSongContent)
+    .mockResolvedValue([{ ...plainChart, content, source: "Cifra Club" }]);
   await start();
   const draft = await openEditor();
   expect(draft.content).not.toMatch(/[EBGDA]\|/);
@@ -345,14 +348,7 @@ test.each(["recognized", "looked up"])(
     expect(
       writes.find((write) => write.sql.startsWith("INSERT INTO songs"))
     ).toMatchObject({
-      args: [
-        "Track",
-        arrangementText,
-        11,
-        "",
-        "",
-        "track"
-      ]
+      args: ["Track", arrangementText, 11, "", "", "track"]
     });
     expect(lookupSongTempo).toHaveBeenCalledTimes(
       fallback === "recognized" ? 0 : 1

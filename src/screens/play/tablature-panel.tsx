@@ -452,7 +452,10 @@ const RhythmNotation = React.memo(function RhythmNotation({
     <Svg
       width={columns.length * cellWidth}
       height={staffHeight + 32 * scale}
-      style={[styles.rhythmSvg, { top: notation ? 0 : -staffHeight }]}
+      style={[
+        styles.rhythmSvg,
+        notation ? styles.notationSvg : { top: -staffHeight }
+      ]}
       accessible={false}
     >
       {notation &&
@@ -882,7 +885,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
           return { technique, spans };
         })
         .filter(({ spans }) => spans.length),
-    [tab.notes, start, barTicks, staffEnd]
+    [tab.notes, start, staffEnd]
   );
   const effectHeight = effectRuns.length * 16;
   const systemLayout = useMemo(
@@ -921,7 +924,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
     return [...events.values()].sort(
       (left, right) => left.tick - right.tick || left.voice - right.voice
     );
-  }, [notes, notation]);
+  }, [notes, notation, staffEnd, start]);
   const beamTicks =
     tab.beatUnit === 8 && tab.beatsPerBar % 3 === 0 ? beatTicks * 3 : beatTicks;
   const coverage = useMemo(() => tabBarCoverage(tab, bar), [tab, bar]);
@@ -1328,7 +1331,9 @@ const TablatureStaff = React.memo(function TablatureStaff({
                         disabled={disabled || (readOnly ? !onSeek : !onNote)}
                         onPress={
                           readOnly
-                            ? () => onSeek?.(position)
+                            ? onSeek
+                              ? () => onSeek(position)
+                              : undefined
                             : () => pressNote(note)
                         }
                         onLongPress={
@@ -1365,13 +1370,9 @@ const TablatureStaff = React.memo(function TablatureStaff({
                               Math.min(rowHeight - 2, 26 * rhythmScale)
                             )
                           },
+                          notation && styles.notationNote,
                           notation && {
-                            minWidth: 0,
-                            height: rowHeight,
-                            paddingHorizontal: 0,
-                            marginHorizontal: 0,
-                            backgroundColor: palette.paper.background,
-                            borderRadius: 0
+                            height: rowHeight
                           }
                         ]}
                       >
@@ -3325,6 +3326,14 @@ const styles = StyleSheet.create({
   staff: { flexDirection: "row", marginVertical: 4 },
   staffContent: { flexGrow: 1 },
   rhythmSvg: { position: "absolute" },
+  notationSvg: { top: 0 },
+  notationNote: {
+    minWidth: 0,
+    paddingHorizontal: 0,
+    marginHorizontal: 0,
+    backgroundColor: palette.paper.background,
+    borderRadius: 0
+  },
   stringLabels: { width: 24 },
   stringLabel: { alignItems: "center", justifyContent: "center" },
   stringName: { color: palette.glass.muted, fontSize: 12 },

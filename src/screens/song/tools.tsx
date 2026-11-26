@@ -976,7 +976,7 @@ function SongTablature({
           if (running) void transport.play();
         }}
       />
-      <View style={[styles.row, { justifyContent: "space-between" }]}>
+      <View style={[styles.row, styles.barNavigation]}>
         <Action
           glass
           compact
@@ -1307,10 +1307,7 @@ export function RhythmGrid({
                 style={[
                   styles.beat,
                   symbol !== "-" && styles.beatPlayed,
-                  position === activeStep && {
-                    borderLeftWidth: 3,
-                    borderLeftColor: palette.glass.play
-                  }
+                  position === activeStep && styles.activeBeat
                 ]}
               >
                 <Text style={styles.beatCount}>
@@ -2400,6 +2397,8 @@ export const styles = StyleSheet.create({
     backgroundColor: palette.colors.transparent
   },
   beatPlayed: { backgroundColor: palette.colors.transparent },
+  activeBeat: { borderLeftWidth: 3, borderLeftColor: palette.glass.play },
+  barNavigation: { justifyContent: "space-between" },
   beatCount: { fontSize: 11, color: palette.glass.muted },
   beatSymbol: {
     fontSize: 32,

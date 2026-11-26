@@ -64,7 +64,7 @@ const settings = { ...defaultSongPreferences, strum: "D-D-D-D-" };
 const onChange = jest.fn();
 const onClose = jest.fn();
 
-test.each(["rhythm", "practice"])(
+test.each(["rhythm", "reading"])(
   "the %s tab plays imported notes without choosing a stock pattern",
   async (tab) => {
     jest.useFakeTimers();
@@ -98,8 +98,17 @@ test.each(["rhythm", "practice"])(
         />
       );
     });
-    if (tab === "practice")
+    if (tab === "reading")
       await act(async () => {
+        screen!.root
+          .findAll(
+            (node) =>
+              node.props.accessibilityRole === "tab" &&
+              node
+                .findAllByType(Text)
+                .some((text) => text.props.children === "Reading")
+          )[0]
+          .props.onPress();
         screen!.root
           .findAll(
             (node) =>
@@ -107,7 +116,9 @@ test.each(["rhythm", "practice"])(
               typeof node.props.onPress === "function" &&
               node
                 .findAllByType(Text)
-                .some((text) => text.props.children === "Practice")
+                .some(
+                  (text) => text.props.children === "SongAccompanimentSettings"
+                )
           )[0]
           .props.onPress();
       });
@@ -236,7 +247,7 @@ test("practice tempo and start-chord controls reuse parsed section progressions"
           typeof node.props.onPress === "function" &&
           node
             .findAllByType(Text)
-            .some((text) => text.props.children === "Practice")
+            .some((text) => text.props.children === "SongAccompanimentSettings")
       )[0]
       .props.onPress()
   );
@@ -244,6 +255,12 @@ test("practice tempo and start-chord controls reuse parsed section progressions"
   parse.mockClear();
   sections.mockClear();
   await act(async () => screen!.update(render(120)));
+  await act(async () =>
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.label.startsWith("PracticeStartChord:"))!
+      .props.onPress()
+  );
   await act(async () =>
     screen!.root
       .findAllByType(Action)

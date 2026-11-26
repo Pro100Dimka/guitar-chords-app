@@ -23,11 +23,16 @@ import {
   Action,
   SongTools,
   RhythmGrid,
+  SongPlayback,
   ChordSheet
 } from "../src/screens/song/tools";
 import { defaultSongPreferences } from "../src/components/preferences";
 import { WebView } from "react-native-webview";
 import { rhythms } from "../src/screens/song/rhythms";
+jest.mock("react-native/Libraries/Components/Switch/Switch", () => ({
+  __esModule: true,
+  default: "Switch"
+}));
 import {
   performanceAudio,
   PerformanceEvent
@@ -95,6 +100,52 @@ function mockSongSave(id: number) {
   return writes;
 }
 let screen: Renderer.ReactTestRenderer | undefined;
+function textContent(children: React.ReactNode): string {
+  return React.Children.toArray(children)
+    .map((child) =>
+      React.isValidElement<{ children?: React.ReactNode }>(child)
+        ? textContent(child.props.children)
+        : String(child)
+    )
+    .join("");
+}
+
+test("disabled line autoplay selects a position and the note button starts there", async () => {
+  jest.useFakeTimers();
+  const { usePreferences } = require("../src/components/preferences");
+  mockSongSave(1);
+  usePreferences.setState({
+    songs: {
+      1: {
+        ...defaultSongPreferences,
+        playOnLineSelect: false,
+        strum: "D-D-D-D-"
+      }
+    }
+  });
+  jest
+    .mocked(crud.getAllItems)
+    .mockResolvedValue([
+      { id: 1, title: "Selection", content: "[Am]First line\n[C]Second line" }
+    ]);
+  await act(async () => {
+    screen = Renderer.create(<Song />);
+  });
+  const rows = screen!.root
+    .findAllByType(Text)
+    .filter(
+      (node) => node.props.accessibilityHint === "SongSelectPlaybackLine"
+    );
+  await act(async () => rows[1].props.onPress());
+  expect(screen!.root.findAllByType(SongPlayback)).toHaveLength(0);
+  await act(async () =>
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.accessibilityLabel === "SongAccompaniment")!
+      .props.onPress()
+  );
+  expect(screen!.root.findByType(SongPlayback).props.startIndex).toBe(1);
+});
 
 test.each([false, true])(
   "stored source tabs load as accompaniment and preserve custom score=%s",
@@ -142,6 +193,30 @@ test.each([false, true])(
     expect(JSON.stringify(screen!.toJSON()).includes("E|-")).toBe(false);
     expect(usePreferences.getState().songs[1].tablature).toEqual(
       custom ? edited : original
+    );
+    expect(
+      screen!.root
+        .findAllByType(Action)
+        .some((node) => node.props.label === "TabOpenInPlay")
+    ).toBe(false);
+    await act(async () =>
+      screen!.root
+        .findAllByType(Action)
+        .find((node) => node.props.accessibilityLabel === "SongTools")!
+        .props.onPress()
+    );
+    await act(async () =>
+      screen!.root
+        .findAll(
+          (node) =>
+            node.props.accessibilityRole === "tab" &&
+            node
+              .findAllByType(Text)
+              .some(
+                (text) => text.props.children === "SongAccompanimentSettings"
+              )
+        )[0]
+        .props.onPress()
     );
     expect(
       screen!.root
@@ -623,7 +698,7 @@ afterEach(async () => {
   jest.useRealTimers();
 });
 
-test("practice asks for a song pattern instead of inventing downstrokes", async () => {
+test("accompaniment offers published patterns without starting playback", async () => {
   await act(async () => {
     screen = Renderer.create(
       <SongTools
@@ -642,16 +717,11 @@ test("practice asks for a song pattern instead of inventing downstrokes", async 
           typeof node.props.onPress === "function" &&
           node
             .findAllByType(Text)
-            .some((text) => text.props.children === "Practice")
+            .some((text) => text.props.children === "SongAccompanimentSettings")
       )[0]
       .props.onPress()
   );
-  expect(screen!.root.findAllByType(WebView)).toHaveLength(0);
-  const choose = screen!.root
-    .findAllByType(Action)
-    .find((node) => node.props.label === "ChooseSongRhythm");
-  expect(choose).toBeDefined();
-  await act(async () => choose!.props.onPress());
+  expect(performanceAudio.guitar).not.toHaveBeenCalled();
   expect(screen!.root.findAllByType(RhythmGrid)).toHaveLength(rhythms.length);
 });
 
@@ -736,6 +806,9 @@ test("each rhythm can be selected once through its full pattern and applied", as
       previews().filter((node) => node.props.icon === "pause")
     ).toHaveLength(1);
   }
+  await act(async () => jest.runAllTimersAsync());
+  await act(async () => jest.runAllTimersAsync());
+  const html = screen!.root.findByType(WebView).props.source.html;
   for (let index = 0; index < rhythms.length; index++) {
     expect(cards()[index].findAllByType(RhythmGrid)).toHaveLength(1);
     await act(async () => cards()[index].props.onPress());
@@ -745,6 +818,13 @@ test("each rhythm can be selected once through its full pattern and applied", as
       strumDivision: rhythms[index].division,
       strumPreset: rhythms[index].id
     });
+    if (index < rhythms.length - 1)
+      await act(async () =>
+        screen!.root
+          .findAllByType(Action)
+          .find((node) => node.props.label === "ChooseRhythm")!
+          .props.onPress()
+      );
   }
   expect(
     screen!.root
@@ -760,7 +840,6 @@ test("each rhythm can be selected once through its full pattern and applied", as
   await act(async () => jest.runAllTimersAsync());
   // Publishing prepared chunks commits before the transfer effect schedules its timers.
   await act(async () => jest.runAllTimersAsync());
-  const html = screen!.root.findByType(WebView).props.source.html;
   const source = html.match(/<script>([\s\S]*?)<\/script>/)[1];
   const sources: any[] = [];
   const audioSession = { type: "auto" };
@@ -1063,10 +1142,7 @@ test("closing the song editor reloads the persisted content", async () => {
   expect(
     screen!.root
       .findAllByType(Text)
-      .some(
-        (node) =>
-          React.Children.toArray(node.props.children).join("") === "New content"
-      )
+      .some((node) => textContent(node.props.children) === "New content")
   ).toBe(true);
 });
 
@@ -1281,18 +1357,10 @@ test("the song screen transposes chord and lyric rows together", async () => {
   await act(async () => {
     screen = Renderer.create(<Song />);
   });
-  const rows = screen!.root.findAllByType(Text).flatMap((node) => {
-    const parts = node.props.children?.[0];
-    return Array.isArray(parts)
-      ? [
-          parts
-            .map((part) =>
-              typeof part === "string" ? part : part.props.children
-            )
-            .join("")
-        ]
-      : [];
-  });
+  const rows = screen!.root
+    .findAllByType(Text)
+    .filter((node) => node.props.numberOfLines === 1)
+    .map((node) => textContent(node.props.children));
   expect(rows).toEqual(["C# G#", "a  b"]);
 });
 
@@ -1830,6 +1898,8 @@ test.each([
         singleStroke: false,
         activeFingering: 0,
         lastChord: -1,
+        lastPosition: -1,
+        window: { ReactNativeWebView: { postMessage: jest.fn() } },
         arrangements: [],
         bar: 0,
         slot: 0,
@@ -1888,13 +1958,7 @@ test.each([16, 32])(
             .fontSize === fontSize
       )
     ).toBe(true);
-    const text = rows.map((row) =>
-      row.props.children[0]
-        .map((part: string | React.ReactElement<{ children: string }>) =>
-          typeof part === "string" ? part : part.props.children
-        )
-        .join("")
-    );
+    const text = rows.map((row) => textContent(row.props.children));
     expect(text[0].indexOf("G")).toBe(text[1].indexOf("услышать"));
     expect(text[1]).toContain("аккорд именно над этим словом в конце песни");
   }
@@ -1924,8 +1988,7 @@ test("known editor-origin lyric Am remains text in song view", async () => {
       .some(
         (node) =>
           node.props.numberOfLines === 1 &&
-          node.props.children[0].join("") === "Am" &&
-          !node.props.onPress
+          textContent(node.props.children) === "Am"
       )
   ).toBe(true);
 });

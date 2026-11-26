@@ -242,13 +242,13 @@ const SongDetail: React.FC = () => {
               const canonical = (text: string) =>
                 createSongEditorState(text).text.replace(/\s+/g, "");
               const current = usePreferences.getState().songs[songId];
+              const savedNotes = JSON.stringify(saved.tablature.notes);
               if (
                 !replacement.tablature?.chords?.length ||
                 current?.tablature !== saved.tablature ||
                 ![legacy, baseline, replacement].some(
                   (parsed) =>
-                    JSON.stringify(parsed.tablature?.notes) ===
-                    JSON.stringify(saved.tablature.notes)
+                    JSON.stringify(parsed.tablature?.notes) === savedNotes
                 ) ||
                 JSON.stringify(replacement.tablature) ===
                   JSON.stringify(saved.tablature) ||
@@ -1028,10 +1028,7 @@ function PlaybackLyricLine({
   return (
     <View
       onLayout={onLayout}
-      style={{
-        position: "relative",
-        backgroundColor: background ? "rgba(218,177,97,0.14)" : undefined
-      }}
+      style={[styles.playbackLine, background && styles.activeLines]}
     >
       <Text
         {...props}
@@ -1043,15 +1040,13 @@ function PlaybackLyricLine({
       />
       <Animated.View
         pointerEvents="none"
-        style={{
-          position: "absolute",
-          top: 0,
-          left: 0,
-          width: 2,
-          height,
-          backgroundColor: palette.glass.play,
-          transform: [{ translateX: x }, { translateY: y }]
-        }}
+        style={[
+          styles.playbackCursor,
+          {
+            height,
+            transform: [{ translateX: x }, { translateY: y }]
+          }
+        ]}
       />
     </View>
   );
@@ -1077,7 +1072,15 @@ const styles = StyleSheet.create({
     backgroundColor: palette.colors.transparent
   },
   pairedLines: { flexGrow: 0, flexShrink: 0 },
-  activeLines: { backgroundColor: "rgba(218,177,97,0.14)" },
+  activeLines: { backgroundColor: palette.glass.activeLine },
+  playbackLine: { position: "relative" },
+  playbackCursor: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    width: 2,
+    backgroundColor: palette.glass.play
+  },
   content: {
     color: palette.glass.ink,
     fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace"

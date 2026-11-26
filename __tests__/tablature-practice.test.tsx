@@ -133,9 +133,7 @@ test("fullscreen practice renders several readonly bars and tapping a bar only s
     expect(bar.props.onNote).toBeUndefined();
     expect(bar.props.onCell).toBeUndefined();
     expect(bar.props.onRest).toBeUndefined();
-    expect(
-      bar.findAll((node) => typeof node.props.onPress === "function")
-    ).toHaveLength(0);
+    expect(typeof bar.props.onSeek).toBe("function");
   }
   await press(label("TabPracticeSeekBar", { bar: 2 }));
   expect(transport.seek).toHaveBeenCalledWith(96);
@@ -229,7 +227,7 @@ test("manual vertical or horizontal scrolling stops following until Follow is pr
   followScroll.mockClear();
   await update({ ...transport, tick: 192 });
   expect(followScroll).toHaveBeenLastCalledWith({
-    index: 2,
+    index: 1,
     animated: true,
     viewPosition: 0
   });
@@ -246,7 +244,7 @@ test("manual vertical or horizontal scrolling stops following until Follow is pr
   ).toBe(true);
   await press("TabPracticeFollow");
   expect(followScroll).toHaveBeenLastCalledWith({
-    index: 3,
+    index: 1,
     animated: true,
     viewPosition: 0
   });
@@ -312,9 +310,6 @@ test("bounds prevent impossible ranges, out-of-range seeking and excessive pract
     }
   });
   await mount(transport);
-  expect(button(label("TabPracticeSeekBar", { bar: 1 })).props.disabled).toBe(
-    true
-  );
   await act(async () =>
     button(label("TabPracticeSeekBar", { bar: 1 })).props.onPress()
   );
@@ -335,7 +330,7 @@ test("bounds prevent impossible ranges, out-of-range seeking and excessive pract
   expect(button("TabCountInBetweenLoops").props.disabled).toBe(true);
 });
 
-test("landscape uses two bars per row and clamps following at the last bar", async () => {
+test("landscape packs compact bars into systems and follows the final system", async () => {
   jest
     .mocked(useWindowDimensions)
     .mockReturnValue({ width: 844, height: 390, scale: 1, fontScale: 1 });
@@ -345,18 +340,20 @@ test("landscape uses two bars per row and clamps following at the last bar", asy
   });
   await mount(transport);
   const reader = screen!.root.findByType(FlatList);
-  expect(reader.props.data).toEqual([[0, 1], [2, 3], [4]]);
+  expect(reader.props.data).toEqual([[0, 1, 2, 3], [4]]);
   await act(async () => reader.props.onLayout());
   expect(followScroll).toHaveBeenLastCalledWith({
-    index: 2,
+    index: 1,
     animated: true,
     viewPosition: 0
   });
-  const before = reader.props.getItemLayout(null, 2);
-  await press("TabPracticeLarger");
-  const after = screen!.root.findByType(FlatList).props.getItemLayout(null, 2);
+  const before = reader.props.getItemLayout(null, 0);
+  while (!button("TabPracticeLarger").props.disabled)
+    await press("TabPracticeLarger");
+  const enlarged = screen!.root.findByType(FlatList);
+  const after = enlarged.props.getItemLayout(null, 0);
   expect(after.length).toBeGreaterThan(before.length);
-  expect(after.offset).toBe(after.length * 2);
+  expect(enlarged.props.getItemLayout(null, 1).offset).toBe(after.length);
   expect(button("TabPracticeLarger").props.disabled).toBe(true);
 });
 
@@ -414,7 +411,8 @@ test("dense passages retain every note as readonly text without insertion cells"
     tick: index * 3,
     duration: 3
   }));
-  await mount(mockTransport({ tab: { ...example, barCount: 1, notes } }));
+  const transport = mockTransport({ tab: { ...example, barCount: 1, notes } });
+  await mount(transport);
   const bar = screen!.root.findAllByType(TablatureBar)[0];
   const noteLabels = bar.findAll(
     (node) =>
@@ -424,11 +422,9 @@ test("dense passages retain every note as readonly text without insertion cells"
   );
   expect(noteLabels).toHaveLength(32);
   expect(
-    noteLabels.every(
-      (note) => note.props.accessibilityRole === "text" && !note.props.onPress
-    )
+    noteLabels.every((note) => note.props.accessibilityRole === "button")
   ).toBe(true);
-  expect(
-    bar.findAll((node) => typeof node.props.onPress === "function")
-  ).toHaveLength(0);
+  await act(async () => bar.props.onSeek(0));
+  expect(transport.seek).toHaveBeenCalled();
+  expect(transport.setTab).not.toHaveBeenCalled();
 });
