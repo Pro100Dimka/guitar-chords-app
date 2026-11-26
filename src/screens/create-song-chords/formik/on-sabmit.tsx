@@ -5,6 +5,7 @@ import { Alert } from "react-native";
 import { db } from "@/components/database";
 import { FormikHelpers } from "formik";
 import type { FormValues } from "..";
+import { sourceSong } from "../../../components/song-autofill/source-metadata";
 import {
   defaultSongPreferences,
   normalizeSongPreferences,
@@ -25,6 +26,7 @@ const onSabmit = async (
     capo,
     tempo,
     rhythm,
+    tablature,
     sourceTuning,
     ...values
   }: FormValues,
@@ -44,11 +46,17 @@ const onSabmit = async (
       t,
       original?.id === id ? original : undefined
     ).validate({ ...values, fk_band }, { strict: true });
+    const imported = sourceSong(values.content, tempo);
+    values.content = imported.content;
     const metadata = {
       cover,
       contentSource,
-      ...(tempo !== undefined ? { tempo } : {}),
+      ...((tempo ?? imported.tempo) ? { tempo: tempo ?? imported.tempo } : {}),
+      ...imported.rhythm,
       ...rhythm,
+      ...(tablature || imported.tablature
+        ? { tablature: tablature ?? imported.tablature }
+        : {}),
       ...(capo !== undefined ? { capo, transpose: 0 } : {}),
       ...(sourceTuning ? { sourceTuning } : {})
     };

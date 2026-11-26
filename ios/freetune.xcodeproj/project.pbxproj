@@ -41,7 +41,7 @@ AAB200000000000000000006 /* Manrope license in Resources */ = {isa = PBXBuildFil
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		AAC400000000000000000052 /* Embed App Extensions */ = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (AAC400000000000000000031, AAC400000000000000000032, ); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
+		AAC400000000000000000052 /* Embed App Extensions */ = {isa = PBXCopyFilesBuildPhase; buildActionMask = 2147483647; dstPath = ""; dstSubfolderSpec = 13; files = (AAC400000000000000000032, ); name = "Embed App Extensions"; runOnlyForDeploymentPostprocessing = 0; };
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -235,7 +235,7 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
 			);
 			buildRules = (
 			);
-			dependencies = (AAC400000000000000000053, AAC400000000000000000054, );
+			dependencies = (AAC400000000000000000054, );
 			name = freetune;
 			productName = freetune;
 			productReference = 13B07F961A680F5B00A75B9A /* freetune.app */;
@@ -415,7 +415,6 @@ AAB200000000000000000005 /* Manrope license */ = {isa = PBXFileReference; lastKn
                 AAB100000000000000000001 /* PerformanceAudio.swift in Sources */,
                 AAC300000000000000000001 /* SongRecognition.swift in Sources */,
 				AAC400000000000000000028,
-				AAC400000000000000000029,
 				AAC40000000000000000002A,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

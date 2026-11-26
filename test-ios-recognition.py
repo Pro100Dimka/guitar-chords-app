@@ -14,6 +14,7 @@ source = (source.replace("import React", "").replace("import UIKit", "")
           .replace(", RCTBridgeModule", "").replace("@objc(SongRecognition)", "")
           .replace("@objc ", "").replace("private ", "")
           .replace("AVAudioSession", "CaptureSession").replace("AVAudioEngine", "CaptureEngine"))
+source = source.replace("SHManagedSession", "TestManagedSession").replace("SHCustomCatalog", "TestCustomCatalog").replace("SHSignature", "TestSignature")
 source += (root / "ios/PlaybackCaptureStore.swift").read_text(encoding="utf-8").replace("private ", "")
 source += ((root / "ios/PlaybackBroadcast/SampleHandler.swift").read_text(encoding="utf-8")
            .replace("import ReplayKit", "").replace("private ", "")
@@ -28,6 +29,23 @@ import Foundation
 typealias RCTPromiseResolveBlock = (Any?) -> Void
 typealias RCTPromiseRejectBlock = (String?, String?, Error?) -> Void
 enum UIApplication { static let didEnterBackgroundNotification = Notification.Name("background") }
+struct TestCustomCatalog {}
+struct TestSignature {
+  let duration: TimeInterval = 3
+  func dataRepresentation() throws -> Data { Data([1, 2, 3]) }
+}
+struct TestMatch { let querySignature: TestSignature }
+enum TestQuery { case match(TestMatch), noMatch(TestSignature), error(Error, TestSignature) }
+final class TestManagedSession {
+  static var feed = true, stopped = 0
+  private var cancelled = false
+  init(catalog: TestCustomCatalog) {}
+  func result() async -> TestQuery {
+    while !Self.feed && !cancelled { try? await Task.sleep(nanoseconds: 1_000_000) }
+    return .noMatch(TestSignature())
+  }
+  func cancel() { cancelled = true; Self.stopped += 1 }
+}
 enum RPSampleBufferType { case video, audioApp, audioMic }
 class RPBroadcastSampleHandler {
   func broadcastStarted(withSetupInfo setupInfo: [String: NSObject]?) {}
@@ -88,10 +106,17 @@ final class CaptureEngine {
 }
 final class HTTPFixture: URLProtocol {
   static var count = 0, status = 200
+  static var expectedSignature: String?
   override class func canInit(with request: URLRequest) -> Bool { request.url?.host == "amp.shazam.com" }
   override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
   override func startLoading() {
     Self.count += 1
+    if let expected = Self.expectedSignature {
+      let data = try! JSONSerialization.jsonObject(with: request.httpBody!) as! [String: Any]
+      let signature = data["signature"] as! [String: Any]
+      precondition(signature["uri"] as? String == expected)
+      precondition(signature["samplems"] as? Int == 3000)
+    }
     let body = #"{"track":{"title":"Example","subtitle":"Performer","sections":[{"type":"LYRICS","text":["Example words"],"footer":"Source"},{"metadata":[{"title":"BPM","text":"123"}]}]}}"#.data(using: .utf8)!
     client?.urlProtocol(self, didReceive: HTTPURLResponse(url: request.url!, statusCode: Self.status, httpVersion: nil, headerFields: ["Retry-After": "60"])!, cacheStoragePolicy: .notAllowed)
     client?.urlProtocol(self, didLoad: body)
@@ -216,6 +241,45 @@ do { try fileRecognizer.check(timedOut); fatalError("File timeout ignored") }
 catch { precondition((error as NSError).domain == "FileReadTimeout") }
 timedOut.finishReading()
 precondition(!CaptureSession.instance.active, "File recognition activated the microphone")
+
+if #available(macOS 14.0, *) {
+  let generated = SHSignatureGenerator()
+  try generated.append(pcm(48000, 144000), at: nil)
+  let signature = generated.signature()
+  let localCatalogDone = DispatchSemaphore(value: 0)
+  Task.detached {
+    let result = await SHSession(catalog: SHCustomCatalog()).result(from: signature)
+    switch result {
+    case .noMatch(let captured): precondition(captured.duration >= 2)
+    default: fatalError("An empty local catalog must return the captured query signature without an App ID service")
+    }
+    localCatalogDone.signal()
+  }
+  precondition(localCatalogDone.wait(timeout: .now() + 10) == .success)
+
+  HTTPFixture.expectedSignature = "data:audio/vnd.shazam.sig;base64,AQID"
+  let managed = SongRecognition()
+  let managedDone = DispatchSemaphore(value: 0)
+  managed.control.async {
+    managed.startManagedRecognition({ value in
+      precondition((value as? [String: Any])?["title"] as? String == "Example")
+      managedDone.signal()
+    }, rejecter: { code, _, _ in fatalError(code ?? "Managed recognition failed") }, allowsBackground: true)
+  }
+  precondition(managedDone.wait(timeout: .now() + 5) == .success)
+  precondition(TestManagedSession.stopped > 0)
+  TestManagedSession.feed = false
+  let managedStopped = DispatchSemaphore(value: 0), managedCancelled = DispatchSemaphore(value: 0)
+  managed.control.async {
+    managed.startManagedRecognition({ _ in fatalError("Cancelled managed session resolved") }, rejecter: { code, _, _ in
+      precondition(code == "Cancelled"); managedStopped.signal()
+    }, allowsBackground: true)
+    managed.cancel({ _ in managedCancelled.signal() }, rejecter: { _, _, _ in fatalError("Managed cancellation failed") })
+  }
+  precondition(managedStopped.wait(timeout: .now() + 3) == .success)
+  precondition(managedCancelled.wait(timeout: .now() + 3) == .success)
+  HTTPFixture.expectedSignature = nil
+}
 
 // The ReplayKit extension owns capture while the main app is suspended/interrupted.
 let independent = RecognitionCapture(allowsBackground: true, ignoresAudioInterruptions: true)

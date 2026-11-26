@@ -26,8 +26,7 @@ class RecognitionTileService : TileService() {
     }
     companion object {
         fun recognitionIntent(context: Context, autoStart: Boolean): Intent {
-            val mode = if (Build.VERSION.SDK_INT >= 29) "playback" else "mic"
-            val uri = Uri.parse("freetune://recognize/$mode").buildUpon()
+            val uri = Uri.parse("freetune://recognize/auto").buildUpon()
                 .appendQueryParameter("autoStart", autoStart.toString())
             if (autoStart) uri.appendQueryParameter("requestId", System.nanoTime().toString())
             return Intent(Intent.ACTION_VIEW, uri.build(), context, MainActivity::class.java)

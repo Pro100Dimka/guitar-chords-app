@@ -9,6 +9,7 @@ import type { SQLTransaction } from "react-native-sqlite-2";
 import { db } from "./database";
 import { getAllItems } from "./database/crud";
 import { normalizeTablature, Tablature } from "./tablature";
+import { rhythms } from "../screens/song/rhythms";
 import {
   normalizeTabPractice,
   TabPracticeSettings
@@ -330,16 +331,19 @@ export function preserveSongPreferenceChanges(
 
 export function normalizeRhythm(value: unknown): SongRhythm {
   const rhythm = record(value) ? value : {};
+  let strum =
+    typeof rhythm.strum === "string"
+      ? rhythm.strum.replace(/[^DUXBA1-6-]/g, "").slice(0, 16)
+      : "";
+  if (rhythm.strumPreset === "nine" && strum === "D-DU-UD-D-DU--D-")
+    strum = rhythms.find((preset) => preset.id === "nine")!.pattern;
   const division = rhythm.strumDivision;
   const numericDivision =
     typeof division === "number" || typeof division === "string"
       ? Number(division)
       : NaN;
   return {
-    strum:
-      typeof rhythm.strum === "string"
-        ? rhythm.strum.replace(/[^DUXBA1-6-]/g, "").slice(0, 16)
-        : "",
+    strum,
     strumMeter:
       ([2, 3, 4] as const).find((meter) => meter === rhythm.strumMeter) ?? 4,
     strumDivision: [2, 3, 4].find((entry) => entry === numericDivision) ?? 2,

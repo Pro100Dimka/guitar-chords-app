@@ -12,6 +12,7 @@ final class RecognitionCapture {
   private var stopped = false
   private var samples = [Int16]()
   private var task: URLSessionDataTask?
+  private var recordingCancellation: (() -> Void)?
   private var fileCoordinator: NSFileCoordinator?
   private var readExpired = false
 
@@ -67,9 +68,18 @@ final class RecognitionCapture {
     stopped = true
     let pending = task
     let coordinator = fileCoordinator
+    let recording = recordingCancellation
     lock.unlock()
     pending?.cancel()
     coordinator?.cancel()
+    recording?()
+  }
+  func attach(_ cancellation: @escaping () -> Void) {
+    lock.lock()
+    recordingCancellation = cancellation
+    let cancel = stopped
+    lock.unlock()
+    if cancel { cancellation() }
   }
   func attach(_ value: URLSessionDataTask) {
     lock.lock(); defer { lock.unlock() }
@@ -153,6 +163,10 @@ final class SongFingerprintRecognizer {
     }
     defer { freetune_fingerprint_free(pointer) }
     let signature = String(cString: pointer)
+    return try identify(signature: signature, sampleMilliseconds: samples.count * 1000 / 16000, cancelled: cancelled, attach: attach)
+  }
+  func identify(signature: String, sampleMilliseconds: Int, cancelled: () -> Bool = { false }, attach: (URLSessionDataTask) -> Void = { _ in }) throws -> [String: Any]? {
+    if cancelled() { throw error("Cancelled") }
     if let (until, result) = cached[signature], until > Date() { return result }
     guard Date() >= retryAfter else { throw error("RateLimited") }
     let url = URL(string: "https://amp.shazam.com/discovery/v5/en-US/GB/iphone/-/tag/\(UUID().uuidString)/\(UUID().uuidString)?sync=true&webv3=true&sampling=true&connected=&shazamapiversion=v3&sharehub=true&hubv5minorversion=v5.1&hidelb=true&video=v3")!
@@ -163,7 +177,7 @@ final class SongFingerprintRecognizer {
     }
     request.httpBody = try JSONSerialization.data(withJSONObject: [
       "timezone": TimeZone.current.identifier, "timestamp": Int(Date().timeIntervalSince1970 * 1000),
-      "signature": ["samplems": samples.count * 1000 / 16000, "uri": signature], "geolocation": [:], "context": [:]
+      "signature": ["samplems": sampleMilliseconds, "uri": signature], "geolocation": [:], "context": [:]
     ])
     let response = FingerprintResponse()
     let task = URLSession.shared.dataTask(with: request) { data, value, failure in response.finish(data, value, failure) }
