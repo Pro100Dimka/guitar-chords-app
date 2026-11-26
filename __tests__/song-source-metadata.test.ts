@@ -3,7 +3,56 @@ import {
   sourceSong,
   sourceTempo
 } from "../src/components/song-autofill/source-metadata";
-import { matchedSongArrangement } from "../src/components/song-autofill/lyrics";
+import {
+  matchedSongArrangement,
+  providerContext
+} from "../src/components/song-autofill/lyrics";
+import { readGuitarPro } from "../src/components/song-autofill/guitar-pro";
+
+test("Guitar Pro import follows actual attacks, preserves repeated strokes and aligns lyric cues", async () => {
+  const {
+    importer,
+    exporter
+  }: typeof import("@coderline/alphatab") = require("@coderline/alphatab");
+  const score = importer.ScoreLoader
+    .loadAlphaTex(String.raw`\title "Synthetic Song" \artist "Example Performer" \tempo 80 .
+    \section "Verse" (0.6 2.5 2.4 0.3 0.2 0.1).4 (0.6 2.5 2.4 0.3 0.2 0.1).4 (3.6 2.5 0.4 0.3 0.2 3.1).2 |
+    \section "Chorus" (3.5 2.4 0.3 1.2 0.1).2 (0.4 2.3 3.2 2.1).2 |`);
+  const data = new exporter.Gp7Exporter().export(score);
+  const input = {
+    data,
+    content:
+      "[Verse]\n[Em]First original words [G]for this verse\n\n[Chorus]\n[C]Other original words [D]for this chorus",
+    title: "Synthetic Song",
+    artist: "Example Performer",
+    source: {
+      name: "GtpTabs.com",
+      url: "https://gtptabs.com/tabs/1/example-performer/synthetic-song.html"
+    },
+    context: providerContext
+  };
+  const imported = await readGuitarPro(input);
+  expect(imported?.tablature).toMatchObject({
+    tempo: 80,
+    barCount: 2,
+    tuning: [40, 45, 50, 55, 59, 64],
+    chords: [
+      { name: "Em", tick: 0 },
+      { name: "G", tick: 48 },
+      { name: "C", tick: 96 },
+      { name: "D", tick: 144 }
+    ]
+  });
+  expect(
+    imported?.tablature.notes
+      .filter((note) => note.string === 0)
+      .map((note) => note.tick)
+  ).toEqual([0, 24, 48]);
+  expect(imported?.content).toContain("First original");
+  expect(
+    await readGuitarPro({ ...input, artist: "Another Performer" })
+  ).toBeUndefined();
+});
 
 test("a matched chorus uses timed strums while its verse retains the source picking", () => {
   const text = [

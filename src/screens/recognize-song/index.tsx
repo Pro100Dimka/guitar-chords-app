@@ -282,7 +282,7 @@ export default function RecognizeSong() {
           result.album,
           result.duration
         );
-        setAvailableVersions(candidates);
+        setAvailableVersions(playable);
         if (!candidates.length) {
           setFound(null);
           setDraft(null);

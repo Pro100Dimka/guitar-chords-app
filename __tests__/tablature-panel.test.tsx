@@ -418,7 +418,7 @@ test("long pressing a note defines an exact loop range and the loop button only 
   const { base } = await editable(example);
   const staff = screen!.root
     .findAllByType(TablatureBar)
-    .find((n) => !n.props.compact)!;
+    .find((n) => typeof n.props.onRange === "function")!;
   await act(async () => staff.props.onRange({ start: 24, end: 48 }));
   expect(base.setRange).toHaveBeenCalledWith({ start: 24, end: 48 });
   await press(screen!, "TabLoopShort");
@@ -608,7 +608,10 @@ test("pausing after playback changes bar keeps insertion on the displayed bar", 
   await press(screen!, "TabFullView");
   const bar = screen!.root
     .findAllByType(TablatureBar)
-    .find((entry) => !entry.props.compact)!;
+    .find(
+      (entry) =>
+        typeof entry.props.onRange === "function" && entry.props.bar === 2
+    )!;
   expect(bar.props.bar).toBe(2);
   expect(bar.props.selected).toMatchObject({ tick: 192 });
   await press(screen!, "TabAddNote");
@@ -627,7 +630,7 @@ test("rewinding the editor moves its insertion cursor back with the displayed ba
   await press(screen!, "TabRewind");
   const bar = screen!.root
     .findAllByType(TablatureBar)
-    .find((entry) => !entry.props.compact)!;
+    .find((entry) => typeof entry.props.onRange === "function")!;
   expect(bar.props.bar).toBe(0);
   expect(bar.props.selected).toMatchObject({ tick: 0 });
   await press(screen!, "TabAddNote");
@@ -654,11 +657,16 @@ test("pausing just after a bar boundary follows the final transport position", a
   await press(screen!, "TabFullView");
   const bar = screen!.root
     .findAllByType(TablatureBar)
-    .find((entry) => !entry.props.compact)!;
+    .find((entry) => typeof entry.props.onRange === "function")!;
   expect(
     screen!.root
       .findAllByType(TablatureBar)
-      .some((node) => !node.props.compact && node.props.bar === 1)
+      .some(
+        (node) =>
+          typeof node.props.onRange === "function" &&
+          node.props.bar <= 1 &&
+          node.props.bar + node.props.barCount > 1
+      )
   ).toBe(true);
   expect(bar.props.selected).toMatchObject({ tick: 96 });
 });
@@ -775,12 +783,14 @@ test("an empty editor composes a note and a silent rest without virtual guitar t
   await press(screen!, "TabAddRest");
   expect(updates.at(-1)!.rests).toEqual([{ tick: 12, duration: 12 }]);
   expect(mockPreview).toHaveBeenCalledTimes(1);
-  expect(mockPreview).toHaveBeenCalledWith([{
-    string: 5,
-    fret: 2,
-    tick: 0,
-    duration: 12
-  }]);
+  expect(mockPreview).toHaveBeenCalledWith([
+    {
+      string: 5,
+      fret: 2,
+      tick: 0,
+      duration: 12
+    }
+  ]);
   expect(button(screen!, "TabSave").props.disabled).toBe(false);
   expect(button(screen!, "TabPlay").props.disabled).toBe(false);
 });
@@ -993,7 +1003,7 @@ test("full-view playback follows its cursor instead of retaining the selected ed
   const staff = () =>
     screen!.root
       .findAllByType(TablatureBar)
-      .find((node) => !node.props.compact)!;
+      .find((node) => typeof node.props.onRange === "function")!;
   expect(staff().props.selected).not.toBeNull();
   await act(async () => {
     screen!.update(
@@ -1008,7 +1018,12 @@ test("full-view playback follows its cursor instead of retaining the selected ed
   expect(
     screen!.root
       .findAllByType(TablatureBar)
-      .some((node) => !node.props.compact && node.props.bar === 1)
+      .some(
+        (node) =>
+          typeof node.props.onRange === "function" &&
+          node.props.bar <= 1 &&
+          node.props.bar + node.props.barCount > 1
+      )
   ).toBe(true);
 });
 
@@ -1056,9 +1071,9 @@ test("moving the insertion cursor and grid does not reread offscreen score notes
   const tab = normalizeTablature({
     ...emptyTablature(),
     notes: Array.from({ length: TAB_MAX_NOTES }, (_, index) => ({
-      string: 0,
+      string: index % 2,
       fret: 0,
-      tick: index * 6,
+      tick: Math.floor(index / 2) * 6,
       duration: 6
     }))
   })!;
@@ -1290,7 +1305,7 @@ test("range context actions copy, cut and paste all selected pitches with pauses
   const { updates, base } = await editable(example);
   const staff = screen!.root
     .findAllByType(TablatureBar)
-    .find((node) => !node.props.compact)!;
+    .find((node) => typeof node.props.onRange === "function")!;
   await act(async () => staff.props.onRange({ start: 0, end: 48 }));
   await press(screen!, "TabCutNotes");
   expect(updates.at(-1)?.notes).toEqual([example.notes[2]]);

@@ -1,6 +1,6 @@
 /** Musical ticks always count quarter notes, independently of the meter. */
 export const TAB_TICKS_PER_BEAT = 24;
-export const TAB_MAX_NOTES = 8192;
+export const TAB_MAX_NOTES = 4096;
 export const TAB_MAX_BARS = 128;
 export const TAB_TUNING = [40, 45, 50, 55, 59, 64] as const;
 export const TAB_TECHNIQUES = {

@@ -20,6 +20,7 @@ import CreateChordSong, {
 } from "../src/screens/create-song-chords";
 import { sourceArrangement } from "../src/screens/song/rhythms";
 import { Action } from "../src/screens/song/tools";
+import { emptyTablature } from "../src/components/tablature";
 
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: require("react-native").View,
@@ -355,6 +356,24 @@ test.each(["recognized", "looked up"])(
     );
   }
 );
+
+test("recognition carries an automatically found guitar score through the editor and atomic save", async () => {
+  const tablature = {
+    ...emptyTablature(92),
+    tuning: [38, 43, 48, 53, 57, 62],
+    notes: [{ string: 1, fret: 0, tick: 0, duration: 24 }],
+    arrangementSource: {
+      name: "GtpTabs.com",
+      url: "https://gtptabs.com/tabs/1/artist/track.html"
+    }
+  };
+  jest
+    .mocked(lookupSongContent)
+    .mockResolvedValue([{ ...pickedChart, tablature }]);
+  await start();
+  expect((await openEditor()).tablature).toEqual(tablature);
+  expect((await save()).tablature).toMatchObject(tablature);
+});
 
 test.each([
   { fallback: 137, next: strummedChart, expectedTempo: 118 },

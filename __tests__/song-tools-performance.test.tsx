@@ -7,7 +7,13 @@ import {
   Text,
   type AppStateStatus
 } from "react-native";
-import { Action, ChordSheet, SongTools } from "../src/screens/song/tools";
+import {
+  Action,
+  ChordSheet,
+  SongTools,
+  SongPlayback
+} from "../src/screens/song/tools";
+import { emptyTablature } from "../src/components/tablature";
 import { WebView } from "react-native-webview";
 import SongRecorder from "../src/screens/song/recorder";
 import { defaultSongPreferences } from "../src/components/preferences";
@@ -63,6 +69,38 @@ const content = Array.from(
 const settings = { ...defaultSongPreferences, strum: "D-D-D-D-" };
 const onChange = jest.fn();
 const onClose = jest.fn();
+
+test("the lyric cursor follows elapsed score time across unequal chord durations", async () => {
+  jest.useFakeTimers();
+  jest.spyOn(guitarAudio, "warmGuitar").mockResolvedValue(undefined);
+  const position = jest.fn();
+  await act(async () => {
+    screen = Renderer.create(
+      <SongPlayback
+        content="[Am]Words [C]for a [G]single line"
+        value={{
+          ...defaultSongPreferences,
+          tempo: 60,
+          tablature: {
+            ...emptyTablature(60),
+            notes: [{ string: 0, fret: 0, tick: 0, duration: 96 }],
+            chords: [
+              { name: "Am", tick: 0 },
+              { name: "C", tick: 24 },
+              { name: "G", tick: 72 }
+            ]
+          }
+        }}
+        onPosition={position}
+        onStopped={jest.fn()}
+      />
+    );
+  });
+  await act(async () => jest.advanceTimersByTimeAsync(1000));
+  expect(position.mock.calls.at(-1)?.[1]).toBeCloseTo(0.25, 2);
+  await act(async () => jest.advanceTimersByTimeAsync(2000));
+  expect(position.mock.calls.at(-1)?.[1]).toBeCloseTo(0.75, 2);
+});
 
 test.each(["rhythm", "reading"])(
   "the %s tab plays imported notes without choosing a stock pattern",
