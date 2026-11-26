@@ -1,5 +1,9 @@
 import { sourceArrangement } from "../../screens/song/rhythms";
-import { isChordLine, isSectionBoundary } from "../../screens/song/chords";
+import {
+  chordNotationPattern,
+  isChordLine,
+  isSectionBoundary
+} from "../../screens/song/chords";
 import {
   emptyTablature,
   normalizeTablature,
@@ -63,7 +67,11 @@ export function sourceSong(text: string, tempo?: number) {
     const rows = lines
       .slice(index, index + 6)
       .map((line) =>
-        line.match(/^\s*([eBGDAE]?)\s*\|([\dOoXx\s|:./\\~hp()\-]+)$/i)
+        line
+          .replace(/\[([^\]]+)\]/g, (marked, chord: string) =>
+            chordNotationPattern.test(chord) ? "" : marked
+          )
+          .match(/^\s*([eBGDAE]?)\s*\|([\dOoXx\s|:./\\~hp()\-]+)$/i)
       );
     if (rows.some((row) => !row)) continue;
     const labels = rows.map((row) => row![1]).join("");
@@ -111,7 +119,10 @@ export function sourceSong(text: string, tempo?: number) {
     const columns = [...new Set(events.map((event) => event.column))].sort(
       (a, b) => a - b
     );
-    const chordRow = (lines[index - 1] ?? "").replace(
+    const inlineChords = [...lines[index].matchAll(/\[([^\]]+)\]/g)]
+      .map((match) => match[1])
+      .join(" ");
+    const chordRow = (inlineChords || lines[index - 1] || "").replace(
       /\b[a-g](?=\s|$)/g,
       (root) => root.toUpperCase()
     );

@@ -171,6 +171,36 @@ test("imports the published Behind Blue Eyes picking as playable tabs and saves 
   ).toEqual(persisted.tablature);
 });
 
+test("imports chord annotations inside provider tab rows through the song form", async () => {
+  const content = [
+    "Intro: Em  G6  D5(9)  C9  A5(9)",
+    "E|-[Em]---------0--------[G6]---------0------------ ",
+    "B|------------0------------------3--------- ",
+    "G|-------0------0-----------0------0------- ",
+    "D|-----2----------0-------0----------0----- ",
+    "A|---2------------------2------------------ ",
+    "E|-0----------------3---------------------- ",
+    "",
+    "Verso 1:",
+    "N[Em]o one knows what it's l[G6]ike, to be the b[D5(9)]ad man,",
+    "To be the s[C9]ad man, beh[A5(9)]ind blue eyes"
+  ].join("\n");
+  jest.mocked(lookupSongContent).mockResolvedValue([
+    { ...plainChart, content, source: "Cifra Club" }
+  ]);
+  await start();
+  const draft = await openEditor();
+  expect(draft.content).not.toMatch(/[EBGDA]\|/);
+  expect(draft.content).toContain("N[Em]o one knows");
+  const persisted = await save();
+  expect(persisted.tablature.notes).toContainEqual(
+    expect.objectContaining({ string: 0, fret: 0, tick: 0 })
+  );
+  expect(persisted.tablature.notes).toContainEqual(
+    expect.objectContaining({ string: 1, fret: 2 })
+  );
+});
+
 async function press(label: string) {
   await act(async () =>
     screen!.root

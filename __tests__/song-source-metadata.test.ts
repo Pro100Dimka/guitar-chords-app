@@ -12,6 +12,24 @@ test.each(["Picking: B32123", "Tempo: 100-120"])(
   }
 );
 
+test("does not play chord diagrams with names embedded in the first tab row", () => {
+  const imported = sourceSong(
+    [
+      "|-[D]0-----[A]0-",
+      "|-3-----0-",
+      "|-2-----2-",
+      "|-0-----2-",
+      "|-0-----0-",
+      "|-0-----0-",
+      "[Verse]",
+      "[D]Example words [A]for this song"
+    ].join("\n")
+  );
+  expect(imported.tablature).toBeUndefined();
+  expect(imported.content).not.toContain("|-");
+  expect(imported.content).toContain("[D]Example words [A]for this song");
+});
+
 describe("explicit chart tempo", () => {
   it.each([
     ["Темп: 128 BPM", 128],
