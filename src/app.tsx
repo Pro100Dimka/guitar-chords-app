@@ -53,6 +53,10 @@ const App: FC = () => {
   const artReady = ["background", "dawn", "mark", "wordmark"].every(
     (key) => loadedArt[key]
   );
+  const canReveal =
+    launchExpired ||
+    (artReady &&
+      (failed || (ready && navigationReady && (!waitForTuner || tunerReady))));
   const launchOpacity = useRef(new Animated.Value(1)).current;
   useEffect(() => {
     let active = true;
@@ -91,13 +95,7 @@ const App: FC = () => {
     return () => clearTimeout(timeout);
   }, [failed, launching, ready]);
   useEffect(() => {
-    if (
-      !launching ||
-      (!launchExpired &&
-        (!artReady ||
-          !(failed || (ready && navigationReady && (!waitForTuner || tunerReady)))))
-    )
-      return;
+    if (!launching || !canReveal) return;
     let active = true;
     let animation: Animated.CompositeAnimation | undefined;
     const frame = requestAnimationFrame(() => {
@@ -121,17 +119,7 @@ const App: FC = () => {
       cancelAnimationFrame(frame);
       animation?.stop();
     };
-  }, [
-    ready,
-    failed,
-    waitForTuner,
-    tunerReady,
-    navigationReady,
-    artReady,
-    launching,
-    launchExpired,
-    launchOpacity
-  ]);
+  }, [canReveal, launching, launchOpacity]);
 
   return (
     <SafeAreaProvider>

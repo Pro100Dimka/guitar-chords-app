@@ -216,7 +216,8 @@ test("missing splash art and tuner callbacks cannot block an initialized applica
     );
     await ReactTestRenderer.act(async () => jest.advanceTimersByTimeAsync(9999));
     expect(SplashScreen.hide).not.toHaveBeenCalled();
-    await ReactTestRenderer.act(async () => jest.advanceTimersByTimeAsync(40));
+    await ReactTestRenderer.act(async () => jest.advanceTimersByTimeAsync(1));
+    await ReactTestRenderer.act(async () => jest.advanceTimersByTimeAsync(32));
     expect(SplashScreen.hide).toHaveBeenCalledTimes(1);
   } finally {
     if (screen) await ReactTestRenderer.act(async () => screen!.unmount());

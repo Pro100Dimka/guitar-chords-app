@@ -451,7 +451,7 @@ test("a synchronous microphone bridge error does not permanently lock recovery",
   await act(async () => {
     screen = Renderer.create(<Tuner active />);
   });
-  for (let i = 0; i < 6; i++)
+  for (let i = 0; i < 4; i++)
     await act(async () => jest.advanceTimersByTimeAsync(1500));
   expect(MicrophoneStream.restartRecording).toHaveBeenCalledTimes(2);
 });

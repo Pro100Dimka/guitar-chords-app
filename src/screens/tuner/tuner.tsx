@@ -915,17 +915,21 @@ const Tuner: FC<{ active: boolean }> = ({ active }) => {
         </Sheet>
       )}
       {chooseTuning && <TuningSheet onClose={() => setChooseTuning(false)} />}
-      {captureFailed && active && painted && backgroundReady && !renderError && (
-        <View style={styles.renderError}>
-          <Text accessibilityRole="alert" style={styles.octaveHint}>
-            {t("TunerCaptureUnavailable")}
-          </Text>
-          <Action
-            label={t("Retry")}
-            onPress={() => setCaptureAttempt((value) => value + 1)}
-          />
-        </View>
-      )}
+      {captureFailed &&
+        active &&
+        painted &&
+        backgroundReady &&
+        !renderError && (
+          <View style={styles.renderError}>
+            <Text accessibilityRole="alert" style={styles.octaveHint}>
+              {t("TunerCaptureUnavailable")}
+            </Text>
+            <Action
+              label={t("Retry")}
+              onPress={() => setCaptureAttempt((value) => value + 1)}
+            />
+          </View>
+        )}
       {renderError && (
         <View style={styles.renderError} onLayout={reportReady}>
           <Text style={styles.octaveHint}>{t("ErrorStartingApp")}</Text>
