@@ -1,6 +1,8 @@
 //! Mobile bridges over shazamio-core 2.1.0's MIT PCM fingerprint algorithm.
 mod algorithm;
 mod signature_format;
+mod chords;
+mod chord_bridge;
 
 #[cfg(target_os = "android")]
 use jni::objects::{JClass, JShortArray};

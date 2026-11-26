@@ -533,6 +533,11 @@ export default function RecognizeSong() {
           )}
           {!busy && (
             <>
+              <Action
+                label={t("OfflineChordsTitle")}
+                icon="file-music-outline"
+                onPress={() => navigation.navigate("analyzeAudio")}
+              />
               {Platform.OS === "android" && Number(Platform.Version) >= 33 ? (
                 <Action
                   label={t("AddSongQuickTile")}

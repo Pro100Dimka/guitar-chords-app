@@ -27,6 +27,8 @@ on:
       - test-ios-recordings.py
       - test-ios-performance.py
       - test-ios-recognition.py
+      - test-ios-offline-chords.py
+      - scripts/check-offline-chord-native.py
       - .github/workflows/native-song-recognition.yml
   pull_request:
     branches: [main]
@@ -90,6 +92,7 @@ jobs:
           KOTLIN_BIN=$(readlink -f "$(command -v kotlinc)")
           pwsh ./test-native.ps1 -KotlinLib "$(dirname "$KOTLIN_BIN")/../lib" -OutputDirectory "$RUNNER_TEMP/freetune-native-checks"
           python3 android/test-playback-capture.py --kotlin-lib "$(dirname "$KOTLIN_BIN")/../lib"
+          python3 scripts/check-offline-chord-native.py --kotlin-lib "$(dirname "$KOTLIN_BIN")/../lib"
       - name: Install JS dependencies
         run: npm ci
       - name: Compile Android Kotlin and all three Rust JNI architectures (no APK)
@@ -118,6 +121,8 @@ jobs:
           cache-bin: false
       - name: Production iOS recognition and cancellation
         run: python3 test-ios-recognition.py
+      - name: Production iOS offline chord analysis with real WAV and AAC decoding
+        run: python3 test-ios-offline-chords.py
       - name: Production Swift pitch methods
         run: python3 test-ios-pitch.py
       - name: Production Swift capture route guards (fixtures)

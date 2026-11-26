@@ -246,6 +246,12 @@ const Library: React.FC = () => {
                         autoStart: true,
                         requestId: String(Date.now())
                       })
+                  },
+                  {
+                    label: "OfflineChordsTitle",
+                    hint: "OfflineChordsHint",
+                    icon: "file-music-outline",
+                    onPress: () => navigation.navigate("analyzeAudio")
                   }
                 ]
               : [])

@@ -1,0 +1,7 @@
+package android.media
+import java.nio.ByteBuffer
+import java.io.FileDescriptor
+class AudioFormat { companion object {const val ENCODING_PCM_16BIT=2;const val ENCODING_PCM_FLOAT=4} }
+class MediaFormat {fun getString(k:String):String?="audio/raw";fun getInteger(k:String)=when(k){KEY_CHANNEL_COUNT->1;KEY_PCM_ENCODING->2;else->16000}; fun getLong(k:String)=2_000_000L;fun containsKey(k:String)=true; companion object {const val KEY_MIME="mime";const val KEY_SAMPLE_RATE="rate";const val KEY_CHANNEL_COUNT="channels";const val KEY_DURATION="duration";const val KEY_PCM_ENCODING="encoding"} }
+class MediaExtractor {val trackCount=1;val sampleTime=0L;fun setDataSource(f:FileDescriptor,o:Long,l:Long){};fun setDataSource(f:FileDescriptor){};fun getTrackFormat(i:Int)=MediaFormat();fun selectTrack(i:Int){};fun readSampleData(b:ByteBuffer,o:Int)=-1;fun advance()=false;fun release(){} }
+class MediaCodec {class BufferInfo {var offset=0;var size=0;var flags=4};val outputFormat=MediaFormat();fun configure(f:MediaFormat,s:Any?,c:Any?,flags:Int){};fun start(){};fun stop(){};fun release(){};fun dequeueInputBuffer(t:Long)=0;fun getInputBuffer(i:Int):ByteBuffer?=ByteBuffer.allocate(10);fun queueInputBuffer(i:Int,o:Int,s:Int,t:Long,f:Int){};fun dequeueOutputBuffer(i:BufferInfo,t:Long)=0;fun getOutputBuffer(i:Int):ByteBuffer?=ByteBuffer.allocate(0);fun releaseOutputBuffer(i:Int,b:Boolean){};companion object {const val BUFFER_FLAG_END_OF_STREAM=4;const val INFO_OUTPUT_FORMAT_CHANGED=-2;fun createDecoderByType(m:String)=MediaCodec()} }
