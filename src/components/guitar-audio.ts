@@ -44,38 +44,28 @@ export function tabNoteExpression(
     )
   )
     return undefined;
-  const techniques = [...(note.techniques ?? [])].sort();
-  const durationShapesSound =
-    !!note.fade ||
-    note.accent === "staccato" ||
-    techniques.some((technique) =>
-      ["bend", "slide", "vibrato", "whammy"].includes(technique)
-    );
-  const seconds = Math.min(
-    6,
-    Math.max(
-      0.025,
-      ((tabNoteDuration(note) / TAB_TICKS_PER_BEAT) *
-        60 *
-        (note.fermata ? 2 : 1)) /
-        tempo
-    )
-  );
   return {
     velocity: note.velocity,
-    techniques,
+    techniques: [...(note.techniques ?? [])].sort(),
     bend: note.bend,
     bendRelease: note.bendRelease,
     accent: note.accent,
     fade: note.fade,
     pick: note.pick,
-    // Short plain notes share the renderer's minimum three-second buffer.
-    // Their exact releases belong to the transport, not the sample cache key.
-    seconds: durationShapesSound ? seconds : Math.max(3, seconds),
+    seconds: Math.min(
+      6,
+      Math.max(
+        0.025,
+        ((tabNoteDuration(note) / TAB_TICKS_PER_BEAT) *
+          60 *
+          (note.fermata ? 2 : 1)) /
+          tempo
+      )
+    ),
     sourceInterval: (note.sourceFret ?? Math.max(0, note.fret - 2)) - note.fret,
     harmonicInterval:
       ({ 5: 19, 7: 12, 12: 0 } as Record<number, number>)[note.fret] ?? 12,
-    repeatSeconds: techniques.includes("tremolo") ? 60 / tempo / 8 : 0.1
+    repeatSeconds: 60 / tempo / 8
   };
 }
 export const guitarNoteKey = (

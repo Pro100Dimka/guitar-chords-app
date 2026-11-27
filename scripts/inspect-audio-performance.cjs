@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// @ts-nocheck
+// Node-only recognition diagnostic; the app tsconfig supplies React Native types.
 /* Execute the production note/style/tab post-processing in a ready-PR check. */
 const fs = require("node:fs");
 const path = require("node:path");

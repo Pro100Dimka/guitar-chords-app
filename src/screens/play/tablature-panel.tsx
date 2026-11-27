@@ -58,10 +58,6 @@ type Selection = Pick<TabNote, "string" | "tick">;
 const lineTechniques: TabTechnique[] = ["palmMute", "letRing"];
 const stringNames = ["E", "A", "D", "G", "B", "e"];
 const stringOrder = [5, 4, 3, 2, 1, 0];
-const MIN_INSERTION_GRID = durationTicks(128, "triplet");
-// Budget the whole connected staff, independently of the number of bars.
-// A complete 4/4 bar of 128th-note triplets still has every insertion target.
-const MAX_INSERTION_COLUMNS = 192;
 const meterChoices = [
   [2, 2],
   [2, 4],
@@ -802,23 +798,12 @@ const TablatureStaff = React.memo(function TablatureStaff({
     };
   }, [tab.notes, tab.rests, start, barTicks, staffEnd]);
   const columns = useMemo(() => {
-    // A clipped audio tail may last only 1/960 tick. Bound empty insertion
-    // targets independently of that duration; retain exact events below.
-    const requestedStep = editable
-      ? Math.max(MIN_INSERTION_GRID, grid)
-      : beatTicks;
-    const step = editable
-      ? requestedStep *
-        Math.max(
-          1,
-          Math.ceil((staffEnd - start) / requestedStep / MAX_INSERTION_COLUMNS)
-        )
-      : requestedStep;
+    const step = editable ? grid : beatTicks;
     const times = new Set(
       Array.from(
         { length: Math.ceil((staffEnd - start) / step) },
-        (_, position) => roundTabTick(start + position * step)
-      ).filter((position) => position < staffEnd)
+        (_, position) => start + position * step
+      )
     );
     eventTimes.forEach((tick) => times.add(tick));
     for (let at = start; at < staffEnd; at += barTicks) times.add(at);

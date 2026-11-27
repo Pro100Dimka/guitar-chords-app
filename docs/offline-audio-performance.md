@@ -19,18 +19,10 @@ server call or song-specific rule is introduced.
    then save through the existing song-storage path.
 
 Changing the file or applied range, regenerating tabs, or removing the analysis
-screen asks before discarding unsaved edits. Confirmation callbacks are
+screen asks before discarding manually edited tabs. Confirmation callbacks are
 bound to the current result, range, tempo, session and navigation context. A
 cancelled or failed file import retains the old result. The existing Play working
 copy is neither loaded nor overwritten by this isolated editor.
-
-Successful song persistence acknowledges the exact source session and tab
-snapshot. Manual-edit provenance remains visible, while the saved snapshot no
-longer triggers a discard warning. Cancelling the form or a failed transaction
-does not acknowledge a save. Subsequent edits and replacement sessions retain
-their own unsaved protection. The imported editor requests landscape while it
-is visible and active, waits for that layout, and releases the orientation lock
-on close, blur, backgrounding or unmount.
 
 The chart keeps absolute recording times. Tab tick zero corresponds to the
 selected passage's start; the exported notice records that offset. Detected notes
@@ -122,14 +114,6 @@ The preview and exported notice distinguish:
 The last two counts describe clipping, not dropped notes. The first three sum
 to the selected-note count. A final normalization comparison prevents silent
 note loss, deduplication or sustain shortening by the existing editor format.
-
-Exact short durations do not control the density of empty editor insertion
-targets. Those are bounded to 192 grid columns per connected editor staff, while
-bar boundaries and exact note and cursor positions remain available. The editor
-keeps at most two visible staff rows. Short velocity-only notes also share the existing
-three-second rendered sample instead of re-rendering identical audio for each
-detected release time. Duration-shaped effects and tremolo tempo keep distinct
-samples; the transport still owns the actual release time.
 
 One projection accepts at most 2,048 candidate guitar notes and 128 layout bars.
 These import budgets do not grow when the editor's own capacity increases; a

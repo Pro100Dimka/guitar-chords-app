@@ -526,7 +526,7 @@ async function fetchSource(
   timeout = 12000,
   form?: URLSearchParams,
   binary = false
-): Promise<string | Uint8Array | null> {
+) {
   if (signal?.aborted) throw new Error("Cancelled");
   const origin = new URL(url).origin;
   if (Date.now() < (sourceCooldowns.get(origin) ?? 0))

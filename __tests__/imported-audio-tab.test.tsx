@@ -1,11 +1,5 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import {
-  AppState,
-  NativeModules,
-  Platform,
-  type AppStateStatus
-} from "react-native";
 import { ImportedAudioTab } from "../src/screens/analyze-audio/imported-audio-tab";
 import { TablaturePanel } from "../src/screens/play/tablature-panel";
 import {
@@ -47,9 +41,6 @@ jest.mock("../src/components/performance-audio", () => ({
 }));
 
 let screen: Renderer.ReactTestRenderer | undefined;
-const previousOrientation = NativeModules.ScreenOrientation;
-const previousAppState = AppState.currentState;
-const landscape = { width: 844, height: 390, scale: 1, fontScale: 1 };
 const initial = normalizeTablature({
   ...emptyTablature(120),
   version: 3,
@@ -60,138 +51,12 @@ const panel = () => screen!.root.findByType(TablaturePanel).props;
 beforeEach(() => {
   jest.useFakeTimers();
   jest.clearAllMocks();
-  NativeModules.ScreenOrientation = { setLandscape: jest.fn() };
-  AppState.currentState = "active";
-  jest
-    .spyOn(require("react-native"), "useWindowDimensions")
-    .mockReturnValue(landscape);
   jest.mocked(warmGuitar).mockResolvedValue(undefined);
 });
 afterEach(async () => {
   if (screen) await act(async () => screen?.unmount());
   screen = undefined;
-  NativeModules.ScreenOrientation = previousOrientation;
-  AppState.currentState = previousAppState;
-  jest.restoreAllMocks();
   jest.useRealTimers();
-});
-
-test.each(["ios", "android"] as const)(
-  "%s imports request landscape and wait for the native layout",
-  async (platform) => {
-    jest.replaceProperty(Platform, "OS", platform);
-    const dimensions = jest.mocked(require("react-native").useWindowDimensions);
-    dimensions.mockReturnValue({ ...landscape, width: 390, height: 844 });
-    const properties = {
-      initial,
-      title: "Imported audio",
-      active: true,
-      visible: true,
-      disabled: false,
-      onChange: jest.fn(),
-      onSave: jest.fn(),
-      onClose: jest.fn()
-    };
-    await act(async () => {
-      screen = Renderer.create(<ImportedAudioTab {...properties} />);
-    });
-    expect(NativeModules.ScreenOrientation.setLandscape).toHaveBeenCalledWith(
-      true
-    );
-    expect(screen!.root.findAllByType(TablaturePanel)).toHaveLength(0);
-    dimensions.mockReturnValue(landscape);
-    await act(async () => screen!.update(<ImportedAudioTab {...properties} />));
-    expect(panel().transport.tab).toEqual(initial);
-    await act(async () => screen!.unmount());
-    screen = undefined;
-    expect(
-      NativeModules.ScreenOrientation.setLandscape
-    ).toHaveBeenLastCalledWith(false);
-  }
-);
-
-test("orientation ownership ends on close, blur and background without replacing edits", async () => {
-  let appStateChanged!: (state: AppStateStatus) => void;
-  jest
-    .spyOn(AppState, "addEventListener")
-    .mockImplementation((_event, listener) => {
-      appStateChanged = listener;
-      return { remove: jest.fn() };
-    });
-  const properties = {
-    initial,
-    title: "Imported audio",
-    active: true,
-    visible: true,
-    disabled: false,
-    onChange: jest.fn(),
-    onSave: jest.fn(),
-    onClose: jest.fn()
-  };
-  await act(async () => {
-    screen = Renderer.create(<ImportedAudioTab {...properties} />);
-  });
-  const edited = { ...initial, tempo: 121 };
-  await act(async () => panel().transport.setTab(edited));
-  for (const hidden of [{ visible: false }, { active: false }]) {
-    await act(async () =>
-      screen!.update(<ImportedAudioTab {...properties} {...hidden} />)
-    );
-    expect(
-      NativeModules.ScreenOrientation.setLandscape
-    ).toHaveBeenLastCalledWith(false);
-    expect(screen!.root.findAllByType(TablaturePanel)).toHaveLength(0);
-    await act(async () => screen!.update(<ImportedAudioTab {...properties} />));
-    expect(
-      NativeModules.ScreenOrientation.setLandscape
-    ).toHaveBeenLastCalledWith(true);
-    expect(panel().transport.tab).toEqual(edited);
-  }
-  await act(async () => appStateChanged("background"));
-  expect(NativeModules.ScreenOrientation.setLandscape).toHaveBeenLastCalledWith(
-    false
-  );
-  expect(panel().visible).toBe(false);
-  await act(async () => appStateChanged("active"));
-  expect(NativeModules.ScreenOrientation.setLandscape).toHaveBeenLastCalledWith(
-    true
-  );
-  expect(panel().visible).toBe(true);
-  expect(panel().transport.tab).toEqual(edited);
-});
-
-test("a saved baseline clears unsaved state while keeping manual-edit provenance", async () => {
-  const onChange = jest.fn();
-  const properties = {
-    initial,
-    title: "Imported audio",
-    active: true,
-    visible: true,
-    disabled: false,
-    onChange,
-    onSave: jest.fn(),
-    onClose: jest.fn()
-  };
-  await act(async () => {
-    screen = Renderer.create(<ImportedAudioTab {...properties} />);
-  });
-  const edited = { ...initial, tempo: 121 };
-  await act(async () => panel().transport.setTab(edited));
-  expect(onChange).toHaveBeenLastCalledWith(edited, true);
-  await act(async () =>
-    screen!.update(
-      <ImportedAudioTab
-        {...properties}
-        savedSnapshot={JSON.stringify(edited)}
-      />
-    )
-  );
-  expect(panel().dirty).toBe(false);
-  expect(panel().transport.tab).toEqual(edited);
-  expect(onChange).toHaveBeenLastCalledWith(edited, true);
-  await act(async () => panel().transport.undo());
-  expect(onChange).toHaveBeenLastCalledWith(initial, false);
-  expect(panel().dirty).toBe(true);
 });
 
 test("closing and reopening the isolated editor retains edits without accessing Play's draft", async () => {

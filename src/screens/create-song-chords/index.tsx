@@ -258,29 +258,7 @@ const CreateChordSong: React.FC<ICreateChordSongProps> = memo(
           values,
           { replace: (...args) => finish(() => navigation.replace(...args)) },
           () => finish(() => setIsEdit?.(false)),
-          initialValuesState,
-          (songId) => {
-            const source = !song && route.params?.audioTabSource;
-            if (
-              !source ||
-              JSON.stringify(
-                usePreferences.getState().songs[songId]?.tablature
-              ) !== source.snapshot ||
-              !navigation
-                .getState()
-                .routes.some(
-                  (entry) =>
-                    entry.key === source.routeKey &&
-                    entry.name === "analyzeAudio"
-                )
-            )
-              return;
-            navigation.dispatch({
-              type: "SET_PARAMS",
-              source: source.routeKey,
-              payload: { params: { savedAudioTab: source } }
-            });
-          }
+          initialValuesState
         );
       } finally {
         actions.setSubmitting(false);

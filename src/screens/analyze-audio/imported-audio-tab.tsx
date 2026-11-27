@@ -1,11 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import {
-  AppState,
-  NativeModules,
-  StyleSheet,
-  View,
-  useWindowDimensions
-} from "react-native";
+import { AppState, StyleSheet, View } from "react-native";
 import { useTranslation } from "react-i18next";
 import { normalizeTablature, type Tablature } from "../../components/tablature";
 import type {
@@ -49,7 +43,7 @@ export function AudioPerformanceCard({
   estimatedTempo,
   disabled,
   hasTab,
-  dirty,
+  edited,
   tempoPending,
   onTempo,
   onGenerate,
@@ -62,7 +56,7 @@ export function AudioPerformanceCard({
   estimatedTempo: number | null;
   disabled: boolean;
   hasTab: boolean;
-  dirty: boolean;
+  edited: boolean;
   tempoPending: boolean;
   onTempo: (tempo: number) => void;
   onGenerate: () => void;
@@ -188,7 +182,7 @@ export function AudioPerformanceCard({
           {hasTab && (
             <>
               <Text style={styles.hint}>
-                {t(dirty ? "OfflineAudioTabEdited" : "OfflineAudioTabReady")}
+                {t(edited ? "OfflineAudioTabEdited" : "OfflineAudioTabReady")}
               </Text>
               <Text style={styles.hint}>{t("OfflineAudioTabPlayback")}</Text>
               <Action
@@ -208,7 +202,6 @@ export function AudioPerformanceCard({
 /** An independent editor; it never reads or writes Play's working copy. */
 export function ImportedAudioTab({
   initial,
-  savedSnapshot,
   title,
   visible,
   active,
@@ -218,7 +211,6 @@ export function ImportedAudioTab({
   onClose
 }: {
   initial: Tablature;
-  savedSnapshot?: string;
   title: string;
   visible: boolean;
   active: boolean;
@@ -227,15 +219,12 @@ export function ImportedAudioTab({
   onSave: (tab: Tablature) => void;
   onClose: () => void;
 }) {
-  const { width, height } = useWindowDimensions();
-  const landscape = width > height;
   const [foreground, setForeground] = useState(
     AppState.currentState !== "background" &&
       AppState.currentState !== "inactive"
   );
-  const presented = active && visible && foreground;
   const transport = useTablature(
-    presented && landscape && !disabled,
+    active && visible && foreground && !disabled,
     () => {},
     false
   );
@@ -258,11 +247,6 @@ export function ImportedAudioTab({
     return () => subscription.remove();
   }, []);
   useEffect(() => {
-    if (!presented) return;
-    NativeModules.ScreenOrientation?.setLandscape(true);
-    return () => NativeModules.ScreenOrientation?.setLandscape(false);
-  }, [presented]);
-  useEffect(() => {
     // The caller remounts this component only after an explicit replacement.
     // Keep the transport alive when the editor modal is merely closed.
     setReady(replaceTab(initial));
@@ -270,14 +254,14 @@ export function ImportedAudioTab({
   useEffect(() => {
     if (ready) changed.current(transport.tab, serialized !== baseline);
   }, [baseline, ready, serialized, transport.tab]);
-  if (!ready || !visible || !active || !landscape) return null;
+  if (!ready || !visible || !active) return null;
   return (
     <TablaturePanel
       standalone
       visible={visible && foreground}
       transport={transport}
       title={title}
-      dirty={serialized !== (savedSnapshot ?? baseline)}
+      dirty={serialized !== baseline}
       expanded={false}
       disabled={disabled}
       onToggle={onClose}
