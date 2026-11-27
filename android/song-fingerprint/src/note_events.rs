@@ -18,6 +18,7 @@ const RELEASE_SECONDS: f64 = 0.05;
 const ONSET_PAIR_RADIUS: f64 = 0.06;
 const ONSET_SUPPORT_WINDOW: f64 = 0.18;
 const MIN_ATTACK_SEPARATION: f64 = 0.06;
+const MIN_ONSET_PROMINENCE_RATIO: f32 = 0.20;
 const TIME_EPSILON: f64 = 1e-9;
 
 #[derive(Debug, Clone)]
@@ -218,6 +219,10 @@ fn decode_activity_run(
     // move an event into a preceding activity run of the same pitch.
     let search_start = (start - ONSET_PAIR_RADIUS).max(previous_end).max(0.0);
     let mut attacks: Vec<(f64, f32)> = Vec::new();
+    // The current onset lobe's crest and the lowest value since that crest.
+    // Keep this separate from event timing: a stronger ripple can raise the
+    // crest without moving the attack or cutting an already sounding note.
+    let mut onset_lobe: Option<(f32, f32)> = None;
     for index in first_overlapping(source, search_start)..source.len() {
         let frame = source.frame(index);
         if frame.time >= end {
@@ -227,6 +232,9 @@ fn decode_activity_run(
             continue;
         }
         let value = frame.onsets[note];
+        if let Some((_, valley)) = onset_lobe.as_mut() {
+            *valley = (*valley).min(value);
+        }
         let before = if index > 0 {
             source.frame(index - 1).onsets[note]
         } else {
@@ -262,6 +270,20 @@ fn decode_activity_run(
         {
             continue;
         }
+        let separate_lobe = if let Some((crest, valley)) = onset_lobe.as_mut() {
+            let lower_peak = (*crest).min(value);
+            let separate = lower_peak - *valley >= lower_peak * MIN_ONSET_PROMINENCE_RATIO;
+            if separate || value > *crest {
+                // A higher crest starts a new valley search even when both
+                // maxima belong to the same lobe. Never reuse its old valley.
+                *crest = value;
+                *valley = value;
+            }
+            separate
+        } else {
+            onset_lobe = Some((value, value));
+            true
+        };
         if let Some(last) = attacks.last_mut() {
             if frame.time - last.0 + TIME_EPSILON < MIN_ATTACK_SEPARATION {
                 if value > last.1 {
@@ -269,6 +291,12 @@ fn decode_activity_run(
                 }
                 continue;
             }
+        }
+        // Keep the existing close-peak coalescing above. Beyond that window,
+        // a shallow onset ripple is not another attack. This uses onset-head
+        // contrast, never recovery of the note head's preceding activity peak.
+        if !separate_lobe {
+            continue;
         }
         attacks.push((frame.time, value));
     }
@@ -389,6 +417,122 @@ mod tests {
     }
 
     #[test]
+    fn shallow_onset_ripples_keep_the_first_attack_and_its_sustain() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 90, 0.8);
+        for frame in &mut input[10..90] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.76;
+        }
+        for (index, value) in [(10, 0.8), (20, 0.85), (30, 0.83), (40, 0.9), (50, 0.91)] {
+            input[index].onsets[60 - FIRST_MIDI_NOTE] = value;
+        }
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.9));
+        assert_eq!(result.events[0].onset_evidence, 0.8);
+    }
+
+    #[test]
+    fn nearby_stronger_onset_keeps_the_existing_coalesced_time() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 90, 0.8);
+        for frame in &mut input[10..15] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.76;
+        }
+        input[10].onsets[60 - FIRST_MIDI_NOTE] = 0.8;
+        input[14].onsets[60 - FIRST_MIDI_NOTE] = 0.9;
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.145, 0.9));
+        assert_eq!(result.events[0].onset_evidence, 0.9);
+    }
+
+    #[test]
+    fn rapid_weaker_attacks_survive_falling_note_activity() {
+        for separation in [6, 7, 8, 10] {
+            let second = 10 + separation;
+            let mut input = frames(100);
+            activate(&mut input, 60, 10, second, 0.9);
+            activate(&mut input, 60, second, 90, 0.4);
+            input[10].onsets[60 - FIRST_MIDI_NOTE] = 0.95;
+            input[second].onsets[60 - FIRST_MIDI_NOTE] = 0.55;
+            let result = decode(&input, 1.0);
+            assert_eq!(result.events.len(), 2, "{separation} frame separation");
+            let second_time = rounded_time(input[second].time);
+            assert_eq!((result.events[0].start, result.events[0].end), (0.105, second_time));
+            assert_eq!((result.events[1].start, result.events[1].end), (second_time, 0.9));
+            assert_eq!(result.events[1].onset_evidence, 0.55);
+        }
+    }
+
+    #[test]
+    fn distinct_onset_lobes_need_not_fall_below_the_onset_threshold() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 90, 0.8);
+        for frame in &mut input[10..90] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.6;
+        }
+        input[10].onsets[60 - FIRST_MIDI_NOTE] = 0.95;
+        input[20].onsets[60 - FIRST_MIDI_NOTE] = 0.9;
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 2);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.205));
+        assert_eq!((result.events[1].start, result.events[1].end), (0.205, 0.9));
+    }
+
+    #[test]
+    fn a_merged_higher_crest_resets_its_valley_but_keeps_the_attack() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 90, 0.8);
+        for (first, end, value) in [(10, 20, 0.52), (20, 30, 0.88), (30, 50, 0.65)] {
+            for frame in &mut input[first..end] {
+                frame.onsets[60 - FIRST_MIDI_NOTE] = value;
+            }
+        }
+        for (index, value) in [(10, 0.55), (20, 0.9), (30, 0.91), (50, 0.85)] {
+            input[index].onsets[60 - FIRST_MIDI_NOTE] = value;
+        }
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 2);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.505));
+        assert_eq!(result.events[0].onset_evidence, 0.55);
+        assert_eq!((result.events[1].start, result.events[1].end), (0.505, 0.9));
+    }
+
+    #[test]
+    fn a_small_recovery_bump_does_not_erase_the_valley_before_a_real_attack() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 90, 0.8);
+        for (first, end, value) in [(10, 20, 0.5), (20, 30, 0.52)] {
+            for frame in &mut input[first..end] {
+                frame.onsets[60 - FIRST_MIDI_NOTE] = value;
+            }
+        }
+        for (index, value) in [(10, 0.9), (20, 0.54), (30, 0.85)] {
+            input[index].onsets[60 - FIRST_MIDI_NOTE] = value;
+        }
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 2);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.305));
+        assert_eq!((result.events[1].start, result.events[1].end), (0.305, 0.9));
+    }
+
+    #[test]
+    fn a_coalesced_lobe_cannot_leave_a_stale_valley_for_a_later_ripple() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 90, 0.8);
+        for frame in &mut input[14..19] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.75;
+        }
+        input[10].onsets[60 - FIRST_MIDI_NOTE] = 0.9;
+        input[14].onsets[60 - FIRST_MIDI_NOTE] = 0.8;
+        input[18].onsets[60 - FIRST_MIDI_NOTE] = 0.82;
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.9));
+    }
+
+    #[test]
     fn short_activity_dropout_is_bridged_but_a_stable_release_separates_notes() {
         let mut input = frames(100);
         activate(&mut input, 52, 5, 25, 0.8);
@@ -501,6 +645,15 @@ mod tests {
         assert_eq!(result.events[1].start, 1.639084);
         assert_eq!(result.events[1].end, 1.76);
         assert_eq!(result.events[0].end, result.events[1].start);
+
+        // A separate onset lobe only 69 ms earlier must survive the seam's
+        // unusually close frame centers; separation remains measured in time.
+        input[1].onsets[64 - FIRST_MIDI_NOTE] = 0.95;
+        let repeated = decode(&input, 1.76);
+        assert_eq!(repeated.events.len(), 2);
+        assert_eq!((repeated.events[0].start, repeated.events[0].end), (1.57, 1.639084));
+        assert_eq!((repeated.events[1].start, repeated.events[1].end), (1.639084, 1.76));
+        assert!(repeated.events.iter().all(|event| event.onset_evidence > 0.0));
     }
 
     #[test]
