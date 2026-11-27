@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 2,
+  "candidateId": "aligned-third-v2",
+  "frozenUtc": "2026-11-26T22:13:54.438365+00:00",
+  "buildCommand": "cargo build --locked --release --bin chord_probe",
+  "buildProvenanceNote": "The builder must attest this binary was built from the recorded source. Hashes alone do not prove the build recipe.",
+  "binary": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-candidate-3/chord_probe",
+    "sha256": "840356f71e7fdbad4c209b55c234bedc9e97c59b2ca03a0355308334b217e27a",
+    "bytes": 16835328
+  },
+  "inputFormat": {
+    "encoding": "s16le",
+    "channels": 1,
+    "sampleRate": 16000
+  },
+  "sourceFiles": [
+    {
+      "path": "android/song-fingerprint/Cargo.lock",
+      "sha256": "6e50e514c6a56912581181549587db0ffbc78b1cac12ced69e86d0ef2d33f986",
+      "bytes": 27791
+    },
+    {
+      "path": "android/song-fingerprint/Cargo.toml",
+      "sha256": "f6f14d95efaff410526fb053134064257537751907612e1710bf2d7b9262f350",
+      "bytes": 374
+    },
+    {
+      "path": "android/song-fingerprint/src/algorithm.rs",
+      "sha256": "8e805a01f8cb4f9d421aa6989ee575d2c36bcac3cd2dc69609d205fc273e31c2",
+      "bytes": 8563
+    },
+    {
+      "path": "android/song-fingerprint/src/bin/chord_probe.rs",
+      "sha256": "4c784053a71b2a8e7a4a8ec9ccebae2567682b3cd4fa25a3dbe28508b783e068",
+      "bytes": 1691
+    },
+    {
+      "path": "android/song-fingerprint/src/bin/fingerprint_probe.rs",
+      "sha256": "a062bb7804f54bf596b960cda84a382f43d6c2262dbd38b8b51021b22f32fafd",
+      "bytes": 914
+    },
+    {
+      "path": "android/song-fingerprint/src/chord_bridge.rs",
+      "sha256": "5d1eba0f448683990f9c2755a7c7ee314972dff22e325dc0c455b6e5a1a63858",
+      "bytes": 5530
+    },
+    {
+      "path": "android/song-fingerprint/src/chord_decoder_tests.rs",
+      "sha256": "c088b9806fd056981c859253fbb98063b3b5c12e4ca45ff3a43c37567e285c9f",
+      "bytes": 8579
+    },
+    {
+      "path": "android/song-fingerprint/src/chord_notes.rs",
+      "sha256": "68cbc84e201469a2633ddf19e098d2ea08beb5a0315aef0a59481cbdf98c108a",
+      "bytes": 20258
+    },
+    {
+      "path": "android/song-fingerprint/src/chord_quality_tests.rs",
+      "sha256": "cdd94e3208607305a87e7b347ce021c38a4cfdce3cea1748864bd512accd0f4b",
+      "bytes": 6480
+    },
+    {
+      "path": "android/song-fingerprint/src/chords.rs",
+      "sha256": "efbf4715aff194212948023fa06329be5a1c15d2554bcb7191388c5a4cf67d75",
+      "bytes": 71884
+    },
+    {
+      "path": "android/song-fingerprint/src/lib.rs",
+      "sha256": "a135bb9eb5bca12ec96c3a252315addcbedab435074ca06e52e9e3d439c3c89f",
+      "bytes": 2803
+    },
+    {
+      "path": "android/song-fingerprint/src/signature_format.rs",
+      "sha256": "b62c5b3a93feca38692742b2a535ab360a318a8b6a1a43ee0bdff5ccb009637c",
+      "bytes": 5531
+    }
+  ],
+  "modelFiles": [
+    {
+      "path": "android/song-fingerprint/models/basic-pitch/nmp.nnef.tar",
+      "sha256": "274e46d8b4eec2d6a9da1d52d60744feb7f7dfdf6207dc12db10f5ddd9f3416f",
+      "bytes": 196096
+    },
+    {
+      "path": "android/song-fingerprint/models/basic-pitch/nmp.onnx",
+      "sha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+      "bytes": 230444
+    },
+    {
+      "path": "android/song-fingerprint/models/basic-pitch/provenance.json",
+      "sha256": "1582a76022087dcfae953653989fae3d61dd893edbd3d9de066f68e48e80d2a3",
+      "bytes": 2490
+    }
+  ],
+  "evaluationInputs": {
+    "baseline/frozen-manifest.json": "95eb52bae8ef8163bcf6745f619302006f338c2b1165400469da85668e275044",
+    "selection.json": "fd3676349d3b80770f18881e4467b1b5d88763cc5162999f8786e12678f998db",
+    "acquisition-manifest.json": "e7cbb1af4729d6f4e6a7bdef75fc2c52aa9f5de0c3c70a6529d38eba5d4ee564",
+    "evaluation-protocol-frozen.json": "63b60f0514429cc9816315e10e529943fd2eb02693314b2e9c0d0908a3479711",
+    "fresh-holdout/selection.json": "509037740ca700b9e3c08cef7687acb288a43a3b0f859204a254865913aca159",
+    "fresh-holdout/acquisition-manifest.json": "447f47970e82fb3ea2a6f0e4a6ac1ad45330552ebf2819c54f0e1b7edb7a18d2",
+    "production-frozen-comparison/candidate/freeze.json": "df569e59acfe00e2971fa4b4eeb6ec0235263e8c967d30d1c2c59ca5681f4a1f",
+    "production-frozen-comparison/runs.json": "1860059b42caeedfec186677a014ac78dfac8e7ce4c869a82a81318452ec336d",
+    "production-frozen-comparison/completion.json": "bbe475dbe38fc7f0638b6ab9ee848e57a75411f516b62f816ba6e0afb22eba39"
+  },
+  "cohorts": {
+    "fresh-holdout": "Primary new holdout; selection and acquisition frozen before this candidate's evaluation. One candidate evaluation only.",
+    "development-after-evaluation": "Original12 previously evaluated, diagnosed, and used to motivate the new fix. This is development-after-evaluation, not a new heldout claim."
+  },
+  "runnerSha256": "e514e33e062f035f410f120df12e226a43bee3a9a24ed3456aee1434143de8eb",
+  "originalHelperSha256": "d09882d4158c190ccd581df99cdb6f9bbd02f313b67337cbd4d4e51aac34bf69",
+  "trainingOverlapCaveat": "The new12 are held out from our decoder's current development, not certified unseen by Basic Pitch pretraining. GuitarSet was part of its training data; exact checkpoint track membership has not been established. Each cohort covers six performers and five styles, not twelve independent songs. Instructed and sheet-informed semi-automatic performed references remain separate. No accuracy claim for arbitrary full mixes follows."
+}

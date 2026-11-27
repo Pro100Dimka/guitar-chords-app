@@ -1,0 +1,145 @@
+{
+  "commit": "01ddfeab9ba5aa0c8a794f4a1a84f617260a3a1b",
+  "sourceFiles": [
+    {
+      "path": "android/song-fingerprint/src/chords.rs",
+      "sha256": "1ac850955a73da198ee5cb87c9158c23371913f19d2666b0e3eaa0a594181345"
+    },
+    {
+      "path": "android/song-fingerprint/src/bin/chord_probe.rs",
+      "sha256": "911948aadd06a63ca8d9ef223c4177fa1014e0ee4b950cfd95c0572ba0d80505"
+    },
+    {
+      "path": "android/song-fingerprint/Cargo.toml",
+      "sha256": "afa217b27c06bbae9f5bdf17bfeaeaf6796096f7570063c4d18c205141216779"
+    },
+    {
+      "path": "android/song-fingerprint/Cargo.lock",
+      "sha256": "58cac38b55d102f5b749894383fdb39bcf9e33b4d6e362fa6c9841eb500ccddd"
+    }
+  ],
+  "binarySha256": "58764da6a69558abfeced1ba5f3708f453e032e94ab258db48cb9cc07b2b504a",
+  "binarySource": "Copied from root-verified current production CLI built for01ddfeab before any prototype changes.",
+  "outputs": [
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/evidence/guitarset-16k.pcm",
+      "inputSha256": "6d0b56247bb8b6fcfc0ed47b469cfaea04284510f43f94e307396b26a909d4c7",
+      "result": "outputs/development-guitarset.json",
+      "resultSha256": "91ae86919796fb89379e32ff8a9e3c1005ad67320cd82dc58fa3ec8fababadd0",
+      "seconds": 39.178812,
+      "elapsedMs": 51.438
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/evidence/gloria-16k.pcm",
+      "inputSha256": "b912c3fe3a20c9c758367c264c4629fa1c8ff939ccf92575650e2c56763d2c99",
+      "result": "outputs/gloria.json",
+      "resultSha256": "b4c2306d7768fd95878f5845de9ce817da15a4b09428d2b100efa827fc668d81",
+      "seconds": 198.266687,
+      "elapsedMs": 401.449
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/evidence/behind-blue-eyes/behind-blue-eyes-full-16k.pcm",
+      "inputSha256": "2392aa27f470ea9e0c73ce62893b094b70c850ef19e979d9e464a24a9e56be51",
+      "result": "outputs/behind-blue-eyes.json",
+      "resultSha256": "3e4f127e1666a9bc70811e3c9d2c34da1dd45a279126b7f3c26da525b82ae44a",
+      "seconds": 276.456813,
+      "elapsedMs": 452.149
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/00_BN1-129-Eb_comp.pcm",
+      "inputSha256": "30dc65b0ba1bf85f9dc1ad51dae17c8dccdaf4d3f8906b729e186fc365bce00d",
+      "result": "outputs/00_BN1-129-Eb_comp.json",
+      "resultSha256": "7c1cc0937dfd05cc1948ccb115c05400e204b6b3106cbf6b7f8b517a1944eaf3",
+      "seconds": 22.324437,
+      "elapsedMs": 28.847
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/00_Rock3-117-Bb_comp.pcm",
+      "inputSha256": "92a5ea96e3d0174f3eaf2fb624b26d4cf1b1746a6704149b5107d69d4857e2f9",
+      "result": "outputs/00_Rock3-117-Bb_comp.json",
+      "resultSha256": "45d8c94b91afea0e89d4e421c63182d9b1666c50d1070d6209065257febde157",
+      "seconds": 32.816375,
+      "elapsedMs": 49.73
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/01_SS1-68-E_comp.pcm",
+      "inputSha256": "332d7317adb131bf68cc0a0f38b8ea5ab9f03015e427676d9da9ae549ec84346",
+      "result": "outputs/01_SS1-68-E_comp.json",
+      "resultSha256": "919238255df98539b1767d69af6242ba0b46c3e90d059d0b261e1ad65d758195",
+      "seconds": 42.346375,
+      "elapsedMs": 64.746
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/01_Jazz2-110-Bb_comp.pcm",
+      "inputSha256": "d821394635b6553ad6653c424cf02dd997b839ece0ead969a8d3f7a8c4ad549a",
+      "result": "outputs/01_Jazz2-110-Bb_comp.json",
+      "resultSha256": "f9fac7368959fd5cf3aa434ff14badf38bd23b0961e3b197b38aaf1be7873140",
+      "seconds": 34.903188,
+      "elapsedMs": 49.345
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/02_Funk1-97-C_comp.pcm",
+      "inputSha256": "6feb5a2e9e8fd187eee04475e79d076b70268b92c7c6c9fa3db488ab2720282e",
+      "result": "outputs/02_Funk1-97-C_comp.json",
+      "resultSha256": "b979399097a125ab0da830841b76338ef68c3c33bd3bfa4bd97010f318d8ba85",
+      "seconds": 29.688375,
+      "elapsedMs": 36.315
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/02_BN3-119-G_comp.pcm",
+      "inputSha256": "57b38fd78af12bea9df10731d34c159ae5520eafa64534b4e6e99bbb5246279e",
+      "result": "outputs/02_BN3-119-G_comp.json",
+      "resultSha256": "437052336f6133eb2464d38cb32aaabed1d066c55a50eb69ccb9a75c7130baa7",
+      "seconds": 32.263188,
+      "elapsedMs": 40.511
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/03_Rock1-130-A_comp.pcm",
+      "inputSha256": "b413c681360400f0b899eca27aa22436e62f67973ad831b54385bc38f2b9ee2b",
+      "result": "outputs/03_Rock1-130-A_comp.json",
+      "resultSha256": "b549017590480e86fb46a117d05edbae29bc28350191400396a4b6408fd8b000",
+      "seconds": 22.14725,
+      "elapsedMs": 35.104
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/03_Jazz3-150-C_comp.pcm",
+      "inputSha256": "8edb6858713afd60a780bfdc58211b888d55839961ac2d4bc57c9584aa4413fd",
+      "result": "outputs/03_Jazz3-150-C_comp.json",
+      "resultSha256": "f7b1c45717b829e883bd09db6eb13cdbaca99098219fcce9d998f6453f6c4ba3",
+      "seconds": 25.6,
+      "elapsedMs": 33.958
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/04_SS2-107-Ab_comp.pcm",
+      "inputSha256": "ece3c4b04f6f685c43ba02c6a85578e93a0be2fea32230d25cd2fbd429ff348d",
+      "result": "outputs/04_SS2-107-Ab_comp.json",
+      "resultSha256": "e95f4660d61f340ae2e390b35aac4ef357118b7d502fb35eec158c180d651b8d",
+      "seconds": 35.886375,
+      "elapsedMs": 46.395
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/04_Funk2-119-G_comp.pcm",
+      "inputSha256": "900abc39734e7e0a495e284622e696e8d3c0a7c2048c3a19a105da5ba0eb8e02",
+      "result": "outputs/04_Funk2-119-G_comp.json",
+      "resultSha256": "588976ca400a1a64a555ccda23655df5d48b3f7934455eaa6f974b08f94f04d0",
+      "seconds": 32.263188,
+      "elapsedMs": 48.406
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/05_BN2-166-Ab_comp.pcm",
+      "inputSha256": "4fe8a6538063d99bcc92c078f073c63d6f34ab622d46827f186e9d502f557e58",
+      "result": "outputs/05_BN2-166-Ab_comp.json",
+      "resultSha256": "90fb6d2596978a412f25fb78f81ad71daa84530b5feb82252ce8eb78443df3f1",
+      "seconds": 23.13,
+      "elapsedMs": 28.183
+    },
+    {
+      "input": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/05_SS3-84-Bb_comp.pcm",
+      "inputSha256": "8b0dbcfa4fb9a9dfce0b0c0ed4626d65b1ac6ffeff8e18e3a8a12a0d1cea817b",
+      "result": "outputs/05_SS3-84-Bb_comp.json",
+      "resultSha256": "a0dfabccef5db05ba63496387f1f2ab05270919f931e472e74fef537a8852e4a",
+      "seconds": 45.707625,
+      "elapsedMs": 56.276
+    }
+  ]
+}

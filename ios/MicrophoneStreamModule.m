@@ -31,6 +31,11 @@ RCT_EXTERN_METHOD(recognizeFile:(NSString *)uri resolver:(RCTPromiseResolveBlock
 RCT_EXTERN_METHOD(cancel:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 @end
 
+@interface RCT_EXTERN_MODULE(OfflineChordAnalysis, NSObject)
+RCT_EXTERN_METHOD(analyzeFile:(NSString *)uri resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(cancel:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
+@end
+
 @interface RCT_EXTERN_MODULE(PerformanceAudio, RCTEventEmitter)
 RCT_EXTERN_METHOD(startTake:(NSString *)songId resolver:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(stopTake:(RCTPromiseResolveBlock)resolve rejecter:(RCTPromiseRejectBlock)reject)

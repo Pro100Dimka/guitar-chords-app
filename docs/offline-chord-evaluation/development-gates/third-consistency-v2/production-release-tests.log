@@ -1,0 +1,46 @@
+   Compiling freetune_song_fingerprint v0.1.0 (/workspace/scratch/4d3df6e78b9e/guitar-chords-app/android/song-fingerprint)
+warning: constant `DEFAULT_SEGMENT_SECONDS` is never used
+  --> src/algorithm.rs:14:18
+   |
+14 | pub(crate) const DEFAULT_SEGMENT_SECONDS: u32 = 12;
+   |                  ^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `freetune_song_fingerprint` (lib test) generated 1 warning
+    Finished `release` profile [optimized] target(s) in 2m 21s
+     Running unittests src/lib.rs (target/release/build/freetune_song_fingerprint/d1337f4977896f5e/out/freetune_song_fingerprint-d1337f4977896f5e)
+
+running 29 tests
+test chord_notes::tests::input_limits_are_checked_before_state_changes ... ok
+test bridge_tests::c_bridge_matches_the_shared_fingerprint ... ok
+test algorithm::tests::silence_has_no_peaks_and_preserves_capture_duration ... ok
+test chords::decoder_tests::delayed_arpeggio_third_is_completion_of_one_chord ... ok
+test chords::decoder_tests::delayed_new_third_can_complete_recent_arpeggiated_root_and_fifth ... ok
+test chords::decoder_tests::early_nested_seventh_arpeggio_is_completion_of_one_chord ... ok
+test chords::decoder_tests::genuine_sustained_suspension_and_resolution_remain_detectable ... ok
+test chord_notes::tests::resampler_is_chunk_invariant_and_suppresses_upsampling_images ... ok
+test chords::decoder_tests::short_passing_fourth_over_an_established_decaying_third_keeps_major ... ok
+test chords::decoder_tests::quality_boundary_ignores_distant_root_reattacks_and_needs_no_new_bass ... ok
+test algorithm::tests::fixed_pcm_produces_repeatable_nonempty_fingerprints ... ok
+test chords::decoder_tests::stable_same_root_extensions_and_altered_fifths_keep_their_boundaries ... ok
+test chords::tests::fresh_brief_thirds_survive_pooling_but_short_harmonic_blips_do_not ... ok
+test chords::tests::grouped_viterbi_matches_exhaustive_transitions_including_ties ... ok
+test chords::tests::invalid_lengths_are_rejected_without_truncation ... ok
+test chord_notes::tests::silence_short_input_and_terminal_state_are_well_defined ... ok
+test chords::tests::periodic_strums_have_their_pulse_tempo ... ok
+test chord_bridge::tests::c_bridge_streams_and_rejects_invalid_or_finished_input ... ok
+test chord_notes::tests::cached_graph_supports_two_independent_workers ... ok
+test chord_notes::tests::streaming_frames_are_chunk_invariant_and_cover_exact_duration ... ok
+test signature_format::tests::signature_matches_wire_fixture_with_crc_padding_and_large_frame_delta ... ok
+test chords::tests::slight_detuning_is_tolerated ... ok
+test chords::tests::silence_noise_and_single_notes_do_not_become_chords ... ok
+test chords::tests::chunking_does_not_change_results_and_timeline_covers_the_file ... ok
+test chords::tests::all_major_and_minor_triads_are_identified ... ok
+test chord_quality_tests::rapid_suspensions_resolve_in_every_key_without_new_bass_attacks ... ok
+test chords::tests::major_and_minor_plucked_arpeggios_keep_the_delayed_third ... ok
+test chord_quality_tests::fourteen_qualities_are_distinguished_in_every_key ... ok
+test chords::tests::wide_and_inverted_triads_retain_independently_played_thirds ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.33s
+

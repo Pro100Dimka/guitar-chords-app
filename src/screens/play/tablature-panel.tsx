@@ -1712,9 +1712,9 @@ export function TablaturePanel({
   expanded: boolean;
   disabled?: boolean;
   onToggle: () => void;
-  onOpen: () => void;
+  onOpen?: () => void;
   onSave: () => void;
-  onRecord: () => void;
+  onRecord?: () => void;
   onPractice?: () => void;
   standalone?: boolean;
   visible?: boolean;
@@ -2198,7 +2198,7 @@ export function TablaturePanel({
         setActionsMenuOpen(false);
         cancelPreview();
         if (!standalone) setFull(false);
-        onOpen();
+        onOpen?.();
       }
     },
     {
@@ -2220,7 +2220,7 @@ export function TablaturePanel({
         setFull(false);
         if (recording) transport.stopRecording();
         else if (recordPending) transport.pause();
-        else onRecord();
+        else onRecord?.();
       }
     },
     {
@@ -2251,7 +2251,12 @@ export function TablaturePanel({
         setPage(Math.floor((range?.start ?? 0) / barTicks));
       }
     }
-  ];
+  ].filter(
+    (item) =>
+      (item.key !== "open" || !!onOpen) &&
+      (item.key !== "record" || !!onRecord) &&
+      (item.key !== "practice" || !standalone || !!onPractice)
+  );
   const actions = (
     <View style={styles.actions}>
       {actionItems.map((item) => (

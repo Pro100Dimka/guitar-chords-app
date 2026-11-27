@@ -1,0 +1,347 @@
+{
+  "date": "2026-11-26",
+  "baselineCommit": "5a275e66e5ccf7a3a7761a64503f1512b1ba301b",
+  "sourceFileSha256": "1ac850955a73da198ee5cb87c9158c23371913f19d2666b0e3eaa0a594181345",
+  "input": {
+    "source": "https://archive.org/details/limp-bizkit-behind-blue-eyes_202505",
+    "metadata": "https://archive.org/metadata/limp-bizkit-behind-blue-eyes_202505",
+    "url": "https://archive.org/download/limp-bizkit-behind-blue-eyes_202505/Limp%20Bizkit%20Behind%20Blue%20Eyes.mp4",
+    "title": "Limp Bizkit Behind Blue Eyes (Alternative version)",
+    "description": "Public Internet Archive user-uploaded music video; uploader describes as alternative official video, not independently claimed official by us. No media redistributed.",
+    "file": "behind-blue-eyes-alternative-video.mp4",
+    "bytes": 10194464,
+    "sha256": "5f29c786bdb44a55673e4e152a0330e908ee1e662abc4a87be427ac3df4d64e7",
+    "md5": "5bce2ed0ba4e76b15b84743a0bfe40fb",
+    "declaredDurationSeconds": 276.46,
+    "measuredContainerAudioDurationSeconds": 276.45678,
+    "decodedPcmDurationSeconds": 276.4568125,
+    "decodedPcmFile": "behind-blue-eyes-full-16k.pcm",
+    "identityEvidence": {
+      "method": "FFT normalized cross-correlation of mono waveforms resampled identically to4kHz; offset at max absolute correlation",
+      "officialPreviewTrackId": 1440874577,
+      "previewOffsetSeconds": 45.03675,
+      "normalizedWaveformCorrelation": 0.8674747952085479,
+      "report": "preview-offset-match.json"
+    },
+    "timingNote": "Timestamps refer to this complete alternative music-video file, which can differ from the album track by intro/outro."
+  },
+  "officialPreview": {
+    "title": "Behind Blue Eyes",
+    "artist": "Limp Bizkit",
+    "album": "Results May Vary",
+    "trackId": 1440874577,
+    "catalogDurationSeconds": 269.973,
+    "audioType": "official preview, not full song",
+    "source": "https://music.apple.com/us/song/1440874577",
+    "previewUrl": "https://audio-ssl.itunes.apple.com/itunes-assets/AudioPreview211/v4/4d/27/b8/4d27b8b4-9503-959f-d44b-d00abd8574dc/mzaf_3533202050614562149.plus.aac.p.m4a",
+    "file": "behind-blue-eyes-apple-preview.m4a",
+    "bytes": 1010037,
+    "sha256": "9bc22eb4e97c77a29aaac1fd8a2762fe0b3062937a0b3e1fa7ccf46114679ceb",
+    "measuredPreviewDurationSeconds": 30.000998,
+    "sampleRate": 44100,
+    "channels": 2,
+    "offsetWithinFullSong": null,
+    "timingNote": "Preview timestamps begin at the preview start; no global full-song offset is asserted."
+  },
+  "previewPositionEvidence": {
+    "fullAudioDurationSeconds": 276.4568125,
+    "previewDurationSeconds": 29.9755,
+    "previewOffsetSeconds": 45.03675,
+    "normalizedWaveformCorrelation": 0.8674747952085479,
+    "method": "FFT normalized cross-correlation of mono waveforms resampled identically to4kHz; offset at max absolute correlation",
+    "previewRelativeWindowSeconds": [
+      0,
+      29.9755
+    ],
+    "candidateCount": 985927,
+    "blockChecks": [
+      {
+        "previewStartSeconds": 2,
+        "fullStartSeconds": 47.03675,
+        "correlation": 0.9270208723915847
+      },
+      {
+        "previewStartSeconds": 8,
+        "fullStartSeconds": 53.03675,
+        "correlation": 0.9536001943940985
+      },
+      {
+        "previewStartSeconds": 14,
+        "fullStartSeconds": 59.03675,
+        "correlation": 0.9106561344807239
+      },
+      {
+        "previewStartSeconds": 20,
+        "fullStartSeconds": 65.03675,
+        "correlation": 0.7308338551502506
+      },
+      {
+        "previewStartSeconds": 25,
+        "fullStartSeconds": 70.03675,
+        "correlation": 0.8085601097424496
+      }
+    ]
+  },
+  "reference": {
+    "publisher": "Edition DUX",
+    "author": "Michael Langer",
+    "book": "Acoustic Pop Guitar Songbook 1, D873",
+    "url": "https://dux-verlag.de/ancora_myfactory/CustomUpload/374O357O340O370O356O369O350O352O365O354O366O369O352O/D%20873_01.%20Behind%20Blue%20Eyes.pdf",
+    "printedPage": 10,
+    "openingChord": "Em",
+    "introChords": [
+      "Em",
+      "G6",
+      "Dsus2",
+      "Cadd9",
+      "Asus2"
+    ],
+    "timingLimit": "Published chord reference, not a manually time-aligned annotation of this audio."
+  },
+  "diagnosis": "The initial Apple preview begins around 45.04 seconds of the complete video. A separate full-file run exposed a real E/Em error at the beginning: summed fifth-harmonic energy biased the major third, while short temporal context missed the later minor-third note of an arpeggio.",
+  "correction": "Average chroma over an eight-hop radius and selectively reduce fifth-harmonic residual to 0.05. Keep other harmonic residuals at 0.22, bass weighting and Viterbi penalties unchanged. No song-specific lookup, key, time or pitch-class override.",
+  "baseline": {
+    "duration": 276.456813,
+    "firstNamedChord": {
+      "start": 0.288,
+      "end": 2.464,
+      "chord": "E",
+      "confidence": 0.3758
+    },
+    "openingSegments": [
+      {
+        "start": 0.0,
+        "end": 0.288,
+        "chord": "N",
+        "confidence": 0.0
+      },
+      {
+        "start": 0.288,
+        "end": 2.464,
+        "chord": "E",
+        "confidence": 0.3758
+      },
+      {
+        "start": 2.464,
+        "end": 4.576,
+        "chord": "G",
+        "confidence": 0.6323
+      },
+      {
+        "start": 4.576,
+        "end": 8.48,
+        "chord": "D",
+        "confidence": 0.7373
+      },
+      {
+        "start": 8.48,
+        "end": 12.448,
+        "chord": "C",
+        "confidence": 0.5676
+      },
+      {
+        "start": 12.448,
+        "end": 16.352,
+        "chord": "A",
+        "confidence": 0.587
+      },
+      {
+        "start": 16.352,
+        "end": 17.696,
+        "chord": "E",
+        "confidence": 0.3333
+      },
+      {
+        "start": 17.696,
+        "end": 18.464,
+        "chord": "A",
+        "confidence": 0.5408
+      },
+      {
+        "start": 18.464,
+        "end": 20.96,
+        "chord": "G",
+        "confidence": 0.3644
+      },
+      {
+        "start": 20.96,
+        "end": 23.904,
+        "chord": "D",
+        "confidence": 0.6723
+      },
+      {
+        "start": 23.904,
+        "end": 24.416,
+        "chord": "Bm",
+        "confidence": 0.5369
+      },
+      {
+        "start": 24.416,
+        "end": 28.128,
+        "chord": "C",
+        "confidence": 0.4981
+      },
+      {
+        "start": 28.128,
+        "end": 32.416,
+        "chord": "A",
+        "confidence": 0.6425
+      },
+      {
+        "start": 32.416,
+        "end": 33.632,
+        "chord": "E",
+        "confidence": 0.3329
+      },
+      {
+        "start": 33.632,
+        "end": 34.4,
+        "chord": "A",
+        "confidence": 0.4429
+      },
+      {
+        "start": 34.4,
+        "end": 36.384,
+        "chord": "G",
+        "confidence": 0.4383
+      },
+      {
+        "start": 36.384,
+        "end": 39.648,
+        "chord": "D",
+        "confidence": 0.7023
+      },
+      {
+        "start": 39.648,
+        "end": 40.352,
+        "chord": "Bm",
+        "confidence": 0.5519
+      }
+    ]
+  },
+  "updated": {
+    "duration": 276.456813,
+    "firstNamedChord": {
+      "start": 0.288,
+      "end": 2.592,
+      "chord": "Em",
+      "confidence": 0.3648
+    },
+    "openingSegments": [
+      {
+        "start": 0.0,
+        "end": 0.288,
+        "chord": "N",
+        "confidence": 0.0
+      },
+      {
+        "start": 0.288,
+        "end": 2.592,
+        "chord": "Em",
+        "confidence": 0.3648
+      },
+      {
+        "start": 2.592,
+        "end": 4.576,
+        "chord": "G",
+        "confidence": 0.6448
+      },
+      {
+        "start": 4.576,
+        "end": 8.544,
+        "chord": "D",
+        "confidence": 0.6238
+      },
+      {
+        "start": 8.544,
+        "end": 12.384,
+        "chord": "C",
+        "confidence": 0.6048
+      },
+      {
+        "start": 12.384,
+        "end": 13.984,
+        "chord": "Am",
+        "confidence": 0.4451
+      },
+      {
+        "start": 13.984,
+        "end": 16.416,
+        "chord": "A",
+        "confidence": 0.6373
+      },
+      {
+        "start": 16.416,
+        "end": 18.912,
+        "chord": "Em",
+        "confidence": 0.2992
+      },
+      {
+        "start": 18.912,
+        "end": 20.896,
+        "chord": "G",
+        "confidence": 0.4297
+      },
+      {
+        "start": 20.896,
+        "end": 24.544,
+        "chord": "D",
+        "confidence": 0.5714
+      },
+      {
+        "start": 24.544,
+        "end": 28.192,
+        "chord": "C",
+        "confidence": 0.5214
+      },
+      {
+        "start": 28.192,
+        "end": 32.48,
+        "chord": "A",
+        "confidence": 0.5389
+      },
+      {
+        "start": 32.48,
+        "end": 34.72,
+        "chord": "Em",
+        "confidence": 0.3381
+      },
+      {
+        "start": 34.72,
+        "end": 36.32,
+        "chord": "G",
+        "confidence": 0.5263
+      },
+      {
+        "start": 36.32,
+        "end": 40.352,
+        "chord": "D",
+        "confidence": 0.5886
+      }
+    ],
+    "fullResult": "offline-chord-analysis-validation.json, recordings[fixture=behind-blue-eyes]"
+  },
+  "verification": {
+    "rustLibraryTests": {
+      "passed": 13,
+      "failed": 0
+    },
+    "newArpeggioCases": 48,
+    "wideAndInvertedVoicingCases": 144,
+    "newArpeggioTestFailsOnBaseline": true,
+    "guitarSetFullDurationAccuracyBefore": 0.939859,
+    "guitarSetFullDurationAccuracyAfter": 0.965112,
+    "fullSongAccuracyMeasured": false
+  },
+  "remainingLimits": [
+    "The output alphabet still contains only major/minor triads and N; suspended and extended chords are not separately recognized.",
+    "The Asus2 intro region still produces Am/A estimates, including Am at 12.384-13.984 seconds; this is not a fully correct transcription of the song.",
+    "Root/fifth dyads without a third can still receive a major estimate.",
+    "All timing is on this host with predecoded PCM, not a physical-phone benchmark."
+  ],
+  "reproduction": [
+    "Download input.url and verify input.sha256. No audio is distributed with this repository.",
+    "ffmpeg -nostdin -y -v error -i behind-blue-eyes-alternative-video.mp4 -ar 16000 -ac 1 -f s16le behind-blue-eyes-full-16k.pcm",
+    "cargo run --locked --release --manifest-path android/song-fingerprint/Cargo.toml --bin chord_probe -- behind-blue-eyes-full-16k.pcm"
+  ]
+}

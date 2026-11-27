@@ -1,0 +1,235 @@
+{
+  "scope": "Known development recording only. All model frames dumped with full recording context. Diagnostic ablations use first20s, whose entire <=15.968s output exactly matches frozen production full-file output. No fresh heldout access.",
+  "productionSourceSHA256": "5d26c9d51c04e8b19734706776350c658695dca0467066358925882e3c1faefa",
+  "diagnosticSourceSHA256": "96b1db6dcd886821bee91176d6f0ba8d636f8111c1bbaa7b3c3072de82db9660",
+  "noteFramesSHA256": "1ec2b1110506ecff93cafc29918bc2f14a5e3696a1390814b7eef882957f4540",
+  "prefixMatchesFullIntro": true,
+  "ablations": {
+    "new": {
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 0.288,
+          "chord": "N",
+          "confidence": 0.0
+        },
+        {
+          "start": 0.288,
+          "end": 2.464,
+          "chord": "Em",
+          "confidence": 0.5311
+        },
+        {
+          "start": 2.464,
+          "end": 4.576,
+          "chord": "G6",
+          "confidence": 0.5951
+        },
+        {
+          "start": 4.576,
+          "end": 5.407891,
+          "chord": "D5",
+          "confidence": 0.5761
+        },
+        {
+          "start": 5.407891,
+          "end": 8.48,
+          "chord": "Dsus2",
+          "confidence": 0.6022
+        },
+        {
+          "start": 8.48,
+          "end": 12.448,
+          "chord": "Cadd9",
+          "confidence": 0.6531
+        },
+        {
+          "start": 12.448,
+          "end": 12.966712,
+          "chord": "A5",
+          "confidence": 0.5879
+        },
+        {
+          "start": 12.966712,
+          "end": 15.968,
+          "chord": "Amadd9",
+          "confidence": 0.5696
+        }
+      ],
+      "sha256": "730e0e4ef9de41ccc767c8ff79683620352809f4f0aef8db35f016c52bdeab77"
+    },
+    "strict": {
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 0.288,
+          "chord": "N",
+          "confidence": 0.0
+        },
+        {
+          "start": 0.288,
+          "end": 2.464,
+          "chord": "Em",
+          "confidence": 0.5311
+        },
+        {
+          "start": 2.464,
+          "end": 4.576,
+          "chord": "G6",
+          "confidence": 0.5951
+        },
+        {
+          "start": 4.576,
+          "end": 8.48,
+          "chord": "Dsus2",
+          "confidence": 0.5978
+        },
+        {
+          "start": 8.48,
+          "end": 12.448,
+          "chord": "Cadd9",
+          "confidence": 0.6531
+        },
+        {
+          "start": 12.448,
+          "end": 15.968,
+          "chord": "Asus2",
+          "confidence": 0.6041
+        }
+      ],
+      "sha256": "2b501db8b7fa8aa1de026f39dae499b98fb619d1211b62d2b97b2c14cde3bad5"
+    },
+    "no-fresh": {
+      "segments": [
+        {
+          "start": 0.0,
+          "end": 0.288,
+          "chord": "N",
+          "confidence": 0.0
+        },
+        {
+          "start": 0.288,
+          "end": 2.464,
+          "chord": "Em",
+          "confidence": 0.5311
+        },
+        {
+          "start": 2.464,
+          "end": 4.576,
+          "chord": "G6",
+          "confidence": 0.5951
+        },
+        {
+          "start": 4.576,
+          "end": 5.407891,
+          "chord": "D5",
+          "confidence": 0.5761
+        },
+        {
+          "start": 5.407891,
+          "end": 8.48,
+          "chord": "Dsus2",
+          "confidence": 0.6022
+        },
+        {
+          "start": 8.48,
+          "end": 12.448,
+          "chord": "Cadd9",
+          "confidence": 0.6531
+        },
+        {
+          "start": 12.448,
+          "end": 12.966712,
+          "chord": "A5",
+          "confidence": 0.5879
+        },
+        {
+          "start": 12.966712,
+          "end": 15.968,
+          "chord": "Asus2",
+          "confidence": 0.5918
+        }
+      ],
+      "sha256": "979c003bac1a3cda9070495ee7ee2f5f49fb60e3631df00c340a0a8163c4dc62"
+    }
+  },
+  "causes": [
+    {
+      "kind": "Relaxed initial-state acceptance",
+      "D_span": [
+        4.576,
+        8.48
+      ],
+      "new_initial_interval": 5,
+      "inherited_note_midi": 31,
+      "peak": 0.58176017,
+      "onset": 0.40468,
+      "supportSeconds": 0.2670294784580499,
+      "falseBoundary": 5.407891156462585
+    },
+    {
+      "kind": "Relaxed initial-state acceptance",
+      "A_span": [
+        12.448,
+        15.968
+      ],
+      "new_initial_interval": 5,
+      "inherited_note_midi": 62,
+      "peak": 0.60273933,
+      "onset": 0.3232547,
+      "supportSeconds": 0.12770975056689343,
+      "falseBoundary": 12.966712018140589
+    },
+    {
+      "kind": "Temporally unrelated maxima counted as joint evidence",
+      "A_span": [
+        12.448,
+        15.968
+      ],
+      "note_midi": 36,
+      "notePeak": 0.43556288,
+      "notePeakTime": 13.89859410430839,
+      "onsetPeak": 0.35517117,
+      "onsetPeakTime": 13.260045351473924,
+      "pairedProductWithExisting06sRadius": 0.12678698,
+      "independentMaximaProduct": 0.15469937769816958,
+      "threshold": 0.15,
+      "disableFreshGuard": "Restores Asus2 after false A5 prefix; does not repair initial-state split."
+    }
+  ],
+  "counterexamples": {
+    "genuineWeakFunkE2": {
+      "pairedProductWithExisting06sRadius": 0.15390086,
+      "notePeak": 0.454378,
+      "supportSeconds": 0.10449
+    },
+    "genuineStrongRockCSharp4": {
+      "pairedProductWithExisting06sRadius": 0.41040847,
+      "onsetPeak": 0.694983,
+      "supportSeconds": 0.12771
+    }
+  },
+  "proposedFix": "Use original strong evidence for root, initial and boundary states; limit moderate evidence to final formula pooling and require temporal pairing of onset and note support within the existing06s neighborhood. Keep fresh-third exclusion from no-third labels but base it on this aligned event evidence.",
+  "genericRegressionProof": {
+    "rejectedCandidate2AsynchronousThirdPasses": false,
+    "rejectedCandidate2PriorFourthPasses": false,
+    "stdout": "candidate2-regression.stdout.txt",
+    "stderr": "candidate2-regression.stderr.txt",
+    "scope": "Both new generic regression functions fail the rejected implementation before the production fix is evaluated; first failure is rootC. New implementation runs all12 roots."
+  },
+  "fix": {
+    "currentChordsSHA256": "efbf4715aff194212948023fa06329be5a1c15d2554bcb7191388c5a4cf67d75",
+    "patch": "candidate2-to-aligned.patch",
+    "changes": [
+      "Restore original strong reliability for root/initial/change/extension decisions.",
+      "Keep moderate evidence only in final formula pooling.",
+      "Pair onset and frame-note evidence within the existing0.06s radius; never multiply unrelated span maxima.",
+      "Require current-segment onset peak with nearby note support before excluding5/sus2/sus4."
+    ],
+    "existingTestsModified": false,
+    "newCases": {
+      "onsetAlignment": 48,
+      "priorFourthArpeggioCompletion": 12
+    }
+  }
+}

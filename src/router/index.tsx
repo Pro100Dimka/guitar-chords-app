@@ -11,6 +11,7 @@ import palette from "../theme/palette";
 import Song from "../screens/song";
 import CreateChordSong from "@/screens/create-song-chords";
 import RecognizeSong from "@/screens/recognize-song";
+import AnalyzeAudio from "@/screens/analyze-audio";
 import type { FormValues } from "@/screens/create-song-chords";
 import Header from "@/components/header";
 import type { PlayTabParams } from "../screens/play/use-tablature-session";
@@ -27,7 +28,9 @@ export type RootStackParamList = {
           | "AddSongLyricsNotice"
           | "AddSongChordsNotice"
           | "AddSongNoLyrics"
-          | "AddSongLyricsUnavailable";
+          | "AddSongLyricsUnavailable"
+          | "OfflineChordsNotice"
+          | "OfflineAudioTabNotice";
       }
     | undefined;
   recognizeSong: {
@@ -35,6 +38,7 @@ export type RootStackParamList = {
     autoStart?: boolean;
     requestId?: string;
   };
+  analyzeAudio: undefined;
 };
 export type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,
@@ -98,6 +102,20 @@ const RootStack = createNativeStackNavigator({
           <Header
             titleKey="AddSongTitle"
             icon="music-note-plus"
+            showBack
+            glass
+          />
+        ),
+        contentStyle: { backgroundColor: palette.colors.transparent }
+      }
+    },
+    analyzeAudio: {
+      screen: AnalyzeAudio,
+      options: {
+        header: () => (
+          <Header
+            titleKey="OfflineChordsTitle"
+            icon="file-music-outline"
             showBack
             glass
           />

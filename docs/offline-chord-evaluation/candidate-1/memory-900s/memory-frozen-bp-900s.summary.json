@@ -1,0 +1,49 @@
+{
+  "inferenceRunCount": 1,
+  "startedUTC": "2026-11-26T21:21:36.918900+00:00",
+  "endedUTC": "2026-11-26T21:22:36.708193+00:00",
+  "binarySHA256": "c6e3ba0623c08c1be73b605b0380e523349942978981c557ec271c0a63ef90bf",
+  "inputSHA256": "35c844a059f52b80aeaea4b0fcd0e255f6dd41deb0e237ac23427642df890b4e",
+  "inputBytes": 28800000,
+  "instrumentation": {
+    "name": "GNU time",
+    "localExecutable": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-stress/gnu-time/usr/bin/time",
+    "source": "https://deb.debian.org/debian/pool/main/t/time/time_1.9-0.2_amd64.deb",
+    "debBytes": 50776,
+    "debSHA256": "10257c6fe888e6578550b1f20705d282dd630b76f8df0c006aec3031fefe5e23",
+    "note": "System /usr/bin/time absent; official Debian GNU time extracted in scratch. Initial launcher failed before starting probe; exactly one inference run."
+  },
+  "host": {
+    "platform": "Linux-6.18.57-x86_64-with-glibc2.41",
+    "logicalCpuCount": 9,
+    "loadAverageBefore": [
+      0.20166015625,
+      0.26318359375,
+      0.52587890625
+    ],
+    "loadAverageAfter": [
+      0.6826171875,
+      0.3896484375,
+      0.55615234375
+    ]
+  },
+  "wallSeconds": 59.78,
+  "userSeconds": 57.32,
+  "sysSeconds": 2.33,
+  "peakRssKiB": 86968,
+  "exitCode": 0,
+  "peakRssMiB": 84.9296875,
+  "engineElapsedMs": 59779.001,
+  "durationSeconds": 900.0,
+  "segments": 423,
+  "firstStart": 0.0,
+  "finalEnd": 900.0,
+  "timelineValidation": "passed: finite, positive, contiguous, starts0, ends900, confidence0..1",
+  "accuracyEvaluation": false,
+  "timingCaveat": "One host run during parallel architecture investigation; no controlled idle-host or mobile timing claim. Native scout deferred its CPU inference until completion.",
+  "memoryScope": "Peak RSS of exact frozen chord_probe process, including model and decoder. One maximum-duration run demonstrates observed memory use; not a duration-scaling proof.",
+  "rawOutput": "memory-frozen-bp-900s.output.json",
+  "stderr": "memory-frozen-bp-900s.stderr.txt",
+  "timeOutput": "memory-frozen-bp-900s.time.json",
+  "outputSHA256": "9c81886b7fdbf4c8bce9b6ce7ecbffde41da7331fc8bffa88a4d18e8b16e2adf"
+}

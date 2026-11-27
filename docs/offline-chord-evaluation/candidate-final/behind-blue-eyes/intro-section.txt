@@ -1,0 +1,11 @@
+Section 0.000–15.968 s (15.968 s)
+Supplied full-recording prediction; absolute times retained; analyzer not rerun.
+* = boundary clipped for display; source chord boundary is unchanged
+0.000–0.288  N (undetermined/no chord)
+0.288–2.464  Em
+2.464–4.576  G6
+4.576–8.480  Dsus2
+8.480–12.448  Cadd9
+12.448–15.968  Asus2
+Prediction gaps: 0.000000 s; N: 0.288000 s; X: 0.000000 s
+No timed reference supplied; raw predictions only, no accuracy claim.

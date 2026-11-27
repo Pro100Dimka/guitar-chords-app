@@ -19,6 +19,7 @@ import { changeLanguage, langs, languages } from "../locales";
 import { Action, Sheet } from "./song/tools";
 import { useSupport } from "../components/support";
 import palette from "../theme/palette";
+import offlineChordNotices from "../../assets/offline-chords-notices.json";
 import {
   exportLibrary,
   fileCanceled,
@@ -26,6 +27,31 @@ import {
   readLibraryFile,
   restoreLibrary
 } from "../components/library-files";
+
+const offlineLicenseDocuments = offlineChordNotices.documents.map(
+  (document) => {
+    const components = offlineChordNotices.components.filter((component) =>
+      component.documents.some(
+        (reference) => reference.sha256 === document.sha256
+      )
+    );
+    const names = new Set(
+      components.flatMap((component) =>
+        component.documents
+          .filter((reference) => reference.sha256 === document.sha256)
+          .map((reference) => reference.name)
+      )
+    );
+    return {
+      ...document,
+      names: [...names].join(" / "),
+      attribution: components
+        .map((component) => `${component.name} · ${component.license}`)
+        .join("\n")
+    };
+  }
+);
+
 const Settings: React.FC = () => {
   const { t, i18n } = useTranslation();
   const { height } = useWindowDimensions();
@@ -76,7 +102,9 @@ const Settings: React.FC = () => {
     }
   };
   const [privacy, setPrivacy] = useState(false);
-  const [audioCredits, setAudioCredits] = useState(false);
+  const [audioCredits, setAudioCredits] = useState<
+    "credits" | "licenses" | null
+  >(null);
   const [language, setLanguage] = useState(false);
   const [languageQuery, setLanguageQuery] = useState("");
   const [showPlanned, setShowPlanned] = useState(false);
@@ -199,7 +227,7 @@ const Settings: React.FC = () => {
           {
             icon: "music-note-outline",
             title: t("AudioCredits"),
-            onPress: () => setAudioCredits(true)
+            onPress: () => setAudioCredits("credits")
           },
           {
             icon: "shield-lock-outline",
@@ -399,21 +427,69 @@ const Settings: React.FC = () => {
       {audioCredits && (
         <Sheet
           musical
-          title={t("AudioCredits")}
-          onClose={() => setAudioCredits(false)}
+          title={t(
+            audioCredits === "licenses"
+              ? "ChordAnalysisLicenses"
+              : "AudioCredits"
+          )}
+          onClose={() => setAudioCredits(null)}
+          scrollKey={audioCredits}
+          footer={
+            audioCredits === "licenses" ? (
+              <View style={styles.licenseFooter}>
+                <Action
+                  glass
+                  label={t("Back")}
+                  onPress={() => setAudioCredits("credits")}
+                />
+              </View>
+            ) : undefined
+          }
         >
-          <Text selectable style={styles.privacyText}>
-            {t("ChordRecordingCredits")}
-          </Text>
-          <Action
-            glass
-            label={t("RecordedGuitar")}
-            onPress={() => {
-              void Linking.openURL(
-                "https://github.com/Pro100Dimka/guitar-chords-app#sound-bank"
-              ).catch(() => {});
-            }}
-          />
+          {audioCredits === "licenses" ? (
+            <>
+              <Text style={styles.body}>{t("ChordAnalysisLicensesHint")}</Text>
+              {offlineLicenseDocuments.map((document) => (
+                <View key={document.sha256} style={styles.licenseSection}>
+                  <Text accessibilityRole="header" style={styles.title}>
+                    {document.names}
+                  </Text>
+                  <Text selectable style={styles.body}>
+                    {document.attribution}
+                  </Text>
+                  <Text selectable style={styles.licenseText}>
+                    {document.text}
+                  </Text>
+                </View>
+              ))}
+            </>
+          ) : (
+            <>
+              <Text selectable style={styles.privacyText}>
+                {t("ChordRecordingCredits")}
+              </Text>
+              <Action
+                glass
+                label={t("RecordedGuitar")}
+                onPress={() => {
+                  void Linking.openURL(
+                    "https://github.com/Pro100Dimka/guitar-chords-app#sound-bank"
+                  ).catch(() => {});
+                }}
+              />
+              <Text accessibilityRole="header" style={styles.title}>
+                {t("OfflineChordsTitle")}
+              </Text>
+              <Text selectable style={styles.privacyText}>
+                {t("ChordAnalysisCredits")}
+              </Text>
+              <Action
+                glass
+                label={t("ChordAnalysisLicenses")}
+                onPress={() => setAudioCredits("licenses")}
+              />
+            </>
+          )}
         </Sheet>
       )}
       {privacy && (
@@ -497,6 +573,9 @@ const styles = StyleSheet.create({
     gap: 24
   },
   privacyText: { color: palette.glass.ink, fontSize: 16, lineHeight: 27 },
+  licenseSection: { gap: 12 },
+  licenseText: { color: palette.glass.ink, fontSize: 14, lineHeight: 22 },
+  licenseFooter: { paddingHorizontal: 20, paddingBottom: 12 },
   footer: {
     padding: 14,
     borderRadius: 14,

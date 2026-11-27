@@ -1260,6 +1260,30 @@ test("the header overflow menu exposes four actions and closes after saving", as
   expect(value.onSave).toHaveBeenCalledTimes(1);
   expect(button(screen!, "TabOpen")).toBeUndefined();
 });
+test("an isolated imported editor hides unavailable library, recording and practice actions", async () => {
+  const value = props();
+  await act(async () => {
+    screen = Renderer.create(
+      <TablaturePanel
+        {...value}
+        standalone
+        onOpen={undefined}
+        onRecord={undefined}
+      />
+    );
+  });
+  await press(screen!, "TabActionsMenu");
+  const labels = [
+    ...new Set(
+      screen!.root
+        .findAll((node) => node.props.accessibilityRole === "menuitem")
+        .map((node) => node.props.accessibilityLabel)
+    )
+  ];
+  expect(labels).toEqual(["TabSave"]);
+  await press(screen!, "TabSave");
+  expect(value.onSave).toHaveBeenCalledTimes(1);
+});
 test("deleting the last note at an onset preserves its duration as a rest", async () => {
   const { updates } = await editable(example);
   await pressNote(1, 7);

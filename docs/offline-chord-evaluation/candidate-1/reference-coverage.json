@@ -1,0 +1,230 @@
+[
+  {
+    "track": "00_BN1-129-Eb_comp",
+    "referenceSeconds": 22.32439999999997,
+    "pcmSeconds": 22.3244375,
+    "instructed": {
+      "annotatedSeconds": 22.32439999999997,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 22.32439999999997,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 22.32439999999997,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 9.30114418604648,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "00_Rock3-117-Bb_comp",
+    "referenceSeconds": 32.816400000000016,
+    "pcmSeconds": 32.816375,
+    "instructed": {
+      "annotatedSeconds": 32.816400000000016,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 32.816400000000016,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 32.816400000000016,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 30.765117948717965,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "01_SS1-68-E_comp",
+    "referenceSeconds": 42.34640000000002,
+    "pcmSeconds": 42.346375,
+    "instructed": {
+      "annotatedSeconds": 42.34640000000002,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 42.34640000000002,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 42.34640000000002,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 42.34640000000002,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "01_Jazz2-110-Bb_comp",
+    "referenceSeconds": 34.90319999999997,
+    "pcmSeconds": 34.9031875,
+    "instructed": {
+      "annotatedSeconds": 34.90319999999997,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 30.53956363636361,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 34.90319999999997,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 30.539563636363606,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "02_Funk1-97-C_comp",
+    "referenceSeconds": 29.6884,
+    "pcmSeconds": 29.688375,
+    "instructed": {
+      "annotatedSeconds": 29.6884,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 29.6884,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 29.6884,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 4.948453608247423,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "02_BN3-119-G_comp",
+    "referenceSeconds": 32.26319999999998,
+    "pcmSeconds": 32.2631875,
+    "instructed": {
+      "annotatedSeconds": 32.26319999999998,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 32.26319999999998,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 32.26319999999998,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 30.246393277310908,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "03_Rock1-130-A_comp",
+    "referenceSeconds": 22.1472,
+    "pcmSeconds": 22.14725,
+    "instructed": {
+      "annotatedSeconds": 22.1472,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 22.1472,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 22.1472,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 22.1472,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "03_Jazz3-150-C_comp",
+    "referenceSeconds": 25.600000000000023,
+    "pcmSeconds": 25.6,
+    "instructed": {
+      "annotatedSeconds": 25.600000000000023,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 25.600000000000023,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 25.600000000000023,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 1.5999999999999979,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "04_SS2-107-Ab_comp",
+    "referenceSeconds": 35.88639999999998,
+    "pcmSeconds": 35.886375,
+    "instructed": {
+      "annotatedSeconds": 35.88639999999998,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 31.40041869158876,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 35.88639999999998,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 26.91443738317755,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "04_Funk2-119-G_comp",
+    "referenceSeconds": 32.2632000000001,
+    "pcmSeconds": 32.2631875,
+    "instructed": {
+      "annotatedSeconds": 32.2632000000001,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 28.229586554621946,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 32.2632000000001,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 12.100840336134453,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "05_BN2-166-Ab_comp",
+    "referenceSeconds": 23.129999999999995,
+    "pcmSeconds": 23.13,
+    "instructed": {
+      "annotatedSeconds": 23.129999999999995,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 20.238433734939754,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 23.129999999999995,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 8.67216867469879,
+      "referenceGapSeconds": 0.0
+    }
+  },
+  {
+    "track": "05_SS3-84-Bb_comp",
+    "referenceSeconds": 45.70760000000001,
+    "pcmSeconds": 45.707625,
+    "instructed": {
+      "annotatedSeconds": 45.70760000000001,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 45.70760000000001,
+      "referenceGapSeconds": 0.0
+    },
+    "performed": {
+      "annotatedSeconds": 45.70760000000001,
+      "unknownSeconds": 0,
+      "noChordSeconds": 0,
+      "majorMinorEligibleSeconds": 45.70760000000001,
+      "referenceGapSeconds": 0.0
+    }
+  }
+]

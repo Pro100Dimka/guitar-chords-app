@@ -1,0 +1,272 @@
+{
+  "title": "Limp Bizkit - Behind Blue Eyes",
+  "purpose": "Evaluation only. This reference is never an analyzer input, model parameter, recognizer prior, or training target.",
+  "timingStatus": "Untimed user-supplied chord order. It cannot support whole-song duration-weighted chord accuracy or transition-time accuracy. No section boundaries or E/Esus4 durations are assumed.",
+  "userChartPreservation": "Lyrics omitted; original chord spellings and printed repeat counts retained. Verse3 uses G, while the other corresponding verse/intro cycles use G6.",
+  "chartSpecificAliases": {
+    "D5(9)": "Dsus2",
+    "A5(9)": "Asus2",
+    "C9": "Cadd9"
+  },
+  "aliasScope": "These substitutions apply only to this user chart. The general evaluator retains C9 as a dominant ninth, distinct from Cadd9. D5(9) and A5(9) explicitly omit the third and correspond to sus2 pitch sets.",
+  "notationCrossCheck": {
+    "url": "https://dux-verlag.de/ancora_myfactory/CustomUpload/374O357O340O370O356O369O350O352O365O354O366O369O352O/D%20873_01.%20Behind%20Blue%20Eyes.pdf",
+    "publisher": "DUX",
+    "edition": "D 873",
+    "author": "Michael Langer",
+    "printedPage": 10,
+    "verifiedIntroLabels": [
+      "Em",
+      "G6",
+      "Dsus2",
+      "Cadd9",
+      "Asus2"
+    ],
+    "scope": "Page10 labels the original Limp Bizkit intro. Page11 is a simplified song arrangement and does not establish exact extended qualities or timings throughout the studio recording."
+  },
+  "recording": {
+    "source": "https://archive.org/details/limp-bizkit-behind-blue-eyes_202505",
+    "sourceStatus": "Public user upload of an alternative music video; not an official publisher source or a redistribution license. Media is kept outside the repository.",
+    "decodedPcmSha256": "2392aa27f470ea9e0c73ce62893b094b70c850ef19e979d9e464a24a9e56be51",
+    "decodedSeconds": 276.4568125,
+    "officialPreviewWaveformMatch": {
+      "appleTrackId": 1440874577,
+      "fullAudioOffsetSeconds": 45.03675,
+      "correlation": 0.8674747952,
+      "meaning": "Confirms the matching recording excerpt and its offset; does not establish timing of the chord chart or source licensing."
+    }
+  },
+  "sections": [
+    {
+      "name": "intro",
+      "printedRepetitions": 1,
+      "rawChords": [
+        "Em",
+        "G6",
+        "D5(9)",
+        "C9",
+        "A5(9)"
+      ],
+      "canonicalChords": [
+        "Em",
+        "G6",
+        "Dsus2",
+        "Cadd9",
+        "Asus2"
+      ]
+    },
+    {
+      "name": "verse1",
+      "printedRepetitions": 2,
+      "rawChords": [
+        "Em",
+        "G6",
+        "D5(9)",
+        "C9",
+        "A5(9)"
+      ],
+      "canonicalChords": [
+        "Em",
+        "G6",
+        "Dsus2",
+        "Cadd9",
+        "Asus2"
+      ]
+    },
+    {
+      "name": "chorus1",
+      "printedRepetitions": 1,
+      "rawChords": [
+        "C",
+        "D",
+        "G",
+        "C",
+        "D",
+        "E",
+        "Esus4",
+        "E",
+        "Esus4",
+        "E",
+        "Bm",
+        "C9",
+        "D",
+        "A5(9)"
+      ],
+      "canonicalChords": [
+        "C",
+        "D",
+        "G",
+        "C",
+        "D",
+        "E",
+        "Esus4",
+        "E",
+        "Esus4",
+        "E",
+        "Bm",
+        "Cadd9",
+        "D",
+        "Asus2"
+      ]
+    },
+    {
+      "name": "verse2",
+      "printedRepetitions": 2,
+      "rawChords": [
+        "Em",
+        "G6",
+        "D5(9)",
+        "C9",
+        "A5(9)"
+      ],
+      "canonicalChords": [
+        "Em",
+        "G6",
+        "Dsus2",
+        "Cadd9",
+        "Asus2"
+      ]
+    },
+    {
+      "name": "chorus2",
+      "printedRepetitions": 1,
+      "rawChords": [
+        "C",
+        "D",
+        "G",
+        "C",
+        "D",
+        "E",
+        "Esus4",
+        "E",
+        "Esus4",
+        "E",
+        "Bm",
+        "C9",
+        "D",
+        "A5(9)"
+      ],
+      "canonicalChords": [
+        "C",
+        "D",
+        "G",
+        "C",
+        "D",
+        "E",
+        "Esus4",
+        "E",
+        "Esus4",
+        "E",
+        "Bm",
+        "Cadd9",
+        "D",
+        "Asus2"
+      ]
+    },
+    {
+      "name": "instrumental",
+      "printedRepetitions": 1,
+      "rawChords": [
+        "Em",
+        "G6",
+        "D5(9)",
+        "C9",
+        "A5(9)"
+      ],
+      "canonicalChords": [
+        "Em",
+        "G6",
+        "Dsus2",
+        "Cadd9",
+        "Asus2"
+      ]
+    },
+    {
+      "name": "verse3",
+      "printedRepetitions": 2,
+      "rawChords": [
+        "Em",
+        "G",
+        "D5(9)",
+        "C9",
+        "A5(9)"
+      ],
+      "canonicalChords": [
+        "Em",
+        "G",
+        "Dsus2",
+        "Cadd9",
+        "Asus2"
+      ]
+    },
+    {
+      "name": "chorus3",
+      "printedRepetitions": 1,
+      "rawChords": [
+        "C",
+        "D",
+        "G",
+        "C",
+        "D",
+        "E",
+        "Esus4",
+        "E",
+        "Esus4",
+        "E",
+        "Bm",
+        "C9",
+        "D",
+        "A5(9)"
+      ],
+      "canonicalChords": [
+        "C",
+        "D",
+        "G",
+        "C",
+        "D",
+        "E",
+        "Esus4",
+        "E",
+        "Esus4",
+        "E",
+        "Bm",
+        "Cadd9",
+        "D",
+        "Asus2"
+      ]
+    },
+    {
+      "name": "final",
+      "printedRepetitions": 1,
+      "rawChords": [
+        "Em",
+        "G6",
+        "D5(9)",
+        "C9",
+        "A5(9)"
+      ],
+      "canonicalChords": [
+        "Em",
+        "G6",
+        "Dsus2",
+        "Cadd9",
+        "Asus2"
+      ]
+    }
+  ],
+  "sequenceVariants": [
+    {
+      "name": "printed-one-instrumental-cycle",
+      "repeatOverrides": {},
+      "status": "Exactly the supplied printed repetition count."
+    },
+    {
+      "name": "two-instrumental-cycles-hypothesis",
+      "repeatOverrides": {
+        "instrumental": 2
+      },
+      "status": "The available audio appears to repeat this cycle twice; the supplied chart prints one. This is an unverified structural hypothesis and is reported separately, not selected to maximize a score."
+    }
+  ],
+  "comparisonPolicy": "Only event-order edit counts against both structural variants. Ignore chord duration, merge consecutive identical canonical predictions, trim leading/trailing N only, retain internal N or X as explicit mismatch events. Report exact root/formula and root-only edit counts independently. Do not label an edit statistic as full-song chord accuracy."
+}

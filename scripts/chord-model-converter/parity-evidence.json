@@ -1,0 +1,212 @@
+{
+  "scope": "One real GuitarSet window, x86_64 Linux host. Bitwise output parity; not phone size/performance, full-song validation, or chord-accuracy evidence.",
+  "sourceModelSha256": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+  "canonicalNnefSha256": "274e46d8b4eec2d6a9da1d52d60744feb7f7dfdf6207dc12db10f5ddd9f3416f",
+  "canonicalNnefBytes": 196096,
+  "repeatExportHashesMatch": true,
+  "input": {
+    "bytes": 175376,
+    "sha256": "ec8e57977c185aaf8fdace0e7247b72ac204f87b53f6da5a13a4d6532736e12f",
+    "source": "GuitarSet1.1.0/00_SS3-98-C_comp_mic.wav",
+    "sourceSha256": "7c039c4f555c6d8a8f277244db89213026f05fb8e3f50dace4ef1512a7c68d85",
+    "license": "CC-BY-4.0",
+    "sourceManifest": "docs/offline-chord-analysis-fixtures.json",
+    "preparation": "ffmpeg -v error -i WAV -map 0:a:0 -ac 1 -ar 22050 -f f32le; take43844samples starting at sample22050 (1.0s)."
+  },
+  "outputs": {
+    "note": {
+      "shape": [
+        1,
+        172,
+        88
+      ],
+      "onnxSha256": "6424c9ce9946076db9dac6ec23754271710a7a554a6f157fa7c5c4476dbc5fd5",
+      "canonicalNnefSha256": "6424c9ce9946076db9dac6ec23754271710a7a554a6f157fa7c5c4476dbc5fd5",
+      "bitwiseEqual": true
+    },
+    "onset": {
+      "shape": [
+        1,
+        172,
+        88
+      ],
+      "onnxSha256": "a1a88df65e4b8e61425097ab024306d2d1bce996f817a804eb17601573a170a3",
+      "canonicalNnefSha256": "a1a88df65e4b8e61425097ab024306d2d1bce996f817a804eb17601573a170a3",
+      "bitwiseEqual": true
+    },
+    "contour": {
+      "shape": [
+        1,
+        172,
+        264
+      ],
+      "onnxSha256": "0d8ae5dbdd4aed7ae81781dbcc73eb8d45996f1cc2f477f8adb505a399ee2c7e",
+      "canonicalNnefSha256": "0d8ae5dbdd4aed7ae81781dbcc73eb8d45996f1cc2f477f8adb505a399ee2c7e",
+      "bitwiseEqual": true
+    }
+  },
+  "hostRuntime": {
+    "onnx": {
+      "load_ms": 48.6405,
+      "first_inference_ms": 95.542071,
+      "repeat_inference_ms": [
+        83.71056899999999,
+        85.100363,
+        83.28709500000001,
+        83.287445,
+        83.818702
+      ],
+      "output_shapes": [
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          264
+        ]
+      ],
+      "medianRepeatMs": 83.71056899999999
+    },
+    "canonicalNnef": {
+      "load_ms": 62.273897000000005,
+      "first_inference_ms": 94.218452,
+      "repeat_inference_ms": [
+        94.63266300000001,
+        98.33410400000001,
+        86.971074,
+        98.296147,
+        98.23638799999999
+      ],
+      "output_shapes": [
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          264
+        ]
+      ],
+      "medianRepeatMs": 98.23638799999999
+    },
+    "nnefBeforeNameCanonicalization": {
+      "load_ms": 80.248807,
+      "first_inference_ms": 104.935367,
+      "repeat_inference_ms": [
+        84.73877,
+        82.85051,
+        85.708264,
+        86.379081,
+        84.940463
+      ],
+      "output_shapes": [
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          264
+        ]
+      ]
+    },
+    "onnxPairedRepeat": {
+      "load_ms": 79.54630399999999,
+      "first_inference_ms": 136.80571,
+      "repeat_inference_ms": [
+        84.355205,
+        86.40011,
+        93.600777,
+        86.291798,
+        88.62994400000001
+      ],
+      "output_shapes": [
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          264
+        ]
+      ],
+      "medianRepeatMs": 86.40011
+    },
+    "canonicalNnefPairedRepeat": {
+      "load_ms": 80.780714,
+      "first_inference_ms": 130.262119,
+      "repeat_inference_ms": [
+        96.988777,
+        87.831997,
+        101.06643199999999,
+        99.098461,
+        99.015066
+      ],
+      "output_shapes": [
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          88
+        ],
+        [
+          1,
+          172,
+          264
+        ]
+      ],
+      "medianRepeatMs": 99.015066
+    }
+  },
+  "hostBinarySizes": {
+    "onnxBinary": {
+      "bytes": 22667696,
+      "gzip9Bytes": 7070472,
+      "sha256": "59c1a5f675d9de36398fe4fb542e20fb58b5acbc5401cfe5b9e6cf18772ff7c7"
+    },
+    "nnefOnlyBinary": {
+      "bytes": 16841272,
+      "gzip9Bytes": 5283609,
+      "sha256": "1b9b262eb437b6970a79221d8800420bca708f5eb38d8a1211b2f4bd589581b5"
+    }
+  },
+  "runtimeDependencyChecks": {
+    "tract-onnx": false,
+    "tract-hir": false,
+    "tract-onnx-opl": false,
+    "prost": false
+  }
+}

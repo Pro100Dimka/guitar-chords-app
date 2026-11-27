@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "candidateId": "third-consistency-v2",
+  "status": "rejected-known-development-gate-before-fresh-evaluation",
+  "finalCandidate": false,
+  "evaluationScope": "Known full-context Behind Blue Eyes development recording; not a blind test. No fresh-holdout inference was authorized or performed for this candidate.",
+  "freshHoldoutInferenceRuns": 0,
+  "rejection": "Intro Dsus2 split into D5/Dsus2; Asus2 changed to A5/Amadd9.",
+  "sourceSnapshotDirectory": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-candidate-2",
+  "files": [
+    {
+      "path": "freeze.json",
+      "bytes": 3520,
+      "sha256": "dff62819e11b09efd5534374fb1890ec98bc98488bd76481522766ab43862361",
+      "copiedVerbatim": true,
+      "sourceRelativePath": "production-candidate-2/freeze.json"
+    },
+    {
+      "path": "production-cli-build.log",
+      "bytes": 186,
+      "sha256": "29a193e25656a613adc4121d425feaafc4cbf1de664a0520c292c81d2f1159be",
+      "copiedVerbatim": true,
+      "sourceRelativePath": "production-candidate-2/production-cli-build.log"
+    },
+    {
+      "path": "production-release-tests.log",
+      "bytes": 3303,
+      "sha256": "43223dbb06cd0eb0f27660eec455abaefa3b8c7fbabf056d4b4d1c2811f344e9",
+      "copiedVerbatim": true,
+      "sourceRelativePath": "production-candidate-2/production-release-tests.log"
+    },
+    {
+      "path": "behind-blue-eyes/output.json",
+      "bytes": 8331,
+      "sha256": "72a874d41993f848c6659a724d08f4f63ed5c548b2e3d20d62f12517360c0c62",
+      "copiedVerbatim": true,
+      "sourceRelativePath": "production-candidate-2/behind-blue-eyes/output.json"
+    },
+    {
+      "path": "behind-blue-eyes/run.json",
+      "bytes": 1345,
+      "sha256": "30a375da9ac85008fcae2aa7d0ada1af9cdeaaa8316b812809cb31d266c1873e",
+      "copiedVerbatim": true,
+      "sourceRelativePath": "production-candidate-2/behind-blue-eyes/run.json"
+    },
+    {
+      "path": "behind-blue-eyes/stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "copiedVerbatim": true,
+      "sourceRelativePath": "production-candidate-2/behind-blue-eyes/stderr.txt"
+    },
+    {
+      "path": "README.md",
+      "bytes": 3022,
+      "sha256": "bdd60efe3bb20cd52d6e213f954ec3087991f7ac2798f939483962b43f198cb2",
+      "copiedVerbatim": false
+    }
+  ],
+  "packagingExclusions": [
+    "audio",
+    "PCM",
+    "executables",
+    "model binaries",
+    "source snapshots"
+  ],
+  "checksumPolicy": "SHA256 over exact file bytes; this checksum manifest excludes itself."
+}

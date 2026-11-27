@@ -1,0 +1,22 @@
+{
+  "policy": "Evaluation definitions, source selection and untimed user chart frozen before candidate holdout evaluation. No heldout scores exposed for tuning.",
+  "files": [
+    {
+      "path": "scripts/evaluate-offline-chords-extended.py",
+      "sha256": "c7fb0879858ae5149d10b35d6f05877bcccd2a97a3f4ed5e5a839a03b8bd540e"
+    },
+    {
+      "path": "scripts/fetch-offline-chord-quality-fixtures.py",
+      "sha256": "861aaf1798f691367c809eb272ab02a7a8c5c9b24e12036f6aa9049c40f55e16"
+    },
+    {
+      "path": "docs/offline-chord-quality-fixtures.json",
+      "sha256": "7235dcab774888da134aa07ba48d6d9826c8216ace615cf1849a9728c029436b"
+    },
+    {
+      "path": "docs/offline-chord-behind-blue-eyes-reference.json",
+      "sha256": "d84f7982bc6906b2d0d4158c9e8df076eb502bc9273593c384810b4a7796ac19"
+    }
+  ],
+  "selectionSha256": "fd3676349d3b80770f18881e4467b1b5d88763cc5162999f8786e12678f998db"
+}

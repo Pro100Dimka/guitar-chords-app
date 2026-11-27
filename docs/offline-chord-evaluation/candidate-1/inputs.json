@@ -1,0 +1,202 @@
+{
+  "00_BN1-129-Eb_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/00_BN1-129-Eb_comp.pcm",
+    "sha256": "30dc65b0ba1bf85f9dc1ad51dae17c8dccdaf4d3f8906b729e186fc365bce00d",
+    "bytes": 714382,
+    "audioSeconds": 22.3244375,
+    "baselineRawPath": "outputs/00_BN1-129-Eb_comp.json",
+    "baselineRawSha256": "7c1cc0937dfd05cc1948ccb115c05400e204b6b3106cbf6b7f8b517a1944eaf3",
+    "annotation": {
+      "track": "00_BN1-129-Eb_comp",
+      "path": "annotations/00_BN1-129-Eb_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "00_BN1-129-Eb_comp.jams",
+      "bytes": 1702653,
+      "sha256": "cd79564c51d0dec7d04e010d31525e9f7d2b9d41cf6116118a66ac5a8c181007"
+    }
+  },
+  "00_Rock3-117-Bb_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/00_Rock3-117-Bb_comp.pcm",
+    "sha256": "92a5ea96e3d0174f3eaf2fb624b26d4cf1b1746a6704149b5107d69d4857e2f9",
+    "bytes": 1050124,
+    "audioSeconds": 32.816375,
+    "baselineRawPath": "outputs/00_Rock3-117-Bb_comp.json",
+    "baselineRawSha256": "45d8c94b91afea0e89d4e421c63182d9b1666c50d1070d6209065257febde157",
+    "annotation": {
+      "track": "00_Rock3-117-Bb_comp",
+      "path": "annotations/00_Rock3-117-Bb_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "00_Rock3-117-Bb_comp.jams",
+      "bytes": 4116563,
+      "sha256": "98caeb42548422bbb558f663fa104146450266f7bd4667304b13a440432ba655"
+    }
+  },
+  "01_SS1-68-E_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/01_SS1-68-E_comp.pcm",
+    "sha256": "332d7317adb131bf68cc0a0f38b8ea5ab9f03015e427676d9da9ae549ec84346",
+    "bytes": 1355084,
+    "audioSeconds": 42.346375,
+    "baselineRawPath": "outputs/01_SS1-68-E_comp.json",
+    "baselineRawSha256": "919238255df98539b1767d69af6242ba0b46c3e90d059d0b261e1ad65d758195",
+    "annotation": {
+      "track": "01_SS1-68-E_comp",
+      "path": "annotations/01_SS1-68-E_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "01_SS1-68-E_comp.jams",
+      "bytes": 5447348,
+      "sha256": "1bea54e6d3f003e519d0afa5eee57bce7df57a535ef8c218198591fe096a52b8"
+    }
+  },
+  "01_Jazz2-110-Bb_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/01_Jazz2-110-Bb_comp.pcm",
+    "sha256": "d821394635b6553ad6653c424cf02dd997b839ece0ead969a8d3f7a8c4ad549a",
+    "bytes": 1116902,
+    "audioSeconds": 34.9031875,
+    "baselineRawPath": "outputs/01_Jazz2-110-Bb_comp.json",
+    "baselineRawSha256": "f9fac7368959fd5cf3aa434ff14badf38bd23b0961e3b197b38aaf1be7873140",
+    "annotation": {
+      "track": "01_Jazz2-110-Bb_comp",
+      "path": "annotations/01_Jazz2-110-Bb_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "01_Jazz2-110-Bb_comp.jams",
+      "bytes": 2352952,
+      "sha256": "15ec1c9307608366b20c469a6d61e8192304a787edcc209aaaf658c27cd85882"
+    }
+  },
+  "02_Funk1-97-C_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/02_Funk1-97-C_comp.pcm",
+    "sha256": "6feb5a2e9e8fd187eee04475e79d076b70268b92c7c6c9fa3db488ab2720282e",
+    "bytes": 950028,
+    "audioSeconds": 29.688375,
+    "baselineRawPath": "outputs/02_Funk1-97-C_comp.json",
+    "baselineRawSha256": "b979399097a125ab0da830841b76338ef68c3c33bd3bfa4bd97010f318d8ba85",
+    "annotation": {
+      "track": "02_Funk1-97-C_comp",
+      "path": "annotations/02_Funk1-97-C_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "02_Funk1-97-C_comp.jams",
+      "bytes": 1295451,
+      "sha256": "292c8330635f53e35587e796c76ea47358647474471dfaeb8869167ff34a2549"
+    }
+  },
+  "02_BN3-119-G_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/02_BN3-119-G_comp.pcm",
+    "sha256": "57b38fd78af12bea9df10731d34c159ae5520eafa64534b4e6e99bbb5246279e",
+    "bytes": 1032422,
+    "audioSeconds": 32.2631875,
+    "baselineRawPath": "outputs/02_BN3-119-G_comp.json",
+    "baselineRawSha256": "437052336f6133eb2464d38cb32aaabed1d066c55a50eb69ccb9a75c7130baa7",
+    "annotation": {
+      "track": "02_BN3-119-G_comp",
+      "path": "annotations/02_BN3-119-G_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "02_BN3-119-G_comp.jams",
+      "bytes": 3030987,
+      "sha256": "e29cf0c5a0841468c6f40242cf2193766730ef9679d590a0b7f81add6fbeccbb"
+    }
+  },
+  "03_Rock1-130-A_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/03_Rock1-130-A_comp.pcm",
+    "sha256": "b413c681360400f0b899eca27aa22436e62f67973ad831b54385bc38f2b9ee2b",
+    "bytes": 708712,
+    "audioSeconds": 22.14725,
+    "baselineRawPath": "outputs/03_Rock1-130-A_comp.json",
+    "baselineRawSha256": "b549017590480e86fb46a117d05edbae29bc28350191400396a4b6408fd8b000",
+    "annotation": {
+      "track": "03_Rock1-130-A_comp",
+      "path": "annotations/03_Rock1-130-A_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "03_Rock1-130-A_comp.jams",
+      "bytes": 1694925,
+      "sha256": "502ab4f7788bad71bafe9572ba185e698b3cf82576be105acd6d4112b711f1fa"
+    }
+  },
+  "03_Jazz3-150-C_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/03_Jazz3-150-C_comp.pcm",
+    "sha256": "8edb6858713afd60a780bfdc58211b888d55839961ac2d4bc57c9584aa4413fd",
+    "bytes": 819200,
+    "audioSeconds": 25.6,
+    "baselineRawPath": "outputs/03_Jazz3-150-C_comp.json",
+    "baselineRawSha256": "f7b1c45717b829e883bd09db6eb13cdbaca99098219fcce9d998f6453f6c4ba3",
+    "annotation": {
+      "track": "03_Jazz3-150-C_comp",
+      "path": "annotations/03_Jazz3-150-C_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "03_Jazz3-150-C_comp.jams",
+      "bytes": 1069266,
+      "sha256": "f6582b8b45efe6661354788330a64a2f6a148134976d8f7f71a86cdaaddf92b5"
+    }
+  },
+  "04_SS2-107-Ab_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/04_SS2-107-Ab_comp.pcm",
+    "sha256": "ece3c4b04f6f685c43ba02c6a85578e93a0be2fea32230d25cd2fbd429ff348d",
+    "bytes": 1148364,
+    "audioSeconds": 35.886375,
+    "baselineRawPath": "outputs/04_SS2-107-Ab_comp.json",
+    "baselineRawSha256": "e95f4660d61f340ae2e390b35aac4ef357118b7d502fb35eec158c180d651b8d",
+    "annotation": {
+      "track": "04_SS2-107-Ab_comp",
+      "path": "annotations/04_SS2-107-Ab_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "04_SS2-107-Ab_comp.jams",
+      "bytes": 2912820,
+      "sha256": "af25369890af9f973ff2452806a919bbb4db344dbe329c1aad88f29c4d3179de"
+    }
+  },
+  "04_Funk2-119-G_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/04_Funk2-119-G_comp.pcm",
+    "sha256": "900abc39734e7e0a495e284622e696e8d3c0a7c2048c3a19a105da5ba0eb8e02",
+    "bytes": 1032422,
+    "audioSeconds": 32.2631875,
+    "baselineRawPath": "outputs/04_Funk2-119-G_comp.json",
+    "baselineRawSha256": "588976ca400a1a64a555ccda23655df5d48b3f7934455eaa6f974b08f94f04d0",
+    "annotation": {
+      "track": "04_Funk2-119-G_comp",
+      "path": "annotations/04_Funk2-119-G_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "04_Funk2-119-G_comp.jams",
+      "bytes": 2034348,
+      "sha256": "7453b7207b821d89933e7d0e20c5189f284aec5d6736a0669d93ceed96fed578"
+    }
+  },
+  "05_BN2-166-Ab_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/05_BN2-166-Ab_comp.pcm",
+    "sha256": "4fe8a6538063d99bcc92c078f073c63d6f34ab622d46827f186e9d502f557e58",
+    "bytes": 740160,
+    "audioSeconds": 23.13,
+    "baselineRawPath": "outputs/05_BN2-166-Ab_comp.json",
+    "baselineRawSha256": "90fb6d2596978a412f25fb78f81ad71daa84530b5feb82252ce8eb78443df3f1",
+    "annotation": {
+      "track": "05_BN2-166-Ab_comp",
+      "path": "annotations/05_BN2-166-Ab_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "05_BN2-166-Ab_comp.jams",
+      "bytes": 1518258,
+      "sha256": "410e7373f7753871225bdc99f0f96d4f9e911fb72602427e1b177458430a4fda"
+    }
+  },
+  "05_SS3-84-Bb_comp": {
+    "path": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/pcm/05_SS3-84-Bb_comp.pcm",
+    "sha256": "8b0dbcfa4fb9a9dfce0b0c0ed4626d65b1ac6ffeff8e18e3a8a12a0d1cea817b",
+    "bytes": 1462644,
+    "audioSeconds": 45.707625,
+    "baselineRawPath": "outputs/05_SS3-84-Bb_comp.json",
+    "baselineRawSha256": "a0dfabccef5db05ba63496387f1f2ab05270919f931e472e74fef537a8852e4a",
+    "annotation": {
+      "track": "05_SS3-84-Bb_comp",
+      "path": "annotations/05_SS3-84-Bb_comp.jams",
+      "sourceArchive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+      "archiveMember": "05_SS3-84-Bb_comp.jams",
+      "bytes": 3052760,
+      "sha256": "93d6dbe0f9bee79ca03b11f5d1c0d7691e88c3f6d7a6cf41df8fe1e9aee5e09e"
+    }
+  },
+  "behind-blue-eyes": {
+    "path": "/workspace/scratch/4d3df6e78b9e/evidence/behind-blue-eyes/behind-blue-eyes-full-16k.pcm",
+    "sha256": "2392aa27f470ea9e0c73ce62893b094b70c850ef19e979d9e464a24a9e56be51",
+    "bytes": 8846618,
+    "audioSeconds": 276.4568125,
+    "baselineRawPath": "outputs/behind-blue-eyes.json",
+    "baselineRawSha256": "3e4f127e1666a9bc70811e3c9d2c34da1dd45a279126b7f3c26da525b82ae44a"
+  }
+}

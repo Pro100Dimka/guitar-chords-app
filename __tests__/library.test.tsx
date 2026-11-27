@@ -88,7 +88,7 @@ test.each(["Favorites", "RecentSongs"])(
 );
 
 test.each(["ios", "android"] as const)(
-  "%s offers only manual entry and unified recognition",
+  "%s offers manual entry, recognition and local audio chords",
   async (platform) => {
     jest.replaceProperty(Platform, "OS", platform);
     jest.mocked(getAllItems).mockResolvedValue(songs);
@@ -98,13 +98,14 @@ test.each(["ios", "android"] as const)(
     await act(async () => screen.root.findByType(SearchBar).props.onAdd());
     const options = screen.root.findAll(
       (node) =>
-        ["AddSongManual", "AutofillRecognize"].includes(
+        ["AddSongManual", "AutofillRecognize", "OfflineChordsTitle"].includes(
           node.props.accessibilityLabel
         ) && typeof node.props.onPress === "function"
     );
     expect(options.map((node) => node.props.accessibilityLabel)).toEqual([
       "AddSongManual",
-      "AutofillRecognize"
+      "AutofillRecognize",
+      "OfflineChordsTitle"
     ]);
     for (const label of [
       "AutofillRecognizeMic",

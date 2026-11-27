@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "fixtures": [
+    {
+      "id": "00_SS3-98-C_comp",
+      "description": "Real singer-songwriter acoustic-guitar performance of the Pachelbel Canon progression, GuitarSet 1.1.0",
+      "source": "https://zenodo.org/records/3371780",
+      "website": "https://guitarset.weebly.com/",
+      "license": "CC-BY-4.0",
+      "authors": ["Qingyang Xi", "Rachel M. Bittner", "Johan Pauwels", "Xuzhou Ye", "Juan P. Bello"],
+      "citation": "Q. Xi, R. M. Bittner, J. Pauwels, X. Ye, and J. P. Bello, GuitarSet: A Dataset for Guitar Transcription, ISMIR, 2018.",
+      "audio": {
+        "archive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+        "member": "00_SS3-98-C_comp_mic.wav",
+        "bytes": 3455614,
+        "sha256": "7c039c4f555c6d8a8f277244db89213026f05fb8e3f50dace4ef1512a7c68d85"
+      },
+      "annotation": {
+        "archive": "https://zenodo.org/records/3371780/files/annotation.zip?download=1",
+        "member": "00_SS3-98-C_comp.jams",
+        "bytes": 4470690,
+        "sha256": "b05a6967852c6f68f7b4db0e97d4129fb5b7f2eff49ff4007d60bdc5781b7fd2"
+      },
+      "durationSeconds": 39.178798,
+      "referenceTempoBpm": 98,
+      "referenceKey": "C:major",
+      "referenceProgression": ["C", "G", "Am", "Em", "F", "C", "F", "G", "C", "G", "Am", "Em", "F", "C", "F", "G"],
+      "evaluation": "Exact duration-weighted major/minor root-and-quality agreement against the first (instructed) JAMS chord annotation. N and missing intervals count as mismatches. The separately labeled interior score excludes 0.25 seconds at each reference-interval edge."
+    },
+    {
+      "id": "gloria",
+      "description": "Gloria Gaynor — I Will Survive; existing repository Shazam recognition fixture, used here for full-track processing only",
+      "identityEvidence": "scripts/verify-shazam.cjs asserts the title and artist returned for this pinned fixture",
+      "audio": {
+        "url": "https://raw.githubusercontent.com/shazamio/ShazamIO/c2a4b6ee9dfa9e36cd6b24d10a57ad9e66a66dd1/examples/data/Gloria.ogg",
+        "file": "gloria.ogg",
+        "bytes": 2788882,
+        "sha256": "59d59246f8021cd658e25af3f1a4869486e26d8daa61dec29903221ff02116a1"
+      },
+      "durationSeconds": 198.266667,
+      "license": "Recording license is not specified by the upstream fixture; no recording is redistributed in this repository.",
+      "evaluation": "Optional full-song smoke/performance run; no trusted timed chord reference, so no measured accuracy claim."
+    }
+  ],
+  "reproduction": [
+    "python3 scripts/fetch-offline-chord-fixtures.py --output-dir /tmp/freetune-offline-audio --include-song",
+    "ffmpeg -nostdin -y -v error -i /tmp/freetune-offline-audio/00_SS3-98-C_comp_mic.wav -ar 16000 -ac 1 -f s16le /tmp/freetune-offline-audio/guitarset.pcm",
+    "cargo run --release --manifest-path android/song-fingerprint/Cargo.toml --bin chord_probe -- /tmp/freetune-offline-audio/guitarset.pcm > /tmp/freetune-offline-audio/guitarset-analysis.json",
+    "python3 scripts/evaluate-offline-chords.py /tmp/freetune-offline-audio/guitarset-analysis.json --jams /tmp/freetune-offline-audio/00_SS3-98-C_comp.jams --output /tmp/freetune-offline-audio/guitarset-evaluation.json",
+    "ffmpeg -nostdin -y -v error -i /tmp/freetune-offline-audio/gloria.ogg -ar 16000 -ac 1 -f s16le /tmp/freetune-offline-audio/gloria.pcm",
+    "cargo run --release --manifest-path android/song-fingerprint/Cargo.toml --bin chord_probe -- /tmp/freetune-offline-audio/gloria.pcm > /tmp/freetune-offline-audio/gloria-analysis.json",
+    "python3 scripts/evaluate-offline-chords.py /tmp/freetune-offline-audio/gloria-analysis.json --output /tmp/freetune-offline-audio/gloria-evaluation.json"
+  ],
+  "timingScope": "chord_probe elapsedMs measures the production analysis core on already decoded PCM on the executing host; it is not phone end-to-end latency."
+}

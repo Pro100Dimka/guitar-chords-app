@@ -1,0 +1,9 @@
+{
+  "status": "completed",
+  "startedUtc": "2026-11-26T22:14:21.465746+00:00",
+  "freezeSha256": "fe223a7191a302321bbbfd31a90bbb249042342ca7805e40310c23cc7e27f4fb",
+  "candidateBinarySha256": "840356f71e7fdbad4c209b55c234bedc9e97c59b2ca03a0355308334b217e27a",
+  "outputDirectory": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison",
+  "selectionSha256": "509037740ca700b9e3c08cef7687acb288a43a3b0f859204a254865913aca159",
+  "completedUtc": "2026-11-26T22:15:14.579405+00:00"
+}

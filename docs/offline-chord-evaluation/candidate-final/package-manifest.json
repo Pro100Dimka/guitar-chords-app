@@ -1,0 +1,944 @@
+{
+  "schemaVersion": 1,
+  "candidateId": "aligned-third-v2",
+  "status": "single-frozen-evaluation-completed",
+  "freezeSha256": "fe223a7191a302321bbbfd31a90bbb249042342ca7805e40310c23cc7e27f4fb",
+  "binarySha256": "840356f71e7fdbad4c209b55c234bedc9e97c59b2ca03a0355308334b217e27a",
+  "freshCandidateEvaluations": 1,
+  "postFreshEvaluationTuning": false,
+  "excludedPayloads": [
+    "audio",
+    "PCM",
+    "executables",
+    "model binaries",
+    "source snapshots"
+  ],
+  "checksumPolicy": "SHA256 over exact file bytes. This package-manifest.json excludes itself.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 14385,
+      "sha256": "5c5ee66418d13694d99c70bc066cea770f6d3c647bc8b74280361fd16c06b826",
+      "derivedFrom": [
+        "summary.json"
+      ],
+      "copiedVerbatim": false
+    },
+    {
+      "path": "behind-blue-eyes/behind-blue-eyes-detected-chords.txt",
+      "bytes": 3763,
+      "sha256": "ed2aad9636926ae5b84e95ca12f2d430badf29635319fca1b0826fbfa6a23bb5",
+      "preparedBy": "root",
+      "copiedVerbatim": false,
+      "note": "Existing parent-prepared final BBE evidence; this packager did not modify the file."
+    },
+    {
+      "path": "behind-blue-eyes/intro-section.json",
+      "bytes": 1734,
+      "sha256": "9da710fb0347c24bafaa449ddbdca48a06847b88e9a3175691462998eefabfd0",
+      "preparedBy": "root",
+      "copiedVerbatim": false,
+      "note": "Existing parent-prepared final BBE evidence; this packager did not modify the file."
+    },
+    {
+      "path": "behind-blue-eyes/intro-section.txt",
+      "bytes": 457,
+      "sha256": "7cf50b93430adff7155b418ba8aacd4d845640d10a423064dc88895300080c0a",
+      "preparedBy": "root",
+      "copiedVerbatim": false,
+      "note": "Existing parent-prepared final BBE evidence; this packager did not modify the file."
+    },
+    {
+      "path": "behind-blue-eyes/manifest.json",
+      "bytes": 1413,
+      "sha256": "8bf86f7c26429cc3c0bf569e79bd18c10442880f0f01266d70ac0b534796b67e",
+      "preparedBy": "root",
+      "copiedVerbatim": false,
+      "note": "Existing parent-prepared final BBE evidence; this packager did not modify the file."
+    },
+    {
+      "path": "behind-blue-eyes/output.json",
+      "bytes": 7841,
+      "sha256": "bd218d778cf0870fbd4bab39d21903d12d8d7a9e88ae17606ad15bf27e0af092",
+      "preparedBy": "root",
+      "copiedVerbatim": false,
+      "note": "Existing parent-prepared final BBE evidence; this packager did not modify the file."
+    },
+    {
+      "path": "behind-blue-eyes/run.json",
+      "bytes": 1338,
+      "sha256": "c03ef66ed7807c8493118ccdc5fd6412d5d146989f400537258f2c6ec066a45d",
+      "preparedBy": "root",
+      "copiedVerbatim": false,
+      "note": "Existing parent-prepared final BBE evidence; this packager did not modify the file."
+    },
+    {
+      "path": "behind-blue-eyes/sequence-comparison.json",
+      "bytes": 8287,
+      "sha256": "2c829f2c62babc21177ee4651ad226c2337b31ddfcf55c50be1df14fe00ea533",
+      "preparedBy": "root",
+      "copiedVerbatim": false,
+      "note": "Existing parent-prepared final BBE evidence; this packager did not modify the file."
+    },
+    {
+      "path": "behind-blue-eyes/stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "preparedBy": "root",
+      "copiedVerbatim": false,
+      "note": "Existing parent-prepared final BBE evidence; this packager did not modify the file."
+    },
+    {
+      "path": "build/production-cli-build.txt",
+      "bytes": 186,
+      "sha256": "4d1c90361cfa3ad6662d0b725ee402a2f65489d4e38eb4dbae9624dbe90de524",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-candidate-3/production-cli-build.log",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "build/production-release-tests.txt",
+      "bytes": 3486,
+      "sha256": "f87260e27161e47cb294d379e38ad3c3e1d36ceae9503663367f73e086ae0658",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-candidate-3/production-release-tests.log",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/00_BN1-129-Eb_comp.json",
+      "bytes": 988,
+      "sha256": "7c1cc0937dfd05cc1948ccb115c05400e204b6b3106cbf6b7f8b517a1944eaf3",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/00_BN1-129-Eb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/00_Rock3-117-Bb_comp.json",
+      "bytes": 1192,
+      "sha256": "45d8c94b91afea0e89d4e421c63182d9b1666c50d1070d6209065257febde157",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/00_Rock3-117-Bb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/01_Jazz2-110-Bb_comp.json",
+      "bytes": 1400,
+      "sha256": "f9fac7368959fd5cf3aa434ff14badf38bd23b0961e3b197b38aaf1be7873140",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/01_Jazz2-110-Bb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/01_SS1-68-E_comp.json",
+      "bytes": 508,
+      "sha256": "919238255df98539b1767d69af6242ba0b46c3e90d059d0b261e1ad65d758195",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/01_SS1-68-E_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/02_BN3-119-G_comp.json",
+      "bytes": 1315,
+      "sha256": "437052336f6133eb2464d38cb32aaabed1d066c55a50eb69ccb9a75c7130baa7",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/02_BN3-119-G_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/02_Funk1-97-C_comp.json",
+      "bytes": 981,
+      "sha256": "b979399097a125ab0da830841b76338ef68c3c33bd3bfa4bd97010f318d8ba85",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/02_Funk1-97-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/03_Jazz3-150-C_comp.json",
+      "bytes": 1254,
+      "sha256": "f7b1c45717b829e883bd09db6eb13cdbaca99098219fcce9d998f6453f6c4ba3",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/03_Jazz3-150-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/03_Rock1-130-A_comp.json",
+      "bytes": 506,
+      "sha256": "b549017590480e86fb46a117d05edbae29bc28350191400396a4b6408fd8b000",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/03_Rock1-130-A_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/04_Funk2-119-G_comp.json",
+      "bytes": 1191,
+      "sha256": "588976ca400a1a64a555ccda23655df5d48b3f7934455eaa6f974b08f94f04d0",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/04_Funk2-119-G_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/04_SS2-107-Ab_comp.json",
+      "bytes": 1199,
+      "sha256": "e95f4660d61f340ae2e390b35aac4ef357118b7d502fb35eec158c180d651b8d",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/04_SS2-107-Ab_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/05_BN2-166-Ab_comp.json",
+      "bytes": 1196,
+      "sha256": "90fb6d2596978a412f25fb78f81ad71daa84530b5feb82252ce8eb78443df3f1",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/05_BN2-166-Ab_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/baseline/outputs/05_SS3-84-Bb_comp.json",
+      "bytes": 1194,
+      "sha256": "a0dfabccef5db05ba63496387f1f2ab05270919f931e472e74fef537a8852e4a",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/baseline/outputs/05_SS3-84-Bb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/00_BN1-129-Eb_comp.json",
+      "bytes": 741,
+      "sha256": "6eb3142f02c7f686cf6f8a669a896164eb7e741a6f00a5544c27a238681dc1da",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/00_BN1-129-Eb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/00_BN1-129-Eb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/00_BN1-129-Eb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/00_Rock3-117-Bb_comp.json",
+      "bytes": 1625,
+      "sha256": "9c0fd97aa110a6b97c06aaf454209644239a113888a2cb62a779edc774f864fd",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/00_Rock3-117-Bb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/00_Rock3-117-Bb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/00_Rock3-117-Bb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/01_Jazz2-110-Bb_comp.json",
+      "bytes": 1208,
+      "sha256": "adf44fa52fcb6941515e93d6c0ec74cdb6f70f1c0be7ffc9d588d6c9a3025756",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/01_Jazz2-110-Bb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/01_Jazz2-110-Bb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/01_Jazz2-110-Bb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/01_SS1-68-E_comp.json",
+      "bytes": 789,
+      "sha256": "9a7d67e54822bc84e0413d6f4ee5c558d0c2e4564dbaa54259ad9063675674cb",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/01_SS1-68-E_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/01_SS1-68-E_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/01_SS1-68-E_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/02_BN3-119-G_comp.json",
+      "bytes": 1255,
+      "sha256": "c89dc78fb39bbf5f1bb077ab5faf9c5fead3872d6aa72c81eb68043e7949a843",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/02_BN3-119-G_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/02_BN3-119-G_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/02_BN3-119-G_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/02_Funk1-97-C_comp.json",
+      "bytes": 515,
+      "sha256": "83e30ffcab073c4bc8925a040500b1dea48493c5e2f1187db456dc459ba67f3e",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/02_Funk1-97-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/02_Funk1-97-C_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/02_Funk1-97-C_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/03_Jazz3-150-C_comp.json",
+      "bytes": 1220,
+      "sha256": "398001482d30cf63825675ff11488de98d6328d126c252e0bbce0c033a2fa74b",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/03_Jazz3-150-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/03_Jazz3-150-C_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/03_Jazz3-150-C_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/03_Rock1-130-A_comp.json",
+      "bytes": 578,
+      "sha256": "4e1063d064091e88984c20adc5311e500befef1ce674ca2581484acc880194d6",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/03_Rock1-130-A_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/03_Rock1-130-A_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/03_Rock1-130-A_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/04_Funk2-119-G_comp.json",
+      "bytes": 1222,
+      "sha256": "6a9682a6244b23398129600b6e57dde503ccf99caba77dc69f6cf7d3c6438983",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/04_Funk2-119-G_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/04_Funk2-119-G_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/04_Funk2-119-G_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/04_SS2-107-Ab_comp.json",
+      "bytes": 1146,
+      "sha256": "f32a572f3bba5df45ecb4d3fd8e8113e51bb4db5e515bad663a61677ded38c3e",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/04_SS2-107-Ab_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/04_SS2-107-Ab_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/04_SS2-107-Ab_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/05_BN2-166-Ab_comp.json",
+      "bytes": 1307,
+      "sha256": "fc21871ce3a5a852149b218ab8faf67fd24c33f1e622a772e6e7a41f7fb34a7f",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/05_BN2-166-Ab_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/05_BN2-166-Ab_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/05_BN2-166-Ab_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/05_SS3-84-Bb_comp.json",
+      "bytes": 1334,
+      "sha256": "6391ebddd40a29eb51f566433b0ef74b3b2cda1b72836d3e55ba4533c8e1d3f8",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/05_SS3-84-Bb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/candidate/outputs/05_SS3-84-Bb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/candidate/outputs/05_SS3-84-Bb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/comparison.json",
+      "bytes": 131860,
+      "sha256": "d3ad242d8af05054745a4f7687a32411662980b889562192ad6a0d71c6784f4e",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/comparison.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/00_BN1-129-Eb_comp.json",
+      "bytes": 741,
+      "sha256": "aa398bee5468591c684b9c6252e7fdfcc6841e111196e28017982d22e66db1a6",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/00_BN1-129-Eb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/00_Rock3-117-Bb_comp.json",
+      "bytes": 1625,
+      "sha256": "25c78f295e2536d990c67ca4fe435cb55693ceb2d3206a73ded196c66b8db40c",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/00_Rock3-117-Bb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/01_Jazz2-110-Bb_comp.json",
+      "bytes": 1208,
+      "sha256": "1abb2201eaaf57b43e3885fa0d828635e142805c8c4f95eedb03d05f1508be08",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/01_Jazz2-110-Bb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/01_SS1-68-E_comp.json",
+      "bytes": 788,
+      "sha256": "76b80ce5f4e8c76572a491cae8646476456449dd16e0ed27495c27a6f180ac91",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/01_SS1-68-E_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/02_BN3-119-G_comp.json",
+      "bytes": 1255,
+      "sha256": "fb10fcdb02cc8594fd352f8bcee03340459579ef7e8eb2a88d86b40079b8091b",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/02_BN3-119-G_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/02_Funk1-97-C_comp.json",
+      "bytes": 515,
+      "sha256": "5abd843f2b270b4169c84cb222230fc7ede29bad492b944f930a46a910819278",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/02_Funk1-97-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/03_Jazz3-150-C_comp.json",
+      "bytes": 1220,
+      "sha256": "a0912974997ac87f668f3177853439e99b2f4d34d66a02b99b4f39fd0ba19871",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/03_Jazz3-150-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/03_Rock1-130-A_comp.json",
+      "bytes": 582,
+      "sha256": "c92224752ce2fd9b809b8e274308728282484477773fbff32a23a815254f2ba2",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/03_Rock1-130-A_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/04_Funk2-119-G_comp.json",
+      "bytes": 1222,
+      "sha256": "e94111cddde18b9f66b478fd0cae0cc1773208bc5c9f51404fb17f22bbbc6770",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/04_Funk2-119-G_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/04_SS2-107-Ab_comp.json",
+      "bytes": 1146,
+      "sha256": "75c622f3f1b96aa1dd8e587483c985908e0ce2e8d3ead5a2f99c6371b950970e",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/04_SS2-107-Ab_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/05_BN2-166-Ab_comp.json",
+      "bytes": 1307,
+      "sha256": "bdfc89d659fa760e235e211bac3646e48e4f07e90d3fc4489f0afd6f29516637",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/05_BN2-166-Ab_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-after-evaluation/previous-production/outputs/05_SS3-84-Bb_comp.json",
+      "bytes": 1334,
+      "sha256": "e4772f354c39abf0cb310e6175b554ac4e6ce93455a1850203a467a8a78461bb",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/development-after-evaluation/previous-production/outputs/05_SS3-84-Bb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-diagnosis/candidate2-regression.stderr.txt",
+      "bytes": 788,
+      "sha256": "11919c593035db57189863df7f34a95369161ca30292f842ce2f5627d87bb3bc",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/intro-regression-diagnosis/candidate2-regression.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-diagnosis/candidate2-regression.stdout.txt",
+      "bytes": 44,
+      "sha256": "f753ad725d7cc11323c129a3183a4b8a068a63412bf977326e9b73eb9564d168",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/intro-regression-diagnosis/candidate2-regression.stdout.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-diagnosis/diagnosis.json",
+      "bytes": 6790,
+      "sha256": "8b7319b64a3224fd380b3f4942ac03002c7c5cd22f4fdcdf4445f98d356831cd",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/intro-regression-diagnosis/diagnosis.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "development-diagnosis/diagnosis.md",
+      "bytes": 3116,
+      "sha256": "2dbeeeee02ab99a899157e5b989c8989e782654bb4653b04474484759ad5dbd5",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/intro-regression-diagnosis/diagnosis.md",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/00_Funk1-97-C_comp.json",
+      "bytes": 1050,
+      "sha256": "2723f9f9eb842bba071dc3c4f9d23693ec44e9ded9b2875be5384083b6d34f2e",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/00_Funk1-97-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/00_Funk1-97-C_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/00_Funk1-97-C_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/00_SS1-68-E_comp.json",
+      "bytes": 1119,
+      "sha256": "f8642706dfc8cc50693c00d14bf26df40af72f5233eabbe0a12b5de5e27a6d2d",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/00_SS1-68-E_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/00_SS1-68-E_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/00_SS1-68-E_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/01_BN1-147-Gb_comp.json",
+      "bytes": 508,
+      "sha256": "3de8cb619b4a058b32847e26edac5393aafd006c711dfcc567f1fde8152f22a7",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/01_BN1-147-Gb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/01_BN1-147-Gb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/01_BN1-147-Gb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/01_Jazz3-137-Eb_comp.json",
+      "bytes": 1261,
+      "sha256": "1c39706a8051c464a4236fe6ae2804f70e439d950df5d9374248ea9619dbc747",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/01_Jazz3-137-Eb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/01_Jazz3-137-Eb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/01_Jazz3-137-Eb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/02_Jazz1-130-D_comp.json",
+      "bytes": 572,
+      "sha256": "f9f631060b904bce3f734a23cc98636fcc23dc1e5ca02bdca71cf37b8187eed0",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/02_Jazz1-130-D_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/02_Jazz1-130-D_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/02_Jazz1-130-D_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/02_Rock3-148-C_comp.json",
+      "bytes": 1177,
+      "sha256": "8827e65930c1e07bd658b9fd5712298991c4b3b67ce0363b4402fc75a9bcba95",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/02_Rock3-148-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/02_Rock3-148-C_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/02_Rock3-148-C_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/03_BN3-154-E_comp.json",
+      "bytes": 1670,
+      "sha256": "49afc595457f697facb193fe2ab0d52a3da8e32100bea63218641b99959f2c0c",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/03_BN3-154-E_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/03_BN3-154-E_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/03_BN3-154-E_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/03_SS2-88-F_comp.json",
+      "bytes": 1199,
+      "sha256": "9ad772bfb1766c9549fc50ca0c16da406e16fb9ef7702507c6163331151cd096",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/03_SS2-88-F_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/03_SS2-88-F_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/03_SS2-88-F_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/04_Funk3-98-A_comp.json",
+      "bytes": 2076,
+      "sha256": "a25266756c0de7c3836497c9db58fdf748ade01ed4cf1102cbc0d1f59afd643a",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/04_Funk3-98-A_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/04_Funk3-98-A_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/04_Funk3-98-A_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/04_SS1-68-E_comp.json",
+      "bytes": 509,
+      "sha256": "b5c68ec78c6c6a66e93ee89eafc8a3a2922593a7dcc07252202d2b75b743ff46",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/04_SS1-68-E_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/04_SS1-68-E_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/04_SS1-68-E_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/05_Jazz3-137-Eb_comp.json",
+      "bytes": 1467,
+      "sha256": "33abbd97bb4b13d0c0b65e9497313bc2cfdf34d248ad40cb523f74ba5be06538",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/05_Jazz3-137-Eb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/05_Jazz3-137-Eb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/05_Jazz3-137-Eb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/05_Rock1-130-A_comp.json",
+      "bytes": 574,
+      "sha256": "c1321e2309ad5b94ba7bce958cf76f59d8583e02083273564bee49d98ed44758",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/05_Rock1-130-A_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/baseline/outputs/05_Rock1-130-A_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/baseline/outputs/05_Rock1-130-A_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/00_Funk1-97-C_comp.json",
+      "bytes": 1007,
+      "sha256": "f8e7cd9071c3c0a650fce99ca3cd7dd24de7ef0b7752b930ef7949ba5654bcb6",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/00_Funk1-97-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/00_Funk1-97-C_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/00_Funk1-97-C_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/00_SS1-68-E_comp.json",
+      "bytes": 1419,
+      "sha256": "bd72cdb8ee8b7dc6d7ff93894356e0446ee21640a00924695dc246ea50a228f9",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/00_SS1-68-E_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/00_SS1-68-E_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/00_SS1-68-E_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/01_BN1-147-Gb_comp.json",
+      "bytes": 579,
+      "sha256": "d0747365f66a0888d81856cda6759e5ee2c85356527a5687ad4f9e0840e7d103",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/01_BN1-147-Gb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/01_BN1-147-Gb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/01_BN1-147-Gb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/01_Jazz3-137-Eb_comp.json",
+      "bytes": 1270,
+      "sha256": "43c38dca65d7a708392e5c3b2e8a6b40bdd70ee050c6bd0e19e26d1c863008a3",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/01_Jazz3-137-Eb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/01_Jazz3-137-Eb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/01_Jazz3-137-Eb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/02_Jazz1-130-D_comp.json",
+      "bytes": 574,
+      "sha256": "81674d0e581a7f0e85b6a61090ad137e3ff844cadbdf4b2d1989de595313ee70",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/02_Jazz1-130-D_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/02_Jazz1-130-D_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/02_Jazz1-130-D_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/02_Rock3-148-C_comp.json",
+      "bytes": 1456,
+      "sha256": "3babea3c4601845e2ef3f4b4c97b1e42e4fb484c579c3230996f1228cccf0a8d",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/02_Rock3-148-C_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/02_Rock3-148-C_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/02_Rock3-148-C_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/03_BN3-154-E_comp.json",
+      "bytes": 1220,
+      "sha256": "c2d94c5800a2bbae0ee195d52cc44f69ba5c788848531077ed160cb34a3c9e7b",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/03_BN3-154-E_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/03_BN3-154-E_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/03_BN3-154-E_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/03_SS2-88-F_comp.json",
+      "bytes": 1137,
+      "sha256": "8658d4c0db8ac0f7fe6c2868c77f1ebd1f25a1bb14a9d2304cbc5d134ab677b9",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/03_SS2-88-F_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/03_SS2-88-F_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/03_SS2-88-F_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/04_Funk3-98-A_comp.json",
+      "bytes": 1484,
+      "sha256": "e5c55b5361a845c1d60e838633b8af2ea585e99ae0b1d7af86cd2ab664372204",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/04_Funk3-98-A_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/04_Funk3-98-A_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/04_Funk3-98-A_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/04_SS1-68-E_comp.json",
+      "bytes": 591,
+      "sha256": "bd7271963a48b5a0354be49810a5d97a263ac3b30da17f403f3a5ffa3e2d1803",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/04_SS1-68-E_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/04_SS1-68-E_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/04_SS1-68-E_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/05_Jazz3-137-Eb_comp.json",
+      "bytes": 1239,
+      "sha256": "4cb7d0dc27f9a2b24aa06259e1ab90cc94930bceffcae47dd75c258ec494bf54",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/05_Jazz3-137-Eb_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/05_Jazz3-137-Eb_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/05_Jazz3-137-Eb_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/05_Rock1-130-A_comp.json",
+      "bytes": 921,
+      "sha256": "63de04337d30205cc7f48cbed15d4eae9efa063951e7df1216b5a6a39eaba729",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/05_Rock1-130-A_comp.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/candidate/outputs/05_Rock1-130-A_comp.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/candidate/outputs/05_Rock1-130-A_comp.stderr.txt",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "fresh-holdout/comparison.json",
+      "bytes": 88471,
+      "sha256": "4df7cb09fb4b5f2b3d53d84ad53a6e35a152222c3d3c34f44388cc52fd1be41b",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/fresh-holdout/comparison.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/baseline-freeze.json",
+      "bytes": 6768,
+      "sha256": "95eb52bae8ef8163bcf6745f619302006f338c2b1165400469da85668e275044",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/evaluation-inputs/baseline/frozen-manifest.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/build-inputs.json",
+      "bytes": 1761,
+      "sha256": "bfa0d2ba31f01fca1d188853229114a48c027b5d59645ff50257ba8279aa7690",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-candidate-3/build-inputs.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/completion.json",
+      "bytes": 1547,
+      "sha256": "1e825e0640ac4a176debda7b70521fc9cef054adac1af015a2813fe0b4e477c5",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/completion.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/evaluation-protocol-frozen.json",
+      "bytes": 906,
+      "sha256": "63b60f0514429cc9816315e10e529943fd2eb02693314b2e9c0d0908a3479711",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/evaluation-inputs/evaluation-protocol-frozen.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/first-v2-freeze.json",
+      "bytes": 4323,
+      "sha256": "df569e59acfe00e2971fa4b4eeb6ec0235263e8c967d30d1c2c59ca5681f4a1f",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/evaluation-inputs/production-frozen-comparison/candidate/freeze.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/fresh-acquisition-manifest.json",
+      "bytes": 17870,
+      "sha256": "447f47970e82fb3ea2a6f0e4a6ac1ad45330552ebf2819c54f0e1b7edb7a18d2",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/evaluation-inputs/fresh-holdout/acquisition-manifest.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/fresh-selection.json",
+      "bytes": 42642,
+      "sha256": "509037740ca700b9e3c08cef7687acb288a43a3b0f859204a254865913aca159",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/evaluation-inputs/fresh-holdout/selection.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/input-provenance.json",
+      "bytes": 14065,
+      "sha256": "c684ee1593e0bf84b5dce32c7f5766e42928391627a1a9a6e0fcbdf03b34495d",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/input-provenance.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/model-provenance.json",
+      "bytes": 2490,
+      "sha256": "1582a76022087dcfae953653989fae3d61dd893edbd3d9de066f68e48e80d2a3",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-candidate-3/source/models/basic-pitch/provenance.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/native-freeze.json",
+      "bytes": 3507,
+      "sha256": "76c88825fbd4a9d8b8066c09d04c033d8c271252674c08e4c1404805c75faa8b",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-candidate-3/freeze.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/original-acquisition-manifest.json",
+      "bytes": 8614,
+      "sha256": "e7cbb1af4729d6f4e6a7bdef75fc2c52aa9f5de0c3c70a6529d38eba5d4ee564",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/evaluation-inputs/acquisition-manifest.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/original-selection.json",
+      "bytes": 960,
+      "sha256": "fd3676349d3b80770f18881e4467b1b5d88763cc5162999f8786e12678f998db",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/evaluation-inputs/selection.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/reference-coverage.json",
+      "bytes": 14673,
+      "sha256": "123b716ca927e19f8ce79f7705ba901d6291a425fe6d4d8c879cecef8b59060e",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/reference-coverage.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/run-once-claim.json",
+      "bytes": 515,
+      "sha256": "0aa6fcaca70336328f36f7206810baf38770d7603d57e757234d120b2e4de2bf",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/fresh-holdout-evaluation-once.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/runs.json",
+      "bytes": 43322,
+      "sha256": "9246eb42173c7ed842867b5e1b8345b9fb3887e5ea68ecb1b2bd1e9112141582",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/second-production-frozen-comparison/runs.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "provenance/second-freeze.json",
+      "bytes": 5399,
+      "sha256": "fe223a7191a302321bbbfd31a90bbb249042342ca7805e40310c23cc7e27f4fb",
+      "sourcePath": "/workspace/scratch/4d3df6e78b9e/chord-pro-evidence/production-second-freeze.json",
+      "copiedVerbatim": true
+    },
+    {
+      "path": "summary.json",
+      "bytes": 255790,
+      "sha256": "a7256a40ce6cc22dd9136bead81454521ed267fbe06a81e77b4eb134e0dcd2d7",
+      "derivedFrom": [
+        "fresh-holdout/comparison.json",
+        "development-after-evaluation/comparison.json",
+        "provenance/input-provenance.json",
+        "behind-blue-eyes/sequence-comparison.json"
+      ],
+      "copiedVerbatim": false
+    }
+  ]
+}

@@ -1,0 +1,1374 @@
+{
+  "sealedUTC": "2026-11-26T21:28:38.904187+00:00",
+  "dataset": "GuitarSet 1.1.0",
+  "source": "https://zenodo.org/records/3371780",
+  "license": "CC-BY-4.0",
+  "seed": "freetune-chords-second-holdout-2026-11-26",
+  "algorithmVersion": "sha256-balanced-player-style-dp-v1",
+  "algorithm": [
+    "Eligible IDs are paired audio/JAMS comp members matching the documented player/style filename regex; only the 15 predeclared IDs are excluded.",
+    "Hash bytes are UTF-8(seed + NUL + domain + NUL + value), interpreted as an unsigned 256-bit integer.",
+    "Domains: style-quota for a style code, track for the complete track ID.",
+    "Assign two recordings to every style; the two lowest style-quota hashes receive a third.",
+    "Choose exactly two distinct styles for each player 00..05.",
+    "For every player/style bucket, use the track with the lowest track hash; lexical track ID breaks a hash tie.",
+    "Dynamic programming over players minimizes the total sum of track hashes under style quotas; lexical selected-track tuple breaks a total-cost tie.",
+    "No annotation bodies, chord labels, model outputs, or accuracy results enter selection."
+  ],
+  "styleOrder": [
+    "BN",
+    "Funk",
+    "Jazz",
+    "Rock",
+    "SS"
+  ],
+  "styleQuotaHashes": {
+    "BN": "e833a05b44fb2c7d1553009089fb2fbaa52a9d56bffdeb0e5cd86e0539638d73",
+    "Funk": "975cdedd582d9e41fac0044430bbfb5a6d6ed31c89a0374b8aa5b6483416141e",
+    "Jazz": "76120c1151948d4c53f7f48f5053371f3f20ace67665d553144640d3ce8ab7c9",
+    "Rock": "8276c46b2a767a85d83f6ecbd9520d09b8b5a82d41d67eb27f1dcee9a95ee533",
+    "SS": "1f343b70f83a62505c7d00598a86ef9c2b812bdc87883ada16af4982495ad37c"
+  },
+  "styleQuotas": {
+    "BN": 2,
+    "Funk": 2,
+    "Jazz": 3,
+    "Rock": 2,
+    "SS": 3
+  },
+  "eligibleTracks": 165,
+  "eligibleTrackCatalog": [
+    {
+      "track": "00_BN1-147-Gb_comp",
+      "player": "00",
+      "style": "BN",
+      "rankSHA256": "f3ff9f6dc770d46f4da037e7a99f0c9c8e7b4d1ae2b7a3a3e2928c1fc6fced34"
+    },
+    {
+      "track": "00_BN2-131-B_comp",
+      "player": "00",
+      "style": "BN",
+      "rankSHA256": "943c303eb220c675c8ec62313010ec3d0666f21d5e8e54a97704b273df80c8d0"
+    },
+    {
+      "track": "00_BN2-166-Ab_comp",
+      "player": "00",
+      "style": "BN",
+      "rankSHA256": "bf0b148f014c5799939b3ddf637aa4cb55f97a566382adc75c1fc9044142fca1"
+    },
+    {
+      "track": "00_BN3-119-G_comp",
+      "player": "00",
+      "style": "BN",
+      "rankSHA256": "9f46b730eabe00d747de8bef76505912550e017eca27b9bbd5ce7818e9b10f7e"
+    },
+    {
+      "track": "00_BN3-154-E_comp",
+      "player": "00",
+      "style": "BN",
+      "rankSHA256": "8ed4dc443d8fa9ffe6002b9bb70e5c9e822580bc61d08924b704fffc2cdc667f"
+    },
+    {
+      "track": "00_Funk1-114-Ab_comp",
+      "player": "00",
+      "style": "Funk",
+      "rankSHA256": "55be91a9c7327844002a124424b6d5543a68b1b8e30e02434d962066872414e2"
+    },
+    {
+      "track": "00_Funk1-97-C_comp",
+      "player": "00",
+      "style": "Funk",
+      "rankSHA256": "0674a5cbf8423d51823a3f6da703ed0a6b05a235ec2bd4e3c3983f91cc08ce91"
+    },
+    {
+      "track": "00_Funk2-108-Eb_comp",
+      "player": "00",
+      "style": "Funk",
+      "rankSHA256": "57c8de900bd0daea9b4c94b90c1482f64ce7cd45d3ac6c789775c158d4ca33ed"
+    },
+    {
+      "track": "00_Funk2-119-G_comp",
+      "player": "00",
+      "style": "Funk",
+      "rankSHA256": "7140ff20a906d7ac63ab0fd8724d13fb014ada907a086ec3c3ed342f840f220e"
+    },
+    {
+      "track": "00_Funk3-112-C#_comp",
+      "player": "00",
+      "style": "Funk",
+      "rankSHA256": "57567d134669d70a0e907e53c5888551698b81a2dfe7939ecaf5927d19a8c0a5"
+    },
+    {
+      "track": "00_Funk3-98-A_comp",
+      "player": "00",
+      "style": "Funk",
+      "rankSHA256": "5ac55dc0e01b760523461346df11a8d7ca47e83c0abb62c4f6ebcb683ccea5bb"
+    },
+    {
+      "track": "00_Jazz1-130-D_comp",
+      "player": "00",
+      "style": "Jazz",
+      "rankSHA256": "aafccda908ade9d92632db1f9bfde8330f993965064ce794916405d994fbc52b"
+    },
+    {
+      "track": "00_Jazz1-200-B_comp",
+      "player": "00",
+      "style": "Jazz",
+      "rankSHA256": "e08d3dd5ad1b6580344f467e5706193379d94c323851baceb07db5d164d0298a"
+    },
+    {
+      "track": "00_Jazz2-110-Bb_comp",
+      "player": "00",
+      "style": "Jazz",
+      "rankSHA256": "65744b4dd67c0abf1b632d65562991a76697fd0ba11310084651a17d2d15f1db"
+    },
+    {
+      "track": "00_Jazz2-187-F#_comp",
+      "player": "00",
+      "style": "Jazz",
+      "rankSHA256": "d6edc873e3454810b127527d6af3300ed166ff4146455fd62278b5ff7f1bb72f"
+    },
+    {
+      "track": "00_Jazz3-137-Eb_comp",
+      "player": "00",
+      "style": "Jazz",
+      "rankSHA256": "dc58e705b07c00d15473cd95b6a0ee7687c6385349a2fc0af1c2ebb54db8ae6a"
+    },
+    {
+      "track": "00_Jazz3-150-C_comp",
+      "player": "00",
+      "style": "Jazz",
+      "rankSHA256": "37cb7f2dabc8856d448f93f3b76f602c102b6e47b6bc91348a4cb552e1226120"
+    },
+    {
+      "track": "00_Rock1-130-A_comp",
+      "player": "00",
+      "style": "Rock",
+      "rankSHA256": "89a6b2c458fd9c09859f78f122a3cf6ee4983dd9232279c5bd002e53573ae3dd"
+    },
+    {
+      "track": "00_Rock1-90-C#_comp",
+      "player": "00",
+      "style": "Rock",
+      "rankSHA256": "a6f43ac757750526b52ca4d1b0bf3899f53b70f2f9b51ee2961bd432d320034f"
+    },
+    {
+      "track": "00_Rock2-142-D_comp",
+      "player": "00",
+      "style": "Rock",
+      "rankSHA256": "25680c10c26ac5e8c8ce7a97df617c86428ca4e2fb5aec3fcd8dff7daee732aa"
+    },
+    {
+      "track": "00_Rock2-85-F_comp",
+      "player": "00",
+      "style": "Rock",
+      "rankSHA256": "b016177e4c1018536170f52320064b12e596ec4101a74b29aafe32d28d3b1306"
+    },
+    {
+      "track": "00_Rock3-148-C_comp",
+      "player": "00",
+      "style": "Rock",
+      "rankSHA256": "f77b2ee61c254d3481d01c4cadf68159fccc3e645dbcee0fa3a55102da95ab2c"
+    },
+    {
+      "track": "00_SS1-100-C#_comp",
+      "player": "00",
+      "style": "SS",
+      "rankSHA256": "a9df596e75830f0ce26dbf362c21078adb2ead3c924fb53358d11f93b0dbbec4"
+    },
+    {
+      "track": "00_SS1-68-E_comp",
+      "player": "00",
+      "style": "SS",
+      "rankSHA256": "0725aa80413ce2616005c0aff27243c64daebf69f5befb8d343ec8deb2549a56"
+    },
+    {
+      "track": "00_SS2-107-Ab_comp",
+      "player": "00",
+      "style": "SS",
+      "rankSHA256": "679f7f3757420ada19fbbccba06771e43fba60caa1c0cacd140bd2c6047987e3"
+    },
+    {
+      "track": "00_SS2-88-F_comp",
+      "player": "00",
+      "style": "SS",
+      "rankSHA256": "c5075b6e59bcd891f6a6cd7d8e71dded6c920a7ee922705c5335f40f322ad73c"
+    },
+    {
+      "track": "00_SS3-84-Bb_comp",
+      "player": "00",
+      "style": "SS",
+      "rankSHA256": "b00dd54a887b8fa95697cf21c1089b53eace4c474ba2ff7eb3623c6a32e3b881"
+    },
+    {
+      "track": "01_BN1-129-Eb_comp",
+      "player": "01",
+      "style": "BN",
+      "rankSHA256": "762a3d414913b217ab33ed9e6aa2efa76091d45eac736643d16d5e7708224d78"
+    },
+    {
+      "track": "01_BN1-147-Gb_comp",
+      "player": "01",
+      "style": "BN",
+      "rankSHA256": "17ef1c13e607d4434292165288bb9348da4e46bb87c99277576e298c661bff49"
+    },
+    {
+      "track": "01_BN2-131-B_comp",
+      "player": "01",
+      "style": "BN",
+      "rankSHA256": "745635e396ea43b88413c1f36a5a411ec4e2188b6dfb89374f08b50739b2118c"
+    },
+    {
+      "track": "01_BN2-166-Ab_comp",
+      "player": "01",
+      "style": "BN",
+      "rankSHA256": "ad43d4bf012f9473fe5378ac5b3b4deb23237b1dc9d1c80d2508bda9b26811ff"
+    },
+    {
+      "track": "01_BN3-119-G_comp",
+      "player": "01",
+      "style": "BN",
+      "rankSHA256": "e69385bb117fbdda26879940c0c25b4d07595e43762df19bf1a8b633b84d8623"
+    },
+    {
+      "track": "01_BN3-154-E_comp",
+      "player": "01",
+      "style": "BN",
+      "rankSHA256": "f7473c565aee464a6b1d33bd344f65d2bd7e59de3f29c1c0b595f28a66a01090"
+    },
+    {
+      "track": "01_Funk1-114-Ab_comp",
+      "player": "01",
+      "style": "Funk",
+      "rankSHA256": "a479e552ce49ed70a1f0fb8a4646ec2c7e102dfb074585a3afd5038a96108805"
+    },
+    {
+      "track": "01_Funk1-97-C_comp",
+      "player": "01",
+      "style": "Funk",
+      "rankSHA256": "84c6280ee55ed4f2119f6af678ed2a17a915f31f4d285147283614488683843f"
+    },
+    {
+      "track": "01_Funk2-108-Eb_comp",
+      "player": "01",
+      "style": "Funk",
+      "rankSHA256": "11eb836edb23cc39aa0ca61d4d3da6e639ed1191d411a82b4f115c81bd902c39"
+    },
+    {
+      "track": "01_Funk2-119-G_comp",
+      "player": "01",
+      "style": "Funk",
+      "rankSHA256": "d6b11a6e4e5fa711dc8e6ed8b57561337986cf89a9b30d2007ada51f39914161"
+    },
+    {
+      "track": "01_Funk3-112-C#_comp",
+      "player": "01",
+      "style": "Funk",
+      "rankSHA256": "9bd415ea3728a7decc17538fd2f0d463a96ba72b3d016e2a40e31377a6527a27"
+    },
+    {
+      "track": "01_Funk3-98-A_comp",
+      "player": "01",
+      "style": "Funk",
+      "rankSHA256": "37719f81e355d3843c60925fc7fa9c0eef14eb381346595092d70802717bbd06"
+    },
+    {
+      "track": "01_Jazz1-130-D_comp",
+      "player": "01",
+      "style": "Jazz",
+      "rankSHA256": "3308963f1f0568ba38cb874e30035ec582c0ff2237f5a2a742e825302a883508"
+    },
+    {
+      "track": "01_Jazz1-200-B_comp",
+      "player": "01",
+      "style": "Jazz",
+      "rankSHA256": "bcefff23265d3c77dba9a7f73bb7020351786e0dbc5a904c9d8f13dcc4d5da7d"
+    },
+    {
+      "track": "01_Jazz2-187-F#_comp",
+      "player": "01",
+      "style": "Jazz",
+      "rankSHA256": "dd03332d050a0049b4a75a39c3d44776baf9d1a76d811a42717ca3be921b6106"
+    },
+    {
+      "track": "01_Jazz3-137-Eb_comp",
+      "player": "01",
+      "style": "Jazz",
+      "rankSHA256": "181ae714fec63e64451f3b6edfe9093544f6abd52472b8b9b3dd376ab969f012"
+    },
+    {
+      "track": "01_Jazz3-150-C_comp",
+      "player": "01",
+      "style": "Jazz",
+      "rankSHA256": "e8a514163c03c29e81defbac2448ed4a73c51330cb38653e268df24caff2120e"
+    },
+    {
+      "track": "01_Rock1-130-A_comp",
+      "player": "01",
+      "style": "Rock",
+      "rankSHA256": "e567fb7fad597d41b816cb8aae8cf0b1a87d56fd3512cc32e45761bca0269673"
+    },
+    {
+      "track": "01_Rock1-90-C#_comp",
+      "player": "01",
+      "style": "Rock",
+      "rankSHA256": "51ab80ab6566c20910c1b637b35fb9cf57d7e82277e2c296d4c03cc28d47c17b"
+    },
+    {
+      "track": "01_Rock2-142-D_comp",
+      "player": "01",
+      "style": "Rock",
+      "rankSHA256": "df661b9a4fef04ee14406dbe815edb1e4f1e5069935f5d256f3023deae8220db"
+    },
+    {
+      "track": "01_Rock2-85-F_comp",
+      "player": "01",
+      "style": "Rock",
+      "rankSHA256": "797ecef12dd61d5ee3b647db6ee0035e31261471eb3131e95fc438a0c72b8728"
+    },
+    {
+      "track": "01_Rock3-117-Bb_comp",
+      "player": "01",
+      "style": "Rock",
+      "rankSHA256": "e735ac62ee84704a33cc85f1387927565a62a2dc40af1948e4123741458867ca"
+    },
+    {
+      "track": "01_Rock3-148-C_comp",
+      "player": "01",
+      "style": "Rock",
+      "rankSHA256": "c3a76fb49a60dca2da37881c84ec54b19439d3f9fe1c07e265b0c8d7b95e008d"
+    },
+    {
+      "track": "01_SS1-100-C#_comp",
+      "player": "01",
+      "style": "SS",
+      "rankSHA256": "e952054011239755ace1b77183232036e9d069711301278f3be771e067caab75"
+    },
+    {
+      "track": "01_SS2-107-Ab_comp",
+      "player": "01",
+      "style": "SS",
+      "rankSHA256": "9b5e4a6389bbdecab6baf3dc0a966b78d9c165fd43bb6f95af6b485f2450eee5"
+    },
+    {
+      "track": "01_SS2-88-F_comp",
+      "player": "01",
+      "style": "SS",
+      "rankSHA256": "2910d7ed88c76600a33eb70c75e237f1322231704a2db325794d3e74836dbac8"
+    },
+    {
+      "track": "01_SS3-84-Bb_comp",
+      "player": "01",
+      "style": "SS",
+      "rankSHA256": "8b0b99e7e3b03f5b90be463494e3c8c8b6d2d029a0a975772f1eebb8fd9a0233"
+    },
+    {
+      "track": "01_SS3-98-C_comp",
+      "player": "01",
+      "style": "SS",
+      "rankSHA256": "5eac0a8b9494fa6c7eab06296abe09e3c2465bffdbd95e42ce6d3371977d75b3"
+    },
+    {
+      "track": "02_BN1-129-Eb_comp",
+      "player": "02",
+      "style": "BN",
+      "rankSHA256": "6d217d80f666037073afd111e04121f9210b9cc882bd43edd3ae815e5390c0d6"
+    },
+    {
+      "track": "02_BN1-147-Gb_comp",
+      "player": "02",
+      "style": "BN",
+      "rankSHA256": "82ce2b570c12ee80b928def70093909310c39cd82b837df6c66e0e0541029d87"
+    },
+    {
+      "track": "02_BN2-131-B_comp",
+      "player": "02",
+      "style": "BN",
+      "rankSHA256": "f3cc4f98ec8db35d1313470e2c96816c2ac7c4b9645434705fd87f2d7536093c"
+    },
+    {
+      "track": "02_BN2-166-Ab_comp",
+      "player": "02",
+      "style": "BN",
+      "rankSHA256": "81e1be73e1b944afd1d6a08baae801b9fd3f9f5319e71b0032f9e395f3a47eab"
+    },
+    {
+      "track": "02_BN3-154-E_comp",
+      "player": "02",
+      "style": "BN",
+      "rankSHA256": "93aa53648ec4fe1ae856a352209830ff693cce132fa216e9cf550a3398444d36"
+    },
+    {
+      "track": "02_Funk1-114-Ab_comp",
+      "player": "02",
+      "style": "Funk",
+      "rankSHA256": "0d54debcf45045958eed0f22a00524126b61d0c6ff743c70d227d8a1b27be421"
+    },
+    {
+      "track": "02_Funk2-108-Eb_comp",
+      "player": "02",
+      "style": "Funk",
+      "rankSHA256": "49b3b22c95903c01316dff325e76d16545093f0d6023d1b062c10be73a30b14f"
+    },
+    {
+      "track": "02_Funk2-119-G_comp",
+      "player": "02",
+      "style": "Funk",
+      "rankSHA256": "cf524af4a2af2fd61b1c37b10a4684314360652a8fbb4eda7d64d926cd09968c"
+    },
+    {
+      "track": "02_Funk3-112-C#_comp",
+      "player": "02",
+      "style": "Funk",
+      "rankSHA256": "269e767d3212a024329c7156872d9714ff0119f73122f4b552fa842b28d62724"
+    },
+    {
+      "track": "02_Funk3-98-A_comp",
+      "player": "02",
+      "style": "Funk",
+      "rankSHA256": "ab3c1383990608c887759b40cf90edb1da44596017ed3cab4becf8ca90f1d49c"
+    },
+    {
+      "track": "02_Jazz1-130-D_comp",
+      "player": "02",
+      "style": "Jazz",
+      "rankSHA256": "089d32fa6457f77ac8230961704ba21fbbbe307b1beca86093a87a0525fccacc"
+    },
+    {
+      "track": "02_Jazz1-200-B_comp",
+      "player": "02",
+      "style": "Jazz",
+      "rankSHA256": "bb37bfe2f42c2bd472e828e11fa5c330c4894fa8860492b3030f087ae26dcb0b"
+    },
+    {
+      "track": "02_Jazz2-110-Bb_comp",
+      "player": "02",
+      "style": "Jazz",
+      "rankSHA256": "9dcd5ea5e9f1c1fcb99c3c51f5ff4995e7f3fd77fbc0dcb0baaaf5702e27f334"
+    },
+    {
+      "track": "02_Jazz2-187-F#_comp",
+      "player": "02",
+      "style": "Jazz",
+      "rankSHA256": "3e10bcbd2c259f67d3dbe02b84132a23eab40a97efe6b6d8a6b6689e4e7cc986"
+    },
+    {
+      "track": "02_Jazz3-137-Eb_comp",
+      "player": "02",
+      "style": "Jazz",
+      "rankSHA256": "bb0bca4a597c970541f195d59d459e1b7a1ccac1e9ad5e8dffcca2f7cb5a8aa1"
+    },
+    {
+      "track": "02_Jazz3-150-C_comp",
+      "player": "02",
+      "style": "Jazz",
+      "rankSHA256": "52da1e31edc9108dcd918661214b51272b5a10319c00faacb0896b26384718f3"
+    },
+    {
+      "track": "02_Rock1-130-A_comp",
+      "player": "02",
+      "style": "Rock",
+      "rankSHA256": "507559f27e3125ddd658c8b64b6a91837198e4197c1b82fd6ec0d4a052464a88"
+    },
+    {
+      "track": "02_Rock1-90-C#_comp",
+      "player": "02",
+      "style": "Rock",
+      "rankSHA256": "99611dc8aea67b86f044df213df83cde54b6fe7749aa7d6392a667e4c1e96438"
+    },
+    {
+      "track": "02_Rock2-142-D_comp",
+      "player": "02",
+      "style": "Rock",
+      "rankSHA256": "4b11c6e8dd08acf7d3c3c72e098b58cda95e01cffc06b34d4a85e8cbad29efad"
+    },
+    {
+      "track": "02_Rock2-85-F_comp",
+      "player": "02",
+      "style": "Rock",
+      "rankSHA256": "4f398009933d1cb941899ef6756c8cce490d04078ebab4984471c59bd4257510"
+    },
+    {
+      "track": "02_Rock3-117-Bb_comp",
+      "player": "02",
+      "style": "Rock",
+      "rankSHA256": "2291016fafabac7c8c236d5fde4725566fdada25458c1de600ad43fa5f8ea36a"
+    },
+    {
+      "track": "02_Rock3-148-C_comp",
+      "player": "02",
+      "style": "Rock",
+      "rankSHA256": "1c15617d0f598c3f67fd4e15c722f6d95a70c7116b67a9337dd7fd0c9c1fcc09"
+    },
+    {
+      "track": "02_SS1-100-C#_comp",
+      "player": "02",
+      "style": "SS",
+      "rankSHA256": "8cabb4c954b0d5456bedec972bb6c0eaae151eca47bc2b04b2d93d7211c86387"
+    },
+    {
+      "track": "02_SS1-68-E_comp",
+      "player": "02",
+      "style": "SS",
+      "rankSHA256": "3b1585255ade169373a59019ed7397b074de8e55cde00b55461a9778e81439bf"
+    },
+    {
+      "track": "02_SS2-107-Ab_comp",
+      "player": "02",
+      "style": "SS",
+      "rankSHA256": "7aa7676b89db2ee04ec0cedfb0e8a7b6b6341a2635f9d2e5c7281c3186d6bc59"
+    },
+    {
+      "track": "02_SS2-88-F_comp",
+      "player": "02",
+      "style": "SS",
+      "rankSHA256": "2e279811c8a281dd5ba698bc03b4d037a568e80b0bf6719e2611381c7669e6f3"
+    },
+    {
+      "track": "02_SS3-84-Bb_comp",
+      "player": "02",
+      "style": "SS",
+      "rankSHA256": "be38d7424d182194fd7eff8a53f2951e097b04220d5e3c27b9ddfae860221312"
+    },
+    {
+      "track": "02_SS3-98-C_comp",
+      "player": "02",
+      "style": "SS",
+      "rankSHA256": "e7b48a18a2a7e632d8563e1b860d66aa6376f75751495de84c8a46e7446d208a"
+    },
+    {
+      "track": "03_BN1-129-Eb_comp",
+      "player": "03",
+      "style": "BN",
+      "rankSHA256": "3f37e0edf9fe3f65ef0f0b7bbff54d7a258222d56a681483bc80864427dbbf56"
+    },
+    {
+      "track": "03_BN1-147-Gb_comp",
+      "player": "03",
+      "style": "BN",
+      "rankSHA256": "99de9ce159bd6ef8ee7d142794d2c5616f9dcfc6e153441ec1899330e3b4475d"
+    },
+    {
+      "track": "03_BN2-131-B_comp",
+      "player": "03",
+      "style": "BN",
+      "rankSHA256": "a3226e9301e1a6f27c57232679f2b21789a910e40997c2f17139392038121200"
+    },
+    {
+      "track": "03_BN2-166-Ab_comp",
+      "player": "03",
+      "style": "BN",
+      "rankSHA256": "9b96c7ebc14f22c6d12cba29327c97748b80d36f91d7233e972de3d6eb4da988"
+    },
+    {
+      "track": "03_BN3-119-G_comp",
+      "player": "03",
+      "style": "BN",
+      "rankSHA256": "67025ea9dbacaf4fe36c4c7ce3e5ed86d59bc41d49227fb80e1cea863553db1f"
+    },
+    {
+      "track": "03_BN3-154-E_comp",
+      "player": "03",
+      "style": "BN",
+      "rankSHA256": "2437e742650aa5aed56fd82ae8f3d7d50261b56cc31c6c6cf89b4a50264ff687"
+    },
+    {
+      "track": "03_Funk1-114-Ab_comp",
+      "player": "03",
+      "style": "Funk",
+      "rankSHA256": "0f828943c2c4eb29602e3c75169bb9a5af0767f178438fa7461b69144c08b2b8"
+    },
+    {
+      "track": "03_Funk1-97-C_comp",
+      "player": "03",
+      "style": "Funk",
+      "rankSHA256": "925ac32e00a2a5190d5db8fc90ab7024010e0b29c3f42e62940b8f9a02a97479"
+    },
+    {
+      "track": "03_Funk2-108-Eb_comp",
+      "player": "03",
+      "style": "Funk",
+      "rankSHA256": "8c73b21288c9cc62962204fd40fc9a91bd936657b50fe46a43809fb2b2b947ef"
+    },
+    {
+      "track": "03_Funk2-119-G_comp",
+      "player": "03",
+      "style": "Funk",
+      "rankSHA256": "b9087e561fa4cbe253a80fea996706e3773bba06415437925395245aede9bd4c"
+    },
+    {
+      "track": "03_Funk3-112-C#_comp",
+      "player": "03",
+      "style": "Funk",
+      "rankSHA256": "e78da2134a0b1db24285c91cdb0d712c4fed7cf4dbe2f3a9ffc7ea7fe790e9de"
+    },
+    {
+      "track": "03_Funk3-98-A_comp",
+      "player": "03",
+      "style": "Funk",
+      "rankSHA256": "e2ad692346473a7d2532bf15ed329249252e8ebba2fd8f5946d17b1b9b5d0fd2"
+    },
+    {
+      "track": "03_Jazz1-130-D_comp",
+      "player": "03",
+      "style": "Jazz",
+      "rankSHA256": "ff8a091adff742567a1eb48c0a2756d279ec71e48bf6a7f49c00f6935e1e856a"
+    },
+    {
+      "track": "03_Jazz1-200-B_comp",
+      "player": "03",
+      "style": "Jazz",
+      "rankSHA256": "7a1c7a64db3f4ea4def692beeda8d94463df0a1c6678ac30f44c03a341dfe545"
+    },
+    {
+      "track": "03_Jazz2-110-Bb_comp",
+      "player": "03",
+      "style": "Jazz",
+      "rankSHA256": "0dcce671c91cb3a720e79ec0da162902fd18ed484c9fb35179c02179eba8e4f9"
+    },
+    {
+      "track": "03_Jazz2-187-F#_comp",
+      "player": "03",
+      "style": "Jazz",
+      "rankSHA256": "a82c6d06d7320fea9b9acdcd5ff07e62df3c4691f1708276f95c93009c263f57"
+    },
+    {
+      "track": "03_Jazz3-137-Eb_comp",
+      "player": "03",
+      "style": "Jazz",
+      "rankSHA256": "b9a52555302879eaeb97d7eee94aba0c95cceb26b6ea12ce00848619d802dc23"
+    },
+    {
+      "track": "03_Rock1-90-C#_comp",
+      "player": "03",
+      "style": "Rock",
+      "rankSHA256": "b6ced998730d68aee1fbdea2162d6344a3ac0fc0af35434fd350220f02f484f3"
+    },
+    {
+      "track": "03_Rock2-142-D_comp",
+      "player": "03",
+      "style": "Rock",
+      "rankSHA256": "2c55a26844e27e0c785260da3212d77f819ea851616c7ef7f031603a60bb2614"
+    },
+    {
+      "track": "03_Rock2-85-F_comp",
+      "player": "03",
+      "style": "Rock",
+      "rankSHA256": "a8675198f27999bfe4becedba47f1bed649a7a3c6fed90cc6db589139a0579be"
+    },
+    {
+      "track": "03_Rock3-117-Bb_comp",
+      "player": "03",
+      "style": "Rock",
+      "rankSHA256": "750e42ba003ec54e9ac3dce565f9668d5a9224abef16144718783a00ee5dce85"
+    },
+    {
+      "track": "03_Rock3-148-C_comp",
+      "player": "03",
+      "style": "Rock",
+      "rankSHA256": "d3bb1ae13aa310b0c6c2f71182d9299ec9f82787f34fb0424bb67349957812cb"
+    },
+    {
+      "track": "03_SS1-100-C#_comp",
+      "player": "03",
+      "style": "SS",
+      "rankSHA256": "5312726544a4c30345c49c344b77996585692da65e575e543c96e78c6648423c"
+    },
+    {
+      "track": "03_SS1-68-E_comp",
+      "player": "03",
+      "style": "SS",
+      "rankSHA256": "5fddb65e2909c3400b8961a85e92343c0b0f304a93240995d3303fba7f2085b8"
+    },
+    {
+      "track": "03_SS2-107-Ab_comp",
+      "player": "03",
+      "style": "SS",
+      "rankSHA256": "9478997394caafb01d281d43d413f10e081e0a4ca693d730e1576c43cbc8d136"
+    },
+    {
+      "track": "03_SS2-88-F_comp",
+      "player": "03",
+      "style": "SS",
+      "rankSHA256": "115bc1b84b265188649915067c6b7a99b2e5d877c771f63104b126fd2a36ac2c"
+    },
+    {
+      "track": "03_SS3-84-Bb_comp",
+      "player": "03",
+      "style": "SS",
+      "rankSHA256": "1d54d573221b1daa2974f6d8c45f823efda53832ba3b86837d305f8ed6fdc001"
+    },
+    {
+      "track": "03_SS3-98-C_comp",
+      "player": "03",
+      "style": "SS",
+      "rankSHA256": "f7f179041b8534600630ce3dc541187ed3c75c867683b09fde559e06ac93e362"
+    },
+    {
+      "track": "04_BN1-129-Eb_comp",
+      "player": "04",
+      "style": "BN",
+      "rankSHA256": "637eadb0009a9b202c787d988ed6ae94af9e2e1743254de2503b4f971b857349"
+    },
+    {
+      "track": "04_BN1-147-Gb_comp",
+      "player": "04",
+      "style": "BN",
+      "rankSHA256": "d93e0535f1da3ff30a2f9890123ce2b29bb0b0bceee3504823cdde8a03605e64"
+    },
+    {
+      "track": "04_BN2-131-B_comp",
+      "player": "04",
+      "style": "BN",
+      "rankSHA256": "b74f971e5f89c601c31f95e7599e039152068dfe0732f5aed1004fb4ec8c7f6a"
+    },
+    {
+      "track": "04_BN2-166-Ab_comp",
+      "player": "04",
+      "style": "BN",
+      "rankSHA256": "bcc25b95d7ec222f2f789cd4ca2bf0df1b2e6842cee798aefe9cab37109f635c"
+    },
+    {
+      "track": "04_BN3-119-G_comp",
+      "player": "04",
+      "style": "BN",
+      "rankSHA256": "339c9c09a4f1e77fa35249af7744d70d0ffe97174ba8b3cbae1f7b947a547d63"
+    },
+    {
+      "track": "04_Funk1-114-Ab_comp",
+      "player": "04",
+      "style": "Funk",
+      "rankSHA256": "572d264495c73b7d1ee96abc4ef9df47f3b958e0b75ca6576a59e883668a9b72"
+    },
+    {
+      "track": "04_Funk1-97-C_comp",
+      "player": "04",
+      "style": "Funk",
+      "rankSHA256": "5c2f0d80e4bf81d066811c3a0a7165001027abca39aa748c9ef30dc81fbd891a"
+    },
+    {
+      "track": "04_Funk2-108-Eb_comp",
+      "player": "04",
+      "style": "Funk",
+      "rankSHA256": "2986a80539db3ab2bc624fb2d72f864202931d362d7200ff0eb8208c05375da5"
+    },
+    {
+      "track": "04_Funk3-112-C#_comp",
+      "player": "04",
+      "style": "Funk",
+      "rankSHA256": "e3c710f1b9692d2d661b957a6601c8b88ef33288dfebffee4acf41ff14abbb53"
+    },
+    {
+      "track": "04_Funk3-98-A_comp",
+      "player": "04",
+      "style": "Funk",
+      "rankSHA256": "01bb54f29bbe687f63d2c77347f8abfa7b57bcefffc94f11ac84ef76de09f984"
+    },
+    {
+      "track": "04_Jazz1-130-D_comp",
+      "player": "04",
+      "style": "Jazz",
+      "rankSHA256": "54ff004eb0d1adf9e04a41fbf89216a818294080cfa463cdc37cd65d264e9e21"
+    },
+    {
+      "track": "04_Jazz2-110-Bb_comp",
+      "player": "04",
+      "style": "Jazz",
+      "rankSHA256": "ee3360d8754deddf37fd2b50c1591eb82722039df80b7e6bd234116e0f04b343"
+    },
+    {
+      "track": "04_Jazz2-187-F#_comp",
+      "player": "04",
+      "style": "Jazz",
+      "rankSHA256": "b405e63228b13c5289236a0086fd97d3e25ce2cfe5733d1de6c74a5bd217122a"
+    },
+    {
+      "track": "04_Jazz3-137-Eb_comp",
+      "player": "04",
+      "style": "Jazz",
+      "rankSHA256": "d18bab15fa9642434d380b49ce22d4dd1aa63ba1016c0364244eb9dd84f347a4"
+    },
+    {
+      "track": "04_Jazz3-150-C_comp",
+      "player": "04",
+      "style": "Jazz",
+      "rankSHA256": "0b0c3ba904d31d1169443d0c841488a71a0f2bc61c1e81c5e8ba5ecdc2ea71c3"
+    },
+    {
+      "track": "04_Rock1-130-A_comp",
+      "player": "04",
+      "style": "Rock",
+      "rankSHA256": "d6cfc84b3df885f4682a9cee93e2cc849a450bbd2481d1f206eaa4902569c74a"
+    },
+    {
+      "track": "04_Rock1-90-C#_comp",
+      "player": "04",
+      "style": "Rock",
+      "rankSHA256": "ace55c972fcb2c6822d4c603efd97f7f91ba53a63307daf5887a20edd45caec9"
+    },
+    {
+      "track": "04_Rock2-142-D_comp",
+      "player": "04",
+      "style": "Rock",
+      "rankSHA256": "4e3cd19f8034c253169dae5b1b4cd64b1b29f13c06ddd5650cf43b499a3782b5"
+    },
+    {
+      "track": "04_Rock2-85-F_comp",
+      "player": "04",
+      "style": "Rock",
+      "rankSHA256": "c34f97b3ab92a97946713a37abe3febd7391eef3e1c38940d4b40b72a1a1b398"
+    },
+    {
+      "track": "04_Rock3-117-Bb_comp",
+      "player": "04",
+      "style": "Rock",
+      "rankSHA256": "cad8d615a9d46ba8d2180dac637f4b6b4f30138ea250eb5ecf2039a271ed15f0"
+    },
+    {
+      "track": "04_Rock3-148-C_comp",
+      "player": "04",
+      "style": "Rock",
+      "rankSHA256": "536362a9e23b93bbd89dd469c0dd87cdeba432a11163f9970cf981cd85ba2aee"
+    },
+    {
+      "track": "04_SS1-100-C#_comp",
+      "player": "04",
+      "style": "SS",
+      "rankSHA256": "9e65b49a14a221f907830850f7b148b1efcfc5c25599edaccb706e4e4fb01f00"
+    },
+    {
+      "track": "04_SS1-68-E_comp",
+      "player": "04",
+      "style": "SS",
+      "rankSHA256": "06123c2b2050a0055c854257d20e836cead4577dd5275faa48a11976dd402386"
+    },
+    {
+      "track": "04_SS2-88-F_comp",
+      "player": "04",
+      "style": "SS",
+      "rankSHA256": "2cd7be4fab55f3f0db85102e1f5af3b046a5d495372858d1e1200be695f1a6e0"
+    },
+    {
+      "track": "04_SS3-84-Bb_comp",
+      "player": "04",
+      "style": "SS",
+      "rankSHA256": "ef7a99e60bc981e1767483644cefe30e054969fc3022c17c5d264ff210f623d9"
+    },
+    {
+      "track": "04_SS3-98-C_comp",
+      "player": "04",
+      "style": "SS",
+      "rankSHA256": "16aba053d75f908de29c89b3bc8f9b0e745d05204640ab67b4d6a2003ce0cd3b"
+    },
+    {
+      "track": "05_BN1-129-Eb_comp",
+      "player": "05",
+      "style": "BN",
+      "rankSHA256": "ccbc37d8b0049b1020a24272104b44322880cc1ad52f18fa2ddd7d735b294ae4"
+    },
+    {
+      "track": "05_BN1-147-Gb_comp",
+      "player": "05",
+      "style": "BN",
+      "rankSHA256": "8309ba087f76e64a09757d50fffcd3b758da93682e36808ef4b51db7eac0caa3"
+    },
+    {
+      "track": "05_BN2-131-B_comp",
+      "player": "05",
+      "style": "BN",
+      "rankSHA256": "d438433cb51a3ead8425857b00f1109ec72b4bb41b7685652d86176544befcac"
+    },
+    {
+      "track": "05_BN3-119-G_comp",
+      "player": "05",
+      "style": "BN",
+      "rankSHA256": "5d1dec54e71fc1542a6506988fd766011f38e2c5a428b628f68af1594bb55973"
+    },
+    {
+      "track": "05_BN3-154-E_comp",
+      "player": "05",
+      "style": "BN",
+      "rankSHA256": "2de3627784913a6fc769471e2fb311e0564c1c5daad663c55c0b015549dda68b"
+    },
+    {
+      "track": "05_Funk1-114-Ab_comp",
+      "player": "05",
+      "style": "Funk",
+      "rankSHA256": "e18440e02779b1a5e24670a9f61c74c30811bc5994a87a50e88500897b23e597"
+    },
+    {
+      "track": "05_Funk1-97-C_comp",
+      "player": "05",
+      "style": "Funk",
+      "rankSHA256": "7b5cfbc1f566730fcde0e07a81a9056d43226778615054cdb70aab717529c60b"
+    },
+    {
+      "track": "05_Funk2-108-Eb_comp",
+      "player": "05",
+      "style": "Funk",
+      "rankSHA256": "1178ba90118a0c3775ed3b663e6c94a9ca64a4ebe5d494a6a46be61801bb2f84"
+    },
+    {
+      "track": "05_Funk2-119-G_comp",
+      "player": "05",
+      "style": "Funk",
+      "rankSHA256": "b625bdf63afdaacbc8ff42da70879bac79750dfb0ac23bd69eb800819bdf6880"
+    },
+    {
+      "track": "05_Funk3-112-C#_comp",
+      "player": "05",
+      "style": "Funk",
+      "rankSHA256": "fe8dc6e4716495cc70742de7b72e9bd63a75f4494057965a9c8945da8f97aeba"
+    },
+    {
+      "track": "05_Funk3-98-A_comp",
+      "player": "05",
+      "style": "Funk",
+      "rankSHA256": "721d36843deaafe51d826d78867558a79c6dc8fe6d7ea0755a794f679f25d65b"
+    },
+    {
+      "track": "05_Jazz1-130-D_comp",
+      "player": "05",
+      "style": "Jazz",
+      "rankSHA256": "d6a561292e28b7eb2f295e94ef0357018b81da8f72967bda5797e7af991117d8"
+    },
+    {
+      "track": "05_Jazz1-200-B_comp",
+      "player": "05",
+      "style": "Jazz",
+      "rankSHA256": "bd5008e499031866c2c3457f9ed044753369c7d362416bf7d4b3a810624a2e4d"
+    },
+    {
+      "track": "05_Jazz2-110-Bb_comp",
+      "player": "05",
+      "style": "Jazz",
+      "rankSHA256": "6fb8c3ba369ae6b62a4a27bbce25799aea5e8857124ca1d260e3193687979038"
+    },
+    {
+      "track": "05_Jazz2-187-F#_comp",
+      "player": "05",
+      "style": "Jazz",
+      "rankSHA256": "4bfb5968f78a0fe70218372abc9ec66d46c9e91b7af5358778823904acb41da0"
+    },
+    {
+      "track": "05_Jazz3-137-Eb_comp",
+      "player": "05",
+      "style": "Jazz",
+      "rankSHA256": "0af2d0953bee535953bfb659f5cf518874c276ec7acba1fc23d8e7c39f6268db"
+    },
+    {
+      "track": "05_Jazz3-150-C_comp",
+      "player": "05",
+      "style": "Jazz",
+      "rankSHA256": "92dcb669931e92cc6cc2d8b04e5077edde2bce678e6b36dbc3355347153b5d11"
+    },
+    {
+      "track": "05_Rock1-130-A_comp",
+      "player": "05",
+      "style": "Rock",
+      "rankSHA256": "141d9875bf4ed1fe04b6448481b8457461550a922022791dae383f842ff30763"
+    },
+    {
+      "track": "05_Rock1-90-C#_comp",
+      "player": "05",
+      "style": "Rock",
+      "rankSHA256": "f0c59bf45e3d889b51922a92ba16c3fd4e9cdc80130e4f0ae8eedc9320c4c311"
+    },
+    {
+      "track": "05_Rock2-142-D_comp",
+      "player": "05",
+      "style": "Rock",
+      "rankSHA256": "b88f0583ba653101bdf492c54a18fecb58b9257e1d23535b21a12d7803afc2c3"
+    },
+    {
+      "track": "05_Rock2-85-F_comp",
+      "player": "05",
+      "style": "Rock",
+      "rankSHA256": "20de04db705bc5b53f1d62ac3f1ae7448bc32c0086873f6568782363e158de4d"
+    },
+    {
+      "track": "05_Rock3-117-Bb_comp",
+      "player": "05",
+      "style": "Rock",
+      "rankSHA256": "8277ef280c7f39f2c2dd5cfd2ac6366ed83119106dd9844d0db25c8818b78b0a"
+    },
+    {
+      "track": "05_Rock3-148-C_comp",
+      "player": "05",
+      "style": "Rock",
+      "rankSHA256": "7934c3ec1c4a4efd0f75199647e81fc61091c9d65fe888c2132110f9fb5ed302"
+    },
+    {
+      "track": "05_SS1-100-C#_comp",
+      "player": "05",
+      "style": "SS",
+      "rankSHA256": "b347e45525a7b9d8a16a872364fc006c10ad5bded034383bc9ce67e012dec675"
+    },
+    {
+      "track": "05_SS1-68-E_comp",
+      "player": "05",
+      "style": "SS",
+      "rankSHA256": "1237ddfa5056f0f39207fade301ab926ef57c01baacb6405d99c737163361b5b"
+    },
+    {
+      "track": "05_SS2-107-Ab_comp",
+      "player": "05",
+      "style": "SS",
+      "rankSHA256": "15a13e61422c28c9534f26bfe07cdc5cfe5a018b8f78b2f81a5d854cded6d41d"
+    },
+    {
+      "track": "05_SS2-88-F_comp",
+      "player": "05",
+      "style": "SS",
+      "rankSHA256": "3ea5bdc22be96ca56dab33f23721d9e6472f4494929e8d2e2b6a89561db3e840"
+    },
+    {
+      "track": "05_SS3-98-C_comp",
+      "player": "05",
+      "style": "SS",
+      "rankSHA256": "f723663bde389d702214c89ddb25d844ac1e2be163a97f76b19fe96877e0825e"
+    }
+  ],
+  "selectedRankSumDecimal": "86293770417191406613130309671810368454870776289472794710914805780763485019922",
+  "tracks": [
+    "00_Funk1-97-C_comp",
+    "00_SS1-68-E_comp",
+    "01_BN1-147-Gb_comp",
+    "01_Jazz3-137-Eb_comp",
+    "02_Jazz1-130-D_comp",
+    "02_Rock3-148-C_comp",
+    "03_BN3-154-E_comp",
+    "03_SS2-88-F_comp",
+    "04_Funk3-98-A_comp",
+    "04_SS1-68-E_comp",
+    "05_Jazz3-137-Eb_comp",
+    "05_Rock1-130-A_comp"
+  ],
+  "selected": [
+    {
+      "track": "00_Funk1-97-C_comp",
+      "player": "00",
+      "style": "Funk",
+      "rankSHA256": "0674a5cbf8423d51823a3f6da703ed0a6b05a235ec2bd4e3c3983f91cc08ce91",
+      "members": {
+        "audio": {
+          "member": "00_Funk1-97-C_comp_mic.wav",
+          "uncompressedBytes": 2618560,
+          "compressedBytes": 1802629,
+          "crc32": "280a4b33",
+          "compressionType": 8,
+          "headerOffset": 494063280
+        },
+        "annotations": {
+          "member": "00_Funk1-97-C_comp.jams",
+          "uncompressedBytes": 2656393,
+          "compressedBytes": 192562,
+          "crc32": "1bcb5c16",
+          "compressionType": 8,
+          "headerOffset": 32769951
+        }
+      }
+    },
+    {
+      "track": "00_SS1-68-E_comp",
+      "player": "00",
+      "style": "SS",
+      "rankSHA256": "0725aa80413ce2616005c0aff27243c64daebf69f5befb8d343ec8deb2549a56",
+      "members": {
+        "audio": {
+          "member": "00_SS1-68-E_comp_mic.wav",
+          "uncompressedBytes": 3734996,
+          "compressedBytes": 2457337,
+          "crc32": "68316147",
+          "compressionType": 8,
+          "headerOffset": 521114600
+        },
+        "annotations": {
+          "member": "00_SS1-68-E_comp.jams",
+          "uncompressedBytes": 4334889,
+          "compressedBytes": 259860,
+          "crc32": "636c7412",
+          "compressionType": 8,
+          "headerOffset": 5517408
+        }
+      }
+    },
+    {
+      "track": "01_BN1-147-Gb_comp",
+      "player": "01",
+      "style": "BN",
+      "rankSHA256": "17ef1c13e607d4434292165288bb9348da4e46bb87c99277576e298c661bff49",
+      "members": {
+        "audio": {
+          "member": "01_BN1-147-Gb_comp_mic.wav",
+          "uncompressedBytes": 1727494,
+          "compressedBytes": 1055339,
+          "crc32": "6c16cd05",
+          "compressionType": 8,
+          "headerOffset": 525757523
+        },
+        "annotations": {
+          "member": "01_BN1-147-Gb_comp.jams",
+          "uncompressedBytes": 1598413,
+          "compressedBytes": 111629,
+          "crc32": "4a34ba71",
+          "compressionType": 8,
+          "headerOffset": 33954277
+        }
+      }
+    },
+    {
+      "track": "01_Jazz3-137-Eb_comp",
+      "player": "01",
+      "style": "Jazz",
+      "rankSHA256": "181ae714fec63e64451f3b6edfe9093544f6abd52472b8b9b3dd376ab969f012",
+      "members": {
+        "audio": {
+          "member": "01_Jazz3-137-Eb_comp_mic.wav",
+          "uncompressedBytes": 2471690,
+          "compressedBytes": 1403145,
+          "crc32": "60ff4b33",
+          "compressionType": 8,
+          "headerOffset": 507036570
+        },
+        "annotations": {
+          "member": "01_Jazz3-137-Eb_comp.jams",
+          "uncompressedBytes": 1656448,
+          "compressedBytes": 117468,
+          "crc32": "23895b1d",
+          "compressionType": 8,
+          "headerOffset": 11077881
+        }
+      }
+    },
+    {
+      "track": "02_Jazz1-130-D_comp",
+      "player": "02",
+      "style": "Jazz",
+      "rankSHA256": "089d32fa6457f77ac8230961704ba21fbbbe307b1beca86093a87a0525fccacc",
+      "members": {
+        "audio": {
+          "member": "02_Jazz1-130-D_comp_mic.wav",
+          "uncompressedBytes": 1953428,
+          "compressedBytes": 1391421,
+          "crc32": "3ea9c3cb",
+          "compressionType": 8,
+          "headerOffset": 127290545
+        },
+        "annotations": {
+          "member": "02_Jazz1-130-D_comp.jams",
+          "uncompressedBytes": 1954719,
+          "compressedBytes": 134618,
+          "crc32": "1af826cc",
+          "compressionType": 8,
+          "headerOffset": 11268384
+        }
+      }
+    },
+    {
+      "track": "02_Rock3-148-C_comp",
+      "player": "02",
+      "style": "Rock",
+      "rankSHA256": "1c15617d0f598c3f67fd4e15c722f6d95a70c7116b67a9337dd7fd0c9c1fcc09",
+      "members": {
+        "audio": {
+          "member": "02_Rock3-148-C_comp_mic.wav",
+          "uncompressedBytes": 2288022,
+          "compressedBytes": 2107639,
+          "crc32": "f0bd4b05",
+          "compressionType": 8,
+          "headerOffset": 633406128
+        },
+        "annotations": {
+          "member": "02_Rock3-148-C_comp.jams",
+          "uncompressedBytes": 2717339,
+          "compressedBytes": 186563,
+          "crc32": "34b8f0fc",
+          "compressionType": 8,
+          "headerOffset": 1944888
+        }
+      }
+    },
+    {
+      "track": "03_BN3-154-E_comp",
+      "player": "03",
+      "style": "BN",
+      "rankSHA256": "2437e742650aa5aed56fd82ae8f3d7d50261b56cc31c6c6cf89b4a50264ff687",
+      "members": {
+        "audio": {
+          "member": "03_BN3-154-E_comp_mic.wav",
+          "uncompressedBytes": 2199046,
+          "compressedBytes": 1277138,
+          "crc32": "0c8f3a37",
+          "compressionType": 8,
+          "headerOffset": 496992251
+        },
+        "annotations": {
+          "member": "03_BN3-154-E_comp.jams",
+          "uncompressedBytes": 1307965,
+          "compressedBytes": 95135,
+          "crc32": "a1db1581",
+          "compressionType": 8,
+          "headerOffset": 17472250
+        }
+      }
+    },
+    {
+      "track": "03_SS2-88-F_comp",
+      "player": "03",
+      "style": "SS",
+      "rankSHA256": "115bc1b84b265188649915067c6b7a99b2e5d877c771f63104b126fd2a36ac2c",
+      "members": {
+        "audio": {
+          "member": "03_SS2-88-F_comp_mic.wav",
+          "uncompressedBytes": 3848140,
+          "compressedBytes": 2747064,
+          "crc32": "df3de2a8",
+          "compressionType": 8,
+          "headerOffset": 406682742
+        },
+        "annotations": {
+          "member": "03_SS2-88-F_comp.jams",
+          "uncompressedBytes": 4847792,
+          "compressedBytes": 313054,
+          "crc32": "553ba4bc",
+          "compressionType": 8,
+          "headerOffset": 4147982
+        }
+      }
+    },
+    {
+      "track": "04_Funk3-98-A_comp",
+      "player": "04",
+      "style": "Funk",
+      "rankSHA256": "01bb54f29bbe687f63d2c77347f8abfa7b57bcefffc94f11ac84ef76de09f984",
+      "members": {
+        "audio": {
+          "member": "04_Funk3-98-A_comp_mic.wav",
+          "uncompressedBytes": 3455614,
+          "compressedBytes": 2516652,
+          "crc32": "197d16e4",
+          "compressionType": 8,
+          "headerOffset": 199755425
+        },
+        "annotations": {
+          "member": "04_Funk3-98-A_comp.jams",
+          "uncompressedBytes": 2276426,
+          "compressedBytes": 167562,
+          "crc32": "309a10ce",
+          "compressionType": 8,
+          "headerOffset": 6631624
+        }
+      }
+    },
+    {
+      "track": "04_SS1-68-E_comp",
+      "player": "04",
+      "style": "SS",
+      "rankSHA256": "06123c2b2050a0055c854257d20e836cead4577dd5275faa48a11976dd402386",
+      "members": {
+        "audio": {
+          "member": "04_SS1-68-E_comp_mic.wav",
+          "uncompressedBytes": 3734996,
+          "compressedBytes": 3220703,
+          "crc32": "d20b6d6c",
+          "compressionType": 8,
+          "headerOffset": 389283815
+        },
+        "annotations": {
+          "member": "04_SS1-68-E_comp.jams",
+          "uncompressedBytes": 6423867,
+          "compressedBytes": 411271,
+          "crc32": "bbc93526",
+          "compressionType": 8,
+          "headerOffset": 21556637
+        }
+      }
+    },
+    {
+      "track": "05_Jazz3-137-Eb_comp",
+      "player": "05",
+      "style": "Jazz",
+      "rankSHA256": "0af2d0953bee535953bfb659f5cf518874c276ec7acba1fc23d8e7c39f6268db",
+      "members": {
+        "audio": {
+          "member": "05_Jazz3-137-Eb_comp_mic.wav",
+          "uncompressedBytes": 2471690,
+          "compressedBytes": 1761767,
+          "crc32": "32d5c33d",
+          "compressionType": 8,
+          "headerOffset": 165806293
+        },
+        "annotations": {
+          "member": "05_Jazz3-137-Eb_comp.jams",
+          "uncompressedBytes": 1661864,
+          "compressedBytes": 121965,
+          "crc32": "ee3303c3",
+          "compressionType": 8,
+          "headerOffset": 17350202
+        }
+      }
+    },
+    {
+      "track": "05_Rock1-130-A_comp",
+      "player": "05",
+      "style": "Rock",
+      "rankSHA256": "141d9875bf4ed1fe04b6448481b8457461550a922022791dae383f842ff30763",
+      "members": {
+        "audio": {
+          "member": "05_Rock1-130-A_comp_mic.wav",
+          "uncompressedBytes": 1953428,
+          "compressedBytes": 1772440,
+          "crc32": "16b9a838",
+          "compressionType": 8,
+          "headerOffset": 168847066
+        },
+        "annotations": {
+          "member": "05_Rock1-130-A_comp.jams",
+          "uncompressedBytes": 2190742,
+          "compressedBytes": 139166,
+          "crc32": "d294ed6d",
+          "compressionType": 8,
+          "headerOffset": 2835311
+        }
+      }
+    }
+  ],
+  "exclusions": {
+    "previousEvaluationTracks": [
+      "00_BN1-129-Eb_comp",
+      "00_Rock3-117-Bb_comp",
+      "01_SS1-68-E_comp",
+      "01_Jazz2-110-Bb_comp",
+      "02_Funk1-97-C_comp",
+      "02_BN3-119-G_comp",
+      "03_Rock1-130-A_comp",
+      "03_Jazz3-150-C_comp",
+      "04_SS2-107-Ab_comp",
+      "04_Funk2-119-G_comp",
+      "05_BN2-166-Ab_comp",
+      "05_SS3-84-Bb_comp"
+    ],
+    "previousEvaluationRole": "development-after-evaluation",
+    "developmentTracks": [
+      "00_SS3-98-C_comp"
+    ],
+    "knownAnnotationTimingErrors": [
+      "04_BN3-154-E_comp",
+      "04_Jazz1-200-B_comp"
+    ],
+    "knownAnnotationTimingErrorsSource": "https://github.com/marl/GuitarSet/issues/5"
+  },
+  "policy": {
+    "noInferencePerformed": true,
+    "noPredictionsRead": true,
+    "noAnnotationBodiesReadBeforeSelection": true,
+    "noPostResultExclusions": "Omitted roots, inversions, extended/complex chords, or poor predictions must not remove a selected recording.",
+    "futureEvaluation": "One-shot evaluation only after the next candidate is frozen. Report all 12 selected recordings.",
+    "trainingOverlapCaveat": "Held out from this decoder development/evaluation stage, not asserted absent from any pretrained model training data.",
+    "referencePolicy": "Report instructed and performed annotations separately. Performed labels are sheet-informed and semi-automatic, not independent manually exhaustive transcriptions."
+  },
+  "catalogSHA256": "f9c282e1c04e1013cf928fa9e551380117a9fa6b8237da9025ddcc60728379e4",
+  "preparationScriptSHA256": "a068fbf1ede9c0b2c078d96d42f8120ed2cae6472249a86127f5f261ddbcce98",
+  "rangeReaderSHA256": "eb2037f825fcdbb1e5b11cd9b073062c1b53ff859e88521fd2cc488ea25364e5"
+}

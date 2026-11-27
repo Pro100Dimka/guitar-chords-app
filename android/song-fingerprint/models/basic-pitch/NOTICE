@@ -1,0 +1,21 @@
+Basic Pitch
+Copyright 2022 Spotify AB
+
+This application embeds a NNEF conversion of the Basic Pitch model from Spotify.
+The model and upstream inference/window constants are licensed under the
+Apache License, Version 2.0; see LICENSE.
+
+Upstream: https://github.com/spotify/basic-pitch
+Commit: fa5997af0a8210982619003269994a1be25eddf3
+Model: basic_pitch/saved_models/icassp_2022/nmp.onnx
+Model card: https://huggingface.co/spotify/basic-pitch
+
+The original ONNX source is retained for reproducibility. Only the NNEF file is
+compiled into the application. The pinned tract 0.23.9 build-time converter fixes
+the input shape and serializes a typed, decluttered graph. No training or
+quantization was applied; model weights are preserved. See provenance.json and
+scripts/chord-model-converter for source hashes and reproducible conversion.
+
+The application supplies its own streaming resampler and uses absolute input
+window positions for timestamps.
+This attribution does not imply endorsement by Spotify.

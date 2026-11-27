@@ -1,0 +1,44 @@
+{
+  "candidateBinarySha256": "840356f71e7fdbad4c209b55c234bedc9e97c59b2ca03a0355308334b217e27a",
+  "inputPcmSha256": "2392aa27f470ea9e0c73ce62893b094b70c850ef19e979d9e464a24a9e56be51",
+  "existingAudioProvenance": "../../../offline-chord-behind-blue-eyes-validation.json",
+  "noAudioBundled": true,
+  "rawOutputUnmodified": true,
+  "files": [
+    {
+      "path": "behind-blue-eyes-detected-chords.txt",
+      "bytes": 3763,
+      "sha256": "ed2aad9636926ae5b84e95ca12f2d430badf29635319fca1b0826fbfa6a23bb5"
+    },
+    {
+      "path": "intro-section.json",
+      "bytes": 1734,
+      "sha256": "9da710fb0347c24bafaa449ddbdca48a06847b88e9a3175691462998eefabfd0"
+    },
+    {
+      "path": "intro-section.txt",
+      "bytes": 457,
+      "sha256": "7cf50b93430adff7155b418ba8aacd4d845640d10a423064dc88895300080c0a"
+    },
+    {
+      "path": "output.json",
+      "bytes": 7841,
+      "sha256": "bd218d778cf0870fbd4bab39d21903d12d8d7a9e88ae17606ad15bf27e0af092"
+    },
+    {
+      "path": "run.json",
+      "bytes": 1338,
+      "sha256": "c03ef66ed7807c8493118ccdc5fd6412d5d146989f400537258f2c6ec066a45d"
+    },
+    {
+      "path": "sequence-comparison.json",
+      "bytes": 8287,
+      "sha256": "2c829f2c62babc21177ee4651ad226c2337b31ddfcf55c50be1df14fe00ea533"
+    },
+    {
+      "path": "stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

@@ -1,0 +1,4648 @@
+{
+  "schemaVersion": 1,
+  "nativePredictionSha256": "29bfabe829937aca58e804bbdc54d53187996894eab08bdfcd1099bc2dda9cd5",
+  "duration": 39.178812,
+  "ticksPerBeat": 24,
+  "tuningMidi": [
+    40,
+    45,
+    50,
+    55,
+    59,
+    64
+  ],
+  "rhythm": {
+    "style": "undetermined",
+    "complete": true,
+    "attackCount": 200,
+    "attacks": [
+      {
+        "time": 0.04644,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 0.325079,
+        "spread": 0.01161000000000001,
+        "pitches": [
+          48,
+          52
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 0.499229,
+        "spread": 0,
+        "pitches": [
+          60
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 0.638549,
+        "spread": 0.01161000000000001,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 0.801088,
+        "spread": 0,
+        "pitches": [
+          64
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 0.940408,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 1.114558,
+        "spread": 0.02322000000000002,
+        "pitches": [
+          48,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 1.242268,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 1.544127,
+        "spread": 0,
+        "pitches": [
+          52,
+          64
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 1.84907,
+        "spread": 0.011609999999999898,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 2.02322,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 2.19737,
+        "spread": 0,
+        "pitches": [
+          52,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 2.336689,
+        "spread": 0,
+        "pitches": [
+          59
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 2.487619,
+        "spread": 0.01161000000000012,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 2.766259,
+        "spread": 0.01160899999999998,
+        "pitches": [
+          50,
+          55,
+          67
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 3.079728,
+        "spread": 0.02322000000000024,
+        "pitches": [
+          47,
+          55,
+          59
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 3.253878,
+        "spread": 0,
+        "pitches": [
+          50,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 3.373061,
+        "spread": 0,
+        "pitches": [
+          50
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 3.547211,
+        "spread": 0,
+        "pitches": [
+          43,
+          47,
+          55,
+          59
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 3.674921,
+        "spread": 0,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 3.79102,
+        "spread": 0.05805000000000016,
+        "pitches": [
+          55,
+          59
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 4,
+        "spread": 0,
+        "pitches": [
+          50
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 4.16254,
+        "spread": 0.01161000000000012,
+        "pitches": [
+          47,
+          55,
+          59
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 4.325079,
+        "spread": 0,
+        "pitches": [
+          47,
+          59
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 4.638549,
+        "spread": 0.023219999999999352,
+        "pitches": [
+          47,
+          50,
+          55,
+          67
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 4.966712,
+        "spread": 0.01161000000000012,
+        "pitches": [
+          45,
+          52,
+          57
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 5.256961,
+        "spread": 0.011609999999999232,
+        "pitches": [
+          45,
+          52,
+          57,
+          67
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 5.500771,
+        "spread": 0.05804999999999971,
+        "pitches": [
+          45,
+          57,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 5.674921,
+        "spread": 0,
+        "pitches": [
+          45,
+          52,
+          57
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 5.95356,
+        "spread": 0.011609999999999232,
+        "pitches": [
+          45,
+          60
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 6.1161,
+        "spread": 0,
+        "pitches": [
+          45
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 6.417959,
+        "spread": 0.01161000000000012,
+        "pitches": [
+          45,
+          52,
+          60,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 6.722902,
+        "spread": 0,
+        "pitches": [
+          40
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 7.047982,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 7.198912,
+        "spread": 0,
+        "pitches": [
+          59
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 7.338231,
+        "spread": 0.04643999999999959,
+        "pitches": [
+          40,
+          47
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 7.523991,
+        "spread": 0,
+        "pitches": [
+          64
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 7.628481,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 7.721361,
+        "spread": 0,
+        "pitches": [
+          59
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 7.81424,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 7.97678,
+        "spread": 0,
+        "pitches": [
+          47,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 8.293333,
+        "spread": 0.011609999999999232,
+        "pitches": [
+          52,
+          59,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 8.467483,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 8.757732,
+        "spread": 0,
+        "pitches": [
+          59
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 8.897052,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 9.094422,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 9.245351,
+        "spread": 0,
+        "pitches": [
+          47
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 9.396281,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 9.500771,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 9.77941,
+        "spread": 0,
+        "pitches": [
+          53
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 10.095964,
+        "spread": 0.011609999999999232,
+        "pitches": [
+          41,
+          53,
+          60,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 10.374603,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 10.444263,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 10.560363,
+        "spread": 0,
+        "pitches": [
+          57
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 10.688073,
+        "spread": 0,
+        "pitches": [
+          48,
+          53,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 10.839002,
+        "spread": 0.011609999999999232,
+        "pitches": [
+          48,
+          53,
+          57,
+          60,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 10.989932,
+        "spread": 0,
+        "pitches": [
+          53,
+          57
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 11.129252,
+        "spread": 0,
+        "pitches": [
+          57
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 11.303401,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          48,
+          53,
+          57,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 11.477551,
+        "spread": 0,
+        "pitches": [
+          41,
+          53,
+          57,
+          60,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 11.666395,
+        "spread": 0,
+        "pitches": [
+          48,
+          60
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 11.805714,
+        "spread": 0.011609999999999232,
+        "pitches": [
+          53,
+          60,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 11.933424,
+        "spread": 0,
+        "pitches": [
+          53
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 12.107574,
+        "spread": 0,
+        "pitches": [
+          57
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 12.212063,
+        "spread": 0.06965999999999894,
+        "pitches": [
+          48,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 12.548753,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          52,
+          60,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 12.630023,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 12.769342,
+        "spread": 0.06966000000000072,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 12.839002,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 12.989932,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 13.167166,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 13.294875,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          55,
+          60
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 13.480635,
+        "spread": 0,
+        "pitches": [
+          48,
+          60
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 13.759274,
+        "spread": 0.04644000000000048,
+        "pitches": [
+          52,
+          55,
+          60,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 14.095964,
+        "spread": 0,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 14.270113,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 14.409433,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 14.560363,
+        "spread": 0,
+        "pitches": [
+          60
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 14.746122,
+        "spread": 0.014694000000000429,
+        "pitches": [
+          48,
+          53,
+          57
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 15.004626,
+        "spread": 0,
+        "pitches": [
+          53,
+          65
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 15.329705,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 15.445805,
+        "spread": 0,
+        "pitches": [
+          57
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 15.550295,
+        "spread": 0.011609999999999232,
+        "pitches": [
+          48,
+          53
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 15.736054,
+        "spread": 0,
+        "pitches": [
+          60
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 15.852154,
+        "spread": 0.05804999999999971,
+        "pitches": [
+          41,
+          53,
+          57
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 16.061134,
+        "spread": 0,
+        "pitches": [
+          57,
+          60
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 16.223673,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          48,
+          53,
+          57,
+          60,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 16.386213,
+        "spread": 0,
+        "pitches": [
+          60
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 16.540227,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 16.691156,
+        "spread": 0,
+        "pitches": [
+          57
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 16.818866,
+        "spread": 0,
+        "pitches": [
+          53
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 17.143946,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 17.469025,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          50,
+          59,
+          67
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 17.736054,
+        "spread": 0,
+        "pitches": [
+          45,
+          57
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 17.875374,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 18.064218,
+        "spread": 0,
+        "pitches": [
+          50,
+          62
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 18.412517,
+        "spread": 0,
+        "pitches": [
+          50,
+          62
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 18.493787,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 18.725986,
+        "spread": 0.03482999999999947,
+        "pitches": [
+          50,
+          55,
+          67
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 19.039456,
+        "spread": 0,
+        "pitches": [
+          45,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 19.143946,
+        "spread": 0,
+        "pitches": [
+          47,
+          55,
+          59
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 19.318095,
+        "spread": 0,
+        "pitches": [
+          50,
+          62
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 19.503855,
+        "spread": 0,
+        "pitches": [
+          59
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 19.619955,
+        "spread": 0.023219999999998464,
+        "pitches": [
+          48,
+          52,
+          60
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 19.715918,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 19.924898,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          48,
+          52,
+          55,
+          60,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 20.215147,
+        "spread": 0,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 20.342857,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 20.482177,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 20.621497,
+        "spread": 0.05804899999999691,
+        "pitches": [
+          55,
+          60,
+          72
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 20.842086,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          52,
+          55,
+          60,
+          67
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 21.109116,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          48,
+          60
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 21.472109,
+        "spread": 0,
+        "pitches": [
+          52,
+          55,
+          60,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 21.739138,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 21.901678,
+        "spread": 0.05804999999999794,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 22.354467,
+        "spread": 0,
+        "pitches": [
+          50,
+          59
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 22.818866,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 22.97288,
+        "spread": 0,
+        "pitches": [
+          47
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 23.10059,
+        "spread": 0,
+        "pitches": [
+          59
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 23.297959,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          50,
+          55,
+          67
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 23.576599,
+        "spread": 0,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 23.901678,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          43,
+          47,
+          55,
+          62
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 24.226757,
+        "spread": 0,
+        "pitches": [
+          50
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 24.389297,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 24.528617,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          45,
+          52,
+          57
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 24.79873,
+        "spread": 0.03482999999999947,
+        "pitches": [
+          45,
+          52,
+          57,
+          60,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 25.12381,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 25.251519,
+        "spread": 0,
+        "pitches": [
+          45,
+          57
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 25.402449,
+        "spread": 0,
+        "pitches": [
+          45
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 25.564989,
+        "spread": 0,
+        "pitches": [
+          60
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 25.692698,
+        "spread": 0,
+        "pitches": [
+          45,
+          52
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 26.006168,
+        "spread": 0,
+        "pitches": [
+          45,
+          64
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 26.345941,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          45,
+          57
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 26.63619,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          45,
+          57,
+          60,
+          72
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 26.92644,
+        "spread": 0,
+        "pitches": [
+          40
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 27.251519,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          52,
+          59,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 27.611429,
+        "spread": 0,
+        "pitches": [
+          47
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 27.739138,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 27.808798,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 28.020862,
+        "spread": 0,
+        "pitches": [
+          59
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 28.299501,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 28.485261,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 28.65941,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          52,
+          59,
+          71
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 28.79873,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 29.251519,
+        "spread": 0,
+        "pitches": [
+          64
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 29.425669,
+        "spread": 0,
+        "pitches": [
+          41
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 29.719002,
+        "spread": 0.011610000000001008,
+        "pitches": [
+          41,
+          53,
+          60,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 30.009252,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 30.160181,
+        "spread": 0,
+        "pitches": [
+          57,
+          60
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 30.311111,
+        "spread": 0,
+        "pitches": [
+          53,
+          65
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 30.438821,
+        "spread": 0,
+        "pitches": [
+          48,
+          57,
+          60
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 30.589751,
+        "spread": 0,
+        "pitches": [
+          41,
+          53
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 30.90322,
+        "spread": 0,
+        "pitches": [
+          53,
+          60,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 31.219773,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 31.301043,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 31.451973,
+        "spread": 0,
+        "pitches": [
+          53
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 31.544853,
+        "spread": 0,
+        "pitches": [
+          53
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 31.846712,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 32.009252,
+        "spread": 0,
+        "pitches": [
+          64
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 32.171791,
+        "spread": 0,
+        "pitches": [
+          48,
+          52
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 32.299501,
+        "spread": 0,
+        "pitches": [
+          55,
+          64
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 32.462041,
+        "spread": 0,
+        "pitches": [
+          43,
+          55
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 32.7639,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          52,
+          55,
+          60,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 32.906304,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 33.080454,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 33.382313,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          52,
+          55,
+          64
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 33.637732,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 33.719002,
+        "spread": 0,
+        "pitches": [
+          43,
+          52,
+          55
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 33.858322,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 33.986032,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 34.136961,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          55,
+          60
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 34.299501,
+        "spread": 0.023220000000002017,
+        "pitches": [
+          41,
+          53,
+          57
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 34.453515,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          53,
+          65
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 34.592834,
+        "spread": 0.06965999999999894,
+        "pitches": [
+          53,
+          57
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 34.732154,
+        "spread": 0,
+        "pitches": [
+          57
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 34.894694,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          48,
+          57,
+          60
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 35.034014,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          48,
+          53,
+          57,
+          60
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 35.150113,
+        "spread": 0.06966000000000605,
+        "pitches": [
+          41,
+          48,
+          53
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 35.219773,
+        "spread": 0,
+        "pitches": [
+          53,
+          60,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 35.324263,
+        "spread": 0.02321999999999491,
+        "pitches": [
+          57,
+          65
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 35.521633,
+        "spread": 0,
+        "pitches": [
+          41,
+          53,
+          57
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 35.800272,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          41,
+          53,
+          57,
+          60,
+          65
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 36.116825,
+        "spread": 0,
+        "pitches": [
+          48
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 36.290975,
+        "spread": 0,
+        "pitches": [
+          57
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 36.430295,
+        "spread": 0,
+        "pitches": [
+          48,
+          53
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 36.604444,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          43,
+          55,
+          59
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 36.743764,
+        "spread": 0,
+        "pitches": [
+          43,
+          55,
+          59
+        ],
+        "kind": "chord"
+      },
+      {
+        "time": 37.034014,
+        "spread": 0.011609999999997456,
+        "pitches": [
+          50,
+          67
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 37.324263,
+        "spread": 0,
+        "pitches": [
+          45
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 37.510023,
+        "spread": 0,
+        "pitches": [
+          55
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 37.684172,
+        "spread": 0,
+        "pitches": [
+          50
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 37.803356,
+        "spread": 0.023220000000002017,
+        "pitches": [
+          55,
+          59
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 37.977506,
+        "spread": 0.011610000000004561,
+        "pitches": [
+          50,
+          62
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 38.093605,
+        "spread": 0,
+        "pitches": [
+          52
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 38.302585,
+        "spread": 0,
+        "pitches": [
+          50,
+          62
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 38.407075,
+        "spread": 0,
+        "pitches": [
+          59
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 38.604444,
+        "spread": 0,
+        "pitches": [
+          45
+        ],
+        "kind": "single"
+      },
+      {
+        "time": 38.743764,
+        "spread": 0,
+        "pitches": [
+          47,
+          59
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 38.906304,
+        "spread": 0,
+        "pitches": [
+          50,
+          62
+        ],
+        "kind": "cluster"
+      },
+      {
+        "time": 39.057234,
+        "spread": 0,
+        "pitches": [
+          55,
+          59
+        ],
+        "kind": "cluster"
+      }
+    ],
+    "sections": [
+      {
+        "start": 0,
+        "end": 4,
+        "style": "undetermined",
+        "attackCount": 21
+      },
+      {
+        "start": 4,
+        "end": 12,
+        "style": "mixed",
+        "attackCount": 42
+      },
+      {
+        "start": 12,
+        "end": 16,
+        "style": "undetermined",
+        "attackCount": 22
+      },
+      {
+        "start": 16,
+        "end": 24,
+        "style": "mixed",
+        "attackCount": 37
+      },
+      {
+        "start": 24,
+        "end": 39.178812,
+        "style": "undetermined",
+        "attackCount": 78
+      }
+    ]
+  },
+  "projection": {
+    "status": "ready",
+    "tab": {
+      "version": 3,
+      "tempo": 97,
+      "beatsPerBar": 4,
+      "beatUnit": 4,
+      "barCount": 16,
+      "notes": [
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1.8020833333333333,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 12.613541666666666,
+          "duration": 23.873958333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 13.063541666666667,
+          "duration": 6.982291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 19.369791666666668,
+          "duration": 32.208333333333336,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 24.776041666666668,
+          "duration": 6.08125,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 25.226041666666667,
+          "duration": 17.342708333333334,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 31.082291666666666,
+          "duration": 23.648958333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 36.4875,
+          "duration": 23.425,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 39.415625,
+          "duration": 3.8291666666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 43.244791666666664,
+          "duration": 28.95,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 44.145833333333336,
+          "duration": 4.054166666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 48.2,
+          "duration": 22.867708333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 59.9125,
+          "duration": 25.345833333333335,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 59.9125,
+          "duration": 15.660416666666666,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 71.74375,
+          "duration": 25.226041666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 72.19479166666666,
+          "duration": 6.30625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 78.50104166666667,
+          "duration": 6.757291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 85.25833333333334,
+          "duration": 6.982291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 85.25833333333334,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 90.66354166666666,
+          "duration": 29.73125,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 96.51979166666666,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 96.96979166666667,
+          "duration": 40.6625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 107.33125,
+          "duration": 18.91875,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 107.78125,
+          "duration": 10.586458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "tick": 107.78125,
+          "duration": 14.640625,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 119.49375,
+          "duration": 18.138541666666665,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 120.39479166666666,
+          "duration": 5.855208333333334,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 120.39479166666666,
+          "duration": 17.2375,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 126.25,
+          "duration": 4.625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 126.25,
+          "duration": 11.382291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 130.875,
+          "duration": 24.325,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 137.63229166666667,
+          "duration": 4.954166666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 137.63229166666667,
+          "duration": 24.325,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 137.63229166666667,
+          "duration": 4.954166666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 137.63229166666667,
+          "duration": 9.459375,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 142.58645833333333,
+          "duration": 32.209375,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 142.58645833333333,
+          "duration": 6.757291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 147.09166666666667,
+          "duration": 14.414583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 149.34375,
+          "duration": 12.1625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 155.2,
+          "duration": 25.226041666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 161.50625,
+          "duration": 19.370833333333334,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 161.50625,
+          "duration": 6.307291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 161.95729166666666,
+          "duration": 5.85625,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 167.81354166666668,
+          "duration": 12.1625,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 167.81354166666668,
+          "duration": 25.119791666666668,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 7,
+          "tick": 179.97604166666667,
+          "duration": 7.432291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 5,
+          "tick": 180.42604166666666,
+          "duration": 13.408333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "tick": 180.42604166666666,
+          "duration": 14.760416666666666,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 5,
+          "tick": 180.87708333333333,
+          "duration": 12.05625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 192.70833333333334,
+          "duration": 11.7125,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 5,
+          "tick": 193.159375,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 193.159375,
+          "duration": 10.810416666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 203.96979166666668,
+          "duration": 16.216666666666665,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "tick": 203.96979166666668,
+          "duration": 10.586458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 204.42083333333332,
+          "duration": 10.360416666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 204.42083333333332,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 5,
+          "tick": 213.43020833333333,
+          "duration": 3.8291666666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 214.78125,
+          "duration": 5.405208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 215.68229166666666,
+          "duration": 4.504166666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 220.18645833333332,
+          "duration": 11.2625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 220.18645833333332,
+          "duration": 29.28125,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 220.18645833333332,
+          "duration": 39.98645833333333,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 230.99791666666667,
+          "duration": 8.784375,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 231.44895833333334,
+          "duration": 5.855208333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 237.30416666666667,
+          "duration": 12.163541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 249.01666666666668,
+          "duration": 15.660416666666666,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 249.01666666666668,
+          "duration": 18.363541666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 249.46770833333332,
+          "duration": 35.48125,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 249.46770833333332,
+          "duration": 23.99375,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 0,
+          "tick": 260.8489583333333,
+          "duration": 23.873958333333334,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 273.4614583333333,
+          "duration": 22.523958333333333,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 279.3177083333333,
+          "duration": 8.333333333333334,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 0,
+          "tick": 284.72291666666666,
+          "duration": 21.847916666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 286.525,
+          "duration": 8.784375,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 291.93125,
+          "duration": 9.234375,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 295.98541666666665,
+          "duration": 25.795833333333334,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 299.5885416666667,
+          "duration": 22.192708333333332,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 303.1927083333333,
+          "duration": 6.30625,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 309.49895833333335,
+          "duration": 49.22083333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 309.49895833333335,
+          "duration": 19.039583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 321.78125,
+          "duration": 23.423958333333335,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 321.78125,
+          "duration": 18.01875,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 322.23229166666664,
+          "duration": 43.01875,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 328.5385416666667,
+          "duration": 24.325,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 339.8,
+          "duration": 8.784375,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 345.20520833333336,
+          "duration": 23.425,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 352.86354166666666,
+          "duration": 6.532291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 358.71979166666665,
+          "duration": 14.189583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 364.57604166666664,
+          "duration": 15.090625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 368.6302083333333,
+          "duration": 4.279166666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 379.440625,
+          "duration": 12.733333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 380.1166666666667,
+          "duration": 12.057291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 380.5677083333333,
+          "duration": 20.390625,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 391.72291666666666,
+          "duration": 15.090625,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 392.17395833333336,
+          "duration": 53.155208333333334,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 392.17395833333336,
+          "duration": 22.522916666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 392.17395833333336,
+          "duration": 28.830208333333335,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 402.534375,
+          "duration": 2.703125,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 405.2375,
+          "duration": 9.459375,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 407.26458333333335,
+          "duration": 2.4770833333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 409.7416666666667,
+          "duration": 11.2625,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 414.696875,
+          "duration": 6.307291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 414.696875,
+          "duration": 5.85625,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 414.696875,
+          "duration": 5.85625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 420.553125,
+          "duration": 5.85625,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 420.553125,
+          "duration": 18.469791666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 421.00416666666666,
+          "duration": 17.567708333333332,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 421.00416666666666,
+          "duration": 5.405208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 421.00416666666666,
+          "duration": 24.325,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 426.409375,
+          "duration": 12.613541666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 426.409375,
+          "duration": 5.405208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 431.81458333333336,
+          "duration": 7.208333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 438.571875,
+          "duration": 14.084375,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 439.0229166666667,
+          "duration": 6.30625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 439.0229166666667,
+          "duration": 6.30625,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 439.0229166666667,
+          "duration": 6.30625,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 445.32916666666665,
+          "duration": 28.723958333333332,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 445.32916666666665,
+          "duration": 12.732291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 445.32916666666665,
+          "duration": 24.444791666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 445.32916666666665,
+          "duration": 7.327083333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 445.32916666666665,
+          "duration": 12.732291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 452.65625,
+          "duration": 23.875,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 452.65625,
+          "duration": 5.85625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 458.06145833333335,
+          "duration": 4.955208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 458.06145833333335,
+          "duration": 16.442708333333332,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 458.5125,
+          "duration": 21.396875,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 463.01666666666665,
+          "duration": 12.3875,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 469.7739583333333,
+          "duration": 5.180208333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 476.53125,
+          "duration": 13.513541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 486.89166666666665,
+          "duration": 23.994791666666668,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 486.89166666666665,
+          "duration": 13.288541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 487.34166666666664,
+          "duration": 8.334375,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 490.04479166666664,
+          "duration": 6.982291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 495.45,
+          "duration": 2.703125,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 498.153125,
+          "duration": 19.264583333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 498.153125,
+          "duration": 5.85625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 504.009375,
+          "duration": 12.282291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 510.88645833333334,
+          "duration": 22.972916666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 515.8416666666667,
+          "duration": 7.207291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 516.2916666666666,
+          "duration": 18.919791666666665,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 523.0489583333333,
+          "duration": 23.648958333333333,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 523.0489583333333,
+          "duration": 12.6125,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 533.859375,
+          "duration": 25.227083333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 535.2114583333333,
+          "duration": 11.711458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 535.2114583333333,
+          "duration": 21.847916666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 535.6614583333334,
+          "duration": 14.189583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 546.9229166666667,
+          "duration": 20.946875,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 546.9229166666667,
+          "duration": 6.757291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 553.6802083333333,
+          "duration": 17.79375,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 559.0864583333333,
+          "duration": 10.135416666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 564.9416666666667,
+          "duration": 45.61770833333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 572.15,
+          "duration": 10.029166666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 572.7197916666667,
+          "duration": 22.072916666666668,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 572.7197916666667,
+          "duration": 20.045833333333334,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 582.1791666666667,
+          "duration": 21.171875,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 582.1791666666667,
+          "duration": 47.29895833333333,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 594.7927083333333,
+          "duration": 9.009375,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 599.296875,
+          "duration": 18.01875,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 603.3510416666667,
+          "duration": 13.063541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 603.8020833333334,
+          "duration": 25.676041666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 610.559375,
+          "duration": 12.6125,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 615.0635416666667,
+          "duration": 47.19375,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 616.4145833333333,
+          "duration": 13.063541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 617.315625,
+          "duration": 5.85625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 623.171875,
+          "duration": 6.757291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 623.171875,
+          "duration": 6.30625,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 629.478125,
+          "duration": 12.282291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 629.478125,
+          "duration": 23.09375,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 629.478125,
+          "duration": 6.307291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 629.478125,
+          "duration": 29.626041666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 629.9291666666667,
+          "duration": 17.6875,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 635.7854166666667,
+          "duration": 15.660416666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 641.7604166666666,
+          "duration": 20.045833333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 647.6166666666667,
+          "duration": 14.640625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 652.571875,
+          "duration": 9.234375,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 665.1854166666667,
+          "duration": 28.829166666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 665.6354166666666,
+          "duration": 8.784375,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "tick": 677.7979166666667,
+          "duration": 36.833333333333336,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 678.2489583333333,
+          "duration": 22.642708333333335,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 678.2489583333333,
+          "duration": 11.036458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 688.159375,
+          "duration": 8.783333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 693.5645833333333,
+          "duration": 20.615625,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 694.0145833333333,
+          "duration": 42.68958333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 700.8916666666667,
+          "duration": 13.513541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 3,
+          "tick": 700.8916666666667,
+          "duration": 13.513541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 714.4052083333333,
+          "duration": 6.08125,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 3,
+          "tick": 714.4052083333333,
+          "duration": 23.2,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 7,
+          "tick": 717.559375,
+          "duration": 8.783333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 726.56875,
+          "duration": 22.972916666666666,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "tick": 727.46875,
+          "duration": 12.838541666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 727.9197916666667,
+          "duration": 10.811458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 735.803125,
+          "duration": 2.928125,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 738.73125,
+          "duration": 6.53125,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 738.73125,
+          "duration": 4.054166666666666,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 7,
+          "tick": 742.7854166666667,
+          "duration": 6.53125,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 742.7854166666667,
+          "duration": 16.892708333333335,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 742.7854166666667,
+          "duration": 5.180208333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 17,
+          "tick": 749.5416666666666,
+          "duration": 10.586458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 749.5416666666666,
+          "duration": 12.838541666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 756.75,
+          "duration": 6.08125,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 7,
+          "tick": 761.2541666666667,
+          "duration": 11.832291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 8,
+          "tick": 762.1552083333333,
+          "duration": 11.38125,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 5,
+          "tick": 762.1552083333333,
+          "duration": 10.93125,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 5,
+          "tick": 764.978125,
+          "duration": 8.108333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 7,
+          "tick": 773.0864583333333,
+          "duration": 21.621875,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 5,
+          "tick": 773.0864583333333,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 5,
+          "tick": 773.0864583333333,
+          "duration": 12.3875,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 773.0864583333333,
+          "duration": 14.189583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 8,
+          "tick": 773.5364583333334,
+          "duration": 9.234375,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 784.3479166666667,
+          "duration": 4.955208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 5,
+          "tick": 784.3479166666667,
+          "duration": 5.405208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 789.303125,
+          "duration": 13.738541666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 789.753125,
+          "duration": 12.613541666666666,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 794.7083333333334,
+          "duration": 13.964583333333334,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 800.1145833333334,
+          "duration": 9.008333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 802.3666666666667,
+          "duration": 6.30625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 808.6729166666667,
+          "duration": 24.444791666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 808.6729166666667,
+          "duration": 24.444791666666667,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "tick": 808.6729166666667,
+          "duration": 10.135416666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 809.1229166666667,
+          "duration": 10.361458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 819.0333333333333,
+          "duration": 24.219791666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 819.484375,
+          "duration": 13.633333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 833.1177083333333,
+          "duration": 10.360416666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 833.1177083333333,
+          "duration": 9.234375,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 833.1177083333333,
+          "duration": 9.234375,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 833.1177083333333,
+          "duration": 15.991666666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 843.478125,
+          "duration": 12.388541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 849.7854166666667,
+          "duration": 27.703125,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 852.0375,
+          "duration": 62.734375,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 867.353125,
+          "duration": 36.60729166666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 867.353125,
+          "duration": 15.991666666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 881.99375,
+          "duration": 3.378125,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 885.371875,
+          "duration": 19.039583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 891.3479166666667,
+          "duration": 36.4875,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 896.303125,
+          "duration": 27.703125,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "tick": 901.4833333333333,
+          "duration": 2.4770833333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 903.9604166666667,
+          "duration": 36.0375,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "tick": 903.9604166666667,
+          "duration": 10.586458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 904.4114583333334,
+          "duration": 10.360416666666667,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 914.771875,
+          "duration": 12.613541666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 914.771875,
+          "duration": 13.063541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 927.3854166666666,
+          "duration": 12.3875,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 927.8354166666667,
+          "duration": 15.090625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 927.8354166666667,
+          "duration": 10.135416666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 3,
+          "tick": 927.8354166666667,
+          "duration": 19.144791666666666,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 939.9979166666667,
+          "duration": 12.388541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 946.3052083333333,
+          "duration": 6.98125,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 949.6833333333333,
+          "duration": 2.4770833333333333,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 5,
+          "tick": 952.1604166666667,
+          "duration": 11.38125,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 7,
+          "tick": 952.1604166666667,
+          "duration": 10.48125,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 962.190625,
+          "duration": 15.090625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 962.6416666666667,
+          "duration": 12.1625,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 962.6416666666667,
+          "duration": 12.3875,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 963.0916666666667,
+          "duration": 16.667708333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 963.5416666666666,
+          "duration": 16.217708333333334,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 974.8041666666667,
+          "duration": 22.072916666666668,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 979.759375,
+          "duration": 5.855208333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 979.759375,
+          "duration": 42.463541666666664,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 985.6145833333334,
+          "duration": 11.2625,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 991.921875,
+          "duration": 30.976041666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 996.8770833333333,
+          "duration": 12.1625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 996.8770833333333,
+          "duration": 42.2375,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 1009.0395833333333,
+          "duration": 13.633333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 1009.0395833333333,
+          "duration": 42.23854166666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1022.2229166666667,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 1022.6729166666667,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1033.484375,
+          "duration": 12.3875,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1033.484375,
+          "duration": 11.036458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 1033.934375,
+          "duration": 16.892708333333335,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 0,
+          "tick": 1044.7458333333334,
+          "duration": 67.46458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 1057.359375,
+          "duration": 15.990625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 1057.809375,
+          "duration": 47.41875,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 1057.809375,
+          "duration": 29.4,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 2,
+          "tick": 1071.3239583333334,
+          "duration": 10.419791666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1076.278125,
+          "duration": 2.703125,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1078.98125,
+          "duration": 19.039583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 1087.209375,
+          "duration": 11.036458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1098.0208333333333,
+          "duration": 34.911458333333336,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 7,
+          "tick": 1105.228125,
+          "duration": 7.207291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 1111.9854166666667,
+          "duration": 27.703125,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 7,
+          "tick": 1111.9854166666667,
+          "duration": 22.297916666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 7,
+          "tick": 1112.4354166666667,
+          "duration": 4.955208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 7,
+          "tick": 1117.390625,
+          "duration": 20.496875,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 1134.959375,
+          "duration": 6.08125,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 1141.715625,
+          "duration": 11.38125,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1145.3791666666666,
+          "duration": 7.717708333333333,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 1153.096875,
+          "duration": 33.78541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1153.096875,
+          "duration": 22.973958333333332,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 1153.096875,
+          "duration": 22.973958333333332,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1153.5479166666667,
+          "duration": 16.666666666666668,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1164.359375,
+          "duration": 16.666666666666668,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1167.7375,
+          "duration": 2.4770833333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1170.2145833333334,
+          "duration": 10.811458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1170.2145833333334,
+          "duration": 10.811458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1176.0708333333334,
+          "duration": 10.811458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 1176.0708333333334,
+          "duration": 22.973958333333332,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1181.0260416666667,
+          "duration": 30.301041666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1181.0260416666667,
+          "duration": 48.99583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1181.0260416666667,
+          "duration": 18.01875,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 1186.8822916666666,
+          "duration": 48.99583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1186.8822916666666,
+          "duration": 12.1625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1199.0447916666667,
+          "duration": 21.291666666666668,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1199.0447916666667,
+          "duration": 16.561458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 1199.0447916666667,
+          "duration": 17.913541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1211.3270833333333,
+          "duration": 3.153125,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1214.4802083333334,
+          "duration": 18.01875,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1220.3364583333334,
+          "duration": 3.6041666666666665,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1223.940625,
+          "duration": 12.8375,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1235.6520833333334,
+          "duration": 12.613541666666666,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 1241.959375,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1245.7875,
+          "duration": 7.433333333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1248.265625,
+          "duration": 6.982291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 1248.265625,
+          "duration": 23.423958333333335,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1253.2208333333333,
+          "duration": 6.30625,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 1253.2208333333333,
+          "duration": 6.08125,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 1259.5270833333334,
+          "duration": 20.165625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1259.5270833333334,
+          "duration": 12.1625,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1271.2395833333333,
+          "duration": 15.210416666666667,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 1271.2395833333333,
+          "duration": 17.9125,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 1271.6895833333333,
+          "duration": 23.994791666666668,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1271.6895833333333,
+          "duration": 5.075,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1276.7645833333333,
+          "duration": 18.46875,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1278.3416666666667,
+          "duration": 5.180208333333334,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1283.521875,
+          "duration": 22.747916666666665,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1295.2333333333333,
+          "duration": 9.910416666666666,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 1295.684375,
+          "duration": 12.6125,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 0,
+          "tick": 1295.684375,
+          "duration": 11.486458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1305.14375,
+          "duration": 3.153125,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 1308.296875,
+          "duration": 17.79375,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 1308.296875,
+          "duration": 10.361458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1308.296875,
+          "duration": 5.40625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1313.703125,
+          "duration": 10.811458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 2,
+          "tick": 1318.6583333333333,
+          "duration": 7.432291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1324.5145833333333,
+          "duration": 7.432291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1324.9645833333334,
+          "duration": 29.4,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 1330.8208333333334,
+          "duration": 35.25625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1331.2708333333333,
+          "duration": 5.976041666666666,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 1336.796875,
+          "duration": 29.730208333333334,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1337.246875,
+          "duration": 4.955208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1342.2020833333333,
+          "duration": 17.117708333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1344.9052083333333,
+          "duration": 2.7020833333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1347.6072916666667,
+          "duration": 6.757291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1353.9145833333334,
+          "duration": 5.855208333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1354.3645833333333,
+          "duration": 5.405208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1354.3645833333333,
+          "duration": 5.405208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1359.3197916666666,
+          "duration": 4.504166666666666,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1359.7697916666666,
+          "duration": 6.757291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1359.7697916666666,
+          "duration": 10.811458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1359.7697916666666,
+          "duration": 6.757291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1363.8239583333334,
+          "duration": 2.703125,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 1366.0770833333333,
+          "duration": 12.1625,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1366.5270833333334,
+          "duration": 34.80520833333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1366.5270833333334,
+          "duration": 11.7125,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1366.5270833333334,
+          "duration": 22.523958333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 1366.5270833333334,
+          "duration": 4.955208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1370.58125,
+          "duration": 7.658333333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 1371.4822916666667,
+          "duration": 17.56875,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 1378.2395833333333,
+          "duration": 10.811458333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1378.2395833333333,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1378.2395833333333,
+          "duration": 11.261458333333334,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 1,
+          "tick": 1389.0510416666666,
+          "duration": 33.67916666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 1,
+          "tick": 1389.0510416666666,
+          "duration": 27.372916666666665,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 1,
+          "tick": 1389.0510416666666,
+          "duration": 29.625,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1389.5010416666667,
+          "duration": 23.994791666666668,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1389.5010416666667,
+          "duration": 18.588541666666668,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1401.3322916666666,
+          "duration": 12.163541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 2,
+          "tick": 1408.0895833333334,
+          "duration": 12.388541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 3,
+          "tick": 1413.4958333333334,
+          "duration": 5.630208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 3,
+          "tick": 1413.4958333333334,
+          "duration": 6.53125,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 1420.2520833333333,
+          "duration": 5.40625,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1420.703125,
+          "duration": 4.955208333333333,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 3,
+          "tick": 1425.6583333333333,
+          "duration": 72.86979166666667,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1425.6583333333333,
+          "duration": 10.135416666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 1425.6583333333333,
+          "duration": 23.648958333333333,
+          "velocity": 96
+        },
+        {
+          "string": 5,
+          "fret": 3,
+          "tick": 1436.9197916666667,
+          "duration": 14.189583333333333,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 1437.3697916666667,
+          "duration": 24.776041666666668,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 1448.18125,
+          "duration": 7.883333333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 0,
+          "tick": 1455.3885416666667,
+          "duration": 12.282291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 1462.1458333333333,
+          "duration": 11.832291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 1466.7697916666666,
+          "duration": 18.244791666666668,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 7,
+          "tick": 1473.5270833333334,
+          "duration": 12.613541666666666,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 1473.978125,
+          "duration": 7.432291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 7,
+          "tick": 1478.0322916666667,
+          "duration": 7.882291666666666,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 1486.140625,
+          "duration": 23.423958333333335,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 3,
+          "tick": 1486.140625,
+          "duration": 7.883333333333334,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 4,
+          "tick": 1490.1947916666666,
+          "duration": 13.063541666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 1494.9239583333333,
+          "duration": 2.928125,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 0,
+          "tick": 1497.8520833333334,
+          "duration": 7.433333333333334,
+          "velocity": 96
+        },
+        {
+          "string": 0,
+          "fret": 7,
+          "tick": 1503.2583333333334,
+          "duration": 9.684375,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 1503.2583333333334,
+          "duration": 6.08125,
+          "velocity": 96
+        },
+        {
+          "string": 2,
+          "fret": 0,
+          "tick": 1509.5645833333333,
+          "duration": 10.572916666666666,
+          "velocity": 96
+        },
+        {
+          "string": 3,
+          "fret": 7,
+          "tick": 1509.5645833333333,
+          "duration": 7.432291666666667,
+          "velocity": 96
+        },
+        {
+          "string": 1,
+          "fret": 10,
+          "tick": 1515.4208333333333,
+          "duration": 4.716666666666667,
+          "velocity": 96
+        },
+        {
+          "string": 4,
+          "fret": 0,
+          "tick": 1515.4208333333333,
+          "duration": 4.716666666666667,
+          "velocity": 96
+        }
+      ],
+      "rests": []
+    },
+    "range": {
+      "start": 0,
+      "end": 39.178812
+    },
+    "tempo": 97,
+    "counts": {
+      "selected": 403,
+      "placed": 394,
+      "outOfRange": 0,
+      "unassigned": 9,
+      "shortened": 0,
+      "carried": 0
+    },
+    "assumptions": {
+      "tuning": "EADGBE",
+      "minFret": 0,
+      "maxFret": 24,
+      "meter": "4/4",
+      "layoutOnly": true
+    }
+  },
+  "timings": {
+    "rhythmMs": 1.7581430000000182,
+    "projectionMs": 47.81767699999995,
+    "scope": "Single Linux/Node host pass; not phone latency"
+  },
+  "sources": {
+    "src/components/audio-transcription.ts": "375848dae9e8889fa26f5081b1140e704a8488b3d7c37644cf6cdd0c9d8c8290",
+    "src/components/audio-rhythm.ts": "32fbdcfd7ae22679e6559b2c74bdaf18540fc989390e334ab205456d2d0a9368",
+    "src/components/audio-tablature.ts": "023d2f60b7bde30c20a451bf4243532546c1dc8b8a1cf9aee8a4189f67137b59",
+    "src/components/tablature.ts": "090ca52c5acb05659e7f6048c8225db168edd9d7d777887b84681438597696ca"
+  },
+  "runtime": {
+    "node": "v22.23.5",
+    "typescript": "5.9.3"
+  }
+}

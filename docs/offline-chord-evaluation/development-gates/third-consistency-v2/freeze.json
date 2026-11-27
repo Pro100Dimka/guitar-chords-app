@@ -1,0 +1,56 @@
+{
+  "frozenAtUTC": "2026-11-26T21:59:13.818825+00:00",
+  "status": "frozen before second sealed holdout evaluation",
+  "candidateId": "third-consistency-v2",
+  "engine": "chroma-v2",
+  "sourceHash": "ce3451f32b9a7a9a9470521bbf271115a4fa0c520b5835b194b0e8d9a5120527",
+  "sourceHashDefinition": "SHA256 of UTF-8 compact sorted JSON mapping every listed relative source path to its SHA256; includes all Rust sources, Cargo manifest/lock and model provenance/license files",
+  "sources": {
+    "Cargo.lock": "6e50e514c6a56912581181549587db0ffbc78b1cac12ced69e86d0ef2d33f986",
+    "Cargo.toml": "f6f14d95efaff410526fb053134064257537751907612e1710bf2d7b9262f350",
+    "models/basic-pitch/LICENSE": "6290fc728d48d4e3da3567df269e988e1ad7bd38e0a6962cf503dc256eadd55f",
+    "models/basic-pitch/NOTICE": "d45dd6b82d67a5058a65eefa44a9b099a5488919b96bea2163647f4871a8b383",
+    "models/basic-pitch/nmp.nnef.tar": "274e46d8b4eec2d6a9da1d52d60744feb7f7dfdf6207dc12db10f5ddd9f3416f",
+    "models/basic-pitch/nmp.onnx": "2c3c1d144bfa61ad236e92e169c13535c880469a12a047d4e73451f2c059a0ec",
+    "models/basic-pitch/provenance.json": "1582a76022087dcfae953653989fae3d61dd893edbd3d9de066f68e48e80d2a3",
+    "src/algorithm.rs": "8e805a01f8cb4f9d421aa6989ee575d2c36bcac3cd2dc69609d205fc273e31c2",
+    "src/bin/chord_probe.rs": "4c784053a71b2a8e7a4a8ec9ccebae2567682b3cd4fa25a3dbe28508b783e068",
+    "src/bin/fingerprint_probe.rs": "a062bb7804f54bf596b960cda84a382f43d6c2262dbd38b8b51021b22f32fafd",
+    "src/chord_bridge.rs": "5d1eba0f448683990f9c2755a7c7ee314972dff22e325dc0c455b6e5a1a63858",
+    "src/chord_decoder_tests.rs": "c088b9806fd056981c859253fbb98063b3b5c12e4ca45ff3a43c37567e285c9f",
+    "src/chord_notes.rs": "68cbc84e201469a2633ddf19e098d2ea08beb5a0315aef0a59481cbdf98c108a",
+    "src/chord_quality_tests.rs": "cdd94e3208607305a87e7b347ce021c38a4cfdce3cea1748864bd512accd0f4b",
+    "src/chords.rs": "5d26c9d51c04e8b19734706776350c658695dca0467066358925882e3c1faefa",
+    "src/lib.rs": "a135bb9eb5bca12ec96c3a252315addcbedab435074ca06e52e9e3d439c3c89f",
+    "src/signature_format.rs": "b62c5b3a93feca38692742b2a535ab360a318a8b6a1a43ee0bdff5ccb009637c"
+  },
+  "binary": {
+    "file": "chord_probe",
+    "sha256": "015894ac74c96bdc804c3fe1ce4269acd541c9952f44e34f285cd3cad7345a03",
+    "bytes": 16834112
+  },
+  "buildCommand": "cargo build --locked --release --bin chord_probe",
+  "buildLog": "production-cli-build.log",
+  "buildLogSHA256": "29a193e25656a613adc4121d425feaafc4cbf1de664a0520c292c81d2f1159be",
+  "buildAttestation": "This agent ran the locked standard release command to exit 0; all listed source hashes were checked unchanged before snapshot, and the output binary postdates these sources. No profile or Rust flag overrides were used.",
+  "testCommand": "cargo test --locked --release --lib -- --nocapture",
+  "tests": {
+    "passed": 29,
+    "failed": 0,
+    "executionSeconds": 35.33,
+    "log": "production-release-tests.log",
+    "logSHA256": "43223dbb06cd0eb0f27660eec455abaefa3b8c7fbabf056d4b4d1c2811f344e9",
+    "origin": "preexisting native_scout test execution; the log was inspected by this finalizing agent, which did not rerun this matrix"
+  },
+  "compiler": "rustc 1.100.0 (0ef1bc386 2026-11-09)",
+  "profileOverrides": {},
+  "parentCommit": "f59f4c5d688a3e22b509ef4aa3744d69913ce28d",
+  "audioContract": {
+    "format": "signed PCM16LE mono",
+    "sampleRate": 16000,
+    "minSeconds": 1,
+    "maxSeconds": 900
+  },
+  "referenceAnnotationsAreDecoderInputs": false,
+  "sourceChangedDuringBuild": false
+}
