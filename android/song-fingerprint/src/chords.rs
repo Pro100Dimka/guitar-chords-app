@@ -4,6 +4,7 @@
 //! chord quality. No song identity, expected progression, annotation, or network
 //! enters this module. Confidence describes evidence strength, not probability.
 use crate::chord_notes::{NoteAnalyzer, NoteFrame, FIRST_MIDI_NOTE, NOTE_COUNT};
+use crate::note_events::{self, NoteEvents, MAX_NOTE_EVENTS, NOTE_EVENTS_VERSION};
 use chfft::RFft1D;
 use std::f32::consts::PI;
 use std::fmt::Write;
@@ -63,6 +64,7 @@ pub struct Analysis {
     pub segments: Vec<Segment>,
     pub key: Option<String>,
     pub tempo: Option<f64>,
+    pub note_events: NoteEvents,
 }
 
 impl Analysis {
@@ -96,6 +98,28 @@ impl Analysis {
                 segment.start, segment.end, segment.chord, segment.confidence
             );
         }
+        let _ = write!(
+            out,
+            "],\"noteEventsVersion\":{},\"noteEventsLimit\":{},\"noteEventsTruncated\":{},\"noteEventsCoverageEnd\":{:.6},\"noteEvents\":[",
+            NOTE_EVENTS_VERSION,
+            MAX_NOTE_EVENTS,
+            self.note_events.truncated,
+            self.note_events.coverage_end
+        );
+        for (index, event) in self.note_events.events.iter().enumerate() {
+            if index > 0 {
+                out.push(',');
+            }
+            let _ = write!(
+                out,
+                "{{\"start\":{:.6},\"end\":{:.6},\"midi\":{},\"noteEvidence\":{:.4},\"onsetEvidence\":{:.4}}}",
+                event.start,
+                event.end,
+                event.midi,
+                event.note_evidence,
+                event.onset_evidence
+            );
+        }
         out.push_str("]}");
         out
     }
@@ -108,6 +132,16 @@ impl Analysis {
 struct NoteStorage {
     blocks: Vec<Vec<NoteFrame>>,
     len: usize,
+}
+
+impl note_events::NoteFrames for NoteStorage {
+    fn len(&self) -> usize {
+        self.len
+    }
+
+    fn frame(&self, index: usize) -> &NoteFrame {
+        self.get(index)
+    }
 }
 
 impl NoteStorage {
@@ -338,6 +372,9 @@ impl ChordAnalyzer {
         // Scores/backtracking are no longer needed while pooling native notes.
         drop(scores);
         let segments = infer_quality(&self.notes, &spans);
+        // This independent decoder reads the same immutable model observations.
+        // Neither its events nor any inferred playing style affect chord labels.
+        let note_events = note_events::decode(&self.notes, duration);
         let recognized: f64 = segments
             .iter()
             .filter(|s| s.chord != "N")
@@ -347,6 +384,7 @@ impl ChordAnalyzer {
         Ok(Analysis {
             duration,
             segments,
+            note_events,
             key: if musical {
                 estimate_key(&histogram)
             } else {
@@ -1330,6 +1368,37 @@ fn estimate_tempo(envelope: &[f32]) -> Option<f64> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn analysis_json_preserves_chord_fields_and_exposes_note_event_coverage() {
+        let result = Analysis {
+            duration: 1.0,
+            segments: vec![Segment {
+                start: 0.0,
+                end: 1.0,
+                chord: "C".into(),
+                confidence: 0.75,
+            }],
+            key: None,
+            tempo: None,
+            note_events: NoteEvents {
+                events: vec![note_events::NoteEvent {
+                    start: 0.125,
+                    end: 0.375,
+                    midi: 64,
+                    note_evidence: 0.8,
+                    onset_evidence: 0.9,
+                }],
+                truncated: false,
+                coverage_end: 1.0,
+            },
+        };
+        let json = result.json();
+        assert!(json.starts_with("{\"engine\":\"chroma-v2\",\"duration\":1.000000,\"key\":null,\"tempo\":null,\"segments\":["));
+        assert!(json.contains("{\"start\":0.000000,\"end\":1.000000,\"chord\":\"C\",\"confidence\":0.7500}"));
+        assert!(json.contains("\"noteEventsVersion\":1,\"noteEventsLimit\":24000,\"noteEventsTruncated\":false,\"noteEventsCoverageEnd\":1.000000"));
+        assert!(json.ends_with("\"noteEvents\":[{\"start\":0.125000,\"end\":0.375000,\"midi\":64,\"noteEvidence\":0.8000,\"onsetEvidence\":0.9000}]}"));
+    }
 
     #[test]
     fn fresh_brief_thirds_survive_pooling_but_short_harmonic_blips_do_not() {

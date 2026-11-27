@@ -2,7 +2,8 @@
 
 Library → Add → **Chords from audio** (Russian: **Аккорды из аудио**). The same
 action is available on the idle recognition screen. Choose an audio file, review
-the timed chord chart, then open it in the existing song editor to edit and save.
+the timed chord chart and estimated playing style, then generate editable tabs
+from the detected notes. Open the result in the existing song editor to save it.
 The file name becomes the editable title; the artist stays blank. No lyrics are
 invented. Automatic analysis is clearly identified in the screen and chart.
 
@@ -29,9 +30,13 @@ between the visible input and the saved section. Choosing another file resets
 the range only after a new analysis succeeds; cancellation retains the previous
 result and selection. **Whole recording** restores the complete timeline.
 
-This screen does not play the source audio or infer a strumming pattern, picking
-direction, beat grid or tablature. The existing rhythm tools let users choose
-accompaniment separately; their pattern is not a transcription of the recording.
+The same applied passage is used for the estimated strumming/picking style and
+note-to-tab projection. The generated tabs have their own editor and instrument
+playback; the screen does not play the original recording. Pick direction,
+fingering technique, downbeats and a rhythmic preset are not inferred.
+See [audio performance and tabs](offline-audio-performance.md) for the note
+contract, assumptions, bounds and current validation status. The existing rhythm
+tools still let users choose accompaniment separately.
 The [developer section command](offline-chord-section-inspection.md) additionally
 supports comparison with an explicitly timed reference.
 
@@ -40,7 +45,7 @@ supports comparison with an explicitly timed reference.
 Android MediaExtractor/MediaCodec and iOS AVAudioFile decode the selected local
 file in bounded chunks. A background worker downmixes/resamples to 16 kHz mono
 and feeds the shared Rust core already built into the app for fingerprinting.
-Only the resulting timeline crosses the React Native bridge. This feature has
+Only the chord timeline and bounded note events cross the React Native bridge. This feature has
 no HTTP request, server, API key, microphone permission, or model download.
 The note model and its inference runtime are bundled with the application. A file stored in a cloud document provider must first
 be available through that provider; cloud-file acquisition is an OS operation.
@@ -85,8 +90,9 @@ melody and dense arrangements can disagree with a guitarist's accompaniment
 chart. Key and tempo are estimates and may be absent or ambiguous, including
 half/double tempo. Segment confidence is a heuristic, not a calibrated
 probability. Display/export precision of 0.01 seconds does not imply 10 ms chord
-boundary accuracy. No lyric, beat-grid or strumming-pattern transcription is
-claimed.
+boundary accuracy. No lyric, beat-grid or up/down strumming-pattern transcription
+is claimed. The separate playing-style classifier is an explicitly labeled
+heuristic estimate, not a validated technique-recognition model.
 
 ### Embedded model and runtime
 
@@ -140,7 +146,13 @@ available offline in Settings → Sound credits.
 - An oversized chart is not truncated when opening the editor; the app reports
   that the existing editor content limit would be exceeded.
 
-## Final frozen evaluation (chroma-v2)
+## Frozen chord evaluation (chroma-v2)
+
+These measurements describe the frozen chord candidate below, before the
+note-event export, playing-style classifier and editable tab projection were
+added. The new post-processing reads the same immutable model frames without
+changing chord decisions, but its runtime, note accuracy, style accuracy and
+tab quality have not been measured by this historical evaluation.
 
 The final candidate is `aligned-third-v2`, built from `chords.rs` SHA-256
 `efbf4715aff194212948023fa06329be5a1c15d2554bcb7191388c5a4cf67d75`.

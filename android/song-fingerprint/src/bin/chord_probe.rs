@@ -3,6 +3,8 @@
 //! cargo run --release --bin chord_probe -- song.pcm
 #[path = "../chord_notes.rs"]
 mod chord_notes;
+#[path = "../note_events.rs"]
+mod note_events;
 #[path = "../chords.rs"]
 mod chords;
 use std::io::{Read, Write};

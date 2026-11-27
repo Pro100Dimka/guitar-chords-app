@@ -78,6 +78,37 @@ for aac in [false, true] {
   let segments = result["segments"] as! [[String: Any]]
   precondition(!segments.isEmpty && abs((segments.last!["end"] as! Double) - duration) < 0.1)
   precondition(segments.contains { ($0["chord"] as? String) != "N" })
+  // This checks the actual Swift -> Rust -> JSON contract for both codecs. It
+  // makes no claim about note-transcription accuracy or a detected playing style.
+  precondition(result["noteEventsVersion"] as? Int == 1, "Missing/stale note-event schema")
+  precondition(result["noteEventsLimit"] as? Int == 24000)
+  precondition(result["noteEventsTruncated"] as? Bool == false, "Short fixture was unexpectedly truncated")
+  let coverageEnd = result["noteEventsCoverageEnd"] as! Double
+  precondition(coverageEnd.isFinite && coverageEnd == duration, "Complete note coverage differs from serialized duration")
+  let notes = result["noteEvents"] as! [[String: Any]]
+  precondition(!notes.isEmpty && notes.count <= 24000, "Expected bounded note events from the multi-tone fixture")
+  var previous: (start: Double, midi: Int, end: Double)?
+  var endByPitch: [Int: Double] = [:]
+  for note in notes {
+    let start = note["start"] as! Double, end = note["end"] as! Double
+    let midi = note["midi"] as! Int
+    let noteEvidence = note["noteEvidence"] as! Double
+    let onsetEvidence = note["onsetEvidence"] as! Double
+    precondition(start.isFinite && end.isFinite && start >= 0 && end > start && end <= duration)
+    precondition((21...108).contains(midi))
+    precondition(noteEvidence.isFinite && (0...1).contains(noteEvidence))
+    precondition(onsetEvidence.isFinite && (0...1).contains(onsetEvidence))
+    if let previous = previous {
+      precondition(start > previous.start || (start == previous.start &&
+        (midi > previous.midi || (midi == previous.midi && end >= previous.end))),
+        "Note events are not sorted by start, MIDI and end")
+    }
+    if let priorEnd = endByPitch[midi] {
+      precondition(start >= priorEnd, "Repeated notes of the same MIDI pitch overlap")
+    }
+    endByPitch[midi] = end
+    previous = (start, midi, end)
+  }
 }
 precondition(analyze(module, "https://example.com/song.mp3").1 == "FileUnavailable")
 let short = directory.appendingPathComponent("short.wav")

@@ -295,6 +295,27 @@ class OfflineChordAnalysisModule(private val context: ReactApplicationContext) :
                     })
                 }
             })
+            // Legacy native results have no note-event payload. Preserve that
+            // distinction instead of turning unavailable data into an empty take.
+            if (!json.isNull("noteEvents")) {
+                putInt("noteEventsVersion", json.getInt("noteEventsVersion"))
+                putInt("noteEventsLimit", json.getInt("noteEventsLimit"))
+                putBoolean("noteEventsTruncated", json.getBoolean("noteEventsTruncated"))
+                putDouble("noteEventsCoverageEnd", json.getDouble("noteEventsCoverageEnd"))
+                val events = json.getJSONArray("noteEvents")
+                putArray("noteEvents", Arguments.createArray().apply {
+                    for (index in 0 until events.length()) {
+                        val event = events.getJSONObject(index)
+                        pushMap(Arguments.createMap().apply {
+                            putDouble("start", event.getDouble("start"))
+                            putDouble("end", event.getDouble("end"))
+                            putInt("midi", event.getInt("midi"))
+                            putDouble("noteEvidence", event.getDouble("noteEvidence"))
+                            putDouble("onsetEvidence", event.getDouble("onsetEvidence"))
+                        })
+                    }
+                })
+            }
         }
     }
 }

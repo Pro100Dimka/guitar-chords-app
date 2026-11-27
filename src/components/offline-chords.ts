@@ -9,6 +9,10 @@ import type { FormValues } from "../screens/create-song-chords";
 import initialValues from "../screens/create-song-chords/formik/initial-values";
 import { songFieldLimits } from "../@interfaces";
 import { chordSection, type ChordRange } from "./offline-chord-section";
+import {
+  decodeAudioNoteTranscription,
+  type AudioNoteTranscription
+} from "./audio-transcription";
 
 export interface ChordSegment {
   start: number;
@@ -25,6 +29,7 @@ export interface OfflineChordAnalysis {
   tempo: number | null;
   elapsedMs: number;
   fileName: string;
+  notes?: AudioNoteTranscription;
 }
 
 interface NativeAnalyzer {
@@ -101,7 +106,8 @@ function validateResult(
     elapsedMs: value.elapsedMs,
     key: value.key as string | null,
     tempo: value.tempo as number | null,
-    segments
+    segments,
+    notes: decodeAudioNoteTranscription(value, value.duration)
   };
 }
 

@@ -1,6 +1,7 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
 import {
+  Alert,
   FlatList,
   KeyboardAvoidingView,
   NativeModules,
@@ -33,7 +34,10 @@ jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }));
 jest.mock("@react-navigation/native", () => ({
-  useNavigation: () => ({ navigate: mockNavigate }),
+  useNavigation: () => ({ navigate: mockNavigate, dispatch: mockDispatch }),
+  useIsFocused: () => mockScreenFocused,
+  usePreventRemove: (enabled: boolean, callback: unknown) =>
+    mockPreventRemove(enabled, callback),
   useFocusEffect: (callback: () => void) =>
     require("react").useEffect(callback, [callback])
 }));
@@ -50,6 +54,11 @@ jest.mock("react-i18next", () => ({
   })
 }));
 jest.mock("../src/screens/song/tools", () => ({
+  TempoControl: (props: unknown) =>
+    require("react").createElement("TempoControl", {
+      ...(props as object),
+      testID: "audio-tempo"
+    }),
   Action: (props: {
     label: string;
     disabled?: boolean;
@@ -67,8 +76,19 @@ jest.mock("../src/screens/song/tools", () => ({
     );
   }
 }));
+jest.mock("../src/screens/analyze-audio/imported-audio-tab", () => ({
+  ...jest.requireActual("../src/screens/analyze-audio/imported-audio-tab"),
+  ImportedAudioTab: (props: unknown) =>
+    require("react").createElement("ImportedAudioTab", {
+      ...(props as object),
+      testID: "imported-audio-tab"
+    })
+}));
 
 const mockNavigate = jest.fn();
+const mockDispatch = jest.fn();
+const mockPreventRemove = jest.fn();
+let mockScreenFocused = true;
 const nativeResult = () => ({
   engine: "chroma-v1",
   duration: 6,
@@ -85,6 +105,20 @@ const native = {
   analyzeFile: jest.fn(),
   cancel: jest.fn()
 };
+const nativeNotesResult = () => ({
+  ...nativeResult(),
+  engine: "chroma-v2",
+  noteEventsVersion: 1,
+  noteEventsLimit: 24000,
+  noteEventsTruncated: false,
+  noteEventsCoverageEnd: 6,
+  noteEvents: [
+    { start: 0.5, end: 2, midi: 40, noteEvidence: 0.9, onsetEvidence: 0.9 },
+    { start: 1, end: 1.5, midi: 100, noteEvidence: 0.9, onsetEvidence: 0.9 },
+    { start: 2, end: 3, midi: 45, noteEvidence: 0.9, onsetEvidence: 0.9 },
+    { start: 4, end: 6, midi: 64, noteEvidence: 0.9, onsetEvidence: 0.9 }
+  ]
+});
 const selected = (
   uri = "file:///music/song.mp3",
   name = "Song.mp3"
@@ -139,8 +173,11 @@ const changeTime = async (field: "start" | "end", value: string) => {
     rangeInput(field).props.onChangeText(value);
   });
 };
+const importedTab = () =>
+  screen!.root.findByProps({ testID: "imported-audio-tab" });
 
 beforeEach(() => {
+  mockScreenFocused = true;
   jest.replaceProperty(Platform, "OS", "ios");
   NativeModules.OfflineChordAnalysis = native;
   Object.assign(types, { audio: "audio/*" });
@@ -615,6 +652,212 @@ test("a replacement analysis disables range controls and export", async () => {
     pending.resolve(nativeResult());
     await flush();
   });
+});
+
+test("audio notes show projection losses and import an edited tab with the selected absolute chord timeline", async () => {
+  native.analyzeFile.mockResolvedValueOnce(nativeNotesResult());
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  await changeTime("start", "1");
+  await changeTime("end", "2.5");
+  expect(actionFor("OfflineAudioGenerateTabs").props.disabled).toBe(true);
+  await press("OfflineAudioGenerateTabs");
+  expect(
+    screen!.root.findAllByProps({ testID: "imported-audio-tab" })
+  ).toHaveLength(0);
+  await press("OfflineChordsRangeApply");
+  expect(visibleText()).toContain(
+    "OfflineAudioProjectionCounts selected=3 placed=2"
+  );
+  expect(visibleText()).toContain(
+    "outOfRange=1 unassigned=0 shortened=1 carried=1"
+  );
+  expect(visibleText()).toContain("OfflineAudioTabAssumptions");
+  await press("OfflineAudioGenerateTabs");
+  const initial = importedTab().props.initial;
+  expect(initial).toMatchObject({ tempo: 120, version: 3, beatsPerBar: 4 });
+  expect(initial.notes).toHaveLength(2);
+  expect(initial.notes[0].tick).toBe(0);
+  const edited = {
+    ...initial,
+    notes: initial.notes.map((note: { fret: number }, index: number) =>
+      index === 0 ? { ...note, fret: note.fret + 1 } : note
+    )
+  };
+  await act(async () => {
+    importedTab().props.onChange(edited, true);
+    importedTab().props.onClose();
+  });
+  expect(importedTab().props.visible).toBe(false);
+  expect(visibleText()).toContain("OfflineAudioTabEdited");
+  await press("OfflineAudioOpenTabs");
+  expect(importedTab().props.visible).toBe(true);
+  await act(async () => importedTab().props.onSave(edited));
+  const draft = mockNavigate.mock.calls[0][1].draft;
+  expect(draft.title).toBe("Song (0:01.00–0:02.50)");
+  expect(draft.tablature).toEqual(edited);
+  expect(draft.rhythm).toBeUndefined();
+  expect(draft.content).toContain("[C] 0:01.00–0:02.50 *");
+  expect(draft.content).not.toContain("[Am]");
+  expect(draft.content).toContain(
+    "OfflineAudioTabSource start=0:01.00 end=0:02.50 tempo=120"
+  );
+  expect(draft.content).toContain("OfflineAudioTabEditedNotice");
+  expect(mockNavigate.mock.calls[0][1].notice).toBe("OfflineAudioTabNotice");
+  expect(native.analyzeFile).toHaveBeenCalledTimes(1);
+});
+
+test("notes can become tabs without chords or a detected tempo", async () => {
+  native.analyzeFile.mockResolvedValueOnce({
+    ...nativeNotesResult(),
+    tempo: null,
+    key: null,
+    segments: [{ start: 0, end: 6, chord: "N", confidence: 0 }]
+  });
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  expect(visibleText()).toContain("OfflineAudioTempoUnknown tempo=80");
+  expect(visibleText()).toContain("OfflineAudioNoChordsWithNotes");
+  await act(async () =>
+    screen!.root.findByProps({ testID: "audio-tempo" }).props.onChange(95)
+  );
+  await press("OfflineAudioGenerateTabs");
+  expect(importedTab().props.initial.tempo).toBe(95);
+  await act(async () => importedTab().props.onClose());
+  await press("OfflineAudioSaveDraft");
+  const draft = mockNavigate.mock.calls[0][1].draft;
+  expect(draft.tempo).toBe(95);
+  expect(draft.tablature.notes.length).toBeGreaterThan(0);
+  expect(draft.content).not.toContain("[N]");
+  expect(songChords(draft.content)).toEqual([]);
+  expect(draft.rhythm).toBeUndefined();
+});
+
+test("changing notation tempo blocks stale tab export until regeneration", async () => {
+  native.analyzeFile.mockResolvedValueOnce(nativeNotesResult());
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  await press("OfflineAudioGenerateTabs");
+  await act(async () => importedTab().props.onClose());
+  await act(async () =>
+    screen!.root.findByProps({ testID: "audio-tempo" }).props.onChange(125)
+  );
+  expect(visibleText()).toContain("OfflineAudioTempoPending");
+  expect(actionFor("OfflineAudioSaveDraft").props.disabled).toBe(true);
+  await press("OfflineAudioSaveDraft");
+  expect(mockNavigate).not.toHaveBeenCalled();
+  await press("OfflineAudioRegenerateTabs");
+  expect(importedTab().props.initial.tempo).toBe(125);
+  await act(async () => importedTab().props.onClose());
+  expect(actionFor("OfflineAudioSaveDraft").props.disabled).toBe(false);
+});
+
+test("edited imported tabs survive a cancelled replacement and require confirmation for range changes or leaving", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  const accept = () =>
+    alert.mock.calls
+      .at(-1)![2]!
+      .find((button) => button.text === "OfflineAudioDiscardEdits")!.onPress!();
+  native.analyzeFile.mockResolvedValueOnce(nativeNotesResult());
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  await press("OfflineAudioGenerateTabs");
+  const edited = { ...importedTab().props.initial, tempo: 121 };
+  await act(async () => {
+    importedTab().props.onChange(edited, true);
+    importedTab().props.onClose();
+  });
+  expect(mockPreventRemove.mock.calls.at(-1)![0]).toBe(true);
+  jest.mocked(pick).mockRejectedValueOnce({ code: "cancelled" });
+  await press("OfflineChordsAnotherFile");
+  expect(pick).toHaveBeenCalledTimes(1);
+  expect(alert.mock.calls.at(-1)![0]).toBe("OfflineAudioUnsavedTitle");
+  await act(async () => {
+    accept();
+    await flush();
+  });
+  expect(pick).toHaveBeenCalledTimes(2);
+  expect(visibleText()).toContain("OfflineAudioTabEdited");
+  await press("OfflineAudioSaveDraft");
+  expect(mockNavigate.mock.calls[0][1].draft.tablature).toEqual(edited);
+  const beforeLeave = mockPreventRemove.mock.calls.at(-1)![1];
+  await act(async () => beforeLeave({ data: { action: { type: "GO_BACK" } } }));
+  expect(mockDispatch).not.toHaveBeenCalled();
+  // Declining the alert leaves both the applied range and the edited tab intact.
+  await changeTime("end", "3");
+  await press("OfflineChordsRangeApply");
+  expect(visibleText()).toContain(
+    "OfflineChordsRangeWhole start=0:00.00 end=0:06.00"
+  );
+  expect(visibleText()).toContain("OfflineAudioTabEdited");
+  await act(async () => accept());
+  expect(visibleText()).toContain(
+    "OfflineChordsRangeApplied start=0:00.00 end=0:03.00"
+  );
+  expect(
+    screen!.root.findAllByProps({ testID: "imported-audio-tab" })
+  ).toHaveLength(0);
+});
+
+test("a stale discard confirmation cannot replace a more recently edited tab", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  native.analyzeFile.mockResolvedValueOnce(nativeNotesResult());
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  await press("OfflineAudioGenerateTabs");
+  const initial = importedTab().props.initial;
+  await act(async () => {
+    importedTab().props.onChange({ ...initial, tempo: 121 }, true);
+    importedTab().props.onClose();
+  });
+  await press("OfflineAudioRegenerateTabs");
+  const discard = alert.mock.calls
+    .at(-1)![2]!
+    .find((button) => button.text === "OfflineAudioDiscardEdits")!.onPress!;
+  const latest = { ...initial, tempo: 122 };
+  await act(async () => importedTab().props.onChange(latest, true));
+  await act(async () => discard());
+  await press("OfflineAudioSaveDraft");
+  expect(mockNavigate.mock.calls[0][1].draft.tablature).toEqual(latest);
+});
+
+test("a guarded background analysis can release its route after handing tabs to the song editor", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  native.analyzeFile.mockResolvedValueOnce(nativeNotesResult());
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  await press("OfflineAudioGenerateTabs");
+  const edited = { ...importedTab().props.initial, tempo: 121 };
+  await act(async () => {
+    importedTab().props.onChange(edited, true);
+    importedTab().props.onClose();
+  });
+  await press("OfflineAudioSaveDraft");
+  await act(async () => {
+    mockScreenFocused = false;
+    screen!.update(<AnalyzeAudio />);
+  });
+  const removal = { type: "POP_TO", payload: { name: "Tabs" } };
+  const beforeLeave = mockPreventRemove.mock.calls.at(-1)![1];
+  await act(async () => beforeLeave({ data: { action: removal } }));
+  expect(mockDispatch).not.toHaveBeenCalled();
+  const discard = alert.mock.calls
+    .at(-1)![2]!
+    .find((button) => button.text === "OfflineAudioDiscardEdits")!.onPress!;
+  await act(async () => discard());
+  expect(mockDispatch).toHaveBeenCalledWith(removal);
 });
 
 test("silence does not offer to save a fake chord chart", async () => {

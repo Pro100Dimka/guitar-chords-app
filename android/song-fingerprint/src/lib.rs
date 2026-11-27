@@ -3,6 +3,7 @@ mod algorithm;
 mod signature_format;
 mod chords;
 mod chord_notes;
+mod note_events;
 #[cfg(test)]
 mod chord_quality_tests;
 mod chord_bridge;

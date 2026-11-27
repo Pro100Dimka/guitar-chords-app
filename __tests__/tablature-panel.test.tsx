@@ -775,12 +775,14 @@ test("an empty editor composes a note and a silent rest without virtual guitar t
   await press(screen!, "TabAddRest");
   expect(updates.at(-1)!.rests).toEqual([{ tick: 12, duration: 12 }]);
   expect(mockPreview).toHaveBeenCalledTimes(1);
-  expect(mockPreview).toHaveBeenCalledWith([{
-    string: 5,
-    fret: 2,
-    tick: 0,
-    duration: 12
-  }]);
+  expect(mockPreview).toHaveBeenCalledWith([
+    {
+      string: 5,
+      fret: 2,
+      tick: 0,
+      duration: 12
+    }
+  ]);
   expect(button(screen!, "TabSave").props.disabled).toBe(false);
   expect(button(screen!, "TabPlay").props.disabled).toBe(false);
 });
@@ -1244,6 +1246,30 @@ test("the header overflow menu exposes four actions and closes after saving", as
   await press(screen!, "TabSave");
   expect(value.onSave).toHaveBeenCalledTimes(1);
   expect(button(screen!, "TabOpen")).toBeUndefined();
+});
+test("an isolated imported editor hides unavailable library, recording and practice actions", async () => {
+  const value = props();
+  await act(async () => {
+    screen = Renderer.create(
+      <TablaturePanel
+        {...value}
+        standalone
+        onOpen={undefined}
+        onRecord={undefined}
+      />
+    );
+  });
+  await press(screen!, "TabActionsMenu");
+  const labels = [
+    ...new Set(
+      screen!.root
+        .findAll((node) => node.props.accessibilityRole === "menuitem")
+        .map((node) => node.props.accessibilityLabel)
+    )
+  ];
+  expect(labels).toEqual(["TabSave"]);
+  await press(screen!, "TabSave");
+  expect(value.onSave).toHaveBeenCalledTimes(1);
 });
 test("deleting the last note at an onset preserves its duration as a rest", async () => {
   const { updates } = await editable(example);

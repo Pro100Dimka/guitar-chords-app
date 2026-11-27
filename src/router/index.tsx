@@ -29,7 +29,8 @@ export type RootStackParamList = {
           | "AddSongChordsNotice"
           | "AddSongNoLyrics"
           | "AddSongLyricsUnavailable"
-          | "OfflineChordsNotice";
+          | "OfflineChordsNotice"
+          | "OfflineAudioTabNotice";
       }
     | undefined;
   recognizeSong: {
