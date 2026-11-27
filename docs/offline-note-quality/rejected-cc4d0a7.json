@@ -1,0 +1,1629 @@
+{
+  "schemaVersion": 1,
+  "scope": "Development comparison on twelve previously used GuitarSet takes; not held-out performance, independent songs, full-mix accuracy, or technique classification.",
+  "trainingOverlap": "GuitarSet was used in Basic Pitch training; exact checkpoint track overlap is unverified.",
+  "protocol": {
+    "onsetToleranceSeconds": 0.05,
+    "pitchToleranceMidi": 0.5,
+    "offsetMinimumSeconds": 0.05,
+    "offsetReferenceDurationRatio": 0.2,
+    "matching": "Independent maximum one-to-one matching for each criterion and recording.",
+    "denominators": "Every reference note and every prediction; no cropping, alignment, pitch filtering or deduplication.",
+    "aggregation": "Sum counts across all declared recordings, then calculate precision/recall/F1; never average per-track F1.",
+    "delta": "Current minus frozen baseline; negative precision/recall/F1 is listed as a regression.",
+    "inference": "One probe invocation and one model pass per recording; both note decoders consume the same frames.",
+    "timing": "Single host process wall time includes inference, both note decoders and output; not phone latency.",
+    "accuracyGate": null
+  },
+  "records": [
+    {
+      "track": "00_BN1-129-Eb_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 1969056,
+          "sha256": "59e1e3c9bebdabd48afe28050a2c031e6cf36e5697268301cdf2e74bc66b71f1"
+        },
+        "annotation": {
+          "bytes": 1702653,
+          "sha256": "cd79564c51d0dec7d04e010d31525e9f7d2b9d41cf6116118a66ac5a8c181007"
+        },
+        "pcm": {
+          "bytes": 714382,
+          "sha256": "30dc65b0ba1bf85f9dc1ad51dae17c8dccdaf4d3f8906b729e186fc365bce00d"
+        },
+        "sourceSeconds": 22.32439909297052,
+        "pcmSeconds": 22.3244375,
+        "referenceSeconds": 22.32439999999997,
+        "referenceNoteCount": 133,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.0656052739999495,
+      "outputs": {
+        "current": {
+          "bytes": 14464,
+          "sha256": "b5f935aa23c2559b9d718565483851ea551aeb7096ec41b448e9c8f8c77f73f7"
+        },
+        "baseline": {
+          "bytes": 15161,
+          "sha256": "b1c8892c1d8506893dc2c45e1e7bbadbd0e0b11b0dd0ef5018594b1f54a6e157"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 133,
+          "predictionCount": 151,
+          "matchedCount": 103,
+          "falsePositives": 48,
+          "falseNegatives": 30,
+          "precision": 0.6821192052980133,
+          "recall": 0.7744360902255639,
+          "f1": 0.7253521126760564
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 133,
+          "predictionCount": 151,
+          "matchedCount": 72,
+          "falsePositives": 79,
+          "falseNegatives": 61,
+          "precision": 0.4768211920529801,
+          "recall": 0.5413533834586466,
+          "f1": 0.5070422535211268
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 133,
+          "predictionCount": 159,
+          "matchedCount": 103,
+          "falsePositives": 56,
+          "falseNegatives": 30,
+          "precision": 0.6477987421383647,
+          "recall": 0.7744360902255639,
+          "f1": 0.7054794520547946
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 133,
+          "predictionCount": 159,
+          "matchedCount": 67,
+          "falsePositives": 92,
+          "falseNegatives": 66,
+          "precision": 0.42138364779874216,
+          "recall": 0.5037593984962406,
+          "f1": 0.4589041095890411
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -8,
+          "matchedCount": 0,
+          "falsePositives": -8,
+          "falseNegatives": 0,
+          "precision": 0.03432046315964854,
+          "recall": 0.0,
+          "f1": 0.019872660621261806
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -8,
+          "matchedCount": 5,
+          "falsePositives": -13,
+          "falseNegatives": -5,
+          "precision": 0.05543754425423797,
+          "recall": 0.03759398496240596,
+          "f1": 0.04813814393208565
+        }
+      },
+      "report": "00_BN1-129-Eb_comp/report.json"
+    },
+    {
+      "track": "00_Rock3-117-Bb_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 2894450,
+          "sha256": "fd88ab632cc5f7717ca9e500f674886f80e0224c42abebde1b01a604a7affebb"
+        },
+        "annotation": {
+          "bytes": 4116563,
+          "sha256": "98caeb42548422bbb558f663fa104146450266f7bd4667304b13a440432ba655"
+        },
+        "pcm": {
+          "bytes": 1050124,
+          "sha256": "92a5ea96e3d0174f3eaf2fb624b26d4cf1b1746a6704149b5107d69d4857e2f9"
+        },
+        "sourceSeconds": 32.81639455782313,
+        "pcmSeconds": 32.816375,
+        "referenceSeconds": 32.816400000000016,
+        "referenceNoteCount": 651,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.616439593999985,
+      "outputs": {
+        "current": {
+          "bytes": 45717,
+          "sha256": "d09f0616a748cf90fc0f29aab406e8cb7ec5854c1dffd3846df8c0a747785a92"
+        },
+        "baseline": {
+          "bytes": 48137,
+          "sha256": "956e0e37bff63a5ddbd650ae45cadd0922534f35ab9ef75569eef2c5f460d643"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 651,
+          "predictionCount": 486,
+          "matchedCount": 430,
+          "falsePositives": 56,
+          "falseNegatives": 221,
+          "precision": 0.8847736625514403,
+          "recall": 0.6605222734254992,
+          "f1": 0.7563764291996482
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 651,
+          "predictionCount": 486,
+          "matchedCount": 302,
+          "falsePositives": 184,
+          "falseNegatives": 349,
+          "precision": 0.6213991769547325,
+          "recall": 0.46390168970814133,
+          "f1": 0.5312225153913809
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 651,
+          "predictionCount": 513,
+          "matchedCount": 448,
+          "falsePositives": 65,
+          "falseNegatives": 203,
+          "precision": 0.8732943469785575,
+          "recall": 0.6881720430107527,
+          "f1": 0.7697594501718213
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 651,
+          "predictionCount": 513,
+          "matchedCount": 329,
+          "falsePositives": 184,
+          "falseNegatives": 322,
+          "precision": 0.6413255360623782,
+          "recall": 0.5053763440860215,
+          "f1": 0.5652920962199313
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -27,
+          "matchedCount": -18,
+          "falsePositives": -9,
+          "falseNegatives": 18,
+          "precision": 0.011479315572882842,
+          "recall": -0.02764976958525356,
+          "f1": -0.013383020972173143
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -27,
+          "matchedCount": -27,
+          "falsePositives": 0,
+          "falseNegatives": 27,
+          "precision": -0.01992635910764573,
+          "recall": -0.04147465437788017,
+          "f1": -0.03406958082855038
+        }
+      },
+      "report": "00_Rock3-117-Bb_comp/report.json"
+    },
+    {
+      "track": "01_SS1-68-E_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 3734996,
+          "sha256": "278b9058cde0102ad19c58e22415fc73788a85a074b765250fea1370a0ed25d5"
+        },
+        "annotation": {
+          "bytes": 5447348,
+          "sha256": "1bea54e6d3f003e519d0afa5eee57bce7df57a535ef8c218198591fe096a52b8"
+        },
+        "pcm": {
+          "bytes": 1355084,
+          "sha256": "332d7317adb131bf68cc0a0f38b8ea5ab9f03015e427676d9da9ae549ec84346"
+        },
+        "sourceSeconds": 42.34639455782313,
+        "pcmSeconds": 42.346375,
+        "referenceSeconds": 42.34640000000002,
+        "referenceNoteCount": 210,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.9670574460000125,
+      "outputs": {
+        "current": {
+          "bytes": 30149,
+          "sha256": "a28d9dd840ff72b5a26efa932324ebbe4f5109ed6dc42ca97142def2be75acd6"
+        },
+        "baseline": {
+          "bytes": 31754,
+          "sha256": "894ffd4627ed881b2796cb0328c9e7f2e6ab19beb874e5ea7059da439ae97695"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 210,
+          "predictionCount": 323,
+          "matchedCount": 183,
+          "falsePositives": 140,
+          "falseNegatives": 27,
+          "precision": 0.56656346749226,
+          "recall": 0.8714285714285714,
+          "f1": 0.6866791744840526
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 210,
+          "predictionCount": 323,
+          "matchedCount": 106,
+          "falsePositives": 217,
+          "falseNegatives": 104,
+          "precision": 0.3281733746130031,
+          "recall": 0.5047619047619047,
+          "f1": 0.3977485928705441
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 210,
+          "predictionCount": 341,
+          "matchedCount": 183,
+          "falsePositives": 158,
+          "falseNegatives": 27,
+          "precision": 0.5366568914956011,
+          "recall": 0.8714285714285714,
+          "f1": 0.6642468239564429
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 210,
+          "predictionCount": 341,
+          "matchedCount": 101,
+          "falsePositives": 240,
+          "falseNegatives": 109,
+          "precision": 0.2961876832844575,
+          "recall": 0.48095238095238096,
+          "f1": 0.3666061705989111
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -18,
+          "matchedCount": 0,
+          "falsePositives": -18,
+          "falseNegatives": 0,
+          "precision": 0.029906575996658913,
+          "recall": 0.0,
+          "f1": 0.022432350527609723
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -18,
+          "matchedCount": 5,
+          "falsePositives": -23,
+          "falseNegatives": -5,
+          "precision": 0.03198569132854562,
+          "recall": 0.02380952380952378,
+          "f1": 0.031142422271632997
+        }
+      },
+      "report": "01_SS1-68-E_comp/report.json"
+    },
+    {
+      "track": "01_Jazz2-110-Bb_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 3078506,
+          "sha256": "58f53e19e2420391afba687c7a10f2d1c80a89cf0392821729549e629b9ba55a"
+        },
+        "annotation": {
+          "bytes": 2352952,
+          "sha256": "15ec1c9307608366b20c469a6d61e8192304a787edcc209aaaf658c27cd85882"
+        },
+        "pcm": {
+          "bytes": 1116902,
+          "sha256": "d821394635b6553ad6653c424cf02dd997b839ece0ead969a8d3f7a8c4ad549a"
+        },
+        "sourceSeconds": 34.90319727891156,
+        "pcmSeconds": 34.9031875,
+        "referenceSeconds": 34.90319999999997,
+        "referenceNoteCount": 220,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.716575665999983,
+      "outputs": {
+        "current": {
+          "bytes": 19966,
+          "sha256": "998a459ed6e412ef660ffb345568a83d3eb3cfcda52335cc6ab322a1d3ca70c9"
+        },
+        "baseline": {
+          "bytes": 20760,
+          "sha256": "c0b7ede941748a6fe28c08b29c0cc882a88cf5b9f9c8610feec71a93f822d5a4"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 220,
+          "predictionCount": 206,
+          "matchedCount": 165,
+          "falsePositives": 41,
+          "falseNegatives": 55,
+          "precision": 0.8009708737864077,
+          "recall": 0.75,
+          "f1": 0.7746478873239436
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 220,
+          "predictionCount": 206,
+          "matchedCount": 101,
+          "falsePositives": 105,
+          "falseNegatives": 119,
+          "precision": 0.49029126213592233,
+          "recall": 0.4590909090909091,
+          "f1": 0.47417840375586856
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 220,
+          "predictionCount": 215,
+          "matchedCount": 169,
+          "falsePositives": 46,
+          "falseNegatives": 51,
+          "precision": 0.786046511627907,
+          "recall": 0.7681818181818182,
+          "f1": 0.7770114942528735
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 220,
+          "predictionCount": 215,
+          "matchedCount": 106,
+          "falsePositives": 109,
+          "falseNegatives": 114,
+          "precision": 0.4930232558139535,
+          "recall": 0.4818181818181818,
+          "f1": 0.48735632183908045
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -9,
+          "matchedCount": -4,
+          "falsePositives": -5,
+          "falseNegatives": 4,
+          "precision": 0.014924362158500792,
+          "recall": -0.018181818181818188,
+          "f1": -0.0023636069289298955
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -9,
+          "matchedCount": -5,
+          "falsePositives": -4,
+          "falseNegatives": 5,
+          "precision": -0.002731993678031175,
+          "recall": -0.022727272727272707,
+          "f1": -0.013177918083211893
+        }
+      },
+      "report": "01_Jazz2-110-Bb_comp/report.json"
+    },
+    {
+      "track": "02_Funk1-97-C_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 2618560,
+          "sha256": "297b0e0cda8e9e7018801b6adba68f19cfeccd5df48377285a204411648a4f81"
+        },
+        "annotation": {
+          "bytes": 1295451,
+          "sha256": "292c8330635f53e35587e796c76ea47358647474471dfaeb8869167ff34a2549"
+        },
+        "pcm": {
+          "bytes": 950028,
+          "sha256": "6feb5a2e9e8fd187eee04475e79d076b70268b92c7c6c9fa3db488ab2720282e"
+        },
+        "sourceSeconds": 29.688390022675737,
+        "pcmSeconds": 29.688375,
+        "referenceSeconds": 29.6884,
+        "referenceNoteCount": 189,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.4160459120000155,
+      "outputs": {
+        "current": {
+          "bytes": 18683,
+          "sha256": "6f087d921ab6c7864e8a258e17d59764208aab9173465a2bfc7c4f31a6781b21"
+        },
+        "baseline": {
+          "bytes": 20108,
+          "sha256": "dcdac3605b6c7264ec69d8ce9635105a1c5fbf6356e0bbb49cf5b4f0a84cc707"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 189,
+          "predictionCount": 200,
+          "matchedCount": 154,
+          "falsePositives": 46,
+          "falseNegatives": 35,
+          "precision": 0.77,
+          "recall": 0.8148148148148148,
+          "f1": 0.7917737789203085
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 189,
+          "predictionCount": 200,
+          "matchedCount": 101,
+          "falsePositives": 99,
+          "falseNegatives": 88,
+          "precision": 0.505,
+          "recall": 0.5343915343915344,
+          "f1": 0.519280205655527
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 189,
+          "predictionCount": 216,
+          "matchedCount": 155,
+          "falsePositives": 61,
+          "falseNegatives": 34,
+          "precision": 0.7175925925925926,
+          "recall": 0.8201058201058201,
+          "f1": 0.7654320987654321
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 189,
+          "predictionCount": 216,
+          "matchedCount": 93,
+          "falsePositives": 123,
+          "falseNegatives": 96,
+          "precision": 0.4305555555555556,
+          "recall": 0.49206349206349204,
+          "f1": 0.45925925925925926
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -16,
+          "matchedCount": -1,
+          "falsePositives": -15,
+          "falseNegatives": 1,
+          "precision": 0.05240740740740746,
+          "recall": -0.005291005291005346,
+          "f1": 0.02634168015487648
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -16,
+          "matchedCount": 8,
+          "falsePositives": -24,
+          "falseNegatives": -8,
+          "precision": 0.07444444444444442,
+          "recall": 0.04232804232804238,
+          "f1": 0.06002094639626776
+        }
+      },
+      "report": "02_Funk1-97-C_comp/report.json"
+    },
+    {
+      "track": "02_BN3-119-G_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 2845658,
+          "sha256": "b72774cb9f5aeadf66ecd12124604c4d45b95721283f868db0e6abb5a2f62bb7"
+        },
+        "annotation": {
+          "bytes": 3030987,
+          "sha256": "e29cf0c5a0841468c6f40242cf2193766730ef9679d590a0b7f81add6fbeccbb"
+        },
+        "pcm": {
+          "bytes": 1032422,
+          "sha256": "57b38fd78af12bea9df10731d34c159ae5520eafa64534b4e6e99bbb5246279e"
+        },
+        "sourceSeconds": 32.26319727891156,
+        "pcmSeconds": 32.2631875,
+        "referenceSeconds": 32.26319999999998,
+        "referenceNoteCount": 282,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.5162130739999498,
+      "outputs": {
+        "current": {
+          "bytes": 27255,
+          "sha256": "a82a9d5a279ff53161f417a5b92b348b1b3ba9fc1bba2d2f4e5073c8e033acf2"
+        },
+        "baseline": {
+          "bytes": 28233,
+          "sha256": "882b078006bc081f4563e48803daead888de6007f432fbc52d93dbb689002db5"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 282,
+          "predictionCount": 286,
+          "matchedCount": 219,
+          "falsePositives": 67,
+          "falseNegatives": 63,
+          "precision": 0.7657342657342657,
+          "recall": 0.776595744680851,
+          "f1": 0.7711267605633803
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 282,
+          "predictionCount": 286,
+          "matchedCount": 141,
+          "falsePositives": 145,
+          "falseNegatives": 141,
+          "precision": 0.493006993006993,
+          "recall": 0.5,
+          "f1": 0.4964788732394366
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 282,
+          "predictionCount": 297,
+          "matchedCount": 223,
+          "falsePositives": 74,
+          "falseNegatives": 59,
+          "precision": 0.7508417508417509,
+          "recall": 0.7907801418439716,
+          "f1": 0.770293609671848
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 282,
+          "predictionCount": 297,
+          "matchedCount": 149,
+          "falsePositives": 148,
+          "falseNegatives": 133,
+          "precision": 0.5016835016835017,
+          "recall": 0.5283687943262412,
+          "f1": 0.5146804835924007
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -11,
+          "matchedCount": -4,
+          "falsePositives": -7,
+          "falseNegatives": 4,
+          "precision": 0.014892514892514863,
+          "recall": -0.014184397163120588,
+          "f1": 0.0008331508915322416
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -11,
+          "matchedCount": -8,
+          "falsePositives": -3,
+          "falseNegatives": 8,
+          "precision": -0.00867650867650871,
+          "recall": -0.028368794326241176,
+          "f1": -0.01820161035296408
+        }
+      },
+      "report": "02_BN3-119-G_comp/report.json"
+    },
+    {
+      "track": "03_Rock1-130-A_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 1953428,
+          "sha256": "5e71387daf08213651f8b8f0d9b1db7d589cbc6b9fefd8e052e13a1f8f7286ca"
+        },
+        "annotation": {
+          "bytes": 1694925,
+          "sha256": "502ab4f7788bad71bafe9572ba185e698b3cf82576be105acd6d4112b711f1fa"
+        },
+        "pcm": {
+          "bytes": 708712,
+          "sha256": "b413c681360400f0b899eca27aa22436e62f67973ad831b54385bc38f2b9ee2b"
+        },
+        "sourceSeconds": 22.14721088435374,
+        "pcmSeconds": 22.14725,
+        "referenceSeconds": 22.1472,
+        "referenceNoteCount": 212,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.0653406060000066,
+      "outputs": {
+        "current": {
+          "bytes": 19373,
+          "sha256": "93ee1100afb56fc450e5095b327dc241e74cfe3e88eebaf18e73afaccfd9a820"
+        },
+        "baseline": {
+          "bytes": 19623,
+          "sha256": "ebaddf3961a450dbf14b30eaa39c39b79c208dc7e8eb7246d5e77bc670fe2003"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 212,
+          "predictionCount": 207,
+          "matchedCount": 145,
+          "falsePositives": 62,
+          "falseNegatives": 67,
+          "precision": 0.7004830917874396,
+          "recall": 0.6839622641509434,
+          "f1": 0.6921241050119332
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 212,
+          "predictionCount": 207,
+          "matchedCount": 72,
+          "falsePositives": 135,
+          "falseNegatives": 140,
+          "precision": 0.34782608695652173,
+          "recall": 0.33962264150943394,
+          "f1": 0.3436754176610978
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 212,
+          "predictionCount": 210,
+          "matchedCount": 147,
+          "falsePositives": 63,
+          "falseNegatives": 65,
+          "precision": 0.7,
+          "recall": 0.6933962264150944,
+          "f1": 0.6966824644549763
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 212,
+          "predictionCount": 210,
+          "matchedCount": 73,
+          "falsePositives": 137,
+          "falseNegatives": 139,
+          "precision": 0.3476190476190476,
+          "recall": 0.3443396226415094,
+          "f1": 0.3459715639810427
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -3,
+          "matchedCount": -2,
+          "falsePositives": -1,
+          "falseNegatives": 2,
+          "precision": 0.0004830917874396601,
+          "recall": -0.009433962264150941,
+          "f1": -0.0045583594430430585
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -3,
+          "matchedCount": -1,
+          "falsePositives": -2,
+          "falseNegatives": 1,
+          "precision": 0.00020703933747412417,
+          "recall": -0.004716981132075471,
+          "f1": -0.0022961463199448473
+        }
+      },
+      "report": "03_Rock1-130-A_comp/report.json"
+    },
+    {
+      "track": "03_Jazz3-150-C_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 2257964,
+          "sha256": "f6640808cd13b2f0a0f7ed4c4f6ae460ee9d05aaa7ce6ca0f9edc3ff0bfdf000"
+        },
+        "annotation": {
+          "bytes": 1069266,
+          "sha256": "f6582b8b45efe6661354788330a64a2f6a148134976d8f7f71a86cdaaddf92b5"
+        },
+        "pcm": {
+          "bytes": 819200,
+          "sha256": "8edb6858713afd60a780bfdc58211b888d55839961ac2d4bc57c9584aa4413fd"
+        },
+        "sourceSeconds": 25.6,
+        "pcmSeconds": 25.6,
+        "referenceSeconds": 25.600000000000023,
+        "referenceNoteCount": 101,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.2155970919999959,
+      "outputs": {
+        "current": {
+          "bytes": 11373,
+          "sha256": "c64c810f04c98b289b804fa422960b2abe78c1dda61e38f39fd0bae0a1b714ed"
+        },
+        "baseline": {
+          "bytes": 11534,
+          "sha256": "ae4c47db6aa2bb6522cf05f2ce5cf7f5a9c03e813e9ce4ee0892b47397abe627"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 101,
+          "predictionCount": 111,
+          "matchedCount": 92,
+          "falsePositives": 19,
+          "falseNegatives": 9,
+          "precision": 0.8288288288288288,
+          "recall": 0.9108910891089109,
+          "f1": 0.8679245283018868
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 101,
+          "predictionCount": 111,
+          "matchedCount": 58,
+          "falsePositives": 53,
+          "falseNegatives": 43,
+          "precision": 0.5225225225225225,
+          "recall": 0.5742574257425742,
+          "f1": 0.5471698113207547
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 101,
+          "predictionCount": 113,
+          "matchedCount": 92,
+          "falsePositives": 21,
+          "falseNegatives": 9,
+          "precision": 0.8141592920353983,
+          "recall": 0.9108910891089109,
+          "f1": 0.8598130841121495
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 101,
+          "predictionCount": 113,
+          "matchedCount": 57,
+          "falsePositives": 56,
+          "falseNegatives": 44,
+          "precision": 0.504424778761062,
+          "recall": 0.5643564356435643,
+          "f1": 0.5327102803738317
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -2,
+          "matchedCount": 0,
+          "falsePositives": -2,
+          "falseNegatives": 0,
+          "precision": 0.014669536793430527,
+          "recall": 0.0,
+          "f1": 0.008111444189737305
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -2,
+          "matchedCount": 1,
+          "falsePositives": -3,
+          "falseNegatives": -1,
+          "precision": 0.01809774376146056,
+          "recall": 0.00990099009900991,
+          "f1": 0.014459530946922983
+        }
+      },
+      "report": "03_Jazz3-150-C_comp/report.json"
+    },
+    {
+      "track": "04_SS2-107-Ab_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 3165224,
+          "sha256": "6222641015ef25c1423453949988509353c7bd6cae2b16032a3c64b9d990cd7b"
+        },
+        "annotation": {
+          "bytes": 2912820,
+          "sha256": "af25369890af9f973ff2452806a919bbb4db344dbe329c1aad88f29c4d3179de"
+        },
+        "pcm": {
+          "bytes": 1148364,
+          "sha256": "ece3c4b04f6f685c43ba02c6a85578e93a0be2fea32230d25cd2fbd429ff348d"
+        },
+        "sourceSeconds": 35.88639455782313,
+        "pcmSeconds": 35.886375,
+        "referenceSeconds": 35.88639999999998,
+        "referenceNoteCount": 232,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.666107850000003,
+      "outputs": {
+        "current": {
+          "bytes": 30581,
+          "sha256": "797e74ce28e722a6ae8f9024a54d7f810202bf0ab0cc6c85ce6e8990552e5688"
+        },
+        "baseline": {
+          "bytes": 35250,
+          "sha256": "d755066c594e3c30114f9f3459f46ad71fbf5943515cd6ae9fef6d3ba5d92d7a"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 232,
+          "predictionCount": 324,
+          "matchedCount": 181,
+          "falsePositives": 143,
+          "falseNegatives": 51,
+          "precision": 0.558641975308642,
+          "recall": 0.7801724137931034,
+          "f1": 0.6510791366906474
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 232,
+          "predictionCount": 324,
+          "matchedCount": 69,
+          "falsePositives": 255,
+          "falseNegatives": 163,
+          "precision": 0.21296296296296297,
+          "recall": 0.2974137931034483,
+          "f1": 0.24820143884892087
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 232,
+          "predictionCount": 376,
+          "matchedCount": 183,
+          "falsePositives": 193,
+          "falseNegatives": 49,
+          "precision": 0.4867021276595745,
+          "recall": 0.7887931034482759,
+          "f1": 0.6019736842105263
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 232,
+          "predictionCount": 376,
+          "matchedCount": 57,
+          "falsePositives": 319,
+          "falseNegatives": 175,
+          "precision": 0.15159574468085107,
+          "recall": 0.24568965517241378,
+          "f1": 0.1875
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -52,
+          "matchedCount": -2,
+          "falsePositives": -50,
+          "falseNegatives": 2,
+          "precision": 0.07193984764906752,
+          "recall": -0.008620689655172487,
+          "f1": 0.0491054524801211
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -52,
+          "matchedCount": 12,
+          "falsePositives": -64,
+          "falseNegatives": -12,
+          "precision": 0.06136721828211189,
+          "recall": 0.0517241379310345,
+          "f1": 0.060701438848920874
+        }
+      },
+      "report": "04_SS2-107-Ab_comp/report.json"
+    },
+    {
+      "track": "04_Funk2-119-G_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 2845658,
+          "sha256": "a1241d1af68f1bad6b3eceb491d8bf9ccf91a14ab822ff5ee88d5ff170d53669"
+        },
+        "annotation": {
+          "bytes": 2034348,
+          "sha256": "7453b7207b821d89933e7d0e20c5189f284aec5d6736a0669d93ceed96fed578"
+        },
+        "pcm": {
+          "bytes": 1032422,
+          "sha256": "900abc39734e7e0a495e284622e696e8d3c0a7c2048c3a19a105da5ba0eb8e02"
+        },
+        "sourceSeconds": 32.26319727891156,
+        "pcmSeconds": 32.2631875,
+        "referenceSeconds": 32.2632000000001,
+        "referenceNoteCount": 352,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.516053301999989,
+      "outputs": {
+        "current": {
+          "bytes": 31991,
+          "sha256": "63c8cec295dd8c9a4b0ab9cce516fb5efd3d494f504c5c41bbac520ea2bb345e"
+        },
+        "baseline": {
+          "bytes": 33685,
+          "sha256": "68de4ee0985069c14c37c67ce380645a072b187f851a35ac80cd8ad577735f91"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 352,
+          "predictionCount": 339,
+          "matchedCount": 261,
+          "falsePositives": 78,
+          "falseNegatives": 91,
+          "precision": 0.7699115044247787,
+          "recall": 0.7414772727272727,
+          "f1": 0.7554269175108539
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 352,
+          "predictionCount": 339,
+          "matchedCount": 183,
+          "falsePositives": 156,
+          "falseNegatives": 169,
+          "precision": 0.5398230088495575,
+          "recall": 0.5198863636363636,
+          "f1": 0.5296671490593343
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 352,
+          "predictionCount": 358,
+          "matchedCount": 269,
+          "falsePositives": 89,
+          "falseNegatives": 83,
+          "precision": 0.7513966480446927,
+          "recall": 0.7642045454545454,
+          "f1": 0.7577464788732394
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 352,
+          "predictionCount": 358,
+          "matchedCount": 188,
+          "falsePositives": 170,
+          "falseNegatives": 164,
+          "precision": 0.5251396648044693,
+          "recall": 0.5340909090909091,
+          "f1": 0.5295774647887324
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -19,
+          "matchedCount": -8,
+          "falsePositives": -11,
+          "falseNegatives": 8,
+          "precision": 0.018514856380085987,
+          "recall": -0.022727272727272707,
+          "f1": -0.002319561362385536
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -19,
+          "matchedCount": -5,
+          "falsePositives": -14,
+          "falseNegatives": 5,
+          "precision": 0.014683344045088198,
+          "recall": -0.014204545454545414,
+          "f1": 8.968427060196404e-05
+        }
+      },
+      "report": "04_Funk2-119-G_comp/report.json"
+    },
+    {
+      "track": "05_BN2-166-Ab_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 2040110,
+          "sha256": "58e771edbaedf69eb0216b8e77c82f468e8f0dd6045bfdcda585a0f346f86213"
+        },
+        "annotation": {
+          "bytes": 1518258,
+          "sha256": "410e7373f7753871225bdc99f0f96d4f9e911fb72602427e1b177458430a4fda"
+        },
+        "pcm": {
+          "bytes": 740160,
+          "sha256": "4fe8a6538063d99bcc92c078f073c63d6f34ab622d46827f186e9d502f557e58"
+        },
+        "sourceSeconds": 23.13,
+        "pcmSeconds": 23.13,
+        "referenceSeconds": 23.129999999999995,
+        "referenceNoteCount": 173,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 1.1154789619999974,
+      "outputs": {
+        "current": {
+          "bytes": 20740,
+          "sha256": "1e819d08aca072dc172b862141eafaa6d5e4227be8a13de41dccd6078df852ea"
+        },
+        "baseline": {
+          "bytes": 21989,
+          "sha256": "14a9daabe1e1581a1483bb2f09a0c2986d1fa77b1329c50790eef1be229b1b9b"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 173,
+          "predictionCount": 214,
+          "matchedCount": 161,
+          "falsePositives": 53,
+          "falseNegatives": 12,
+          "precision": 0.7523364485981309,
+          "recall": 0.930635838150289,
+          "f1": 0.8320413436692506
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 173,
+          "predictionCount": 214,
+          "matchedCount": 116,
+          "falsePositives": 98,
+          "falseNegatives": 57,
+          "precision": 0.5420560747663551,
+          "recall": 0.6705202312138728,
+          "f1": 0.599483204134367
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 173,
+          "predictionCount": 228,
+          "matchedCount": 161,
+          "falsePositives": 67,
+          "falseNegatives": 12,
+          "precision": 0.706140350877193,
+          "recall": 0.930635838150289,
+          "f1": 0.8029925187032418
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 173,
+          "predictionCount": 228,
+          "matchedCount": 112,
+          "falsePositives": 116,
+          "falseNegatives": 61,
+          "precision": 0.49122807017543857,
+          "recall": 0.6473988439306358,
+          "f1": 0.5586034912718204
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -14,
+          "matchedCount": 0,
+          "falsePositives": -14,
+          "falseNegatives": 0,
+          "precision": 0.04619609772093791,
+          "recall": 0.0,
+          "f1": 0.0290488249660088
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -14,
+          "matchedCount": 4,
+          "falsePositives": -18,
+          "falseNegatives": -4,
+          "precision": 0.05082800459091652,
+          "recall": 0.023121387283236983,
+          "f1": 0.04087971286254655
+        }
+      },
+      "report": "05_BN2-166-Ab_comp/report.json"
+    },
+    {
+      "track": "05_SS3-84-Bb_comp",
+      "status": "complete",
+      "inputs": {
+        "audio": {
+          "bytes": 4031454,
+          "sha256": "a687478848bc80c8d0441856fd251df72c048bc856820653ca2b0106717f87dd"
+        },
+        "annotation": {
+          "bytes": 3052760,
+          "sha256": "93d6dbe0f9bee79ca03b11f5d1c0d7691e88c3f6d7a6cf41df8fe1e9aee5e09e"
+        },
+        "pcm": {
+          "bytes": 1462644,
+          "sha256": "8b0dbcfa4fb9a9dfce0b0c0ed4626d65b1ac6ffeff8e18e3a8a12a0d1cea817b"
+        },
+        "sourceSeconds": 45.70759637188208,
+        "pcmSeconds": 45.707625,
+        "referenceSeconds": 45.70760000000001,
+        "referenceNoteCount": 211,
+        "pcmFormat": {
+          "sampleRate": 16000,
+          "channels": 1,
+          "encoding": "s16le"
+        }
+      },
+      "hostProbeWallSeconds": 2.0669518149999817,
+      "outputs": {
+        "current": {
+          "bytes": 32525,
+          "sha256": "1a3a5782dd6afa38098087ba7100d6dba707a8d6c0be93ff6e004f019d36d2ab"
+        },
+        "baseline": {
+          "bytes": 33596,
+          "sha256": "1222b20aebd42044e18f4b33502ed4529779f6d511c0db517c9d9a44fbd61e2d"
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 211,
+          "predictionCount": 343,
+          "matchedCount": 210,
+          "falsePositives": 133,
+          "falseNegatives": 1,
+          "precision": 0.6122448979591837,
+          "recall": 0.995260663507109,
+          "f1": 0.7581227436823105
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 211,
+          "predictionCount": 343,
+          "matchedCount": 128,
+          "falsePositives": 215,
+          "falseNegatives": 83,
+          "precision": 0.37317784256559766,
+          "recall": 0.6066350710900474,
+          "f1": 0.4620938628158845
+        }
+      },
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 211,
+          "predictionCount": 355,
+          "matchedCount": 210,
+          "falsePositives": 145,
+          "falseNegatives": 1,
+          "precision": 0.5915492957746479,
+          "recall": 0.995260663507109,
+          "f1": 0.7420494699646644
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 211,
+          "predictionCount": 355,
+          "matchedCount": 134,
+          "falsePositives": 221,
+          "falseNegatives": 77,
+          "precision": 0.37746478873239436,
+          "recall": 0.6350710900473934,
+          "f1": 0.4734982332155477
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -12,
+          "matchedCount": 0,
+          "falsePositives": -12,
+          "falseNegatives": 0,
+          "precision": 0.02069560218453581,
+          "recall": 0.0,
+          "f1": 0.016073273717646108
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -12,
+          "matchedCount": -6,
+          "falsePositives": -6,
+          "falseNegatives": 6,
+          "precision": -0.004286946166796701,
+          "recall": -0.028436018957345932,
+          "f1": -0.011404370399663188
+        }
+      },
+      "report": "05_SS3-84-Bb_comp/report.json"
+    }
+  ],
+  "dataset": {
+    "dataset": "GuitarSet1.1.0",
+    "source": "https://zenodo.org/records/3371780",
+    "license": "CC-BY-4.0",
+    "authors": [
+      "Qingyang Xi",
+      "Rachel M. Bittner",
+      "Johan Pauwels",
+      "Xuzhou Ye",
+      "Juan P. Bello"
+    ]
+  },
+  "provenance": {
+    "baselineCommit": "8e9ba173fb03d53d649ab2aa577fa6a762caeeb0",
+    "baselineDecoderGitBlob": "33a4e5221f63d57ee3f1b62cc4f2b48e94af461c",
+    "sourceManifest": "docs/offline-chord-quality-fixtures.json",
+    "sourceManifestSha256": "7235dcab774888da134aa07ba48d6d9826c8216ace615cf1849a9728c029436b",
+    "preparedInputsSha256": "5d84b72dc163c71d96cc4f94bc3e459af8b96127c9594fd60864e3af87e78d1a",
+    "nativeBinarySha256": "7858b73abdc1930a9ec9bf2b92eb79b8e3254b1b72f95a8c2253afbd014a40a8",
+    "sources": {
+      "scripts/compare-offline-note-corpus.py": "cdd9499d08fc5a3d80efa8181df2c17fbc16b06ec43807dccbf4d4905cab3f49",
+      "scripts/evaluate-offline-note-events.py": "c8a467cf0246e29f289047be7edfc5e05debb9e7512f79b3f52b0c3059aaca41",
+      "android/song-fingerprint/src/bin/diagnostics/note_events_baseline.rs": "33a618cd9df8fab3659824d1552cf41d7fbbc8a27ff87d5791640884d9c9c6c6",
+      "scripts/fetch-offline-chord-quality-fixtures.py": "861aaf1798f691367c809eb272ab02a7a8c5c9b24e12036f6aa9049c40f55e16",
+      "scripts/fetch-offline-chord-fixtures.py": "eb2037f825fcdbb1e5b11cd9b073062c1b53ff859e88521fd2cc488ea25364e5",
+      "android/song-fingerprint/src/note_events.rs": "eca22b17a671b9463479d78e0cdca0585c9bcee02c8fd2ce40f154e8d6a63cf0",
+      "android/song-fingerprint/src/chord_notes.rs": "68cbc84e201469a2633ddf19e098d2ea08beb5a0315aef0a59481cbdf98c108a",
+      "android/song-fingerprint/src/chords.rs": "aaa6fc8c6d7afdb380f633b7d2ca16c51b6da8a81765bf88f904ed21b8dc3af3",
+      "android/song-fingerprint/src/bin/chord_probe.rs": "420a325db3b7cc1ae285104bf98083a617910dfedd2562a5939f6d8fdd921d86",
+      "android/song-fingerprint/Cargo.lock": "6e50e514c6a56912581181549587db0ffbc78b1cac12ced69e86d0ef2d33f986"
+    },
+    "pythonVersion": "3.14.4",
+    "github": {
+      "GITHUB_SHA": "aac25609d2df330766100dcaa424c521164d74e0",
+      "GITHUB_RUN_ID": "45960476907",
+      "GITHUB_RUN_ATTEMPT": "1",
+      "GITHUB_EVENT_NAME": "pull_request",
+      "GITHUB_HEAD_REF": "feature/offline-chord-analysis"
+    }
+  },
+  "completedRecordings": 12,
+  "declaredRecordings": 12,
+  "comparison": {
+    "complete": true,
+    "micro": {
+      "baseline": {
+        "onsetPitch": {
+          "referenceCount": 2966,
+          "predictionCount": 3381,
+          "matchedCount": 2343,
+          "falsePositives": 1038,
+          "falseNegatives": 623,
+          "precision": 0.6929902395740906,
+          "recall": 0.7899527983816588,
+          "f1": 0.7383015597920277
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 2966,
+          "predictionCount": 3381,
+          "matchedCount": 1466,
+          "falsePositives": 1915,
+          "falseNegatives": 1500,
+          "precision": 0.4335995267672286,
+          "recall": 0.4942683749157114,
+          "f1": 0.46195052780841345
+        }
+      },
+      "current": {
+        "onsetPitch": {
+          "referenceCount": 2966,
+          "predictionCount": 3190,
+          "matchedCount": 2304,
+          "falsePositives": 886,
+          "falseNegatives": 662,
+          "precision": 0.722257053291536,
+          "recall": 0.7768037761294673,
+          "f1": 0.7485380116959064
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 2966,
+          "predictionCount": 3190,
+          "matchedCount": 1449,
+          "falsePositives": 1741,
+          "falseNegatives": 1517,
+          "precision": 0.4542319749216301,
+          "recall": 0.4885367498314228,
+          "f1": 0.47076023391812866
+        }
+      },
+      "delta": {
+        "onsetPitch": {
+          "referenceCount": 0,
+          "predictionCount": -191,
+          "matchedCount": -39,
+          "falsePositives": -152,
+          "falseNegatives": 39,
+          "precision": 0.02926681371744544,
+          "recall": -0.0131490222521915,
+          "f1": 0.010236451903878674
+        },
+        "onsetPitchOffset": {
+          "referenceCount": 0,
+          "predictionCount": -191,
+          "matchedCount": -17,
+          "falsePositives": -174,
+          "falseNegatives": 17,
+          "precision": 0.02063244815440146,
+          "recall": -0.005731625084288594,
+          "f1": 0.00880970610971521
+        }
+      }
+    },
+    "regressions": [
+      {
+        "track": "00_Rock3-117-Bb_comp",
+        "criterion": "onsetPitch",
+        "metrics": [
+          "recall",
+          "f1"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -27,
+          "matchedCount": -18,
+          "falsePositives": -9,
+          "falseNegatives": 18,
+          "precision": 0.011479315572882842,
+          "recall": -0.02764976958525356,
+          "f1": -0.013383020972173143
+        }
+      },
+      {
+        "track": "00_Rock3-117-Bb_comp",
+        "criterion": "onsetPitchOffset",
+        "metrics": [
+          "precision",
+          "recall",
+          "f1"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -27,
+          "matchedCount": -27,
+          "falsePositives": 0,
+          "falseNegatives": 27,
+          "precision": -0.01992635910764573,
+          "recall": -0.04147465437788017,
+          "f1": -0.03406958082855038
+        }
+      },
+      {
+        "track": "01_Jazz2-110-Bb_comp",
+        "criterion": "onsetPitch",
+        "metrics": [
+          "recall",
+          "f1"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -9,
+          "matchedCount": -4,
+          "falsePositives": -5,
+          "falseNegatives": 4,
+          "precision": 0.014924362158500792,
+          "recall": -0.018181818181818188,
+          "f1": -0.0023636069289298955
+        }
+      },
+      {
+        "track": "01_Jazz2-110-Bb_comp",
+        "criterion": "onsetPitchOffset",
+        "metrics": [
+          "precision",
+          "recall",
+          "f1"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -9,
+          "matchedCount": -5,
+          "falsePositives": -4,
+          "falseNegatives": 5,
+          "precision": -0.002731993678031175,
+          "recall": -0.022727272727272707,
+          "f1": -0.013177918083211893
+        }
+      },
+      {
+        "track": "02_Funk1-97-C_comp",
+        "criterion": "onsetPitch",
+        "metrics": [
+          "recall"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -16,
+          "matchedCount": -1,
+          "falsePositives": -15,
+          "falseNegatives": 1,
+          "precision": 0.05240740740740746,
+          "recall": -0.005291005291005346,
+          "f1": 0.02634168015487648
+        }
+      },
+      {
+        "track": "02_BN3-119-G_comp",
+        "criterion": "onsetPitch",
+        "metrics": [
+          "recall"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -11,
+          "matchedCount": -4,
+          "falsePositives": -7,
+          "falseNegatives": 4,
+          "precision": 0.014892514892514863,
+          "recall": -0.014184397163120588,
+          "f1": 0.0008331508915322416
+        }
+      },
+      {
+        "track": "02_BN3-119-G_comp",
+        "criterion": "onsetPitchOffset",
+        "metrics": [
+          "precision",
+          "recall",
+          "f1"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -11,
+          "matchedCount": -8,
+          "falsePositives": -3,
+          "falseNegatives": 8,
+          "precision": -0.00867650867650871,
+          "recall": -0.028368794326241176,
+          "f1": -0.01820161035296408
+        }
+      },
+      {
+        "track": "03_Rock1-130-A_comp",
+        "criterion": "onsetPitch",
+        "metrics": [
+          "recall",
+          "f1"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -3,
+          "matchedCount": -2,
+          "falsePositives": -1,
+          "falseNegatives": 2,
+          "precision": 0.0004830917874396601,
+          "recall": -0.009433962264150941,
+          "f1": -0.0045583594430430585
+        }
+      },
+      {
+        "track": "03_Rock1-130-A_comp",
+        "criterion": "onsetPitchOffset",
+        "metrics": [
+          "recall",
+          "f1"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -3,
+          "matchedCount": -1,
+          "falsePositives": -2,
+          "falseNegatives": 1,
+          "precision": 0.00020703933747412417,
+          "recall": -0.004716981132075471,
+          "f1": -0.0022961463199448473
+        }
+      },
+      {
+        "track": "04_SS2-107-Ab_comp",
+        "criterion": "onsetPitch",
+        "metrics": [
+          "recall"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -52,
+          "matchedCount": -2,
+          "falsePositives": -50,
+          "falseNegatives": 2,
+          "precision": 0.07193984764906752,
+          "recall": -0.008620689655172487,
+          "f1": 0.0491054524801211
+        }
+      },
+      {
+        "track": "04_Funk2-119-G_comp",
+        "criterion": "onsetPitch",
+        "metrics": [
+          "recall",
+          "f1"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -19,
+          "matchedCount": -8,
+          "falsePositives": -11,
+          "falseNegatives": 8,
+          "precision": 0.018514856380085987,
+          "recall": -0.022727272727272707,
+          "f1": -0.002319561362385536
+        }
+      },
+      {
+        "track": "04_Funk2-119-G_comp",
+        "criterion": "onsetPitchOffset",
+        "metrics": [
+          "recall"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -19,
+          "matchedCount": -5,
+          "falsePositives": -14,
+          "falseNegatives": 5,
+          "precision": 0.014683344045088198,
+          "recall": -0.014204545454545414,
+          "f1": 8.968427060196404e-05
+        }
+      },
+      {
+        "track": "05_SS3-84-Bb_comp",
+        "criterion": "onsetPitchOffset",
+        "metrics": [
+          "precision",
+          "recall",
+          "f1"
+        ],
+        "delta": {
+          "referenceCount": 0,
+          "predictionCount": -12,
+          "matchedCount": -6,
+          "falsePositives": -6,
+          "falseNegatives": 6,
+          "precision": -0.004286946166796701,
+          "recall": -0.028436018957345932,
+          "f1": -0.011404370399663188
+        }
+      }
+    ]
+  }
+}

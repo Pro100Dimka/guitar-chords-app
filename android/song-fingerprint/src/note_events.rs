@@ -202,38 +202,6 @@ fn emit_interval(
     }
 }
 
-fn continues_note_decay(
-    source: &impl NoteFrames,
-    note: usize,
-    index: usize,
-    start: f64,
-    end: f64,
-) -> bool {
-    let frame = source.frame(index);
-    let current = frame.notes[note];
-    if index == 0
-        || frame.time - ONSET_PAIR_RADIUS + TIME_EPSILON < start
-        || frame.time + ONSET_PAIR_RADIUS > end + TIME_EPSILON
-        || current < ACTIVITY_START
-        || current + f32::EPSILON >= source.frame(index - 1).notes[note]
-    {
-        return false;
-    }
-    let (previous_peak, _) = evidence(
-        source,
-        note,
-        frame.time - ONSET_PAIR_RADIUS,
-        frame.time,
-    );
-    let (following_peak, _) = evidence(
-        source,
-        note,
-        frame.time,
-        frame.time + ONSET_PAIR_RADIUS,
-    );
-    following_peak + f32::EPSILON < previous_peak
-}
-
 fn decode_activity_run(
     source: &impl NoteFrames,
     note: usize,
@@ -297,13 +265,6 @@ fn decode_activity_run(
                 }
                 continue;
             }
-        }
-        // An onset-head peak can echo another attack while this pitch decays.
-        // Require renewal before splitting that decay, using the existing
-        // pairing window. First attacks and flat/rising note activity retain
-        // the previous behavior, including softer and leading attacks.
-        if !attacks.is_empty() && continues_note_decay(source, note, index, start, end) {
-            continue;
         }
         attacks.push((frame.time, value));
     }
@@ -398,14 +359,6 @@ mod tests {
         }
     }
 
-    fn decaying_frames(midi: usize) -> Vec<NoteFrame> {
-        let mut input = frames(100);
-        for (offset, frame) in input[10..90].iter_mut().enumerate() {
-            frame.notes[midi - FIRST_MIDI_NOTE] = 0.9 - offset as f32 * 0.005;
-        }
-        input
-    }
-
     #[test]
     fn empty_and_silent_frames_report_complete_coverage() {
         for input in [Vec::new(), frames(100)] {
@@ -429,72 +382,6 @@ mod tests {
         assert!(result.events.iter().all(|event| event.midi == 64));
         assert_eq!(result.events[0].onset_evidence, 0.9);
         assert_eq!(result.events[1].onset_evidence, 0.7);
-    }
-
-    #[test]
-    fn coupled_onsets_do_not_split_a_pitch_that_only_continues_decaying() {
-        let mut input = decaying_frames(64);
-        input[10].onsets[64 - FIRST_MIDI_NOTE] = 0.9;
-        input[40].onsets[64 - FIRST_MIDI_NOTE] = 0.7;
-        input[55].onsets[64 - FIRST_MIDI_NOTE] = 0.8;
-        activate(&mut input, 67, 40, 75, 0.8);
-        input[40].onsets[67 - FIRST_MIDI_NOTE] = 0.9;
-        let result = decode(&input, 1.0);
-        assert_eq!(result.events.len(), 2);
-        assert_eq!((result.events[0].midi, result.events[0].start, result.events[0].end), (64, 0.105, 0.9));
-        assert_eq!((result.events[1].midi, result.events[1].start, result.events[1].end), (67, 0.405, 0.75));
-    }
-
-    #[test]
-    fn a_real_renewal_after_an_ignored_decay_peak_still_splits_the_note() {
-        let mut input = decaying_frames(64);
-        input[10].onsets[64 - FIRST_MIDI_NOTE] = 0.9;
-        input[40].onsets[64 - FIRST_MIDI_NOTE] = 0.7;
-        activate(&mut input, 64, 65, 90, 0.8);
-        input[65].onsets[64 - FIRST_MIDI_NOTE] = 0.8;
-        let result = decode(&input, 1.0);
-        assert_eq!(result.events.len(), 2);
-        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.655));
-        assert_eq!((result.events[1].start, result.events[1].end), (0.655, 0.9));
-    }
-
-    #[test]
-    fn flat_activity_and_a_softer_new_rise_keep_confirmed_reattacks() {
-        for previous in [0.75, 0.70] {
-            let mut input = decaying_frames(64);
-            input[10].onsets[64 - FIRST_MIDI_NOTE] = 0.9;
-            input[39].notes[64 - FIRST_MIDI_NOTE] = previous;
-            activate(&mut input, 64, 40, 90, 0.75);
-            input[40].onsets[64 - FIRST_MIDI_NOTE] = 0.7;
-            let result = decode(&input, 1.0);
-            assert_eq!(result.events.len(), 2, "previous activity {previous}");
-            assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.405));
-            assert_eq!((result.events[1].start, result.events[1].end), (0.405, 0.9));
-        }
-    }
-
-    #[test]
-    fn note_activity_recovering_after_the_onset_keeps_the_reattack() {
-        let mut input = decaying_frames(64);
-        input[10].onsets[64 - FIRST_MIDI_NOTE] = 0.9;
-        input[40].onsets[64 - FIRST_MIDI_NOTE] = 0.7;
-        activate(&mut input, 64, 44, 60, 0.9);
-        let result = decode(&input, 1.0);
-        assert_eq!(result.events.len(), 2);
-        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.405));
-        assert_eq!((result.events[1].start, result.events[1].end), (0.405, 0.9));
-    }
-
-    #[test]
-    fn the_first_confirmed_onset_is_not_rejected_for_decaying_activity() {
-        let mut input = decaying_frames(64);
-        input[40].onsets[64 - FIRST_MIDI_NOTE] = 0.8;
-        let result = decode(&input, 1.0);
-        assert_eq!(result.events.len(), 2);
-        assert_eq!((result.events[0].start, result.events[0].end), (0.1, 0.405));
-        assert_eq!(result.events[0].onset_evidence, 0.0);
-        assert_eq!((result.events[1].start, result.events[1].end), (0.405, 0.9));
-        assert_eq!(result.events[1].onset_evidence, 0.8);
     }
 
     #[test]

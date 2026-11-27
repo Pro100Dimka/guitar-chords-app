@@ -132,14 +132,48 @@ summary, source/input/output hashes, probe stderr and FFmpeg version, without
 media. These recordings were already used during chord development and do not
 establish held-out performance or strumming/picking classification accuracy.
 
-The current decoder candidate addresses an onset peak that splits an already
-decaying pitch. It preserves the earlier attack when note activity is falling
-at the candidate onset and does not recover its preceding-window peak within
-the existing 60 ms pairing window. It requires complete windows inside the
-activity run and leaves first attacks, local peak grouping, and flat or rising
-activity unchanged. A sufficiently quiet genuine repeat can also have falling
-activity; the per-recording recall comparisons expose that tradeoff. The rule
-uses no song title, reference notes, chord chart or new fitted threshold.
+## Rejected decay-based reattack suppression
+
+Candidate `cc4d0a713af7d3941828aa77846e8c5cefb2846c` suppressed a repeated onset
+when its note activity was falling and did not recover the preceding 60 ms
+window's peak. Its five generic regressions and existing native checks passed,
+but the real-recording comparison showed lost reference attacks. **The candidate
+was rejected and the previous production decoder restored, including its
+original tests.** The comparison tooling remains available for future changes.
+
+On the original single development take, the candidate removed 32 previously
+unmatched event starts while conserving all 229 matched reference attacks and
+their assigned pitches/times. Strict matches increased from 125 to 134. That
+improvement did not hold consistently across the twelve other development takes:
+
+| Complete twelve-take corpus | Baseline | Rejected candidate |
+| --- | ---: | ---: |
+| Reference notes | 2,966 | 2,966 |
+| Predictions | 3,381 | 3,190 |
+| Pitch/onset matches | 2,343 | 2,304 |
+| Unmatched predictions | 1,038 | 886 |
+| Missed reference attacks | 623 | 662 |
+| Pitch/onset precision | 69.30% | 72.23% |
+| Pitch/onset recall | 79.00% | 77.68% |
+| Pitch/onset F1 | 73.83% | 74.85% |
+| Pitch/onset/ending matches | 1,466 | 1,449 |
+| Pitch/onset/ending F1 | 46.20% | 47.08% |
+
+All 39 lost onset matches correspond to suppressed, previously matched event
+starts; no new reference matches or matching reassignment recovered them. Seven
+recordings lost onset recall and four lost onset F1. Falling model activity is
+therefore insufficient evidence for rejecting a repeated attack. The higher
+aggregate F1 does not establish this rule as an accepted quality improvement.
+
+The [complete retained comparison](offline-note-quality/rejected-cc4d0a7.json)
+includes every recording, count, metric, regression and source/input/output hash.
+It was produced by ready-PR [run 45960476907](https://github.com/Pro100Dimka/guitar-chords-app/actions/runs/45960476907),
+attempt 1, for candidate head `cc4d0a7` (GitHub merge ref
+`aac25609d2df330766100dcaa424c521164d74e0`). Raw outputs are in the
+`offline-note-corpus` artifact, ID `15180168711`, ZIP SHA-256
+`a8c9c56ff4b407a2eb7f5a8ec4d09a522817c78a08a48a413ef23058cda8f4dc`.
+No accuracy threshold was fitted to these results, and no production inference,
+test, lint or compilation was run locally.
 
 ## First recorded baseline
 
