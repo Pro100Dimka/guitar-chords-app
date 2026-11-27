@@ -29,12 +29,18 @@ import {
   transposeSong
 } from "../src/screens/song/chords";
 import { sourceSong } from "../src/components/song-autofill/source-metadata";
+import type { RootStackParamList } from "../src/router";
 
 jest.mock("react-native-safe-area-context", () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 })
 }));
 jest.mock("@react-navigation/native", () => ({
-  useNavigation: () => ({ navigate: mockNavigate, dispatch: mockDispatch }),
+  useNavigation: () => ({
+    navigate: mockNavigate,
+    dispatch: mockDispatch,
+    getState: mockGetState
+  }),
+  useRoute: () => ({ key: "analysis-route", params: mockAnalysisParams }),
   useIsFocused: () => mockScreenFocused,
   usePreventRemove: (enabled: boolean, callback: unknown) =>
     mockPreventRemove(enabled, callback),
@@ -88,6 +94,12 @@ jest.mock("../src/screens/analyze-audio/imported-audio-tab", () => ({
 const mockNavigate = jest.fn();
 const mockDispatch = jest.fn();
 const mockPreventRemove = jest.fn();
+let mockAnalysisParams: RootStackParamList["analyzeAudio"];
+const mockGetState = jest.fn(() => ({
+  routes: [
+    { key: "analysis-route", name: "analyzeAudio", params: mockAnalysisParams }
+  ]
+}));
 let mockScreenFocused = true;
 const nativeResult = () => ({
   engine: "chroma-v1",
@@ -178,6 +190,7 @@ const importedTab = () =>
 
 beforeEach(() => {
   mockScreenFocused = true;
+  mockAnalysisParams = undefined;
   jest.replaceProperty(Platform, "OS", "ios");
   NativeModules.OfflineChordAnalysis = native;
   Object.assign(types, { audio: "audio/*" });
@@ -858,6 +871,106 @@ test("a guarded background analysis can release its route after handing tabs to 
     .find((button) => button.text === "OfflineAudioDiscardEdits")!.onPress!;
   await act(async () => discard());
   expect(mockDispatch).toHaveBeenCalledWith(removal);
+});
+
+test("saving the exact imported tab clears its exit warning and keeps edited provenance", async () => {
+  native.analyzeFile.mockResolvedValueOnce(nativeNotesResult());
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  await press("OfflineAudioGenerateTabs");
+  const initial = importedTab().props.initial;
+  const edited = { ...initial, tempo: 121 };
+  await act(async () => {
+    importedTab().props.onChange(edited, true);
+    importedTab().props.onClose();
+  });
+  await press("OfflineAudioSaveDraft");
+  const source = mockNavigate.mock.calls.at(-1)![1].audioTabSource;
+  expect(source).toMatchObject({
+    routeKey: "analysis-route",
+    snapshot: JSON.stringify(edited)
+  });
+  // Opening the form is not a successful save.
+  expect(mockPreventRemove.mock.calls.at(-1)![0]).toBe(true);
+  await act(async () => {
+    mockAnalysisParams = { savedAudioTab: source };
+    screen!.update(<AnalyzeAudio />);
+  });
+  expect(mockPreventRemove.mock.calls.at(-1)![0]).toBe(false);
+  expect(importedTab().props.savedSnapshot).toBe(JSON.stringify(edited));
+  expect(visibleText()).not.toContain("OfflineAudioTabEdited");
+  await press("OfflineAudioSaveDraft");
+  expect(mockNavigate.mock.calls.at(-1)![1].draft.content).toContain(
+    "OfflineAudioTabEditedNotice"
+  );
+  await act(async () => importedTab().props.onChange(initial, false));
+  // Undoing to the generated tab is still an unsaved change from the saved tab.
+  expect(mockPreventRemove.mock.calls.at(-1)![0]).toBe(true);
+  await act(async () => importedTab().props.onChange(edited, true));
+  expect(mockPreventRemove.mock.calls.at(-1)![0]).toBe(false);
+});
+
+test("a save-and-leave receipt works before the analysis renders its new baseline", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  native.analyzeFile.mockResolvedValueOnce(nativeNotesResult());
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  await press("OfflineAudioGenerateTabs");
+  const edited = { ...importedTab().props.initial, tempo: 121 };
+  await act(async () => importedTab().props.onChange(edited, true));
+  await act(async () => importedTab().props.onSave(edited));
+  const source = mockNavigate.mock.calls.at(-1)![1].audioTabSource;
+  await act(async () => {
+    mockScreenFocused = false;
+    screen!.update(<AnalyzeAudio />);
+  });
+  const beforeLeave = mockPreventRemove.mock.calls.at(-1)![1];
+  const removal = { type: "POP_TO", payload: { name: "Tabs" } };
+  // SET_PARAMS updates navigation synchronously; the source screen has not
+  // rendered again when the form immediately dispatches the pending exit.
+  mockAnalysisParams = { savedAudioTab: source };
+  await act(async () => beforeLeave({ data: { action: removal } }));
+  expect(alert).not.toHaveBeenCalled();
+  expect(mockDispatch).toHaveBeenCalledWith(removal);
+});
+
+test("an older saved snapshot never clears later edits or a replacement session", async () => {
+  const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
+  native.analyzeFile.mockResolvedValueOnce(nativeNotesResult());
+  await act(async () => {
+    screen = Renderer.create(<AnalyzeAudio />);
+  });
+  await press("OfflineChordsChooseFile");
+  await press("OfflineAudioGenerateTabs");
+  const initial = importedTab().props.initial;
+  const edited = { ...initial, tempo: 121 };
+  await act(async () => importedTab().props.onChange(edited, true));
+  await act(async () => importedTab().props.onSave(edited));
+  const source = mockNavigate.mock.calls.at(-1)![1].audioTabSource;
+  const later = { ...initial, tempo: 122 };
+  await act(async () => importedTab().props.onChange(later, true));
+  await act(async () => {
+    mockAnalysisParams = { savedAudioTab: source };
+    screen!.update(<AnalyzeAudio />);
+  });
+  expect(mockPreventRemove.mock.calls.at(-1)![0]).toBe(true);
+  await press("OfflineAudioRegenerateTabs");
+  await act(async () =>
+    alert.mock.calls
+      .at(-1)![2]!
+      .find((button) => button.text === "OfflineAudioDiscardEdits")!.onPress!()
+  );
+  await act(async () => importedTab().props.onChange(edited, true));
+  await act(async () => {
+    mockAnalysisParams = { savedAudioTab: { ...source } };
+    screen!.update(<AnalyzeAudio />);
+  });
+  expect(importedTab().props.savedSnapshot).toBeUndefined();
+  expect(mockPreventRemove.mock.calls.at(-1)![0]).toBe(true);
 });
 
 test("silence does not offer to save a fake chord chart", async () => {

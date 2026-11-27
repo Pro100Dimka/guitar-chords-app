@@ -32,7 +32,8 @@ const onSabmit = async (
   }: FormValues,
   navigation: Pick<NavigationProp, "replace">,
   setIsEdit?: (_: boolean) => void,
-  original?: FormValues
+  original?: FormValues,
+  onSaved?: (songId: number) => void
 ) => {
   let resume: ReturnType<typeof suspendPreferenceSaving> | undefined;
   let persisted: Record<string, SongPreferences> | undefined;
@@ -150,6 +151,7 @@ const onSabmit = async (
   } finally {
     resume?.(persisted);
   }
+  onSaved?.(savedId);
   Alert.alert(t(id ? "ElementChanged" : "ElementAdded"));
   if (id) setIsEdit?.(false);
   else navigation.replace("Song", { id: String(savedId) });

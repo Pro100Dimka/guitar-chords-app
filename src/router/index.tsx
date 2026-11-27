@@ -16,6 +16,12 @@ import type { FormValues } from "@/screens/create-song-chords";
 import Header from "@/components/header";
 import type { PlayTabParams } from "../screens/play/use-tablature-session";
 
+export interface ImportedAudioTabSave {
+  routeKey: string;
+  sessionId: number;
+  snapshot: string;
+}
+
 export type RootStackParamList = {
   Tabs: { screen: string; id?: string; params?: PlayTabParams };
   Song: { id: string; recordings?: boolean } | undefined;
@@ -24,6 +30,7 @@ export type RootStackParamList = {
     | {
         example?: boolean;
         draft?: Partial<FormValues>;
+        audioTabSource?: ImportedAudioTabSave;
         notice?:
           | "AddSongLyricsNotice"
           | "AddSongChordsNotice"
@@ -38,7 +45,7 @@ export type RootStackParamList = {
     autoStart?: boolean;
     requestId?: string;
   };
-  analyzeAudio: undefined;
+  analyzeAudio: { savedAudioTab?: ImportedAudioTabSave } | undefined;
 };
 export type NavigationProp = NativeStackNavigationProp<
   RootStackParamList,

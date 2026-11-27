@@ -13,6 +13,7 @@ import {
   normalizeTablature
 } from "../src/components/tablature";
 import { defaultTabPractice } from "../src/components/tablature-practice";
+import { durationTicks } from "../src/screens/play/tablature-editor";
 
 const mockPreview = jest.fn();
 const mockCancelPreview = jest.fn();
@@ -675,6 +676,65 @@ test("a triplet insertion cursor remains visible between the selected grid posit
   );
   expect(cursor).toBeDefined();
   expect(cursor.props.accessibilityState.selected).toBe(true);
+});
+
+test.each<[number, 2 | 4 | 8]>([
+  [4, 4],
+  [32, 2]
+])(
+  "selecting a clipped audio tail bounds insertion cells in %s/%s without changing timing",
+  async (beatsPerBar, beatUnit) => {
+    const initial = normalizeTablature({
+      ...emptyTablature(120, beatsPerBar, beatUnit),
+      version: 3,
+      notes: [
+        { string: 5, fret: 7, tick: 37 / 960, duration: 1 / 960, velocity: 96 }
+      ]
+    })!;
+    const { updates } = await editable(initial);
+    await pressNote(1, 7);
+    const staff = screen!.root
+      .findAllByType(TablatureBar)
+      .find((entry) => !entry.props.compact)!;
+    const row = staff
+      .findAllByType(View)
+      .find((node) => node.props.testID === "tablature-string-5")!;
+    // The bounded grid also retains the selected note's off-grid column.
+    const targets = row
+      .findAllByType(View)
+      .filter((node) => node.props.accessibilityRole === "button");
+    expect(targets.length).toBeGreaterThan(1);
+    expect(targets.length).toBeLessThanOrEqual(193);
+    expect(staff.props.selected).toMatchObject({ string: 5, tick: 37 / 960 });
+    expect(updates).toHaveLength(0);
+    await press(screen!, "TabFret: 8");
+    expect(updates.at(-1)?.notes).toEqual([{ ...initial.notes[0], fret: 8 }]);
+  }
+);
+
+test("the bounded insertion grid retains every 128th-note triplet in a 4/4 bar", async () => {
+  const onCell = jest.fn();
+  await act(async () => {
+    screen = Renderer.create(
+      <TablatureBar
+        tab={emptyTablature()}
+        bar={0}
+        tick={0}
+        grid={durationTicks(128, "triplet")}
+        onCell={onCell}
+      />
+    );
+  });
+  const row = screen!.root
+    .findAllByType(View)
+    .find((node) => node.props.testID === "tablature-string-5")!;
+  expect(
+    row
+      .findAllByType(View)
+      .filter((node) => node.props.accessibilityRole === "button")
+  ).toHaveLength(192);
+  await press(screen!, 'TabEmptyCell:{"string":1,"bar":1,"beat":1.02}');
+  expect(onCell).toHaveBeenLastCalledWith({ string: 5, tick: 0.5 });
 });
 
 test("playing locks note editing but preserves pause, rewind and the loop switch", async () => {

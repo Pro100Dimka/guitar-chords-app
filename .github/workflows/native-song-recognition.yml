@@ -29,6 +29,15 @@ on:
       - test-ios-recognition.py
       - test-ios-offline-chords.py
       - scripts/check-offline-chord-native.py
+      - scripts/fetch-offline-chord-fixtures.py
+      - scripts/evaluate-offline-note-events.py
+      - scripts/test-offline-note-events.py
+      - scripts/inspect-audio-performance.cjs
+      - docs/offline-chord-analysis-fixtures.json
+      - src/components/audio-transcription.ts
+      - src/components/audio-rhythm.ts
+      - src/components/audio-tablature.ts
+      - src/components/tablature.ts
       - .github/workflows/native-song-recognition.yml
   pull_request:
     types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
@@ -96,6 +105,38 @@ jobs:
           # The probe includes the production modules directly. Compile it too,
           # without running the same acoustic regression matrix a second time.
           cargo build --locked --release --bin chord_probe --manifest-path android/song-fingerprint/Cargo.toml
+      - name: Install JS dependencies
+        run: npm ci
+      - name: Real guitar note and tablature diagnostic
+        id: note-quality
+        timeout-minutes: 4
+        run: |
+          python3 scripts/test-offline-note-events.py
+          if ! command -v ffmpeg >/dev/null; then
+            sudo apt-get update -qq
+            sudo apt-get install -y ffmpeg
+          fi
+          evidence="$RUNNER_TEMP/freetune-note-quality"
+          mkdir -p "$evidence/input"
+          python3 scripts/fetch-offline-chord-fixtures.py --output-dir "$evidence/input"
+          ffmpeg -version > "$evidence/decoder-version.txt"
+          ffmpeg -nostdin -y -v error -i "$evidence/input/00_SS3-98-C_comp_mic.wav" -ar 16000 -ac 1 -f s16le "$evidence/input/guitarset.pcm"
+          probe="android/song-fingerprint/target/release/chord_probe"
+          "$probe" "$evidence/input/guitarset.pcm" > "$evidence/native.json"
+          node scripts/inspect-audio-performance.cjs "$evidence/native.json" "$evidence/performance.json"
+          python3 scripts/evaluate-offline-note-events.py evaluate --reference "$evidence/input/00_SS3-98-C_comp.jams" --prediction "$evidence/native.json" --performance "$evidence/performance.json" --native-binary "$probe" --source-audio "$evidence/input/00_SS3-98-C_comp_mic.wav" --pcm "$evidence/input/guitarset.pcm" --output "$evidence/report.json"
+      - name: Keep note quality evidence without media
+        if: ${{ !cancelled() && steps.note-quality.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-note-quality
+          path: |
+            ${{ runner.temp }}/freetune-note-quality/native.json
+            ${{ runner.temp }}/freetune-note-quality/performance.json
+            ${{ runner.temp }}/freetune-note-quality/report.json
+            ${{ runner.temp }}/freetune-note-quality/decoder-version.txt
+          retention-days: 30
+          if-no-files-found: error
       - name: Chord evaluation semantics
         run: |
           python3 scripts/evaluate-offline-chords-extended.py self-test
@@ -106,8 +147,6 @@ jobs:
           pwsh ./test-native.ps1 -KotlinLib "$(dirname "$KOTLIN_BIN")/../lib" -OutputDirectory "$RUNNER_TEMP/freetune-native-checks"
           python3 android/test-playback-capture.py --kotlin-lib "$(dirname "$KOTLIN_BIN")/../lib"
           python3 scripts/check-offline-chord-native.py --kotlin-lib "$(dirname "$KOTLIN_BIN")/../lib"
-      - name: Install JS dependencies
-        run: npm ci
       - name: Compile Android Kotlin and all three Rust JNI architectures (no APK)
         working-directory: android
         run: |

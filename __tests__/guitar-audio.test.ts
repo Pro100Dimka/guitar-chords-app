@@ -24,6 +24,104 @@ test("note dynamics and palm muting change the audible signal without changing i
   expect(energy(muted, 0.3, 0.6)).toBeLessThan(energy(plain, 0.3, 0.6) * 0.2);
 });
 
+test("detected release differences reuse the same velocity-only sample without changing its PCM", () => {
+  const note: TabNote = {
+    string: 1,
+    fret: 0,
+    tick: 0,
+    duration: 12,
+    velocity: 96
+  };
+  const versions = [
+    { duration: 6.5, tempo: 80 },
+    { duration: 17.125, tempo: 123 },
+    { duration: 48, tempo: 160 }
+  ];
+  const keys = versions.map(({ duration, tempo }) =>
+    guitarNoteKey({ ...note, duration }, tempo)
+  );
+  expect(new Set(keys).size).toBe(1);
+  const wave = prepareGuitar([45], 440, 1, tabNoteExpression(note, 80));
+  for (const { duration, tempo } of versions) {
+    const expression = tabNoteExpression({ ...note, duration }, tempo)!;
+    expect(prepareGuitar([45], 440, 1, expression)).toBe(wave);
+    // Render with the previous, uncached per-note parameters as an audio
+    // oracle: the reusable sample must be byte-for-byte the same sound.
+    expect(
+      prepareGuitar([45], 440, 1, {
+        ...expression,
+        seconds: (duration * 60) / (24 * tempo),
+        repeatSeconds: 60 / tempo / 8
+      })
+    ).toBe(wave);
+  }
+});
+
+const durationEffects: Array<[string, Partial<TabNote>]> = [
+  ["bend", { techniques: ["bend"] }],
+  ["slide", { techniques: ["slide"] }],
+  ["vibrato", { techniques: ["vibrato"] }],
+  ["whammy", { techniques: ["whammy"] }],
+  ["staccato", { accent: "staccato" }],
+  ["fade in", { fade: "in" }],
+  ["fade out", { fade: "out" }],
+  ["crescendo", { fade: "crescendo" }],
+  ["diminuendo", { fade: "diminuendo" }]
+];
+test.each(durationEffects)(
+  "%s retains its duration-dependent cache key and audible envelope",
+  (_, patch) => {
+    const note: TabNote = {
+      string: 1,
+      fret: 5,
+      tick: 0,
+      duration: 6,
+      velocity: 96,
+      ...patch
+    };
+    const longer = { ...note, duration: 24 };
+    expect(guitarNoteKey(note, 80)).not.toBe(guitarNoteKey(longer, 80));
+    expect(guitarNoteKey(note, 80)).not.toBe(guitarNoteKey(note, 160));
+    expect(prepareGuitar([50], 440, 1, tabNoteExpression(note, 80))).not.toBe(
+      prepareGuitar([50], 440, 1, tabNoteExpression(longer, 80))
+    );
+  }
+);
+
+test("tremolo tempo still changes the repeated attacks when note seconds are identical", () => {
+  const note: TabNote = {
+    string: 1,
+    fret: 0,
+    tick: 0,
+    duration: 12,
+    velocity: 96,
+    techniques: ["tremolo"]
+  };
+  const faster = { ...note, duration: 24 };
+  expect(guitarNoteKey(note, 80)).not.toBe(guitarNoteKey(faster, 160));
+  expect(prepareGuitar([45], 440, 1, tabNoteExpression(note, 80))).not.toBe(
+    prepareGuitar([45], 440, 1, tabNoteExpression(faster, 160))
+  );
+});
+
+test("cache reuse keeps longer plain-note buffers and fermata expression timing", () => {
+  const note: TabNote = {
+    string: 1,
+    fret: 0,
+    tick: 0,
+    duration: 128,
+    velocity: 96
+  };
+  const wave = prepareGuitar([45], 440, 1, tabNoteExpression(note, 80));
+  expect(toByteArray(wave)).toHaveLength(44 + 22050 * 4 * 2);
+  expect(guitarNoteKey(note, 80)).not.toBe(
+    guitarNoteKey({ ...note, duration: 24 }, 80)
+  );
+  const faded: TabNote = { ...note, duration: 24, fade: "out" };
+  expect(tabNoteExpression(faded, 80)?.seconds).toBe(0.75);
+  expect(tabNoteExpression({ ...faded, fermata: true }, 80)?.seconds).toBe(1.5);
+});
+
 test("all expression combinations keep native sample keys bounded and reusable", () => {
   const note: TabNote = { string: 5, fret: 24, tick: 0, duration: 96, velocity: 127,
     techniques: Object.keys(TAB_TECHNIQUES) as NonNullable<TabNote["techniques"]>,

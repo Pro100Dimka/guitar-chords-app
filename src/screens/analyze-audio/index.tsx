@@ -20,7 +20,9 @@ import {
   useFocusEffect,
   useIsFocused,
   useNavigation,
-  usePreventRemove
+  usePreventRemove,
+  useRoute,
+  type RouteProp
 } from "@react-navigation/native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "react-i18next";
@@ -38,7 +40,7 @@ import {
   type ChordRange,
   type ChordSectionRow
 } from "../../components/offline-chord-section";
-import type { NavigationProp } from "../../router";
+import type { NavigationProp, RootStackParamList } from "../../router";
 import { songFieldLimits } from "../../@interfaces";
 import { analyzeAudioRhythm } from "../../components/audio-rhythm";
 import { projectAudioTablature } from "../../components/audio-tablature";
@@ -56,7 +58,17 @@ interface ImportedTabSession {
   projection: ReadyProjection;
   tab: Tablature;
   edited: boolean;
+  savedSnapshot?: string;
 }
+
+const hasUnsavedTabEdits = (
+  session: ImportedTabSession | null,
+  savedSnapshot = session?.savedSnapshot
+) =>
+  !!session &&
+  (savedSnapshot === undefined
+    ? session.edited
+    : JSON.stringify(session.tab) !== savedSnapshot);
 
 const errors: Record<string, string> = {
   AudioTooShort: "OfflineChordsTooShort",
@@ -75,6 +87,7 @@ const errors: Record<string, string> = {
 export default function AnalyzeAudio() {
   const { t } = useTranslation();
   const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<RouteProp<RootStackParamList, "analyzeAudio">>();
   const insets = useSafeAreaInsets();
   const focused = useIsFocused();
   const mounted = useRef(false);
@@ -97,6 +110,16 @@ export default function AnalyzeAudio() {
   const [tabSession, setTabSession] = useState<ImportedTabSession | null>(null);
   const [tabVisible, setTabVisible] = useState(false);
   const tabRequest = useRef(0);
+  const savedAudioTab = route.params?.savedAudioTab;
+  useEffect(() => {
+    if (!savedAudioTab || savedAudioTab.routeKey !== route.key) return;
+    setTabSession((current) =>
+      current?.id === savedAudioTab.sessionId &&
+      current.savedSnapshot !== savedAudioTab.snapshot
+        ? { ...current, savedSnapshot: savedAudioTab.snapshot }
+        : current
+    );
+  }, [route.key, savedAudioTab]);
   const dirtyRange =
     startText !== appliedText.start || endText !== appliedText.end;
   const section = useMemo(
@@ -159,7 +182,19 @@ export default function AnalyzeAudio() {
         return;
       action();
     };
-    if (!snapshot.tabSession?.edited) {
+    // Save-and-leave may dispatch a removal before React renders the receipt.
+    // Read that committed navigation state so the exact saved tab can leave.
+    const params = navigation
+      .getState()
+      .routes.find((entry) => entry.key === route.key)
+      ?.params as RootStackParamList["analyzeAudio"];
+    const receipt = params?.savedAudioTab;
+    const savedSnapshot =
+      receipt?.routeKey === route.key &&
+      receipt.sessionId === snapshot.tabSession?.id
+        ? receipt.snapshot
+        : snapshot.tabSession?.savedSnapshot;
+    if (!hasUnsavedTabEdits(snapshot.tabSession, savedSnapshot)) {
       apply();
       return;
     }
@@ -172,7 +207,7 @@ export default function AnalyzeAudio() {
       }
     ]);
   };
-  usePreventRemove(!!tabSession?.edited, ({ data }) => {
+  usePreventRemove(hasUnsavedTabEdits(tabSession), ({ data }) => {
     // A saved-song screen may remove this older analysis with popTo(Tabs).
     // The current removal still needs to work while this route is unfocused.
     protectTab(() => navigation.dispatch(data.action), true);
@@ -356,7 +391,16 @@ export default function AnalyzeAudio() {
     setTabVisible(false);
     navigation.navigate("createSong", {
       draft,
-      notice: tab ? "OfflineAudioTabNotice" : "OfflineChordsNotice"
+      notice: tab ? "OfflineAudioTabNotice" : "OfflineChordsNotice",
+      ...(tab && tabSession
+        ? {
+            audioTabSource: {
+              routeKey: route.key,
+              sessionId: tabSession.id,
+              snapshot: JSON.stringify(tab)
+            }
+          }
+        : {})
     });
   };
   const hasChords = section?.rows.some(
@@ -662,7 +706,7 @@ export default function AnalyzeAudio() {
                     estimatedTempo={result.tempo}
                     disabled={!!stage || dirtyRange}
                     hasTab={!!tabSession}
-                    edited={!!tabSession?.edited}
+                    dirty={hasUnsavedTabEdits(tabSession)}
                     tempoPending={tempoPending}
                     onTempo={(tempo) => {
                       if (stage || controller.current || dirtyRange) return;
@@ -718,6 +762,7 @@ export default function AnalyzeAudio() {
         <ImportedAudioTab
           key={tabSession.id}
           initial={tabSession.projection.tab}
+          savedSnapshot={tabSession.savedSnapshot}
           title={`${result.fileName || t("OfflineChordsTitle")} · ${chordTime(tabSession.projection.range.start)}–${chordTime(tabSession.projection.range.end)}`}
           visible={tabVisible}
           active={focused}

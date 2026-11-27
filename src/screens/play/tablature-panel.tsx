@@ -56,6 +56,9 @@ type Selection = Pick<TabNote, "string" | "tick">;
 const lineTechniques: TabTechnique[] = ["palmMute", "letRing"];
 const stringNames = ["E", "A", "D", "G", "B", "e"];
 const stringOrder = [5, 4, 3, 2, 1, 0];
+const MIN_INSERTION_GRID = durationTicks(128, "triplet");
+// A complete 4/4 bar of 128th-note triplets still has every insertion target.
+const MAX_INSERTION_COLUMNS = 192;
 const meterChoices = [
   [2, 2],
   [2, 4],
@@ -519,12 +522,18 @@ const TablatureStaff = React.memo(function TablatureStaff({
     };
   }, [tab.notes, tab.rests, start, barTicks]);
   const columns = useMemo(() => {
-    const step = editable ? grid : beatTicks;
+    // A clipped audio tail may last only 1/960 tick. Bound empty insertion
+    // targets independently of that duration; retain exact events below.
+    const requestedStep = editable
+      ? Math.max(MIN_INSERTION_GRID, grid)
+      : beatTicks;
+    const step =
+      requestedStep *
+      Math.max(1, Math.ceil(barTicks / requestedStep / MAX_INSERTION_COLUMNS));
     const times = new Set(
-      Array.from(
-        { length: Math.ceil(barTicks / step) },
-        (_, position) => start + position * step
-      )
+      Array.from({ length: Math.ceil(barTicks / step) }, (_, position) =>
+        roundTabTick(start + position * step)
+      ).filter((position) => position < start + barTicks)
     );
     eventTimes.forEach((tick) => times.add(tick));
     // Insertion advances by note duration, which need not match the grid.
