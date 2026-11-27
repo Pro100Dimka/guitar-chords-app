@@ -34,7 +34,10 @@ only editable titles and never inputs to the audio algorithms.
 `android/song-fingerprint/src/note_events.rs` decodes the existing Basic Pitch
 note and onset frames. It uses actual frame start/end times, including model
 window seams, activity hysteresis, minimum supported duration and local onset
-peaks. A supported repeated onset splits a sustained pitch into separate notes.
+peaks. A flat onset maximum keeps its leading timestamp; a flat shelf followed
+by a higher onset value is not an additional maximum. Distinct peaks separated
+by a dip remain separate candidates. A supported repeated onset splits a
+sustained pitch into separate notes.
 Strong activity without an independently supported onset can remain a note with
 zero onset evidence; it does not become a claimed new attack.
 
@@ -65,10 +68,19 @@ remain usable and are distinct from a complete empty note transcription.
 `audio-rhythm.ts` groups supported attacks in the standard guitar register
 (MIDI 40–88) within 70 ms of the first attack. A repeated pitch starts another
 group. Groups of at least three pitches spanning seven semitones supply chord
-attack evidence. Successive single-pitch attacks on different ringing notes
-across at least three pitch classes supply picking evidence. A monophonic melody
-alone does not qualify as a picking pattern. Sparse or conflicting evidence
-returns undetermined.
+attack evidence only when their actually simultaneous notes can be assigned to
+distinct strings in standard EADGBE tuning, frets 0–24. Incompatible groups remain
+visible as clusters; their notes, timestamps and attack counts are preserved.
+Released notes can free a string within a group, so the check is not a limit on
+the total number of pitches across the grouping window.
+
+Successive single-pitch attacks on different ringing notes across at least three
+pitch classes supply picking evidence. Each counted overlap must last more than
+50 ms within both notes and the selected passage, and the two pitches must be
+assignable to different strings. A monophonic melody or overlapping low pitches
+that both require the same string do not establish a picking pattern. These are
+necessary feasibility checks, not recovered fingering or proof of technique.
+Sparse or conflicting evidence returns undetermined.
 
 Grouping happens on the original timeline before selection, so cutting through
 a strum cannot invent a picking sequence. Only groups fully inside the outer

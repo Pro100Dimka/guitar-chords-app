@@ -62,6 +62,88 @@ test("successive independently attacked ringing pitches suggest picking", () => 
   expect(result.attacks.every((attack) => attack.kind === "single")).toBe(true);
 });
 
+test.each([
+  { pitches: [40, 45, 50, 55, 59, 64, 67] },
+  { pitches: [40, 41, 47] }
+])(
+  "simultaneous pitches $pitches that cannot use distinct strings do not suggest strumming",
+  ({ pitches }) => {
+    const notes = transcription(
+      [0, 1, 2, 3].flatMap((time) =>
+        pitches.map((midi) => event(time, midi, 0.4))
+      )
+    );
+    const result = analyzeAudioRhythm(notes, { start: 0, end: 4 });
+    expect(result.style).toBe("undetermined");
+    expect(result.attackCount).toBe(4);
+    expect(result.attacks.every((attack) => attack.kind === "cluster")).toBe(
+      true
+    );
+    expect(result.attacks.map((attack) => attack.pitches)).toEqual([
+      pitches,
+      pitches,
+      pitches,
+      pitches
+    ]);
+  }
+);
+
+test("alternative string assignments preserve high-to-low chord attacks", () => {
+  const notes = transcription(
+    [0, 1, 2, 3].flatMap((time) =>
+      [64, 59, 55, 52, 47, 40].map((midi, index) =>
+        event(time + index * 0.01, midi, 0.4)
+      )
+    )
+  );
+  const result = analyzeAudioRhythm(notes, { start: 0, end: 4 });
+  expect(result.style).toBe("strumming");
+  expect(result.attacks.every((attack) => attack.kind === "chord")).toBe(true);
+  expect(result.attacks[0].pitches).toEqual([40, 47, 52, 55, 59, 64]);
+});
+
+test("a released note frees its string inside a group containing more than six attacks", () => {
+  const notes = transcription(
+    [0, 1, 2, 3].flatMap((time) =>
+      [40, 41, 45, 50, 55, 59, 64].map((midi, index) =>
+        event(time + index * 0.01, midi, index === 0 ? 0.01 : 0.4)
+      )
+    )
+  );
+  const result = analyzeAudioRhythm(notes, { start: 0, end: 4 });
+  expect(result.style).toBe("strumming");
+  expect(result.attackCount).toBe(4);
+  expect(result.attacks.every((attack) => attack.kind === "chord")).toBe(true);
+  expect(result.attacks[0].pitches).toEqual([40, 41, 45, 50, 55, 59, 64]);
+});
+
+test("overlapping low-register notes on the same required string do not establish picking", () => {
+  const notes = transcription(
+    [40, 41, 42, 43].map((midi, index) => event(index * 0.5, midi, 0.8))
+  );
+  const result = analyzeAudioRhythm(notes, { start: 0, end: 4 });
+  expect(result.style).toBe("undetermined");
+  expect(result.attackCount).toBe(4);
+  expect(result.attacks.map((attack) => attack.pitches)).toEqual([
+    [40],
+    [41],
+    [42],
+    [43]
+  ]);
+});
+
+test("a short following note cannot supply fifty milliseconds of ringing overlap", () => {
+  const notes = transcription([
+    event(0, 60, 0.8),
+    event(0.2, 64, 0.01),
+    event(0.4, 67, 0.8),
+    event(0.6, 69, 0.01)
+  ]);
+  const result = analyzeAudioRhythm(notes, { start: 0, end: 2 });
+  expect(result.style).toBe("undetermined");
+  expect(result.attackCount).toBe(4);
+});
+
 test("a monophonic melody alone does not establish a picking pattern", () => {
   const result = analyzeAudioRhythm(transcription(picking(0, 0.2)), {
     start: 0,

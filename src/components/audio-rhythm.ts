@@ -7,15 +7,52 @@ import type {
   AudioRhythmAnalysis,
   AudioRhythmSection
 } from "./audio-transcription";
+import { TAB_TUNING } from "./tablature";
 
 // These are conservative texture heuristics, not a technique-recognition model.
 // A grouped attack cannot identify a hand, a finger, or an up/down stroke.
 const ATTACK_SPREAD = 0.07;
 const CONTEXT_SECONDS = 4;
 const TIME_EPSILON = 1e-9;
+const MAX_GUITAR_FRET = 24;
 
 interface AttackEvidence extends AudioAttack {
   events: AudioNoteEvent[];
+}
+
+/** Necessary string capacity only; this does not recover a fingering. */
+function canUseDistinctStrings(pitches: number[]): boolean {
+  if (pitches.length > TAB_TUNING.length) return false;
+  let states = new Set([0]);
+  for (const pitch of pitches) {
+    let compatible = 0;
+    TAB_TUNING.forEach((open, string) => {
+      if (pitch >= open && pitch <= open + MAX_GUITAR_FRET)
+        compatible |= 1 << string;
+    });
+    const next = new Set<number>();
+    for (const occupied of states) {
+      for (let string = 0; string < TAB_TUNING.length; string++) {
+        const bit = 1 << string;
+        if ((compatible & bit) && !(occupied & bit)) next.add(occupied | bit);
+      }
+    }
+    if (!next.size) return false;
+    states = next;
+  }
+  return true;
+}
+
+function hasAssignableOverlaps(events: AudioNoteEvent[]): boolean {
+  let active: AudioNoteEvent[] = [];
+  // Events retain onset order. A released note frees its string even when its
+  // attack belongs to the same 70 ms group as the following note.
+  for (const event of events) {
+    active = active.filter((note) => note.end > event.start);
+    active.push(event);
+    if (!canUseDistinctStrings(active.map((note) => note.midi))) return false;
+  }
+  return true;
 }
 
 function groupAttacks(notes: AudioNoteEvent[]): AttackEvidence[] {
@@ -24,8 +61,8 @@ function groupAttacks(notes: AudioNoteEvent[]): AttackEvidence[] {
     // Use the standard six-string guitar range. The source is still a mix;
     // register filtering does not separate the guitar from other instruments.
     if (
-      note.midi < 40 ||
-      note.midi > 88 ||
+      note.midi < TAB_TUNING[0] ||
+      note.midi > TAB_TUNING[TAB_TUNING.length - 1] + MAX_GUITAR_FRET ||
       note.onsetEvidence < 0.5 ||
       note.noteEvidence < 0.35
     )
@@ -55,7 +92,8 @@ function groupAttacks(notes: AudioNoteEvent[]): AttackEvidence[] {
       group.pitches.length === 1
         ? "single"
         : group.pitches.length >= 3 &&
-            group.pitches[group.pitches.length - 1] - group.pitches[0] >= 7
+            group.pitches[group.pitches.length - 1] - group.pitches[0] >= 7 &&
+            hasAssignableOverlaps(group.events)
           ? "chord"
           : "cluster";
   }
@@ -80,7 +118,9 @@ function playingStyle(
     const next = singles[i].events[0];
     if (
       previous.midi !== next.midi &&
-      Math.min(previous.end, end) - next.start > 0.05 + TIME_EPSILON
+      Math.min(previous.end, next.end, end) - next.start >
+        0.05 + TIME_EPSILON &&
+      canUseDistinctStrings([previous.midi, next.midi])
     )
       ringing++;
   }

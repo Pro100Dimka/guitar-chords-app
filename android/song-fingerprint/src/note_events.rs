@@ -232,13 +232,17 @@ fn decode_activity_run(
         } else {
             0.0
         };
-        let after = if index + 1 < source.len() {
-            source.frame(index + 1).onsets[note]
-        } else {
-            0.0
-        };
         // Select the leading frame of a flat maximum, not every plateau frame.
-        if value < STRONG_ONSET || value <= before || value < after {
+        if value < STRONG_ONSET || value <= before {
+            continue;
+        }
+        // A flat shelf can still rise to a higher peak. Inspect its far edge
+        // before accepting the leading frame; only that frame scans the shelf.
+        let mut following = index + 1;
+        while following < source.len() && source.frame(following).onsets[note] == value {
+            following += 1;
+        }
+        if following < source.len() && source.frame(following).onsets[note] > value {
             continue;
         }
         let (nearby_note, _) = evidence(
@@ -417,6 +421,51 @@ mod tests {
         assert_eq!(result.events.len(), 1);
         assert_eq!((result.events[0].start, result.events[0].end), (0.065, 0.6));
         assert_eq!(result.events[0].note_evidence, 0.45);
+        assert_eq!(result.events[0].onset_evidence, 0.8);
+    }
+
+    #[test]
+    fn an_ascending_onset_shelf_is_not_a_separate_attack() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 60, 0.45);
+        for frame in &mut input[10..20] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.7;
+        }
+        input[20].onsets[60 - FIRST_MIDI_NOTE] = 0.9;
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.205, 0.6));
+        assert_eq!(result.events[0].onset_evidence, 0.9);
+    }
+
+    #[test]
+    fn a_dip_separates_flat_onset_maxima_and_preserves_their_leading_times() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 80, 0.45);
+        for frame in &mut input[10..20] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.7;
+        }
+        for frame in &mut input[22..32] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.9;
+        }
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 2);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.225));
+        assert_eq!((result.events[1].start, result.events[1].end), (0.225, 0.8));
+        assert_eq!(result.events[0].onset_evidence, 0.7);
+        assert_eq!(result.events[1].onset_evidence, 0.9);
+    }
+
+    #[test]
+    fn a_final_onset_plateau_keeps_its_leading_time() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 100, 0.45);
+        for frame in &mut input[90..100] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.8;
+        }
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 1);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.905, 1.0));
         assert_eq!(result.events[0].onset_evidence, 0.8);
     }
 
