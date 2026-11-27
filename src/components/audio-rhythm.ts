@@ -34,7 +34,7 @@ function canUseDistinctStrings(pitches: number[]): boolean {
     for (const occupied of states) {
       for (let string = 0; string < TAB_TUNING.length; string++) {
         const bit = 1 << string;
-        if ((compatible & bit) && !(occupied & bit)) next.add(occupied | bit);
+        if (compatible & bit && !(occupied & bit)) next.add(occupied | bit);
       }
     }
     if (!next.size) return false;
