@@ -93,8 +93,13 @@ the ready PR or main workflow:
 2. Decode the complete WAV to mono 16 kHz PCM16LE and record the FFmpeg version.
 3. Run the production native probe and retain its complete unchanged JSON.
 4. Run production JS style/tab post-processing and score both outputs.
-5. Upload `native.json`, `performance.json`, `report.json` and
-   `decoder-version.txt` as the `offline-note-quality` artifact.
+5. Decode the same retained model frames with the frozen baseline note decoder
+   and score its complete output separately.
+6. Upload `native.json`, `baseline.json`, `baseline-report.json`,
+   `performance.json`, `report.json`, `note-trace.json` and
+   `decoder-version.txt` as the `offline-note-quality` artifact. The trace contains
+   unmodified note/onset activations for frame centers in the first four seconds;
+   it is not used to limit the full-recording scores.
 
 The report includes reference, source-audio, PCM, native executable, prediction,
 post-processing source and evaluator hashes, plus runtime and GitHub run metadata.
@@ -109,6 +114,32 @@ timings are a single Linux/Node post-processing pass. Neither is phone latency.
 No accuracy threshold is selected after seeing a score to turn the diagnostic
 green. A successful diagnostic means the pinned input was processed and scored
 under this protocol, not that the transcription reached professional quality.
+
+## Same-frame decoder comparison
+
+The native workflow also compares both note decoders on every complete recording
+in the existing [twelve-take development manifest](offline-chord-quality-fixtures.json).
+`chord_probe --baseline-notes PATH` evaluates the model once and applies both
+decoders to those same retained frames. The frozen decoder is the exact
+`note_events.rs` Git blob `33a4e5221f63d57ee3f1b62cc4f2b48e94af461c` from commit
+`8e9ba173fb03d53d649ab2aa577fa6a762caeeb0`; it is included only in the host probe.
+
+The comparison retains every raw output and per-recording score, sums counts
+before calculating corpus precision/recall/F1, and lists every decrease in those
+metrics separately. Missing recordings, invalid inputs or failed evidence writes
+withhold the aggregate. The `offline-note-corpus` artifact includes the full
+summary, source/input/output hashes, probe stderr and FFmpeg version, without
+media. These recordings were already used during chord development and do not
+establish held-out performance or strumming/picking classification accuracy.
+
+The current decoder candidate addresses an onset peak that splits an already
+decaying pitch. It preserves the earlier attack when note activity is falling
+at the candidate onset and does not recover its preceding-window peak within
+the existing 60 ms pairing window. It requires complete windows inside the
+activity run and leaves first attacks, local peak grouping, and flat or rising
+activity unchanged. A sufficiently quiet genuine repeat can also have falling
+activity; the per-recording recall comparisons expose that tradeoff. The rule
+uses no song title, reference notes, chord chart or new fitted threshold.
 
 ## First recorded baseline
 

@@ -2,13 +2,76 @@
 //! ffmpeg -i song.mp3 -ac 1 -ar 16000 -f s16le song.pcm
 //! cargo run --release --bin chord_probe -- song.pcm
 //! Optional --note-trace PATH writes retained model frames centered in [0, 4s).
+//! Optional --baseline-notes PATH uses the full recording's retained model frames.
 #[path = "../chord_notes.rs"]
 mod chord_notes;
 #[path = "../note_events.rs"]
 mod note_events;
 #[path = "../chords.rs"]
 mod chords;
+// Exact note_events.rs from 8e9ba173fb03d53d649ab2aa577fa6a762caeeb0.
+// Kept under diagnostics so Cargo does not discover it as a standalone binary.
+#[path = "diagnostics/note_events_baseline.rs"]
+mod note_events_baseline;
 use std::io::{BufWriter, Read, Write};
+
+struct RetainedNoteFrames<'a>(&'a chords::ChordAnalyzer);
+
+impl note_events_baseline::NoteFrames for RetainedNoteFrames<'_> {
+    fn len(&self) -> usize {
+        self.0.retained_note_frame_count()
+    }
+
+    fn frame(&self, index: usize) -> &chord_notes::NoteFrame {
+        self.0.retained_note_frame(index)
+    }
+}
+
+fn write_baseline_notes(
+    analyzer: &chords::ChordAnalyzer,
+    analysis: &chords::Analysis,
+    output: &mut impl Write,
+) -> std::io::Result<()> {
+    let decoded = note_events_baseline::decode(&RetainedNoteFrames(analyzer), analysis.duration);
+    let baseline = chords::Analysis {
+        duration: analysis.duration,
+        segments: analysis.segments.clone(),
+        key: analysis.key.clone(),
+        tempo: analysis.tempo,
+        note_events: note_events::NoteEvents {
+            events: decoded
+                .events
+                .into_iter()
+                .map(|event| note_events::NoteEvent {
+                    start: event.start,
+                    end: event.end,
+                    midi: event.midi,
+                    note_evidence: event.note_evidence,
+                    onset_evidence: event.onset_evidence,
+                })
+                .collect(),
+            truncated: decoded.truncated,
+            coverage_end: decoded.coverage_end,
+        },
+    };
+    // No elapsedMs: only the sparse decoder ran again, not inference or chords.
+    output.write_all(baseline.json().as_bytes())?;
+    output.write_all(b"\n")?;
+    output.flush()
+}
+
+fn create_diagnostic_output(
+    path: Option<std::ffi::OsString>,
+) -> std::io::Result<Option<BufWriter<std::fs::File>>> {
+    path.map(|path| {
+        std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .map(BufWriter::new)
+    })
+    .transpose()
+}
 
 fn write_activations(output: &mut impl Write, values: &[f32]) -> std::io::Result<()> {
     output.write_all(b"[")?;
@@ -62,27 +125,29 @@ fn write_note_trace(
 fn run() -> Result<(), Box<dyn std::error::Error>> {
     let mut args = std::env::args_os().skip(1);
     let path = args.next().ok_or("16 kHz mono PCM16LE file required")?;
-    let trace_path = match args.next() {
-        None => None,
-        Some(flag) if flag == "--note-trace" => {
-            Some(args.next().ok_or("--note-trace requires an output path")?)
+    let mut trace_path = None;
+    let mut baseline_path = None;
+    while let Some(flag) = args.next() {
+        let destination = if flag == "--note-trace" {
+            &mut trace_path
+        } else if flag == "--baseline-notes" {
+            &mut baseline_path
+        } else {
+            return Err("Usage: chord_probe PCM [--note-trace PATH] [--baseline-notes PATH]".into());
+        };
+        if destination.is_some() {
+            return Err("Duplicate diagnostic flag".into());
         }
-        Some(_) => return Err("Usage: chord_probe PCM [--note-trace PATH]".into()),
-    };
-    if args.next().is_some() {
-        return Err("Usage: chord_probe PCM [--note-trace PATH]".into());
+        let path = args.next().ok_or("Diagnostic flag requires an output path")?;
+        if path == "--note-trace" || path == "--baseline-notes" {
+            return Err("Diagnostic flag requires an output path".into());
+        }
+        *destination = Some(path);
     }
     let mut file = std::fs::File::open(path)?;
     // Refuse existing destinations, including the PCM input, before inference.
-    let mut trace = trace_path
-        .map(|path| {
-            std::fs::OpenOptions::new()
-                .write(true)
-                .create_new(true)
-                .open(path)
-                .map(BufWriter::new)
-        })
-        .transpose()?;
+    let mut trace = create_diagnostic_output(trace_path)?;
+    let mut baseline = create_diagnostic_output(baseline_path)?;
     let mut analyzer = chords::ChordAnalyzer::new();
     let started = std::time::Instant::now();
     let mut bytes = [0u8; 16_384];
@@ -114,6 +179,9 @@ fn run() -> Result<(), Box<dyn std::error::Error>> {
     // Optional serialization is outside the native processing-time measurement.
     if let Some(output) = trace.as_mut() {
         write_note_trace(&analyzer, analysis.duration, output)?;
+    }
+    if let Some(output) = baseline.as_mut() {
+        write_baseline_notes(&analyzer, &analysis, output)?;
     }
     std::io::stdout().write_all(json.as_bytes())?;
     Ok(())

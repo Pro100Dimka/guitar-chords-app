@@ -240,6 +240,15 @@ impl ChordAnalyzer {
         Ok(())
     }
 
+    /// Read-only access for host decoder comparisons on the same model pass.
+    pub(crate) fn retained_note_frame_count(&self) -> usize {
+        self.notes.len
+    }
+
+    pub(crate) fn retained_note_frame(&self, index: usize) -> &NoteFrame {
+        self.notes.get(index)
+    }
+
     pub fn new() -> Self {
         Self {
             fft: RFft1D::new(WINDOW),

@@ -30,10 +30,14 @@ on:
       - test-ios-offline-chords.py
       - scripts/check-offline-chord-native.py
       - scripts/fetch-offline-chord-fixtures.py
+      - scripts/fetch-offline-chord-quality-fixtures.py
       - scripts/evaluate-offline-note-events.py
       - scripts/test-offline-note-events.py
+      - scripts/compare-offline-note-corpus.py
+      - scripts/test-offline-note-corpus.py
       - scripts/inspect-audio-performance.cjs
       - docs/offline-chord-analysis-fixtures.json
+      - docs/offline-chord-quality-fixtures.json
       - src/components/audio-transcription.ts
       - src/components/audio-rhythm.ts
       - src/components/audio-tablature.ts
@@ -122,9 +126,10 @@ jobs:
           ffmpeg -version > "$evidence/decoder-version.txt"
           ffmpeg -nostdin -y -v error -i "$evidence/input/00_SS3-98-C_comp_mic.wav" -ar 16000 -ac 1 -f s16le "$evidence/input/guitarset.pcm"
           probe="android/song-fingerprint/target/release/chord_probe"
-          "$probe" "$evidence/input/guitarset.pcm" --note-trace "$evidence/note-trace.json" > "$evidence/native.json"
+          "$probe" "$evidence/input/guitarset.pcm" --note-trace "$evidence/note-trace.json" --baseline-notes "$evidence/baseline.json" > "$evidence/native.json"
           node scripts/inspect-audio-performance.cjs "$evidence/native.json" "$evidence/performance.json"
           python3 scripts/evaluate-offline-note-events.py evaluate --reference "$evidence/input/00_SS3-98-C_comp.jams" --prediction "$evidence/native.json" --performance "$evidence/performance.json" --native-binary "$probe" --source-audio "$evidence/input/00_SS3-98-C_comp_mic.wav" --pcm "$evidence/input/guitarset.pcm" --output "$evidence/report.json"
+          python3 scripts/evaluate-offline-note-events.py evaluate --reference "$evidence/input/00_SS3-98-C_comp.jams" --prediction "$evidence/baseline.json" --native-binary "$probe" --source-audio "$evidence/input/00_SS3-98-C_comp_mic.wav" --pcm "$evidence/input/guitarset.pcm" --output "$evidence/baseline-report.json"
       - name: Keep note quality evidence without media
         if: ${{ !cancelled() && steps.note-quality.outcome != 'skipped' }}
         uses: actions/upload-artifact@v4
@@ -132,10 +137,33 @@ jobs:
           name: offline-note-quality
           path: |
             ${{ runner.temp }}/freetune-note-quality/native.json
+            ${{ runner.temp }}/freetune-note-quality/baseline.json
+            ${{ runner.temp }}/freetune-note-quality/baseline-report.json
             ${{ runner.temp }}/freetune-note-quality/performance.json
             ${{ runner.temp }}/freetune-note-quality/report.json
             ${{ runner.temp }}/freetune-note-quality/note-trace.json
             ${{ runner.temp }}/freetune-note-quality/decoder-version.txt
+          retention-days: 30
+          if-no-files-found: error
+      - name: Twelve-take note decoder comparison
+        id: note-corpus
+        timeout-minutes: 6
+        run: |
+          python3 scripts/test-offline-note-corpus.py
+          corpus="$RUNNER_TEMP/freetune-note-corpus"
+          mkdir -p "$corpus"
+          ffmpeg -version > "$corpus/decoder-version.txt"
+          python3 scripts/fetch-offline-chord-quality-fixtures.py --output-dir "$corpus/input" --decode
+          python3 scripts/compare-offline-note-corpus.py --input-dir "$corpus/input" --probe android/song-fingerprint/target/release/chord_probe --output-dir "$corpus/evidence"
+      - name: Keep complete note comparison without media
+        if: ${{ !cancelled() && steps.note-corpus.outcome != 'skipped' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-note-corpus
+          path: |
+            ${{ runner.temp }}/freetune-note-corpus/evidence
+            ${{ runner.temp }}/freetune-note-corpus/input/prepared-inputs.json
+            ${{ runner.temp }}/freetune-note-corpus/decoder-version.txt
           retention-days: 30
           if-no-files-found: error
       - name: Chord evaluation semantics
