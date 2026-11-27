@@ -1,4 +1,6 @@
 import {
+  AUDIO_TAB_MAX_BARS,
+  AUDIO_TAB_MAX_NOTES,
   projectAudioTablature,
   type AudioTablatureProjection
 } from "../src/components/audio-tablature";
@@ -8,8 +10,6 @@ import type {
 } from "../src/components/audio-transcription";
 import {
   normalizeTablature,
-  TAB_MAX_BARS,
-  TAB_MAX_NOTES,
   TAB_TICKS_PER_BEAT,
   TAB_TUNING,
   tabTickEnd,
@@ -83,9 +83,9 @@ test("absolute audio times become fractional v3 ticks without a beat-grid snap",
   const note = result.tab.notes[0];
   expect(Number.isInteger(note.tick)).toBe(false);
   const secondsPerTick = 60 / (result.tempo * TAB_TICKS_PER_BEAT);
-  expect(Math.abs(12 + note.tick * secondsPerTick - 12.125)).toBeLessThanOrEqual(
-    secondsPerTick / 960
-  );
+  expect(
+    Math.abs(12 + note.tick * secondsPerTick - 12.125)
+  ).toBeLessThanOrEqual(secondsPerTick / 960);
   expect(
     Math.abs(
       12 + tabTickEnd(note.tick, note.duration!) * secondsPerTick - 12.775
@@ -116,11 +116,7 @@ test("correcting BPM changes the score grid while retaining detected seconds", (
 test("selection boundaries report carry-in and shortened releases separately", () => {
   const result = ready(
     projectAudioTablature(
-      transcription([
-        event(40, 8, 10),
-        event(64, 9, 13),
-        event(45, 12, 13)
-      ]),
+      transcription([event(40, 8, 10), event(64, 9, 13), event(45, 12, 13)]),
       { start: 10, end: 12 },
       120
     )
@@ -145,9 +141,9 @@ test("a detected melody needs no chord labels and receives no invented technique
     projectAudioTablature(transcription(notes), { start: 0, end: 2 }, 90)
   );
   expect(result.counts.placed).toBe(3);
-  expect(result.tab.notes.map((note) => TAB_TUNING[note.string] + note.fret)).toEqual(
-    [60, 62, 64]
-  );
+  expect(
+    result.tab.notes.map((note) => TAB_TUNING[note.string] + note.fret)
+  ).toEqual([60, 62, 64]);
   result.tab.notes.forEach((note) => {
     expect(note.velocity).toBe(96);
     expect(note.pick).toBeUndefined();
@@ -181,16 +177,18 @@ test("a standard six-note F barre shape remains representable", () => {
     )
   );
   expect(result.counts.placed).toBe(6);
-  expect(result.tab.notes.map((note) => TAB_TUNING[note.string] + note.fret)).toEqual(
-    pitches
-  );
+  expect(
+    result.tab.notes.map((note) => TAB_TUNING[note.string] + note.fret)
+  ).toEqual(pitches);
   expectPhysicalStrings(result.tab);
 });
 
 test("excess polyphony is explicitly unassigned, never hidden by normalization", () => {
   const result = ready(
     projectAudioTablature(
-      transcription([40, 42, 45, 50, 55, 59, 64].map((midi) => event(midi, 0, 1))),
+      transcription(
+        [40, 42, 45, 50, 55, 59, 64].map((midi) => event(midi, 0, 1))
+      ),
       { start: 0, end: 2 },
       100
     )
@@ -215,7 +213,9 @@ test("overlapping pitches confined to one string do not truncate each other's su
     shortened: 0
   });
   const note = result.tab.notes[0];
-  const source = input.find((value) => value.start * TAB_TICKS_PER_BEAT === note.tick)!;
+  const source = input.find(
+    (value) => value.start * TAB_TICKS_PER_BEAT === note.tick
+  )!;
   expect(source).toBeDefined();
   expect(note.duration).toBe((source.end - source.start) * TAB_TICKS_PER_BEAT);
   expectPhysicalStrings(result.tab);
@@ -231,9 +231,9 @@ test("alternative guitar positions retain overlapping equal pitches on separate 
   );
   expect(result.counts.placed).toBe(2);
   expect(new Set(result.tab.notes.map((note) => note.string)).size).toBe(2);
-  expect(result.tab.notes.every((note) => TAB_TUNING[note.string] + note.fret === 64)).toBe(
-    true
-  );
+  expect(
+    result.tab.notes.every((note) => TAB_TUNING[note.string] + note.fret === 64)
+  ).toBe(true);
   expect(result.counts.shortened).toBe(0);
   expectPhysicalStrings(result.tab);
 });
@@ -264,16 +264,19 @@ test("incomplete native coverage cannot become apparent silence in a selected ta
     status: "unavailable",
     reason: "incompleteCoverage"
   });
-  expect(projectAudioTablature(input, { start: 0, end: 2 }, 80).status).toBe("ready");
+  expect(projectAudioTablature(input, { start: 0, end: 2 }, 80).status).toBe(
+    "ready"
+  );
 });
 
-test("event overflow requests a shorter selection instead of exporting a truncated tab", () => {
-  const input = transcription(
-    Array.from({ length: TAB_MAX_NOTES + 1 }, (_, index) =>
-      event(64, index * 0.001, index * 0.001 + 0.0005)
-    )
+test("import event overflow requests a shorter selection instead of exporting a truncated tab", () => {
+  const events = Array.from({ length: AUDIO_TAB_MAX_NOTES + 1 }, (_, index) =>
+    event(64, index * 0.001, index * 0.001 + 0.0005)
   );
-  expect(projectAudioTablature(input, { start: 0, end: 3 }, 80)).toMatchObject({
+  // Keep the fixture complete independently of the configured import limit.
+  const end = events[events.length - 1].end;
+  const input = transcription(events, end);
+  expect(projectAudioTablature(input, { start: 0, end }, 80)).toMatchObject({
     status: "unavailable",
     reason: "selectShorter",
     limit: "notes"
@@ -281,11 +284,13 @@ test("event overflow requests a shorter selection instead of exporting a truncat
 });
 
 test("bar capacity includes intentionally empty selected time", () => {
-  const end = TAB_MAX_BARS * 4;
+  const end = AUDIO_TAB_MAX_BARS * 4;
   const input = transcription([event(64, 0, 1)], end + 1);
   const result = ready(projectAudioTablature(input, { start: 0, end }, 60));
-  expect(result.tab.barCount).toBe(TAB_MAX_BARS);
-  expect(projectAudioTablature(input, { start: 0, end: end + 0.1 }, 60)).toEqual({
+  expect(result.tab.barCount).toBe(AUDIO_TAB_MAX_BARS);
+  expect(
+    projectAudioTablature(input, { start: 0, end: end + 0.1 }, 60)
+  ).toEqual({
     status: "unavailable",
     reason: "selectShorter",
     limit: "bars"
@@ -308,7 +313,11 @@ test("a sustained note crosses bar lines without fabricated reattacks or ties", 
 
 test.each([NaN, Infinity, 0, 39, 201])("rejects invalid tempo %s", (tempo) => {
   expect(
-    projectAudioTablature(transcription([event(64, 0, 1)]), { start: 0, end: 2 }, tempo)
+    projectAudioTablature(
+      transcription([event(64, 0, 1)]),
+      { start: 0, end: 2 },
+      tempo
+    )
   ).toEqual({ status: "unavailable", reason: "invalidTempo" });
 });
 
@@ -331,12 +340,15 @@ test.each([
   { end: 0 },
   { noteEvidence: NaN },
   { onsetEvidence: 1.01 }
-])("rejects malformed detected notes rather than silently discarding them: %j", (patch) => {
-  expect(
-    projectAudioTablature(
-      transcription([{ ...event(64, 0, 1), ...patch }]),
-      { start: 0, end: 2 },
-      80
-    )
-  ).toEqual({ status: "unavailable", reason: "invalidNotes" });
-});
+])(
+  "rejects malformed detected notes rather than silently discarding them: %j",
+  (patch) => {
+    expect(
+      projectAudioTablature(
+        transcription([{ ...event(64, 0, 1), ...patch }]),
+        { start: 0, end: 2 },
+        80
+      )
+    ).toEqual({ status: "unavailable", reason: "invalidNotes" });
+  }
+);

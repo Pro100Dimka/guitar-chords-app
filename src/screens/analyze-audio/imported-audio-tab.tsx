@@ -6,7 +6,11 @@ import type {
   AudioNoteTranscription,
   AudioRhythmAnalysis
 } from "../../components/audio-transcription";
-import type { projectAudioTablature } from "../../components/audio-tablature";
+import {
+  AUDIO_TAB_MAX_BARS,
+  AUDIO_TAB_MAX_NOTES,
+  type projectAudioTablature
+} from "../../components/audio-tablature";
 import { chordTime } from "../../components/offline-chords";
 import Text from "../../components/styled-text";
 import palette from "../../theme/palette";
@@ -141,13 +145,13 @@ export function AudioPerformanceCard({
           {projection?.status === "ready" ? (
             <View style={styles.events}>
               <Text style={styles.text}>
-                {t("OfflineAudioProjectionCounts", projection.counts)}
+                {t("OfflineAudioProjectionCounts", { ...projection.counts })}
               </Text>
               <Text style={styles.hint}>
-                {t("OfflineAudioProjectionSkipped", projection.counts)}
+                {t("OfflineAudioProjectionSkipped", { ...projection.counts })}
               </Text>
               <Text style={styles.hint}>
-                {t("OfflineAudioProjectionClipped", projection.counts)}
+                {t("OfflineAudioProjectionClipped", { ...projection.counts })}
               </Text>
               <Action
                 label={t(
@@ -162,7 +166,12 @@ export function AudioPerformanceCard({
             </View>
           ) : projection?.status === "unavailable" ? (
             <Text accessibilityLiveRegion="polite" style={styles.text}>
-              {t(projectionErrors[projection.reason])}
+              {projection.reason === "selectShorter"
+                ? t("OfflineAudioSelectShorter", {
+                    notes: AUDIO_TAB_MAX_NOTES,
+                    bars: AUDIO_TAB_MAX_BARS
+                  })
+                : t(projectionErrors[projection.reason])}
             </Text>
           ) : null}
           {tempoPending && (
@@ -219,6 +228,7 @@ export function ImportedAudioTab({
     () => {},
     false
   );
+  const { replaceTab } = transport;
   const [ready, setReady] = useState(false);
   const baseline = useMemo(
     () => JSON.stringify(normalizeTablature(initial)),
@@ -239,8 +249,8 @@ export function ImportedAudioTab({
   useEffect(() => {
     // The caller remounts this component only after an explicit replacement.
     // Keep the transport alive when the editor modal is merely closed.
-    setReady(transport.replaceTab(initial));
-  }, [initial, transport.replaceTab]);
+    setReady(replaceTab(initial));
+  }, [initial, replaceTab]);
   useEffect(() => {
     if (ready) changed.current(transport.tab, serialized !== baseline);
   }, [baseline, ready, serialized, transport.tab]);

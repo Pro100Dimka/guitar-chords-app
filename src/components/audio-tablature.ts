@@ -13,6 +13,11 @@ import {
   type Tablature
 } from "./tablature";
 
+// Automatic import has its own bounded search budget. An editor-capacity
+// increase must not silently enlarge synchronous note-projection work.
+export const AUDIO_TAB_MAX_NOTES = Math.min(2048, TAB_MAX_NOTES);
+export const AUDIO_TAB_MAX_BARS = Math.min(128, TAB_MAX_BARS);
+
 /**
  * For a completed projection: selected = placed + outOfRange + unassigned.
  * carried/shortened are boundary annotations on emitted notes, not losses;
@@ -165,7 +170,7 @@ function playableShape(held: Array<HeldNote | null>): boolean {
   fingers[0] = 0;
   for (let mask = 0; mask < full; mask++) {
     if (fingers[mask] >= 4) continue;
-    const firstMissing = (~mask & full) & -(~mask & full);
+    const firstMissing = ~mask & full & -(~mask & full);
     for (const cover of covers) {
       if (!(cover & firstMissing)) continue;
       const next = mask | cover;
@@ -314,7 +319,7 @@ export function projectAudioTablature(
   const bpm = Math.round(tempo);
   const unitsPerSecond = (bpm * TAB_TICKS_PER_BEAT * UNITS_PER_TICK) / 60;
   const duration = Math.round((range.end - range.start) * unitsPerSecond);
-  if (duration > TAB_MAX_BARS * BAR_UNITS)
+  if (duration > AUDIO_TAB_MAX_BARS * BAR_UNITS)
     return { status: "unavailable", reason: "selectShorter", limit: "bars" };
   const counts: AudioTablatureCounts = {
     selected: 0,
@@ -354,7 +359,7 @@ export function projectAudioTablature(
     }
     candidates.push({ source, sourceIndex, start, end, positions });
   }
-  if (candidates.length > TAB_MAX_NOTES)
+  if (candidates.length > AUDIO_TAB_MAX_NOTES)
     return {
       status: "unavailable",
       reason: "selectShorter",
@@ -383,13 +388,15 @@ export function projectAudioTablature(
   if (!placements.length)
     return { status: "unavailable", reason: "noPlayableNotes", counts };
 
-  const projected: TabNote[] = placements.map(({ candidate, string, fret }) => ({
-    string,
-    fret,
-    tick: candidate.start / UNITS_PER_TICK,
-    duration: (candidate.end - candidate.start) / UNITS_PER_TICK,
-    velocity: FIXED_VELOCITY
-  }));
+  const projected: TabNote[] = placements.map(
+    ({ candidate, string, fret }) => ({
+      string,
+      fret,
+      tick: candidate.start / UNITS_PER_TICK,
+      duration: (candidate.end - candidate.start) / UNITS_PER_TICK,
+      velocity: FIXED_VELOCITY
+    })
+  );
   const tab = normalizeTablature({
     version: 3,
     tempo: bpm,

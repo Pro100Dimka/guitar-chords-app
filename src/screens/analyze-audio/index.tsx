@@ -341,8 +341,8 @@ export default function AnalyzeAudio() {
             end: chordTime(source.range.end),
             tempo: source.tempo
           }),
-          t("OfflineAudioProjectionSkipped", source.counts),
-          t("OfflineAudioProjectionClipped", source.counts),
+          t("OfflineAudioProjectionSkipped", { ...source.counts }),
+          t("OfflineAudioProjectionClipped", { ...source.counts }),
           ...(tabSession.edited ? [t("OfflineAudioTabEditedNotice")] : [])
         ].join("\n");
         if (draft.content.length > songFieldLimits.content)

@@ -116,7 +116,9 @@ to the selected-note count. A final normalization comparison prevents silent
 note loss, deduplication or sustain shortening by the existing editor format.
 
 One projection accepts at most 2,048 candidate guitar notes and 128 layout bars.
-Larger requests explicitly ask for a shorter passage. The native note output
+These import budgets do not grow when the editor's own capacity increases; a
+smaller editor capacity also bounds the importer. Larger requests explicitly
+ask for a shorter passage. The native note output
 cap, full-file 15-minute limit and existing editor content limit also apply. The
 algorithm does not silently crop a long performance to make it fit.
 

@@ -1077,7 +1077,7 @@
   "OfflineAudioTempoInvalid": "Choose a notation tempo from 40 to 200 BPM.",
   "OfflineAudioNotesInvalid": "The note data could not be read. Analyze the file again.",
   "OfflineAudioIncomplete": "This section extends beyond complete note coverage. Select a shorter section within the available note data.",
-  "OfflineAudioSelectShorter": "This section exceeds the editor's 2,048-event or 128-bar limit. Select a shorter section; the full analysis remains available.",
+  "OfflineAudioSelectShorter": "This section exceeds the automatic tab import limit: {{notes}} note events or {{bars}} bars. Select a shorter section; the full analysis remains available.",
   "OfflineAudioNoPlayableNotes": "No note events in this section could be placed on a standard guitar. Choose another section.",
   "OfflineAudioRangeInvalid": "Apply a valid section within the recording before creating tabs.",
   "OfflineAudioUnsavedTitle": "Unsaved tab edits",

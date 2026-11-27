@@ -102,8 +102,16 @@ test("closing and reopening the isolated editor retains edits without accessing 
 });
 
 test("imported tabs use the real guitar transport and stop when the analysis loses focus", async () => {
+  const sequence = normalizeTablature({
+    ...initial,
+    notes: [
+      initial.notes[0],
+      // A distinct string attacks at 1 s (48 ticks at 120 BPM), after blur.
+      { ...initial.notes[0], string: 1, fret: 2, tick: 48 }
+    ]
+  })!;
   const properties = {
-    initial,
+    initial: sequence,
     title: "Imported audio",
     visible: true,
     disabled: false,
@@ -116,13 +124,39 @@ test("imported tabs use the real guitar transport and stop when the analysis los
   });
   await act(async () => panel().transport.play());
   expect(warmGuitar).toHaveBeenCalled();
-  expect(performanceAudio.guitarString).toHaveBeenCalled();
+  const getPosition = panel().transport.positionSource.getSnapshot;
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(250);
+  });
+  expect(performanceAudio.guitarString).toHaveBeenCalledTimes(1);
+  expect(getPosition()).toBeGreaterThan(0);
   expect(panel().transport.status).toBe("playing");
+  const attacksBeforeBlur = jest
+    .mocked(performanceAudio.guitarString)
+    .mock.calls.slice();
   jest.mocked(performanceAudio.stopGuitarString).mockClear();
   await act(async () =>
     screen!.update(<ImportedAudioTab {...properties} active={false} />)
   );
-  expect(performanceAudio.stopGuitarString).toHaveBeenCalled();
-  expect(jest.getTimerCount()).toBe(0);
+  expect(performanceAudio.stopGuitarString).toHaveBeenCalledWith(0);
+  const pausedPosition = getPosition();
+  // Async act also queues React bookkeeping microtasks that fake timers count.
+  // Cross the future note's onset and release without clearing any timers.
+  await act(async () => {
+    await jest.advanceTimersByTimeAsync(1500);
+  });
+  expect(jest.mocked(performanceAudio.guitarString).mock.calls).toEqual(
+    attacksBeforeBlur
+  );
+  expect(getPosition()).toBe(pausedPosition);
+  await act(async () =>
+    screen!.update(<ImportedAudioTab {...properties} active />)
+  );
+  expect(panel().transport.status).toBe("idle");
+  expect(panel().transport.tick).toBe(pausedPosition);
+  expect(panel().transport.tab).toEqual(sequence);
+  expect(jest.mocked(performanceAudio.guitarString).mock.calls).toEqual(
+    attacksBeforeBlur
+  );
   expect(writeTablatureDraft).not.toHaveBeenCalled();
 });
