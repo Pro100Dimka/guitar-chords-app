@@ -109,3 +109,13 @@ timings are a single Linux/Node post-processing pass. Neither is phone latency.
 No accuracy threshold is selected after seeing a score to turn the diagnostic
 green. A successful diagnostic means the pinned input was processed and scored
 under this protocol, not that the transcription reached professional quality.
+
+## First recorded baseline
+
+The [2026-11-27 run for `254f4da`](offline-note-quality/254f4da/README.md) retains
+its raw native output, actual projected tabs and full scoring report. Native
+pitch/onset F1 is **67.95%** (229 matches, 174 extra and 42 missed notes); including
+note endings reduces F1 to **37.09%**. The projected-tab scores are **67.97%** and
+**37.29%** respectively, with 9 notes explicitly unassigned. These are results
+for the single development take above, not professional-quality or generalization
+claims. No thresholds were tuned after seeing this baseline.

@@ -1,0 +1,4922 @@
+{
+  "schemaVersion": 1,
+  "fixture": {
+    "id": "00_SS3-98-C_comp",
+    "audioSeconds": 39.178812,
+    "referenceSeconds": 39.17879999999997,
+    "referenceNoteCount": 271,
+    "notesPerStringLowToHigh": [
+      30,
+      41,
+      75,
+      40,
+      51,
+      34
+    ],
+    "scope": "Single previously used development recording; not held out. No generalization claim for other songs, performers, or full mixes.",
+    "referenceScope": "Published hexaphonic-pickup-derived note annotations, used as supplied; no new manual performance annotation."
+  },
+  "protocol": {
+    "onsetToleranceSeconds": 0.05,
+    "pitchToleranceMidi": 0.5,
+    "offsetTolerance": {
+      "minimumSeconds": 0.05,
+      "referenceDurationRatio": 0.2
+    },
+    "matching": "One-to-one maximum cardinality, separately for each criterion; raw fractional reference MIDI, inclusive bounds with 1e-9 arithmetic epsilon.",
+    "denominators": "Every reference note and every prediction; no alignment, trimming, pitch-range filter, deduplication, or reference-tempo input. All-event scores are primary; evidence-subset scores are diagnostics.",
+    "zeroDenominators": "Precision, recall, and F1 are 0 when their denominator is 0.",
+    "timing": "Predicted minus reference seconds, on deterministic onset/pitch matches only; p90 uses nearest rank. This matching maximizes count, not timing quality.",
+    "stringAmbiguity": "String-level reference multiplicity is retained, including unisons. A mono pitch event cannot identify its original string."
+  },
+  "nativeCoverage": {
+    "truncated": false,
+    "coverageEnd": 39.178812,
+    "scoringRange": [
+      0,
+      39.17879999999997
+    ]
+  },
+  "rawNotes": {
+    "all": {
+      "onsetPitch": {
+        "referenceCount": 271,
+        "predictionCount": 403,
+        "matchedCount": 229,
+        "falsePositives": 174,
+        "falseNegatives": 42,
+        "precision": 0.5682382133995038,
+        "recall": 0.8450184501845018,
+        "f1": 0.6795252225519288
+      },
+      "onsetPitchOffset": {
+        "referenceCount": 271,
+        "predictionCount": 403,
+        "matchedCount": 125,
+        "falsePositives": 278,
+        "falseNegatives": 146,
+        "precision": 0.31017369727047145,
+        "recall": 0.4612546125461255,
+        "f1": 0.37091988130563797
+      },
+      "timingOnOnsetPitchMatches": {
+        "matchedCount": 229,
+        "onset": {
+          "meanSignedSeconds": -0.011964401291238845,
+          "medianSignedSeconds": -0.012108600907041023,
+          "meanAbsoluteSeconds": 0.013326928259521946,
+          "medianAbsoluteSeconds": 0.01249436507938384,
+          "p90AbsoluteSeconds": 0.022403401360594266
+        },
+        "offset": {
+          "meanSignedSeconds": -0.1225210057630125,
+          "medianSignedSeconds": -0.01226789569167508,
+          "meanAbsoluteSeconds": 0.20515747583401103,
+          "medianAbsoluteSeconds": 0.06868507936508417,
+          "p90AbsoluteSeconds": 0.660113195011327
+        },
+        "duration": {
+          "meanSignedSeconds": -0.11055660447177365,
+          "medianSignedSeconds": 8.843540655334436e-08,
+          "meanAbsoluteSeconds": 0.20460525470101193,
+          "medianAbsoluteSeconds": 0.06966013378686653,
+          "p90AbsoluteSeconds": 0.6586847551019979
+        }
+      },
+      "onsetPitchMatches": [
+        {
+          "referenceIndex": 0,
+          "predictionIndex": 0
+        },
+        {
+          "referenceIndex": 1,
+          "predictionIndex": 1
+        },
+        {
+          "referenceIndex": 2,
+          "predictionIndex": 3
+        },
+        {
+          "referenceIndex": 3,
+          "predictionIndex": 5
+        },
+        {
+          "referenceIndex": 4,
+          "predictionIndex": 6
+        },
+        {
+          "referenceIndex": 5,
+          "predictionIndex": 7
+        },
+        {
+          "referenceIndex": 6,
+          "predictionIndex": 9
+        },
+        {
+          "referenceIndex": 7,
+          "predictionIndex": 11
+        },
+        {
+          "referenceIndex": 9,
+          "predictionIndex": 13
+        },
+        {
+          "referenceIndex": 10,
+          "predictionIndex": 12
+        },
+        {
+          "referenceIndex": 11,
+          "predictionIndex": 14
+        },
+        {
+          "referenceIndex": 12,
+          "predictionIndex": 16
+        },
+        {
+          "referenceIndex": 13,
+          "predictionIndex": 17
+        },
+        {
+          "referenceIndex": 15,
+          "predictionIndex": 19
+        },
+        {
+          "referenceIndex": 16,
+          "predictionIndex": 21
+        },
+        {
+          "referenceIndex": 17,
+          "predictionIndex": 22
+        },
+        {
+          "referenceIndex": 18,
+          "predictionIndex": 24
+        },
+        {
+          "referenceIndex": 19,
+          "predictionIndex": 25
+        },
+        {
+          "referenceIndex": 20,
+          "predictionIndex": 29
+        },
+        {
+          "referenceIndex": 21,
+          "predictionIndex": 30
+        },
+        {
+          "referenceIndex": 22,
+          "predictionIndex": 34
+        },
+        {
+          "referenceIndex": 23,
+          "predictionIndex": 35
+        },
+        {
+          "referenceIndex": 24,
+          "predictionIndex": 38
+        },
+        {
+          "referenceIndex": 25,
+          "predictionIndex": 39
+        },
+        {
+          "referenceIndex": 26,
+          "predictionIndex": 41
+        },
+        {
+          "referenceIndex": 27,
+          "predictionIndex": 43
+        },
+        {
+          "referenceIndex": 28,
+          "predictionIndex": 47
+        },
+        {
+          "referenceIndex": 29,
+          "predictionIndex": 46
+        },
+        {
+          "referenceIndex": 31,
+          "predictionIndex": 51
+        },
+        {
+          "referenceIndex": 33,
+          "predictionIndex": 53
+        },
+        {
+          "referenceIndex": 34,
+          "predictionIndex": 54
+        },
+        {
+          "referenceIndex": 36,
+          "predictionIndex": 58
+        },
+        {
+          "referenceIndex": 37,
+          "predictionIndex": 62
+        },
+        {
+          "referenceIndex": 39,
+          "predictionIndex": 63
+        },
+        {
+          "referenceIndex": 40,
+          "predictionIndex": 65
+        },
+        {
+          "referenceIndex": 41,
+          "predictionIndex": 67
+        },
+        {
+          "referenceIndex": 42,
+          "predictionIndex": 66
+        },
+        {
+          "referenceIndex": 43,
+          "predictionIndex": 69
+        },
+        {
+          "referenceIndex": 44,
+          "predictionIndex": 70
+        },
+        {
+          "referenceIndex": 45,
+          "predictionIndex": 71
+        },
+        {
+          "referenceIndex": 46,
+          "predictionIndex": 72
+        },
+        {
+          "referenceIndex": 48,
+          "predictionIndex": 73
+        },
+        {
+          "referenceIndex": 51,
+          "predictionIndex": 75
+        },
+        {
+          "referenceIndex": 52,
+          "predictionIndex": 76
+        },
+        {
+          "referenceIndex": 53,
+          "predictionIndex": 77
+        },
+        {
+          "referenceIndex": 54,
+          "predictionIndex": 78
+        },
+        {
+          "referenceIndex": 55,
+          "predictionIndex": 79
+        },
+        {
+          "referenceIndex": 56,
+          "predictionIndex": 81
+        },
+        {
+          "referenceIndex": 57,
+          "predictionIndex": 83
+        },
+        {
+          "referenceIndex": 58,
+          "predictionIndex": 82
+        },
+        {
+          "referenceIndex": 59,
+          "predictionIndex": 84
+        },
+        {
+          "referenceIndex": 61,
+          "predictionIndex": 85
+        },
+        {
+          "referenceIndex": 62,
+          "predictionIndex": 86
+        },
+        {
+          "referenceIndex": 63,
+          "predictionIndex": 87
+        },
+        {
+          "referenceIndex": 64,
+          "predictionIndex": 88
+        },
+        {
+          "referenceIndex": 65,
+          "predictionIndex": 89
+        },
+        {
+          "referenceIndex": 66,
+          "predictionIndex": 90
+        },
+        {
+          "referenceIndex": 68,
+          "predictionIndex": 93
+        },
+        {
+          "referenceIndex": 69,
+          "predictionIndex": 91
+        },
+        {
+          "referenceIndex": 70,
+          "predictionIndex": 92
+        },
+        {
+          "referenceIndex": 71,
+          "predictionIndex": 94
+        },
+        {
+          "referenceIndex": 72,
+          "predictionIndex": 97
+        },
+        {
+          "referenceIndex": 73,
+          "predictionIndex": 96
+        },
+        {
+          "referenceIndex": 74,
+          "predictionIndex": 98
+        },
+        {
+          "referenceIndex": 75,
+          "predictionIndex": 101
+        },
+        {
+          "referenceIndex": 76,
+          "predictionIndex": 103
+        },
+        {
+          "referenceIndex": 77,
+          "predictionIndex": 109
+        },
+        {
+          "referenceIndex": 79,
+          "predictionIndex": 112
+        },
+        {
+          "referenceIndex": 80,
+          "predictionIndex": 114
+        },
+        {
+          "referenceIndex": 81,
+          "predictionIndex": 120
+        },
+        {
+          "referenceIndex": 83,
+          "predictionIndex": 122
+        },
+        {
+          "referenceIndex": 84,
+          "predictionIndex": 125
+        },
+        {
+          "referenceIndex": 85,
+          "predictionIndex": 127
+        },
+        {
+          "referenceIndex": 86,
+          "predictionIndex": 128
+        },
+        {
+          "referenceIndex": 87,
+          "predictionIndex": 129
+        },
+        {
+          "referenceIndex": 88,
+          "predictionIndex": 130
+        },
+        {
+          "referenceIndex": 89,
+          "predictionIndex": 131
+        },
+        {
+          "referenceIndex": 90,
+          "predictionIndex": 132
+        },
+        {
+          "referenceIndex": 91,
+          "predictionIndex": 133
+        },
+        {
+          "referenceIndex": 92,
+          "predictionIndex": 136
+        },
+        {
+          "referenceIndex": 93,
+          "predictionIndex": 138
+        },
+        {
+          "referenceIndex": 94,
+          "predictionIndex": 139
+        },
+        {
+          "referenceIndex": 95,
+          "predictionIndex": 140
+        },
+        {
+          "referenceIndex": 96,
+          "predictionIndex": 142
+        },
+        {
+          "referenceIndex": 97,
+          "predictionIndex": 146
+        },
+        {
+          "referenceIndex": 99,
+          "predictionIndex": 148
+        },
+        {
+          "referenceIndex": 100,
+          "predictionIndex": 150
+        },
+        {
+          "referenceIndex": 101,
+          "predictionIndex": 151
+        },
+        {
+          "referenceIndex": 102,
+          "predictionIndex": 152
+        },
+        {
+          "referenceIndex": 104,
+          "predictionIndex": 155
+        },
+        {
+          "referenceIndex": 105,
+          "predictionIndex": 153
+        },
+        {
+          "referenceIndex": 106,
+          "predictionIndex": 154
+        },
+        {
+          "referenceIndex": 107,
+          "predictionIndex": 157
+        },
+        {
+          "referenceIndex": 108,
+          "predictionIndex": 156
+        },
+        {
+          "referenceIndex": 109,
+          "predictionIndex": 158
+        },
+        {
+          "referenceIndex": 110,
+          "predictionIndex": 159
+        },
+        {
+          "referenceIndex": 111,
+          "predictionIndex": 162
+        },
+        {
+          "referenceIndex": 113,
+          "predictionIndex": 166
+        },
+        {
+          "referenceIndex": 114,
+          "predictionIndex": 169
+        },
+        {
+          "referenceIndex": 115,
+          "predictionIndex": 173
+        },
+        {
+          "referenceIndex": 116,
+          "predictionIndex": 174
+        },
+        {
+          "referenceIndex": 117,
+          "predictionIndex": 175
+        },
+        {
+          "referenceIndex": 118,
+          "predictionIndex": 176
+        },
+        {
+          "referenceIndex": 120,
+          "predictionIndex": 177
+        },
+        {
+          "referenceIndex": 121,
+          "predictionIndex": 179
+        },
+        {
+          "referenceIndex": 122,
+          "predictionIndex": 181
+        },
+        {
+          "referenceIndex": 123,
+          "predictionIndex": 180
+        },
+        {
+          "referenceIndex": 124,
+          "predictionIndex": 182
+        },
+        {
+          "referenceIndex": 125,
+          "predictionIndex": 184
+        },
+        {
+          "referenceIndex": 126,
+          "predictionIndex": 186
+        },
+        {
+          "referenceIndex": 132,
+          "predictionIndex": 191
+        },
+        {
+          "referenceIndex": 134,
+          "predictionIndex": 192
+        },
+        {
+          "referenceIndex": 136,
+          "predictionIndex": 195
+        },
+        {
+          "referenceIndex": 137,
+          "predictionIndex": 197
+        },
+        {
+          "referenceIndex": 139,
+          "predictionIndex": 200
+        },
+        {
+          "referenceIndex": 140,
+          "predictionIndex": 202
+        },
+        {
+          "referenceIndex": 142,
+          "predictionIndex": 205
+        },
+        {
+          "referenceIndex": 144,
+          "predictionIndex": 204
+        },
+        {
+          "referenceIndex": 145,
+          "predictionIndex": 209
+        },
+        {
+          "referenceIndex": 146,
+          "predictionIndex": 207
+        },
+        {
+          "referenceIndex": 147,
+          "predictionIndex": 210
+        },
+        {
+          "referenceIndex": 148,
+          "predictionIndex": 212
+        },
+        {
+          "referenceIndex": 149,
+          "predictionIndex": 215
+        },
+        {
+          "referenceIndex": 150,
+          "predictionIndex": 216
+        },
+        {
+          "referenceIndex": 151,
+          "predictionIndex": 217
+        },
+        {
+          "referenceIndex": 152,
+          "predictionIndex": 222
+        },
+        {
+          "referenceIndex": 153,
+          "predictionIndex": 220
+        },
+        {
+          "referenceIndex": 154,
+          "predictionIndex": 224
+        },
+        {
+          "referenceIndex": 155,
+          "predictionIndex": 229
+        },
+        {
+          "referenceIndex": 156,
+          "predictionIndex": 228
+        },
+        {
+          "referenceIndex": 157,
+          "predictionIndex": 226
+        },
+        {
+          "referenceIndex": 158,
+          "predictionIndex": 230
+        },
+        {
+          "referenceIndex": 159,
+          "predictionIndex": 231
+        },
+        {
+          "referenceIndex": 162,
+          "predictionIndex": 233
+        },
+        {
+          "referenceIndex": 163,
+          "predictionIndex": 234
+        },
+        {
+          "referenceIndex": 166,
+          "predictionIndex": 236
+        },
+        {
+          "referenceIndex": 168,
+          "predictionIndex": 237
+        },
+        {
+          "referenceIndex": 169,
+          "predictionIndex": 238
+        },
+        {
+          "referenceIndex": 170,
+          "predictionIndex": 241
+        },
+        {
+          "referenceIndex": 171,
+          "predictionIndex": 240
+        },
+        {
+          "referenceIndex": 172,
+          "predictionIndex": 243
+        },
+        {
+          "referenceIndex": 173,
+          "predictionIndex": 248
+        },
+        {
+          "referenceIndex": 175,
+          "predictionIndex": 249
+        },
+        {
+          "referenceIndex": 176,
+          "predictionIndex": 250
+        },
+        {
+          "referenceIndex": 177,
+          "predictionIndex": 252
+        },
+        {
+          "referenceIndex": 178,
+          "predictionIndex": 253
+        },
+        {
+          "referenceIndex": 179,
+          "predictionIndex": 255
+        },
+        {
+          "referenceIndex": 180,
+          "predictionIndex": 257
+        },
+        {
+          "referenceIndex": 181,
+          "predictionIndex": 256
+        },
+        {
+          "referenceIndex": 183,
+          "predictionIndex": 262
+        },
+        {
+          "referenceIndex": 184,
+          "predictionIndex": 263
+        },
+        {
+          "referenceIndex": 185,
+          "predictionIndex": 264
+        },
+        {
+          "referenceIndex": 186,
+          "predictionIndex": 266
+        },
+        {
+          "referenceIndex": 187,
+          "predictionIndex": 268
+        },
+        {
+          "referenceIndex": 189,
+          "predictionIndex": 270
+        },
+        {
+          "referenceIndex": 190,
+          "predictionIndex": 272
+        },
+        {
+          "referenceIndex": 191,
+          "predictionIndex": 271
+        },
+        {
+          "referenceIndex": 192,
+          "predictionIndex": 275
+        },
+        {
+          "referenceIndex": 193,
+          "predictionIndex": 276
+        },
+        {
+          "referenceIndex": 194,
+          "predictionIndex": 278
+        },
+        {
+          "referenceIndex": 195,
+          "predictionIndex": 277
+        },
+        {
+          "referenceIndex": 196,
+          "predictionIndex": 279
+        },
+        {
+          "referenceIndex": 197,
+          "predictionIndex": 280
+        },
+        {
+          "referenceIndex": 199,
+          "predictionIndex": 282
+        },
+        {
+          "referenceIndex": 201,
+          "predictionIndex": 283
+        },
+        {
+          "referenceIndex": 202,
+          "predictionIndex": 284
+        },
+        {
+          "referenceIndex": 203,
+          "predictionIndex": 285
+        },
+        {
+          "referenceIndex": 204,
+          "predictionIndex": 288
+        },
+        {
+          "referenceIndex": 206,
+          "predictionIndex": 289
+        },
+        {
+          "referenceIndex": 207,
+          "predictionIndex": 290
+        },
+        {
+          "referenceIndex": 208,
+          "predictionIndex": 291
+        },
+        {
+          "referenceIndex": 209,
+          "predictionIndex": 294
+        },
+        {
+          "referenceIndex": 210,
+          "predictionIndex": 295
+        },
+        {
+          "referenceIndex": 211,
+          "predictionIndex": 293
+        },
+        {
+          "referenceIndex": 212,
+          "predictionIndex": 296
+        },
+        {
+          "referenceIndex": 213,
+          "predictionIndex": 298
+        },
+        {
+          "referenceIndex": 214,
+          "predictionIndex": 300
+        },
+        {
+          "referenceIndex": 215,
+          "predictionIndex": 304
+        },
+        {
+          "referenceIndex": 216,
+          "predictionIndex": 305
+        },
+        {
+          "referenceIndex": 217,
+          "predictionIndex": 309
+        },
+        {
+          "referenceIndex": 218,
+          "predictionIndex": 307
+        },
+        {
+          "referenceIndex": 219,
+          "predictionIndex": 310
+        },
+        {
+          "referenceIndex": 220,
+          "predictionIndex": 313
+        },
+        {
+          "referenceIndex": 221,
+          "predictionIndex": 314
+        },
+        {
+          "referenceIndex": 223,
+          "predictionIndex": 315
+        },
+        {
+          "referenceIndex": 224,
+          "predictionIndex": 318
+        },
+        {
+          "referenceIndex": 225,
+          "predictionIndex": 319
+        },
+        {
+          "referenceIndex": 226,
+          "predictionIndex": 321
+        },
+        {
+          "referenceIndex": 227,
+          "predictionIndex": 324
+        },
+        {
+          "referenceIndex": 228,
+          "predictionIndex": 323
+        },
+        {
+          "referenceIndex": 229,
+          "predictionIndex": 325
+        },
+        {
+          "referenceIndex": 230,
+          "predictionIndex": 329
+        },
+        {
+          "referenceIndex": 232,
+          "predictionIndex": 331
+        },
+        {
+          "referenceIndex": 233,
+          "predictionIndex": 332
+        },
+        {
+          "referenceIndex": 234,
+          "predictionIndex": 334
+        },
+        {
+          "referenceIndex": 235,
+          "predictionIndex": 337
+        },
+        {
+          "referenceIndex": 236,
+          "predictionIndex": 338
+        },
+        {
+          "referenceIndex": 237,
+          "predictionIndex": 340
+        },
+        {
+          "referenceIndex": 238,
+          "predictionIndex": 341
+        },
+        {
+          "referenceIndex": 239,
+          "predictionIndex": 342
+        },
+        {
+          "referenceIndex": 240,
+          "predictionIndex": 343
+        },
+        {
+          "referenceIndex": 241,
+          "predictionIndex": 344
+        },
+        {
+          "referenceIndex": 242,
+          "predictionIndex": 346
+        },
+        {
+          "referenceIndex": 243,
+          "predictionIndex": 348
+        },
+        {
+          "referenceIndex": 244,
+          "predictionIndex": 349
+        },
+        {
+          "referenceIndex": 245,
+          "predictionIndex": 355
+        },
+        {
+          "referenceIndex": 246,
+          "predictionIndex": 359
+        },
+        {
+          "referenceIndex": 247,
+          "predictionIndex": 362
+        },
+        {
+          "referenceIndex": 248,
+          "predictionIndex": 364
+        },
+        {
+          "referenceIndex": 249,
+          "predictionIndex": 368
+        },
+        {
+          "referenceIndex": 250,
+          "predictionIndex": 369
+        },
+        {
+          "referenceIndex": 251,
+          "predictionIndex": 370
+        },
+        {
+          "referenceIndex": 252,
+          "predictionIndex": 372
+        },
+        {
+          "referenceIndex": 253,
+          "predictionIndex": 373
+        },
+        {
+          "referenceIndex": 254,
+          "predictionIndex": 375
+        },
+        {
+          "referenceIndex": 255,
+          "predictionIndex": 376
+        },
+        {
+          "referenceIndex": 257,
+          "predictionIndex": 379
+        },
+        {
+          "referenceIndex": 258,
+          "predictionIndex": 382
+        },
+        {
+          "referenceIndex": 259,
+          "predictionIndex": 383
+        },
+        {
+          "referenceIndex": 261,
+          "predictionIndex": 386
+        },
+        {
+          "referenceIndex": 262,
+          "predictionIndex": 387
+        },
+        {
+          "referenceIndex": 263,
+          "predictionIndex": 390
+        },
+        {
+          "referenceIndex": 264,
+          "predictionIndex": 391
+        },
+        {
+          "referenceIndex": 265,
+          "predictionIndex": 392
+        },
+        {
+          "referenceIndex": 266,
+          "predictionIndex": 394
+        },
+        {
+          "referenceIndex": 267,
+          "predictionIndex": 396
+        },
+        {
+          "referenceIndex": 268,
+          "predictionIndex": 397
+        },
+        {
+          "referenceIndex": 269,
+          "predictionIndex": 399
+        },
+        {
+          "referenceIndex": 270,
+          "predictionIndex": 402
+        }
+      ]
+    },
+    "confirmedAttacks": {
+      "onsetPitch": {
+        "referenceCount": 271,
+        "predictionCount": 389,
+        "matchedCount": 226,
+        "falsePositives": 163,
+        "falseNegatives": 45,
+        "precision": 0.5809768637532133,
+        "recall": 0.8339483394833949,
+        "f1": 0.6848484848484848
+      },
+      "onsetPitchOffset": {
+        "referenceCount": 271,
+        "predictionCount": 389,
+        "matchedCount": 123,
+        "falsePositives": 266,
+        "falseNegatives": 148,
+        "precision": 0.3161953727506427,
+        "recall": 0.45387453874538747,
+        "f1": 0.37272727272727274
+      },
+      "timingOnOnsetPitchMatches": {
+        "matchedCount": 226,
+        "onset": {
+          "meanSignedSeconds": -0.012412183823981446,
+          "medianSignedSeconds": -0.012222065759644352,
+          "meanAbsoluteSeconds": 0.013214871340285018,
+          "medianAbsoluteSeconds": 0.01246011904761879,
+          "p90AbsoluteSeconds": 0.021633079365049213
+        },
+        "offset": {
+          "meanSignedSeconds": -0.12115700193647684,
+          "medianSignedSeconds": -0.011938941043116102,
+          "meanAbsoluteSeconds": 0.20465864454278276,
+          "medianAbsoluteSeconds": 0.06765309523808694,
+          "p90AbsoluteSeconds": 0.660113195011327
+        },
+        "duration": {
+          "meanSignedSeconds": -0.1087448181124954,
+          "medianSignedSeconds": 0.0030838548752942785,
+          "meanAbsoluteSeconds": 0.2040419017518563,
+          "medianAbsoluteSeconds": 0.06965970861677728,
+          "p90AbsoluteSeconds": 0.6586847551019979
+        }
+      },
+      "onsetPitchMatches": [
+        {
+          "referenceIndex": 0,
+          "predictionIndex": 0
+        },
+        {
+          "referenceIndex": 1,
+          "predictionIndex": 1
+        },
+        {
+          "referenceIndex": 2,
+          "predictionIndex": 3
+        },
+        {
+          "referenceIndex": 3,
+          "predictionIndex": 5
+        },
+        {
+          "referenceIndex": 4,
+          "predictionIndex": 6
+        },
+        {
+          "referenceIndex": 5,
+          "predictionIndex": 7
+        },
+        {
+          "referenceIndex": 6,
+          "predictionIndex": 8
+        },
+        {
+          "referenceIndex": 7,
+          "predictionIndex": 10
+        },
+        {
+          "referenceIndex": 9,
+          "predictionIndex": 12
+        },
+        {
+          "referenceIndex": 10,
+          "predictionIndex": 11
+        },
+        {
+          "referenceIndex": 11,
+          "predictionIndex": 13
+        },
+        {
+          "referenceIndex": 12,
+          "predictionIndex": 15
+        },
+        {
+          "referenceIndex": 13,
+          "predictionIndex": 16
+        },
+        {
+          "referenceIndex": 15,
+          "predictionIndex": 18
+        },
+        {
+          "referenceIndex": 16,
+          "predictionIndex": 20
+        },
+        {
+          "referenceIndex": 17,
+          "predictionIndex": 21
+        },
+        {
+          "referenceIndex": 18,
+          "predictionIndex": 23
+        },
+        {
+          "referenceIndex": 19,
+          "predictionIndex": 24
+        },
+        {
+          "referenceIndex": 20,
+          "predictionIndex": 28
+        },
+        {
+          "referenceIndex": 21,
+          "predictionIndex": 29
+        },
+        {
+          "referenceIndex": 22,
+          "predictionIndex": 33
+        },
+        {
+          "referenceIndex": 23,
+          "predictionIndex": 34
+        },
+        {
+          "referenceIndex": 24,
+          "predictionIndex": 37
+        },
+        {
+          "referenceIndex": 25,
+          "predictionIndex": 38
+        },
+        {
+          "referenceIndex": 26,
+          "predictionIndex": 40
+        },
+        {
+          "referenceIndex": 27,
+          "predictionIndex": 42
+        },
+        {
+          "referenceIndex": 28,
+          "predictionIndex": 46
+        },
+        {
+          "referenceIndex": 29,
+          "predictionIndex": 45
+        },
+        {
+          "referenceIndex": 31,
+          "predictionIndex": 49
+        },
+        {
+          "referenceIndex": 33,
+          "predictionIndex": 51
+        },
+        {
+          "referenceIndex": 34,
+          "predictionIndex": 52
+        },
+        {
+          "referenceIndex": 36,
+          "predictionIndex": 56
+        },
+        {
+          "referenceIndex": 37,
+          "predictionIndex": 60
+        },
+        {
+          "referenceIndex": 39,
+          "predictionIndex": 61
+        },
+        {
+          "referenceIndex": 40,
+          "predictionIndex": 63
+        },
+        {
+          "referenceIndex": 41,
+          "predictionIndex": 65
+        },
+        {
+          "referenceIndex": 42,
+          "predictionIndex": 64
+        },
+        {
+          "referenceIndex": 43,
+          "predictionIndex": 67
+        },
+        {
+          "referenceIndex": 44,
+          "predictionIndex": 68
+        },
+        {
+          "referenceIndex": 45,
+          "predictionIndex": 69
+        },
+        {
+          "referenceIndex": 46,
+          "predictionIndex": 70
+        },
+        {
+          "referenceIndex": 48,
+          "predictionIndex": 71
+        },
+        {
+          "referenceIndex": 51,
+          "predictionIndex": 73
+        },
+        {
+          "referenceIndex": 52,
+          "predictionIndex": 74
+        },
+        {
+          "referenceIndex": 53,
+          "predictionIndex": 75
+        },
+        {
+          "referenceIndex": 54,
+          "predictionIndex": 76
+        },
+        {
+          "referenceIndex": 55,
+          "predictionIndex": 77
+        },
+        {
+          "referenceIndex": 56,
+          "predictionIndex": 79
+        },
+        {
+          "referenceIndex": 57,
+          "predictionIndex": 81
+        },
+        {
+          "referenceIndex": 58,
+          "predictionIndex": 80
+        },
+        {
+          "referenceIndex": 59,
+          "predictionIndex": 82
+        },
+        {
+          "referenceIndex": 61,
+          "predictionIndex": 83
+        },
+        {
+          "referenceIndex": 62,
+          "predictionIndex": 84
+        },
+        {
+          "referenceIndex": 63,
+          "predictionIndex": 85
+        },
+        {
+          "referenceIndex": 64,
+          "predictionIndex": 86
+        },
+        {
+          "referenceIndex": 65,
+          "predictionIndex": 87
+        },
+        {
+          "referenceIndex": 66,
+          "predictionIndex": 88
+        },
+        {
+          "referenceIndex": 69,
+          "predictionIndex": 89
+        },
+        {
+          "referenceIndex": 71,
+          "predictionIndex": 90
+        },
+        {
+          "referenceIndex": 72,
+          "predictionIndex": 93
+        },
+        {
+          "referenceIndex": 73,
+          "predictionIndex": 92
+        },
+        {
+          "referenceIndex": 74,
+          "predictionIndex": 94
+        },
+        {
+          "referenceIndex": 75,
+          "predictionIndex": 96
+        },
+        {
+          "referenceIndex": 76,
+          "predictionIndex": 98
+        },
+        {
+          "referenceIndex": 77,
+          "predictionIndex": 104
+        },
+        {
+          "referenceIndex": 79,
+          "predictionIndex": 107
+        },
+        {
+          "referenceIndex": 80,
+          "predictionIndex": 109
+        },
+        {
+          "referenceIndex": 81,
+          "predictionIndex": 115
+        },
+        {
+          "referenceIndex": 83,
+          "predictionIndex": 117
+        },
+        {
+          "referenceIndex": 84,
+          "predictionIndex": 120
+        },
+        {
+          "referenceIndex": 85,
+          "predictionIndex": 122
+        },
+        {
+          "referenceIndex": 86,
+          "predictionIndex": 123
+        },
+        {
+          "referenceIndex": 87,
+          "predictionIndex": 124
+        },
+        {
+          "referenceIndex": 88,
+          "predictionIndex": 125
+        },
+        {
+          "referenceIndex": 89,
+          "predictionIndex": 126
+        },
+        {
+          "referenceIndex": 90,
+          "predictionIndex": 127
+        },
+        {
+          "referenceIndex": 91,
+          "predictionIndex": 128
+        },
+        {
+          "referenceIndex": 92,
+          "predictionIndex": 131
+        },
+        {
+          "referenceIndex": 93,
+          "predictionIndex": 133
+        },
+        {
+          "referenceIndex": 94,
+          "predictionIndex": 134
+        },
+        {
+          "referenceIndex": 95,
+          "predictionIndex": 135
+        },
+        {
+          "referenceIndex": 96,
+          "predictionIndex": 137
+        },
+        {
+          "referenceIndex": 97,
+          "predictionIndex": 141
+        },
+        {
+          "referenceIndex": 99,
+          "predictionIndex": 143
+        },
+        {
+          "referenceIndex": 100,
+          "predictionIndex": 145
+        },
+        {
+          "referenceIndex": 101,
+          "predictionIndex": 146
+        },
+        {
+          "referenceIndex": 102,
+          "predictionIndex": 147
+        },
+        {
+          "referenceIndex": 104,
+          "predictionIndex": 150
+        },
+        {
+          "referenceIndex": 105,
+          "predictionIndex": 148
+        },
+        {
+          "referenceIndex": 106,
+          "predictionIndex": 149
+        },
+        {
+          "referenceIndex": 107,
+          "predictionIndex": 152
+        },
+        {
+          "referenceIndex": 108,
+          "predictionIndex": 151
+        },
+        {
+          "referenceIndex": 109,
+          "predictionIndex": 153
+        },
+        {
+          "referenceIndex": 110,
+          "predictionIndex": 154
+        },
+        {
+          "referenceIndex": 111,
+          "predictionIndex": 157
+        },
+        {
+          "referenceIndex": 113,
+          "predictionIndex": 161
+        },
+        {
+          "referenceIndex": 114,
+          "predictionIndex": 164
+        },
+        {
+          "referenceIndex": 115,
+          "predictionIndex": 168
+        },
+        {
+          "referenceIndex": 116,
+          "predictionIndex": 169
+        },
+        {
+          "referenceIndex": 117,
+          "predictionIndex": 170
+        },
+        {
+          "referenceIndex": 118,
+          "predictionIndex": 171
+        },
+        {
+          "referenceIndex": 120,
+          "predictionIndex": 172
+        },
+        {
+          "referenceIndex": 121,
+          "predictionIndex": 174
+        },
+        {
+          "referenceIndex": 122,
+          "predictionIndex": 176
+        },
+        {
+          "referenceIndex": 123,
+          "predictionIndex": 175
+        },
+        {
+          "referenceIndex": 124,
+          "predictionIndex": 177
+        },
+        {
+          "referenceIndex": 125,
+          "predictionIndex": 179
+        },
+        {
+          "referenceIndex": 126,
+          "predictionIndex": 181
+        },
+        {
+          "referenceIndex": 132,
+          "predictionIndex": 186
+        },
+        {
+          "referenceIndex": 134,
+          "predictionIndex": 187
+        },
+        {
+          "referenceIndex": 136,
+          "predictionIndex": 189
+        },
+        {
+          "referenceIndex": 137,
+          "predictionIndex": 191
+        },
+        {
+          "referenceIndex": 139,
+          "predictionIndex": 194
+        },
+        {
+          "referenceIndex": 140,
+          "predictionIndex": 196
+        },
+        {
+          "referenceIndex": 142,
+          "predictionIndex": 199
+        },
+        {
+          "referenceIndex": 144,
+          "predictionIndex": 198
+        },
+        {
+          "referenceIndex": 145,
+          "predictionIndex": 203
+        },
+        {
+          "referenceIndex": 146,
+          "predictionIndex": 201
+        },
+        {
+          "referenceIndex": 147,
+          "predictionIndex": 204
+        },
+        {
+          "referenceIndex": 148,
+          "predictionIndex": 206
+        },
+        {
+          "referenceIndex": 149,
+          "predictionIndex": 209
+        },
+        {
+          "referenceIndex": 150,
+          "predictionIndex": 210
+        },
+        {
+          "referenceIndex": 151,
+          "predictionIndex": 211
+        },
+        {
+          "referenceIndex": 152,
+          "predictionIndex": 216
+        },
+        {
+          "referenceIndex": 153,
+          "predictionIndex": 214
+        },
+        {
+          "referenceIndex": 154,
+          "predictionIndex": 218
+        },
+        {
+          "referenceIndex": 155,
+          "predictionIndex": 223
+        },
+        {
+          "referenceIndex": 156,
+          "predictionIndex": 222
+        },
+        {
+          "referenceIndex": 157,
+          "predictionIndex": 220
+        },
+        {
+          "referenceIndex": 158,
+          "predictionIndex": 224
+        },
+        {
+          "referenceIndex": 159,
+          "predictionIndex": 225
+        },
+        {
+          "referenceIndex": 162,
+          "predictionIndex": 227
+        },
+        {
+          "referenceIndex": 163,
+          "predictionIndex": 228
+        },
+        {
+          "referenceIndex": 166,
+          "predictionIndex": 229
+        },
+        {
+          "referenceIndex": 168,
+          "predictionIndex": 230
+        },
+        {
+          "referenceIndex": 169,
+          "predictionIndex": 231
+        },
+        {
+          "referenceIndex": 170,
+          "predictionIndex": 233
+        },
+        {
+          "referenceIndex": 171,
+          "predictionIndex": 232
+        },
+        {
+          "referenceIndex": 172,
+          "predictionIndex": 235
+        },
+        {
+          "referenceIndex": 173,
+          "predictionIndex": 240
+        },
+        {
+          "referenceIndex": 175,
+          "predictionIndex": 241
+        },
+        {
+          "referenceIndex": 176,
+          "predictionIndex": 242
+        },
+        {
+          "referenceIndex": 177,
+          "predictionIndex": 243
+        },
+        {
+          "referenceIndex": 178,
+          "predictionIndex": 244
+        },
+        {
+          "referenceIndex": 179,
+          "predictionIndex": 246
+        },
+        {
+          "referenceIndex": 180,
+          "predictionIndex": 248
+        },
+        {
+          "referenceIndex": 181,
+          "predictionIndex": 247
+        },
+        {
+          "referenceIndex": 183,
+          "predictionIndex": 253
+        },
+        {
+          "referenceIndex": 184,
+          "predictionIndex": 254
+        },
+        {
+          "referenceIndex": 185,
+          "predictionIndex": 255
+        },
+        {
+          "referenceIndex": 186,
+          "predictionIndex": 257
+        },
+        {
+          "referenceIndex": 187,
+          "predictionIndex": 259
+        },
+        {
+          "referenceIndex": 189,
+          "predictionIndex": 261
+        },
+        {
+          "referenceIndex": 190,
+          "predictionIndex": 263
+        },
+        {
+          "referenceIndex": 191,
+          "predictionIndex": 262
+        },
+        {
+          "referenceIndex": 192,
+          "predictionIndex": 266
+        },
+        {
+          "referenceIndex": 193,
+          "predictionIndex": 267
+        },
+        {
+          "referenceIndex": 194,
+          "predictionIndex": 269
+        },
+        {
+          "referenceIndex": 195,
+          "predictionIndex": 268
+        },
+        {
+          "referenceIndex": 196,
+          "predictionIndex": 270
+        },
+        {
+          "referenceIndex": 197,
+          "predictionIndex": 271
+        },
+        {
+          "referenceIndex": 199,
+          "predictionIndex": 273
+        },
+        {
+          "referenceIndex": 201,
+          "predictionIndex": 274
+        },
+        {
+          "referenceIndex": 202,
+          "predictionIndex": 275
+        },
+        {
+          "referenceIndex": 203,
+          "predictionIndex": 276
+        },
+        {
+          "referenceIndex": 204,
+          "predictionIndex": 279
+        },
+        {
+          "referenceIndex": 206,
+          "predictionIndex": 280
+        },
+        {
+          "referenceIndex": 207,
+          "predictionIndex": 281
+        },
+        {
+          "referenceIndex": 209,
+          "predictionIndex": 284
+        },
+        {
+          "referenceIndex": 210,
+          "predictionIndex": 285
+        },
+        {
+          "referenceIndex": 211,
+          "predictionIndex": 283
+        },
+        {
+          "referenceIndex": 212,
+          "predictionIndex": 286
+        },
+        {
+          "referenceIndex": 213,
+          "predictionIndex": 287
+        },
+        {
+          "referenceIndex": 214,
+          "predictionIndex": 289
+        },
+        {
+          "referenceIndex": 215,
+          "predictionIndex": 293
+        },
+        {
+          "referenceIndex": 216,
+          "predictionIndex": 294
+        },
+        {
+          "referenceIndex": 217,
+          "predictionIndex": 298
+        },
+        {
+          "referenceIndex": 218,
+          "predictionIndex": 296
+        },
+        {
+          "referenceIndex": 219,
+          "predictionIndex": 299
+        },
+        {
+          "referenceIndex": 220,
+          "predictionIndex": 302
+        },
+        {
+          "referenceIndex": 221,
+          "predictionIndex": 303
+        },
+        {
+          "referenceIndex": 223,
+          "predictionIndex": 304
+        },
+        {
+          "referenceIndex": 224,
+          "predictionIndex": 306
+        },
+        {
+          "referenceIndex": 225,
+          "predictionIndex": 307
+        },
+        {
+          "referenceIndex": 226,
+          "predictionIndex": 309
+        },
+        {
+          "referenceIndex": 227,
+          "predictionIndex": 312
+        },
+        {
+          "referenceIndex": 228,
+          "predictionIndex": 311
+        },
+        {
+          "referenceIndex": 229,
+          "predictionIndex": 313
+        },
+        {
+          "referenceIndex": 230,
+          "predictionIndex": 316
+        },
+        {
+          "referenceIndex": 232,
+          "predictionIndex": 318
+        },
+        {
+          "referenceIndex": 233,
+          "predictionIndex": 319
+        },
+        {
+          "referenceIndex": 234,
+          "predictionIndex": 321
+        },
+        {
+          "referenceIndex": 235,
+          "predictionIndex": 324
+        },
+        {
+          "referenceIndex": 236,
+          "predictionIndex": 325
+        },
+        {
+          "referenceIndex": 237,
+          "predictionIndex": 327
+        },
+        {
+          "referenceIndex": 238,
+          "predictionIndex": 328
+        },
+        {
+          "referenceIndex": 239,
+          "predictionIndex": 329
+        },
+        {
+          "referenceIndex": 240,
+          "predictionIndex": 330
+        },
+        {
+          "referenceIndex": 241,
+          "predictionIndex": 331
+        },
+        {
+          "referenceIndex": 242,
+          "predictionIndex": 333
+        },
+        {
+          "referenceIndex": 243,
+          "predictionIndex": 335
+        },
+        {
+          "referenceIndex": 244,
+          "predictionIndex": 336
+        },
+        {
+          "referenceIndex": 245,
+          "predictionIndex": 342
+        },
+        {
+          "referenceIndex": 246,
+          "predictionIndex": 346
+        },
+        {
+          "referenceIndex": 247,
+          "predictionIndex": 349
+        },
+        {
+          "referenceIndex": 248,
+          "predictionIndex": 351
+        },
+        {
+          "referenceIndex": 249,
+          "predictionIndex": 355
+        },
+        {
+          "referenceIndex": 250,
+          "predictionIndex": 356
+        },
+        {
+          "referenceIndex": 251,
+          "predictionIndex": 357
+        },
+        {
+          "referenceIndex": 252,
+          "predictionIndex": 359
+        },
+        {
+          "referenceIndex": 253,
+          "predictionIndex": 360
+        },
+        {
+          "referenceIndex": 254,
+          "predictionIndex": 362
+        },
+        {
+          "referenceIndex": 255,
+          "predictionIndex": 363
+        },
+        {
+          "referenceIndex": 257,
+          "predictionIndex": 366
+        },
+        {
+          "referenceIndex": 258,
+          "predictionIndex": 369
+        },
+        {
+          "referenceIndex": 259,
+          "predictionIndex": 370
+        },
+        {
+          "referenceIndex": 261,
+          "predictionIndex": 373
+        },
+        {
+          "referenceIndex": 262,
+          "predictionIndex": 374
+        },
+        {
+          "referenceIndex": 263,
+          "predictionIndex": 377
+        },
+        {
+          "referenceIndex": 264,
+          "predictionIndex": 378
+        },
+        {
+          "referenceIndex": 265,
+          "predictionIndex": 379
+        },
+        {
+          "referenceIndex": 266,
+          "predictionIndex": 381
+        },
+        {
+          "referenceIndex": 267,
+          "predictionIndex": 382
+        },
+        {
+          "referenceIndex": 268,
+          "predictionIndex": 383
+        },
+        {
+          "referenceIndex": 269,
+          "predictionIndex": 385
+        },
+        {
+          "referenceIndex": 270,
+          "predictionIndex": 388
+        }
+      ]
+    },
+    "activityOnly": {
+      "onsetPitch": {
+        "referenceCount": 271,
+        "predictionCount": 14,
+        "matchedCount": 3,
+        "falsePositives": 11,
+        "falseNegatives": 268,
+        "precision": 0.21428571428571427,
+        "recall": 0.01107011070110701,
+        "f1": 0.021052631578947368
+      },
+      "onsetPitchOffset": {
+        "referenceCount": 271,
+        "predictionCount": 14,
+        "matchedCount": 2,
+        "falsePositives": 12,
+        "falseNegatives": 269,
+        "precision": 0.14285714285714285,
+        "recall": 0.007380073800738007,
+        "f1": 0.014035087719298246
+      },
+      "timingOnOnsetPitchMatches": {
+        "matchedCount": 3,
+        "onset": {
+          "meanSignedSeconds": 0.02176854950870381,
+          "medianSignedSeconds": 0.029772868480758774,
+          "meanAbsoluteSeconds": 0.02176854950870381,
+          "medianAbsoluteSeconds": 0.029772868480758774,
+          "p90AbsoluteSeconds": 0.03045381179136797
+        },
+        "offset": {
+          "meanSignedSeconds": -0.22527596069536612,
+          "medianSignedSeconds": -0.11226782766433807,
+          "meanAbsoluteSeconds": 0.2427360997732091,
+          "medianAbsoluteSeconds": 0.11226782766433807,
+          "p90AbsoluteSeconds": 0.5897502630385247
+        },
+        "duration": {
+          "meanSignedSeconds": -0.24704451020406992,
+          "medianSignedSeconds": -0.14204069614509685,
+          "meanAbsoluteSeconds": 0.24704451020406992,
+          "medianAbsoluteSeconds": 0.14204069614509685,
+          "p90AbsoluteSeconds": 0.5948292312925094
+        }
+      },
+      "onsetPitchMatches": [
+        {
+          "referenceIndex": 68,
+          "predictionIndex": 3
+        },
+        {
+          "referenceIndex": 70,
+          "predictionIndex": 2
+        },
+        {
+          "referenceIndex": 208,
+          "predictionIndex": 9
+        }
+      ]
+    },
+    "counts": {
+      "all": 403,
+      "confirmedAttacks": 389,
+      "activityOnly": 14,
+      "nonzeroUnconfirmed": 0
+    }
+  },
+  "referenceAmbiguity": {
+    "notesPlayableOnMultipleStandardStrings": 241,
+    "crossStringSamePitchOnsetPairsWithinTolerance": 2
+  },
+  "projectedTab": {
+    "status": "ready",
+    "range": {
+      "start": 0,
+      "end": 39.178812
+    },
+    "tempo": 97.0,
+    "counts": {
+      "selected": 403,
+      "placed": 394,
+      "outOfRange": 0,
+      "unassigned": 9,
+      "shortened": 0,
+      "carried": 0
+    },
+    "assumptions": {
+      "tuning": "EADGBE",
+      "minFret": 0,
+      "maxFret": 24,
+      "meter": "4/4",
+      "layoutOnly": true
+    },
+    "conversion": {
+      "ticksPerBeat": 24,
+      "secondsPerTick": 0.02577319587628866,
+      "tuningMidi": [
+        40,
+        45,
+        50,
+        55,
+        59,
+        64
+      ]
+    },
+    "sourcePredictionCount": 403,
+    "projectedNoteCount": 394,
+    "scores": {
+      "onsetPitch": {
+        "referenceCount": 271,
+        "predictionCount": 394,
+        "matchedCount": 226,
+        "falsePositives": 168,
+        "falseNegatives": 45,
+        "precision": 0.5736040609137056,
+        "recall": 0.8339483394833949,
+        "f1": 0.6796992481203008
+      },
+      "onsetPitchOffset": {
+        "referenceCount": 271,
+        "predictionCount": 394,
+        "matchedCount": 124,
+        "falsePositives": 270,
+        "falseNegatives": 147,
+        "precision": 0.3147208121827411,
+        "recall": 0.4575645756457565,
+        "f1": 0.37293233082706767
+      },
+      "timingOnOnsetPitchMatches": {
+        "matchedCount": 226,
+        "onset": {
+          "meanSignedSeconds": -0.011918084268735646,
+          "medianSignedSeconds": -0.012096950464030698,
+          "meanAbsoluteSeconds": 0.013298922751225286,
+          "medianAbsoluteSeconds": 0.012452902552775313,
+          "p90AbsoluteSeconds": 0.021647738562748486
+        },
+        "offset": {
+          "meanSignedSeconds": -0.12286572802775639,
+          "medianSignedSeconds": -0.01229745248619718,
+          "meanAbsoluteSeconds": 0.2058650488753663,
+          "medianAbsoluteSeconds": 0.06764520434461696,
+          "p90AbsoluteSeconds": 0.6601030781728383
+        },
+        "duration": {
+          "meanSignedSeconds": -0.11094764375902073,
+          "medianSignedSeconds": -5.365763101394805e-06,
+          "meanAbsoluteSeconds": 0.20531463934128077,
+          "medianAbsoluteSeconds": 0.06966281164528088,
+          "p90AbsoluteSeconds": 0.6586768444490758
+        }
+      },
+      "onsetPitchMatches": [
+        {
+          "referenceIndex": 0,
+          "predictionIndex": 0
+        },
+        {
+          "referenceIndex": 1,
+          "predictionIndex": 1
+        },
+        {
+          "referenceIndex": 2,
+          "predictionIndex": 3
+        },
+        {
+          "referenceIndex": 3,
+          "predictionIndex": 5
+        },
+        {
+          "referenceIndex": 4,
+          "predictionIndex": 6
+        },
+        {
+          "referenceIndex": 5,
+          "predictionIndex": 7
+        },
+        {
+          "referenceIndex": 6,
+          "predictionIndex": 9
+        },
+        {
+          "referenceIndex": 7,
+          "predictionIndex": 11
+        },
+        {
+          "referenceIndex": 9,
+          "predictionIndex": 13
+        },
+        {
+          "referenceIndex": 10,
+          "predictionIndex": 12
+        },
+        {
+          "referenceIndex": 11,
+          "predictionIndex": 14
+        },
+        {
+          "referenceIndex": 12,
+          "predictionIndex": 16
+        },
+        {
+          "referenceIndex": 13,
+          "predictionIndex": 17
+        },
+        {
+          "referenceIndex": 15,
+          "predictionIndex": 19
+        },
+        {
+          "referenceIndex": 16,
+          "predictionIndex": 21
+        },
+        {
+          "referenceIndex": 17,
+          "predictionIndex": 22
+        },
+        {
+          "referenceIndex": 18,
+          "predictionIndex": 24
+        },
+        {
+          "referenceIndex": 19,
+          "predictionIndex": 25
+        },
+        {
+          "referenceIndex": 20,
+          "predictionIndex": 29
+        },
+        {
+          "referenceIndex": 21,
+          "predictionIndex": 30
+        },
+        {
+          "referenceIndex": 22,
+          "predictionIndex": 34
+        },
+        {
+          "referenceIndex": 23,
+          "predictionIndex": 35
+        },
+        {
+          "referenceIndex": 24,
+          "predictionIndex": 38
+        },
+        {
+          "referenceIndex": 25,
+          "predictionIndex": 39
+        },
+        {
+          "referenceIndex": 26,
+          "predictionIndex": 41
+        },
+        {
+          "referenceIndex": 27,
+          "predictionIndex": 43
+        },
+        {
+          "referenceIndex": 28,
+          "predictionIndex": 47
+        },
+        {
+          "referenceIndex": 29,
+          "predictionIndex": 46
+        },
+        {
+          "referenceIndex": 31,
+          "predictionIndex": 50
+        },
+        {
+          "referenceIndex": 33,
+          "predictionIndex": 52
+        },
+        {
+          "referenceIndex": 34,
+          "predictionIndex": 53
+        },
+        {
+          "referenceIndex": 36,
+          "predictionIndex": 57
+        },
+        {
+          "referenceIndex": 37,
+          "predictionIndex": 61
+        },
+        {
+          "referenceIndex": 39,
+          "predictionIndex": 62
+        },
+        {
+          "referenceIndex": 40,
+          "predictionIndex": 64
+        },
+        {
+          "referenceIndex": 41,
+          "predictionIndex": 66
+        },
+        {
+          "referenceIndex": 42,
+          "predictionIndex": 65
+        },
+        {
+          "referenceIndex": 43,
+          "predictionIndex": 68
+        },
+        {
+          "referenceIndex": 44,
+          "predictionIndex": 69
+        },
+        {
+          "referenceIndex": 45,
+          "predictionIndex": 70
+        },
+        {
+          "referenceIndex": 46,
+          "predictionIndex": 71
+        },
+        {
+          "referenceIndex": 48,
+          "predictionIndex": 72
+        },
+        {
+          "referenceIndex": 51,
+          "predictionIndex": 74
+        },
+        {
+          "referenceIndex": 52,
+          "predictionIndex": 75
+        },
+        {
+          "referenceIndex": 53,
+          "predictionIndex": 76
+        },
+        {
+          "referenceIndex": 54,
+          "predictionIndex": 77
+        },
+        {
+          "referenceIndex": 55,
+          "predictionIndex": 78
+        },
+        {
+          "referenceIndex": 56,
+          "predictionIndex": 80
+        },
+        {
+          "referenceIndex": 57,
+          "predictionIndex": 82
+        },
+        {
+          "referenceIndex": 58,
+          "predictionIndex": 81
+        },
+        {
+          "referenceIndex": 59,
+          "predictionIndex": 83
+        },
+        {
+          "referenceIndex": 61,
+          "predictionIndex": 84
+        },
+        {
+          "referenceIndex": 62,
+          "predictionIndex": 85
+        },
+        {
+          "referenceIndex": 63,
+          "predictionIndex": 86
+        },
+        {
+          "referenceIndex": 64,
+          "predictionIndex": 87
+        },
+        {
+          "referenceIndex": 65,
+          "predictionIndex": 88
+        },
+        {
+          "referenceIndex": 66,
+          "predictionIndex": 89
+        },
+        {
+          "referenceIndex": 68,
+          "predictionIndex": 92
+        },
+        {
+          "referenceIndex": 69,
+          "predictionIndex": 90
+        },
+        {
+          "referenceIndex": 70,
+          "predictionIndex": 91
+        },
+        {
+          "referenceIndex": 71,
+          "predictionIndex": 93
+        },
+        {
+          "referenceIndex": 72,
+          "predictionIndex": 96
+        },
+        {
+          "referenceIndex": 73,
+          "predictionIndex": 95
+        },
+        {
+          "referenceIndex": 74,
+          "predictionIndex": 97
+        },
+        {
+          "referenceIndex": 75,
+          "predictionIndex": 100
+        },
+        {
+          "referenceIndex": 76,
+          "predictionIndex": 102
+        },
+        {
+          "referenceIndex": 77,
+          "predictionIndex": 108
+        },
+        {
+          "referenceIndex": 79,
+          "predictionIndex": 111
+        },
+        {
+          "referenceIndex": 80,
+          "predictionIndex": 113
+        },
+        {
+          "referenceIndex": 81,
+          "predictionIndex": 119
+        },
+        {
+          "referenceIndex": 83,
+          "predictionIndex": 121
+        },
+        {
+          "referenceIndex": 84,
+          "predictionIndex": 124
+        },
+        {
+          "referenceIndex": 85,
+          "predictionIndex": 126
+        },
+        {
+          "referenceIndex": 86,
+          "predictionIndex": 127
+        },
+        {
+          "referenceIndex": 88,
+          "predictionIndex": 128
+        },
+        {
+          "referenceIndex": 89,
+          "predictionIndex": 129
+        },
+        {
+          "referenceIndex": 90,
+          "predictionIndex": 130
+        },
+        {
+          "referenceIndex": 91,
+          "predictionIndex": 131
+        },
+        {
+          "referenceIndex": 92,
+          "predictionIndex": 134
+        },
+        {
+          "referenceIndex": 93,
+          "predictionIndex": 136
+        },
+        {
+          "referenceIndex": 94,
+          "predictionIndex": 137
+        },
+        {
+          "referenceIndex": 95,
+          "predictionIndex": 138
+        },
+        {
+          "referenceIndex": 96,
+          "predictionIndex": 140
+        },
+        {
+          "referenceIndex": 97,
+          "predictionIndex": 144
+        },
+        {
+          "referenceIndex": 99,
+          "predictionIndex": 146
+        },
+        {
+          "referenceIndex": 100,
+          "predictionIndex": 148
+        },
+        {
+          "referenceIndex": 101,
+          "predictionIndex": 149
+        },
+        {
+          "referenceIndex": 102,
+          "predictionIndex": 150
+        },
+        {
+          "referenceIndex": 104,
+          "predictionIndex": 153
+        },
+        {
+          "referenceIndex": 105,
+          "predictionIndex": 151
+        },
+        {
+          "referenceIndex": 106,
+          "predictionIndex": 152
+        },
+        {
+          "referenceIndex": 107,
+          "predictionIndex": 155
+        },
+        {
+          "referenceIndex": 108,
+          "predictionIndex": 154
+        },
+        {
+          "referenceIndex": 109,
+          "predictionIndex": 156
+        },
+        {
+          "referenceIndex": 110,
+          "predictionIndex": 157
+        },
+        {
+          "referenceIndex": 111,
+          "predictionIndex": 160
+        },
+        {
+          "referenceIndex": 113,
+          "predictionIndex": 164
+        },
+        {
+          "referenceIndex": 114,
+          "predictionIndex": 167
+        },
+        {
+          "referenceIndex": 115,
+          "predictionIndex": 171
+        },
+        {
+          "referenceIndex": 116,
+          "predictionIndex": 172
+        },
+        {
+          "referenceIndex": 117,
+          "predictionIndex": 173
+        },
+        {
+          "referenceIndex": 118,
+          "predictionIndex": 174
+        },
+        {
+          "referenceIndex": 120,
+          "predictionIndex": 175
+        },
+        {
+          "referenceIndex": 121,
+          "predictionIndex": 177
+        },
+        {
+          "referenceIndex": 122,
+          "predictionIndex": 179
+        },
+        {
+          "referenceIndex": 123,
+          "predictionIndex": 178
+        },
+        {
+          "referenceIndex": 124,
+          "predictionIndex": 180
+        },
+        {
+          "referenceIndex": 125,
+          "predictionIndex": 181
+        },
+        {
+          "referenceIndex": 126,
+          "predictionIndex": 183
+        },
+        {
+          "referenceIndex": 132,
+          "predictionIndex": 188
+        },
+        {
+          "referenceIndex": 134,
+          "predictionIndex": 189
+        },
+        {
+          "referenceIndex": 136,
+          "predictionIndex": 192
+        },
+        {
+          "referenceIndex": 137,
+          "predictionIndex": 194
+        },
+        {
+          "referenceIndex": 139,
+          "predictionIndex": 198
+        },
+        {
+          "referenceIndex": 140,
+          "predictionIndex": 199
+        },
+        {
+          "referenceIndex": 142,
+          "predictionIndex": 202
+        },
+        {
+          "referenceIndex": 144,
+          "predictionIndex": 201
+        },
+        {
+          "referenceIndex": 145,
+          "predictionIndex": 206
+        },
+        {
+          "referenceIndex": 146,
+          "predictionIndex": 204
+        },
+        {
+          "referenceIndex": 147,
+          "predictionIndex": 207
+        },
+        {
+          "referenceIndex": 148,
+          "predictionIndex": 209
+        },
+        {
+          "referenceIndex": 149,
+          "predictionIndex": 212
+        },
+        {
+          "referenceIndex": 150,
+          "predictionIndex": 213
+        },
+        {
+          "referenceIndex": 151,
+          "predictionIndex": 214
+        },
+        {
+          "referenceIndex": 152,
+          "predictionIndex": 218
+        },
+        {
+          "referenceIndex": 153,
+          "predictionIndex": 216
+        },
+        {
+          "referenceIndex": 154,
+          "predictionIndex": 220
+        },
+        {
+          "referenceIndex": 155,
+          "predictionIndex": 225
+        },
+        {
+          "referenceIndex": 156,
+          "predictionIndex": 224
+        },
+        {
+          "referenceIndex": 157,
+          "predictionIndex": 222
+        },
+        {
+          "referenceIndex": 158,
+          "predictionIndex": 226
+        },
+        {
+          "referenceIndex": 159,
+          "predictionIndex": 227
+        },
+        {
+          "referenceIndex": 162,
+          "predictionIndex": 229
+        },
+        {
+          "referenceIndex": 163,
+          "predictionIndex": 230
+        },
+        {
+          "referenceIndex": 166,
+          "predictionIndex": 232
+        },
+        {
+          "referenceIndex": 168,
+          "predictionIndex": 233
+        },
+        {
+          "referenceIndex": 169,
+          "predictionIndex": 234
+        },
+        {
+          "referenceIndex": 170,
+          "predictionIndex": 237
+        },
+        {
+          "referenceIndex": 171,
+          "predictionIndex": 236
+        },
+        {
+          "referenceIndex": 172,
+          "predictionIndex": 239
+        },
+        {
+          "referenceIndex": 173,
+          "predictionIndex": 244
+        },
+        {
+          "referenceIndex": 175,
+          "predictionIndex": 245
+        },
+        {
+          "referenceIndex": 176,
+          "predictionIndex": 246
+        },
+        {
+          "referenceIndex": 178,
+          "predictionIndex": 248
+        },
+        {
+          "referenceIndex": 179,
+          "predictionIndex": 250
+        },
+        {
+          "referenceIndex": 180,
+          "predictionIndex": 252
+        },
+        {
+          "referenceIndex": 181,
+          "predictionIndex": 251
+        },
+        {
+          "referenceIndex": 183,
+          "predictionIndex": 257
+        },
+        {
+          "referenceIndex": 184,
+          "predictionIndex": 258
+        },
+        {
+          "referenceIndex": 185,
+          "predictionIndex": 259
+        },
+        {
+          "referenceIndex": 186,
+          "predictionIndex": 261
+        },
+        {
+          "referenceIndex": 187,
+          "predictionIndex": 263
+        },
+        {
+          "referenceIndex": 189,
+          "predictionIndex": 265
+        },
+        {
+          "referenceIndex": 190,
+          "predictionIndex": 267
+        },
+        {
+          "referenceIndex": 191,
+          "predictionIndex": 266
+        },
+        {
+          "referenceIndex": 192,
+          "predictionIndex": 269
+        },
+        {
+          "referenceIndex": 193,
+          "predictionIndex": 270
+        },
+        {
+          "referenceIndex": 194,
+          "predictionIndex": 272
+        },
+        {
+          "referenceIndex": 195,
+          "predictionIndex": 271
+        },
+        {
+          "referenceIndex": 196,
+          "predictionIndex": 273
+        },
+        {
+          "referenceIndex": 197,
+          "predictionIndex": 274
+        },
+        {
+          "referenceIndex": 199,
+          "predictionIndex": 276
+        },
+        {
+          "referenceIndex": 201,
+          "predictionIndex": 277
+        },
+        {
+          "referenceIndex": 202,
+          "predictionIndex": 278
+        },
+        {
+          "referenceIndex": 203,
+          "predictionIndex": 279
+        },
+        {
+          "referenceIndex": 204,
+          "predictionIndex": 282
+        },
+        {
+          "referenceIndex": 206,
+          "predictionIndex": 283
+        },
+        {
+          "referenceIndex": 207,
+          "predictionIndex": 284
+        },
+        {
+          "referenceIndex": 208,
+          "predictionIndex": 285
+        },
+        {
+          "referenceIndex": 209,
+          "predictionIndex": 288
+        },
+        {
+          "referenceIndex": 210,
+          "predictionIndex": 289
+        },
+        {
+          "referenceIndex": 211,
+          "predictionIndex": 287
+        },
+        {
+          "referenceIndex": 212,
+          "predictionIndex": 290
+        },
+        {
+          "referenceIndex": 213,
+          "predictionIndex": 292
+        },
+        {
+          "referenceIndex": 214,
+          "predictionIndex": 294
+        },
+        {
+          "referenceIndex": 215,
+          "predictionIndex": 298
+        },
+        {
+          "referenceIndex": 216,
+          "predictionIndex": 299
+        },
+        {
+          "referenceIndex": 217,
+          "predictionIndex": 303
+        },
+        {
+          "referenceIndex": 218,
+          "predictionIndex": 301
+        },
+        {
+          "referenceIndex": 219,
+          "predictionIndex": 304
+        },
+        {
+          "referenceIndex": 220,
+          "predictionIndex": 307
+        },
+        {
+          "referenceIndex": 221,
+          "predictionIndex": 308
+        },
+        {
+          "referenceIndex": 223,
+          "predictionIndex": 309
+        },
+        {
+          "referenceIndex": 224,
+          "predictionIndex": 312
+        },
+        {
+          "referenceIndex": 225,
+          "predictionIndex": 313
+        },
+        {
+          "referenceIndex": 226,
+          "predictionIndex": 315
+        },
+        {
+          "referenceIndex": 227,
+          "predictionIndex": 318
+        },
+        {
+          "referenceIndex": 228,
+          "predictionIndex": 317
+        },
+        {
+          "referenceIndex": 229,
+          "predictionIndex": 319
+        },
+        {
+          "referenceIndex": 230,
+          "predictionIndex": 323
+        },
+        {
+          "referenceIndex": 232,
+          "predictionIndex": 325
+        },
+        {
+          "referenceIndex": 233,
+          "predictionIndex": 326
+        },
+        {
+          "referenceIndex": 234,
+          "predictionIndex": 328
+        },
+        {
+          "referenceIndex": 235,
+          "predictionIndex": 331
+        },
+        {
+          "referenceIndex": 236,
+          "predictionIndex": 332
+        },
+        {
+          "referenceIndex": 237,
+          "predictionIndex": 334
+        },
+        {
+          "referenceIndex": 238,
+          "predictionIndex": 335
+        },
+        {
+          "referenceIndex": 239,
+          "predictionIndex": 336
+        },
+        {
+          "referenceIndex": 241,
+          "predictionIndex": 337
+        },
+        {
+          "referenceIndex": 242,
+          "predictionIndex": 339
+        },
+        {
+          "referenceIndex": 243,
+          "predictionIndex": 341
+        },
+        {
+          "referenceIndex": 244,
+          "predictionIndex": 342
+        },
+        {
+          "referenceIndex": 245,
+          "predictionIndex": 348
+        },
+        {
+          "referenceIndex": 246,
+          "predictionIndex": 352
+        },
+        {
+          "referenceIndex": 247,
+          "predictionIndex": 355
+        },
+        {
+          "referenceIndex": 248,
+          "predictionIndex": 357
+        },
+        {
+          "referenceIndex": 249,
+          "predictionIndex": 361
+        },
+        {
+          "referenceIndex": 250,
+          "predictionIndex": 362
+        },
+        {
+          "referenceIndex": 251,
+          "predictionIndex": 363
+        },
+        {
+          "referenceIndex": 252,
+          "predictionIndex": 365
+        },
+        {
+          "referenceIndex": 253,
+          "predictionIndex": 366
+        },
+        {
+          "referenceIndex": 254,
+          "predictionIndex": 368
+        },
+        {
+          "referenceIndex": 255,
+          "predictionIndex": 369
+        },
+        {
+          "referenceIndex": 257,
+          "predictionIndex": 371
+        },
+        {
+          "referenceIndex": 258,
+          "predictionIndex": 374
+        },
+        {
+          "referenceIndex": 259,
+          "predictionIndex": 375
+        },
+        {
+          "referenceIndex": 261,
+          "predictionIndex": 378
+        },
+        {
+          "referenceIndex": 262,
+          "predictionIndex": 379
+        },
+        {
+          "referenceIndex": 263,
+          "predictionIndex": 381
+        },
+        {
+          "referenceIndex": 264,
+          "predictionIndex": 382
+        },
+        {
+          "referenceIndex": 265,
+          "predictionIndex": 383
+        },
+        {
+          "referenceIndex": 266,
+          "predictionIndex": 385
+        },
+        {
+          "referenceIndex": 267,
+          "predictionIndex": 387
+        },
+        {
+          "referenceIndex": 268,
+          "predictionIndex": 388
+        },
+        {
+          "referenceIndex": 269,
+          "predictionIndex": 390
+        },
+        {
+          "referenceIndex": 270,
+          "predictionIndex": 393
+        }
+      ],
+      "stringPlacementDiagnostic": {
+        "onsetPitchString": {
+          "referenceCount": 271,
+          "predictionCount": 394,
+          "matchedCount": 213,
+          "falsePositives": 181,
+          "falseNegatives": 58,
+          "precision": 0.5406091370558376,
+          "recall": 0.7859778597785978,
+          "f1": 0.6406015037593985
+        },
+        "scope": "Agreement with the recorded string; valid alternate fingerings can disagree. This is not a requirement for pitch correctness or a claim of recovered fingering."
+      }
+    }
+  },
+  "playingStyleDiagnostic": {
+    "accuracy": null,
+    "reason": "These JAMS annotations contain no strumming/picking or stroke-direction ground truth. Dataset genre and comp/solo mode are not technique labels.",
+    "productionOutput": {
+      "style": "undetermined",
+      "complete": true,
+      "attackCount": 200,
+      "attacks": [
+        {
+          "time": 0.04644,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 0.325079,
+          "spread": 0.01161000000000001,
+          "pitches": [
+            48,
+            52
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 0.499229,
+          "spread": 0,
+          "pitches": [
+            60
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 0.638549,
+          "spread": 0.01161000000000001,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 0.801088,
+          "spread": 0,
+          "pitches": [
+            64
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 0.940408,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 1.114558,
+          "spread": 0.02322000000000002,
+          "pitches": [
+            48,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 1.242268,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 1.544127,
+          "spread": 0,
+          "pitches": [
+            52,
+            64
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 1.84907,
+          "spread": 0.011609999999999898,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 2.02322,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 2.19737,
+          "spread": 0,
+          "pitches": [
+            52,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 2.336689,
+          "spread": 0,
+          "pitches": [
+            59
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 2.487619,
+          "spread": 0.01161000000000012,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 2.766259,
+          "spread": 0.01160899999999998,
+          "pitches": [
+            50,
+            55,
+            67
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 3.079728,
+          "spread": 0.02322000000000024,
+          "pitches": [
+            47,
+            55,
+            59
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 3.253878,
+          "spread": 0,
+          "pitches": [
+            50,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 3.373061,
+          "spread": 0,
+          "pitches": [
+            50
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 3.547211,
+          "spread": 0,
+          "pitches": [
+            43,
+            47,
+            55,
+            59
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 3.674921,
+          "spread": 0,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 3.79102,
+          "spread": 0.05805000000000016,
+          "pitches": [
+            55,
+            59
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 4,
+          "spread": 0,
+          "pitches": [
+            50
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 4.16254,
+          "spread": 0.01161000000000012,
+          "pitches": [
+            47,
+            55,
+            59
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 4.325079,
+          "spread": 0,
+          "pitches": [
+            47,
+            59
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 4.638549,
+          "spread": 0.023219999999999352,
+          "pitches": [
+            47,
+            50,
+            55,
+            67
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 4.966712,
+          "spread": 0.01161000000000012,
+          "pitches": [
+            45,
+            52,
+            57
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 5.256961,
+          "spread": 0.011609999999999232,
+          "pitches": [
+            45,
+            52,
+            57,
+            67
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 5.500771,
+          "spread": 0.05804999999999971,
+          "pitches": [
+            45,
+            57,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 5.674921,
+          "spread": 0,
+          "pitches": [
+            45,
+            52,
+            57
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 5.95356,
+          "spread": 0.011609999999999232,
+          "pitches": [
+            45,
+            60
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 6.1161,
+          "spread": 0,
+          "pitches": [
+            45
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 6.417959,
+          "spread": 0.01161000000000012,
+          "pitches": [
+            45,
+            52,
+            60,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 6.722902,
+          "spread": 0,
+          "pitches": [
+            40
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 7.047982,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 7.198912,
+          "spread": 0,
+          "pitches": [
+            59
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 7.338231,
+          "spread": 0.04643999999999959,
+          "pitches": [
+            40,
+            47
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 7.523991,
+          "spread": 0,
+          "pitches": [
+            64
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 7.628481,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 7.721361,
+          "spread": 0,
+          "pitches": [
+            59
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 7.81424,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 7.97678,
+          "spread": 0,
+          "pitches": [
+            47,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 8.293333,
+          "spread": 0.011609999999999232,
+          "pitches": [
+            52,
+            59,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 8.467483,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 8.757732,
+          "spread": 0,
+          "pitches": [
+            59
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 8.897052,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 9.094422,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 9.245351,
+          "spread": 0,
+          "pitches": [
+            47
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 9.396281,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 9.500771,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 9.77941,
+          "spread": 0,
+          "pitches": [
+            53
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 10.095964,
+          "spread": 0.011609999999999232,
+          "pitches": [
+            41,
+            53,
+            60,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 10.374603,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 10.444263,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 10.560363,
+          "spread": 0,
+          "pitches": [
+            57
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 10.688073,
+          "spread": 0,
+          "pitches": [
+            48,
+            53,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 10.839002,
+          "spread": 0.011609999999999232,
+          "pitches": [
+            48,
+            53,
+            57,
+            60,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 10.989932,
+          "spread": 0,
+          "pitches": [
+            53,
+            57
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 11.129252,
+          "spread": 0,
+          "pitches": [
+            57
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 11.303401,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            48,
+            53,
+            57,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 11.477551,
+          "spread": 0,
+          "pitches": [
+            41,
+            53,
+            57,
+            60,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 11.666395,
+          "spread": 0,
+          "pitches": [
+            48,
+            60
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 11.805714,
+          "spread": 0.011609999999999232,
+          "pitches": [
+            53,
+            60,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 11.933424,
+          "spread": 0,
+          "pitches": [
+            53
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 12.107574,
+          "spread": 0,
+          "pitches": [
+            57
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 12.212063,
+          "spread": 0.06965999999999894,
+          "pitches": [
+            48,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 12.548753,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            52,
+            60,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 12.630023,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 12.769342,
+          "spread": 0.06966000000000072,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 12.839002,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 12.989932,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 13.167166,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 13.294875,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            55,
+            60
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 13.480635,
+          "spread": 0,
+          "pitches": [
+            48,
+            60
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 13.759274,
+          "spread": 0.04644000000000048,
+          "pitches": [
+            52,
+            55,
+            60,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 14.095964,
+          "spread": 0,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 14.270113,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 14.409433,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 14.560363,
+          "spread": 0,
+          "pitches": [
+            60
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 14.746122,
+          "spread": 0.014694000000000429,
+          "pitches": [
+            48,
+            53,
+            57
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 15.004626,
+          "spread": 0,
+          "pitches": [
+            53,
+            65
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 15.329705,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 15.445805,
+          "spread": 0,
+          "pitches": [
+            57
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 15.550295,
+          "spread": 0.011609999999999232,
+          "pitches": [
+            48,
+            53
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 15.736054,
+          "spread": 0,
+          "pitches": [
+            60
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 15.852154,
+          "spread": 0.05804999999999971,
+          "pitches": [
+            41,
+            53,
+            57
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 16.061134,
+          "spread": 0,
+          "pitches": [
+            57,
+            60
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 16.223673,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            48,
+            53,
+            57,
+            60,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 16.386213,
+          "spread": 0,
+          "pitches": [
+            60
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 16.540227,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 16.691156,
+          "spread": 0,
+          "pitches": [
+            57
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 16.818866,
+          "spread": 0,
+          "pitches": [
+            53
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 17.143946,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 17.469025,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            50,
+            59,
+            67
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 17.736054,
+          "spread": 0,
+          "pitches": [
+            45,
+            57
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 17.875374,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 18.064218,
+          "spread": 0,
+          "pitches": [
+            50,
+            62
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 18.412517,
+          "spread": 0,
+          "pitches": [
+            50,
+            62
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 18.493787,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 18.725986,
+          "spread": 0.03482999999999947,
+          "pitches": [
+            50,
+            55,
+            67
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 19.039456,
+          "spread": 0,
+          "pitches": [
+            45,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 19.143946,
+          "spread": 0,
+          "pitches": [
+            47,
+            55,
+            59
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 19.318095,
+          "spread": 0,
+          "pitches": [
+            50,
+            62
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 19.503855,
+          "spread": 0,
+          "pitches": [
+            59
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 19.619955,
+          "spread": 0.023219999999998464,
+          "pitches": [
+            48,
+            52,
+            60
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 19.715918,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 19.924898,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            48,
+            52,
+            55,
+            60,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 20.215147,
+          "spread": 0,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 20.342857,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 20.482177,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 20.621497,
+          "spread": 0.05804899999999691,
+          "pitches": [
+            55,
+            60,
+            72
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 20.842086,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            52,
+            55,
+            60,
+            67
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 21.109116,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            48,
+            60
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 21.472109,
+          "spread": 0,
+          "pitches": [
+            52,
+            55,
+            60,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 21.739138,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 21.901678,
+          "spread": 0.05804999999999794,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 22.354467,
+          "spread": 0,
+          "pitches": [
+            50,
+            59
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 22.818866,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 22.97288,
+          "spread": 0,
+          "pitches": [
+            47
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 23.10059,
+          "spread": 0,
+          "pitches": [
+            59
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 23.297959,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            50,
+            55,
+            67
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 23.576599,
+          "spread": 0,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 23.901678,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            43,
+            47,
+            55,
+            62
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 24.226757,
+          "spread": 0,
+          "pitches": [
+            50
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 24.389297,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 24.528617,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            45,
+            52,
+            57
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 24.79873,
+          "spread": 0.03482999999999947,
+          "pitches": [
+            45,
+            52,
+            57,
+            60,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 25.12381,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 25.251519,
+          "spread": 0,
+          "pitches": [
+            45,
+            57
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 25.402449,
+          "spread": 0,
+          "pitches": [
+            45
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 25.564989,
+          "spread": 0,
+          "pitches": [
+            60
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 25.692698,
+          "spread": 0,
+          "pitches": [
+            45,
+            52
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 26.006168,
+          "spread": 0,
+          "pitches": [
+            45,
+            64
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 26.345941,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            45,
+            57
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 26.63619,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            45,
+            57,
+            60,
+            72
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 26.92644,
+          "spread": 0,
+          "pitches": [
+            40
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 27.251519,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            52,
+            59,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 27.611429,
+          "spread": 0,
+          "pitches": [
+            47
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 27.739138,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 27.808798,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 28.020862,
+          "spread": 0,
+          "pitches": [
+            59
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 28.299501,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 28.485261,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 28.65941,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            52,
+            59,
+            71
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 28.79873,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 29.251519,
+          "spread": 0,
+          "pitches": [
+            64
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 29.425669,
+          "spread": 0,
+          "pitches": [
+            41
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 29.719002,
+          "spread": 0.011610000000001008,
+          "pitches": [
+            41,
+            53,
+            60,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 30.009252,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 30.160181,
+          "spread": 0,
+          "pitches": [
+            57,
+            60
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 30.311111,
+          "spread": 0,
+          "pitches": [
+            53,
+            65
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 30.438821,
+          "spread": 0,
+          "pitches": [
+            48,
+            57,
+            60
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 30.589751,
+          "spread": 0,
+          "pitches": [
+            41,
+            53
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 30.90322,
+          "spread": 0,
+          "pitches": [
+            53,
+            60,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 31.219773,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 31.301043,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 31.451973,
+          "spread": 0,
+          "pitches": [
+            53
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 31.544853,
+          "spread": 0,
+          "pitches": [
+            53
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 31.846712,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 32.009252,
+          "spread": 0,
+          "pitches": [
+            64
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 32.171791,
+          "spread": 0,
+          "pitches": [
+            48,
+            52
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 32.299501,
+          "spread": 0,
+          "pitches": [
+            55,
+            64
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 32.462041,
+          "spread": 0,
+          "pitches": [
+            43,
+            55
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 32.7639,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            52,
+            55,
+            60,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 32.906304,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 33.080454,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 33.382313,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            52,
+            55,
+            64
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 33.637732,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 33.719002,
+          "spread": 0,
+          "pitches": [
+            43,
+            52,
+            55
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 33.858322,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 33.986032,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 34.136961,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            55,
+            60
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 34.299501,
+          "spread": 0.023220000000002017,
+          "pitches": [
+            41,
+            53,
+            57
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 34.453515,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            53,
+            65
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 34.592834,
+          "spread": 0.06965999999999894,
+          "pitches": [
+            53,
+            57
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 34.732154,
+          "spread": 0,
+          "pitches": [
+            57
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 34.894694,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            48,
+            57,
+            60
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 35.034014,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            48,
+            53,
+            57,
+            60
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 35.150113,
+          "spread": 0.06966000000000605,
+          "pitches": [
+            41,
+            48,
+            53
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 35.219773,
+          "spread": 0,
+          "pitches": [
+            53,
+            60,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 35.324263,
+          "spread": 0.02321999999999491,
+          "pitches": [
+            57,
+            65
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 35.521633,
+          "spread": 0,
+          "pitches": [
+            41,
+            53,
+            57
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 35.800272,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            41,
+            53,
+            57,
+            60,
+            65
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 36.116825,
+          "spread": 0,
+          "pitches": [
+            48
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 36.290975,
+          "spread": 0,
+          "pitches": [
+            57
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 36.430295,
+          "spread": 0,
+          "pitches": [
+            48,
+            53
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 36.604444,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            43,
+            55,
+            59
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 36.743764,
+          "spread": 0,
+          "pitches": [
+            43,
+            55,
+            59
+          ],
+          "kind": "chord"
+        },
+        {
+          "time": 37.034014,
+          "spread": 0.011609999999997456,
+          "pitches": [
+            50,
+            67
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 37.324263,
+          "spread": 0,
+          "pitches": [
+            45
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 37.510023,
+          "spread": 0,
+          "pitches": [
+            55
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 37.684172,
+          "spread": 0,
+          "pitches": [
+            50
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 37.803356,
+          "spread": 0.023220000000002017,
+          "pitches": [
+            55,
+            59
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 37.977506,
+          "spread": 0.011610000000004561,
+          "pitches": [
+            50,
+            62
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 38.093605,
+          "spread": 0,
+          "pitches": [
+            52
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 38.302585,
+          "spread": 0,
+          "pitches": [
+            50,
+            62
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 38.407075,
+          "spread": 0,
+          "pitches": [
+            59
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 38.604444,
+          "spread": 0,
+          "pitches": [
+            45
+          ],
+          "kind": "single"
+        },
+        {
+          "time": 38.743764,
+          "spread": 0,
+          "pitches": [
+            47,
+            59
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 38.906304,
+          "spread": 0,
+          "pitches": [
+            50,
+            62
+          ],
+          "kind": "cluster"
+        },
+        {
+          "time": 39.057234,
+          "spread": 0,
+          "pitches": [
+            55,
+            59
+          ],
+          "kind": "cluster"
+        }
+      ],
+      "sections": [
+        {
+          "start": 0,
+          "end": 4,
+          "style": "undetermined",
+          "attackCount": 21
+        },
+        {
+          "start": 4,
+          "end": 12,
+          "style": "mixed",
+          "attackCount": 42
+        },
+        {
+          "start": 12,
+          "end": 16,
+          "style": "undetermined",
+          "attackCount": 22
+        },
+        {
+          "start": 16,
+          "end": 24,
+          "style": "mixed",
+          "attackCount": 37
+        },
+        {
+          "start": 24,
+          "end": 39.178812,
+          "style": "undetermined",
+          "attackCount": 78
+        }
+      ]
+    },
+    "hostTimings": {
+      "rhythmMs": 1.7581430000000182,
+      "projectionMs": 47.81767699999995,
+      "scope": "Single Linux/Node host pass; not phone latency"
+    }
+  },
+  "provenance": {
+    "source": "https://zenodo.org/records/3371780",
+    "license": "CC-BY-4.0",
+    "authors": [
+      "Qingyang Xi",
+      "Rachel M. Bittner",
+      "Johan Pauwels",
+      "Xuzhou Ye",
+      "Juan P. Bello"
+    ],
+    "citation": "Q. Xi, R. M. Bittner, J. Pauwels, X. Ye, and J. P. Bello, GuitarSet: A Dataset for Guitar Transcription, ISMIR, 2018.",
+    "sourceManifest": "docs/offline-chord-analysis-fixtures.json",
+    "sourceManifestSha256": "68886dd18e7d60464895b2eea01513cc830fbb52b4613f099044db25e248b64c",
+    "pinnedAudio": {
+      "archive": "https://zenodo.org/records/3371780/files/audio_mono-mic.zip?download=1",
+      "member": "00_SS3-98-C_comp_mic.wav",
+      "bytes": 3455614,
+      "sha256": "7c039c4f555c6d8a8f277244db89213026f05fb8e3f50dace4ef1512a7c68d85"
+    },
+    "referenceSha256": "b05a6967852c6f68f7b4db0e97d4129fb5b7f2eff49ff4007d60bdc5781b7fd2",
+    "nativePredictionSha256": "29bfabe829937aca58e804bbdc54d53187996894eab08bdfcd1099bc2dda9cd5",
+    "performanceSha256": "0729c467add8f357bbf5e2ac29486765710e10fedffa899c67a2a78561f8c3e0",
+    "nativeBinarySha256": "6fbf79a42b560a9187ca720c4d5ee47b40c133e839f5320d4ea42392c752b500",
+    "sourceAudio": {
+      "bytes": 3455614,
+      "sha256": "7c039c4f555c6d8a8f277244db89213026f05fb8e3f50dace4ef1512a7c68d85"
+    },
+    "nativeInputPcm": {
+      "bytes": 1253722,
+      "sha256": "6d0b56247bb8b6fcfc0ed47b469cfaea04284510f43f94e307396b26a909d4c7",
+      "sampleRate": 16000,
+      "channels": 1,
+      "encoding": "signed-16-bit little-endian",
+      "durationSeconds": 39.1788125
+    },
+    "evaluatorSha256": "c8a467cf0246e29f289047be7edfc5e05debb9e7512f79b3f52b0c3059aaca41",
+    "performanceSources": {
+      "src/components/audio-transcription.ts": "375848dae9e8889fa26f5081b1140e704a8488b3d7c37644cf6cdd0c9d8c8290",
+      "src/components/audio-rhythm.ts": "32fbdcfd7ae22679e6559b2c74bdaf18540fc989390e334ab205456d2d0a9368",
+      "src/components/audio-tablature.ts": "023d2f60b7bde30c20a451bf4243532546c1dc8b8a1cf9aee8a4189f67137b59",
+      "src/components/tablature.ts": "090ca52c5acb05659e7f6048c8225db168edd9d7d777887b84681438597696ca"
+    },
+    "performanceRuntime": {
+      "node": "v22.23.5",
+      "typescript": "5.9.3"
+    },
+    "pythonVersion": "3.14.4",
+    "github": {
+      "GITHUB_SHA": "18aff35fa573dcbd1c0427cb7380d902c57a1c97",
+      "GITHUB_RUN_ID": "45922423944",
+      "GITHUB_RUN_ATTEMPT": "1",
+      "GITHUB_EVENT_NAME": "pull_request",
+      "GITHUB_HEAD_REF": "feature/offline-chord-analysis"
+    }
+  }
+}
