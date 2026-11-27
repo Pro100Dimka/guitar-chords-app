@@ -109,6 +109,13 @@ jobs:
           # The probe includes the production modules directly. Compile it too,
           # without running the same acoustic regression matrix a second time.
           cargo build --locked --release --bin chord_probe --manifest-path android/song-fingerprint/Cargo.toml
+      - name: Keep the production recognition probe for audio previews
+        uses: actions/upload-artifact@v4
+        with:
+          name: offline-recognition-probe
+          path: android/song-fingerprint/target/release/chord_probe
+          retention-days: 7
+          if-no-files-found: error
       - name: Install JS dependencies
         run: npm ci
       - name: Real guitar note and tablature diagnostic
