@@ -191,9 +191,9 @@ test.each(["missing route", "different tab"])(
   async (condition) => {
     if (condition === "missing route") mockRoutes = [];
     else
-      await act(async () =>
-        form().setFieldValue("tablature", { ...tab, tempo: 122 })
-      );
+      await act(async () => {
+        await form().setFieldValue("tablature", { ...tab, tempo: 122 });
+      });
     await act(async () => form().submitForm());
     expect(mockNavigation.replace).toHaveBeenCalledWith("Song", { id: "73" });
     expect(mockNavigation.dispatch).not.toHaveBeenCalled();

@@ -14,5 +14,14 @@
     "typeRoots": ["./src/@types", "./node_modules/@types"]
   },
   // "include": ["src/**/*", "**/*.ts", "**/*.tsx", "index.tsx"],
-  "exclude": ["node_modules", "dist", "build", "ios", "android", "web", "*.cjs"]
+  // CommonJS files are Node tools/configuration, outside the React Native program.
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    "ios",
+    "android",
+    "web",
+    "**/*.cjs"
+  ]
 }
