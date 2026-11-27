@@ -5,14 +5,48 @@ import {
   songContentFromEditor,
   createSongEditorState,
   hasSongChordsAsync,
-  songChordSequence
+  songChordSequence,
+  chordShapes,
+  timedSongContent
 } from "../src/screens/song/chords";
+import { emptyTablature } from "../src/components/tablature";
 import { importedSong } from "../src/components/library-files";
 
 jest.mock("../src/components/database", () => ({
   db: { transaction: jest.fn() }
 }));
 jest.mock("../src/locales", () => ({ t: String }));
+
+test("unequal chord durations determine lyric columns without changing the words", () => {
+  const content = "Am C G\nabcdefghijklmnopqrstuvwx\n\nF\nNext line";
+  const score = {
+    ...emptyTablature(),
+    barCount: 2,
+    chords: [
+      { name: "Am", tick: 0 },
+      { name: "C", tick: 24 },
+      { name: "G", tick: 72 },
+      { name: "F", tick: 96 }
+    ]
+  };
+  const aligned = timedSongContent(content, score);
+  const rows = createSongEditorState(aligned).text.split("\n");
+  expect(rows[0].indexOf("Am")).toBe(0);
+  expect(rows[0].indexOf("C")).toBe(6);
+  expect(rows[0].indexOf("G")).toBe(18);
+  expect(rows[1]).toBe("abcdefghijklmnopqrstuvwx");
+  expect(timedSongContent(aligned, score)).toBe(aligned);
+  expect(
+    timedSongContent(content, { ...score, chords: [{ name: "Dm", tick: 0 }] })
+  ).toBe(content);
+});
+
+test.each([
+  { chord: "D5(9)", frets: [null, null, 0, 2, 3, 0] },
+  { chord: "A5(9)", frets: [null, 0, 2, 2, 0, 0] }
+])("provides the published open voicing for $chord", ({ chord, frets }) => {
+  expect(chordShapes(chord)).toContainEqual(frets);
+});
 
 test.each([
   ["[Am]Original words [G]with chords", true],
@@ -261,7 +295,8 @@ test("malformed short chord notation cannot block the parser process", () => {
       filename:'chords.ts',configFile:false,babelrc:false,
       presets:[['@babel/preset-env',{targets:{node:'current'}}],'@babel/preset-typescript']
     }).code;
-    new Function('module','exports',source)(module,module.exports);
+    require.extensions['.ts']=(loaded,file)=>loaded._compile(babel.transformSync(fs.readFileSync(file,'utf8'),{filename:file,configFile:false,babelrc:false,presets:[['@babel/preset-env',{targets:{node:'current'}}],'@babel/preset-typescript']}).code,file);
+    new Function('module','exports','require',source)(module,module.exports,require('node:module').createRequire(${JSON.stringify(filename)}));
     const inputs=[4,8,12,16].map(n=>'C'+'111/'.repeat(n)+'111X');
     process.stdout.write(JSON.stringify(inputs.map(input=>module.exports.chordsAboveLyrics(input))));
   `;
@@ -308,7 +343,8 @@ test("unclosed section brackets parse within a bounded process", () => {
       filename:'chords.ts',configFile:false,babelrc:false,
       presets:[['@babel/preset-env',{targets:{node:'current'}}],'@babel/preset-typescript']
     }).code;
-    new Function('module','exports',source)(module,module.exports);
+    require.extensions['.ts']=(loaded,file)=>loaded._compile(babel.transformSync(fs.readFileSync(file,'utf8'),{filename:file,configFile:false,babelrc:false,presets:[['@babel/preset-env',{targets:{node:'current'}}],'@babel/preset-typescript']}).code,file);
+    new Function('module','exports','require',source)(module,module.exports,require('node:module').createRequire(${JSON.stringify(filename)}));
     const input='[intro '.repeat(28000);
     if(module.exports.chordsAboveLyrics(input)!==input) throw Error('Changed text');
     process.stdout.write('ok');

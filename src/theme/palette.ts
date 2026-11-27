@@ -105,6 +105,7 @@ const palette = {
     ink: "#F5F3E9",
     card: "rgba(10,17,21,0.72)",
     activeCard: "rgba(255,186,24,0.035)",
+    activeLine: "rgba(218,177,97,0.14)",
     diagram: "rgba(7,12,15,0.92)",
     play: "#FFD04A"
   },

@@ -1,13 +1,27 @@
 import React from "react";
 import Renderer, { act } from "react-test-renderer";
-import { Alert, AppState, FlatList, Text, type AppStateStatus } from "react-native";
-import { Action, ChordSheet, SongTools } from "../src/screens/song/tools";
+import {
+  Alert,
+  AppState,
+  FlatList,
+  Text,
+  type AppStateStatus
+} from "react-native";
+import {
+  Action,
+  ChordSheet,
+  SongTools,
+  SongPlayback
+} from "../src/screens/song/tools";
+import { emptyTablature } from "../src/components/tablature";
 import { WebView } from "react-native-webview";
 import SongRecorder from "../src/screens/song/recorder";
 import { defaultSongPreferences } from "../src/components/preferences";
 import * as acousticPlayer from "../src/components/acoustic-player";
 import * as acousticInstrument from "../src/components/acoustic-instrument";
 import * as chordTools from "../src/screens/song/chords";
+import * as guitarAudio from "../src/components/guitar-audio";
+import { sourceSong } from "../src/components/song-autofill/source-metadata";
 import {
   performanceAudio,
   type PerformanceEvent
@@ -45,6 +59,7 @@ afterEach(async () => {
   appListeners.clear();
   jest.restoreAllMocks();
   jest.clearAllMocks();
+  jest.useRealTimers();
 });
 
 const content = Array.from(
@@ -54,6 +69,112 @@ const content = Array.from(
 const settings = { ...defaultSongPreferences, strum: "D-D-D-D-" };
 const onChange = jest.fn();
 const onClose = jest.fn();
+
+test("the lyric cursor follows elapsed score time across unequal chord durations", async () => {
+  jest.useFakeTimers();
+  jest.spyOn(guitarAudio, "warmGuitar").mockResolvedValue(undefined);
+  const position = jest.fn();
+  await act(async () => {
+    screen = Renderer.create(
+      <SongPlayback
+        content="[Am]Words [C]for a [G]single line"
+        value={{
+          ...defaultSongPreferences,
+          tempo: 60,
+          tablature: {
+            ...emptyTablature(60),
+            notes: [{ string: 0, fret: 0, tick: 0, duration: 96 }],
+            chords: [
+              { name: "Am", tick: 0 },
+              { name: "C", tick: 24 },
+              { name: "G", tick: 72 }
+            ]
+          }
+        }}
+        onPosition={position}
+        onStopped={jest.fn()}
+      />
+    );
+  });
+  await act(async () => jest.advanceTimersByTimeAsync(1000));
+  expect(position.mock.calls.at(-1)?.[1]).toBeCloseTo(0.25, 2);
+  await act(async () => jest.advanceTimersByTimeAsync(2000));
+  expect(position.mock.calls.at(-1)?.[1]).toBeCloseTo(0.75, 2);
+});
+
+test.each(["rhythm", "reading"])(
+  "the %s tab plays imported notes without choosing a stock pattern",
+  async (tab) => {
+    jest.useFakeTimers();
+    jest.spyOn(guitarAudio, "warmGuitar").mockResolvedValue(undefined);
+    const sound = jest
+      .spyOn(performanceAudio, "guitarString")
+      .mockImplementation(() => {});
+    const imported = sourceSong(
+      [
+        "E|---------0-",
+        "B|-------0---",
+        "G|-----0-----",
+        "D|---2-------",
+        "A|--2--------",
+        "E|-0---------",
+        "[Em]Example words for this song"
+      ].join("\n")
+    );
+    await act(async () => {
+      screen = Renderer.create(
+        <SongTools
+          initialTab="rhythm"
+          content={imported.content}
+          value={{
+            ...defaultSongPreferences,
+            tablature: imported.tablature,
+            tempo: 80
+          }}
+          onChange={onChange}
+          onClose={onClose}
+        />
+      );
+    });
+    if (tab === "reading")
+      await act(async () => {
+        screen!.root
+          .findAll(
+            (node) =>
+              node.props.accessibilityRole === "tab" &&
+              node
+                .findAllByType(Text)
+                .some((text) => text.props.children === "Reading")
+          )[0]
+          .props.onPress();
+        screen!.root
+          .findAll(
+            (node) =>
+              node.props.accessibilityRole === "tab" &&
+              typeof node.props.onPress === "function" &&
+              node
+                .findAllByType(Text)
+                .some(
+                  (text) => text.props.children === "SongAccompanimentSettings"
+                )
+          )[0]
+          .props.onPress();
+      });
+    const controls = screen!.root
+      .findAllByType(Action)
+      .filter((node) => node.props.label === "TabPlay");
+    expect(controls).toHaveLength(1);
+    await act(async () => controls[0].props.onPress());
+    await act(async () => jest.advanceTimersByTimeAsync(400));
+    expect(sound).toHaveBeenCalledWith("440:40:string0", 0);
+    expect(sound).toHaveBeenCalledWith("440:47:string1", 1);
+    expect(acousticInstrument.prepareAcousticInstrument).not.toHaveBeenCalled();
+    jest.mocked(performanceAudio.stopGuitarString).mockClear();
+    await act(async () => screen!.unmount());
+    expect(performanceAudio.stopGuitarString).toHaveBeenCalledTimes(6);
+    screen = undefined;
+  }
+);
 
 test("rhythm preparation resolves each distinct voicing once and preserves the full progression", async () => {
   const selectedShape = acousticPlayer.selectedChordShape;
@@ -164,7 +285,7 @@ test("practice tempo and start-chord controls reuse parsed section progressions"
           typeof node.props.onPress === "function" &&
           node
             .findAllByType(Text)
-            .some((text) => text.props.children === "Practice")
+            .some((text) => text.props.children === "SongAccompanimentSettings")
       )[0]
       .props.onPress()
   );
@@ -172,6 +293,12 @@ test("practice tempo and start-chord controls reuse parsed section progressions"
   parse.mockClear();
   sections.mockClear();
   await act(async () => screen!.update(render(120)));
+  await act(async () =>
+    screen!.root
+      .findAllByType(Action)
+      .find((node) => node.props.label.startsWith("PracticeStartChord:"))!
+      .props.onPress()
+  );
   await act(async () =>
     screen!.root
       .findAllByType(Action)
@@ -206,7 +333,9 @@ test("recording events are scoped to the active song without duplicate alerts", 
   jest.spyOn(performanceAudio, "listen").mockImplementation((listener) => {
     listeners.add(listener);
     return {
-      remove: () => { listeners.delete(listener); }
+      remove: () => {
+        listeners.delete(listener);
+      }
     } as unknown as ReturnType<typeof performanceAudio.listen>;
   });
   const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
@@ -238,7 +367,11 @@ test("a stale recording-list failure never displays an error for the next song",
   const take = { path: "/song-2-10.m4a", date: 10, bytes: 100 };
   jest
     .mocked(performanceAudio.list)
-    .mockReturnValueOnce(new Promise((_resolve, reject) => { fail = reject; }))
+    .mockReturnValueOnce(
+      new Promise((_resolve, reject) => {
+        fail = reject;
+      })
+    )
     .mockResolvedValue([take]);
   const alert = jest.spyOn(Alert, "alert").mockImplementation(() => {});
   const render = (songId: number) => (

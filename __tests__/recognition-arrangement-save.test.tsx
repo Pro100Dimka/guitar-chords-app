@@ -20,6 +20,7 @@ import CreateChordSong, {
 } from "../src/screens/create-song-chords";
 import { sourceArrangement } from "../src/screens/song/rhythms";
 import { Action } from "../src/screens/song/tools";
+import { emptyTablature } from "../src/components/tablature";
 
 jest.mock("react-native-safe-area-context", () => ({
   SafeAreaView: require("react-native").View,
@@ -152,8 +153,11 @@ test("imports the published Behind Blue Eyes picking as playable tabs and saves 
   expect(draft.content).not.toMatch(
     /E\||Tabber:|Artist:|very very beautiful|\|-0/
   );
-  expect(draft.content).toContain("no one knows what it's like");
-  expect(draft.content).toContain("but my dreams they aren't as empty");
+  const displayed = require("../src/screens/song/chords").createSongEditorState(
+    draft.content
+  ).text;
+  expect(displayed).toContain("no one knows what it's like");
+  expect(displayed).toContain("but my dreams they aren't as empty");
   const persisted = await save();
   expect(
     persisted.tablature.notes.every((note: { fret: number }) => note.fret <= 3)
@@ -169,6 +173,36 @@ test("imports the published Behind Blue Eyes picking as playable tabs and saves 
       persisted.tablature
     )
   ).toEqual(persisted.tablature);
+});
+
+test("imports chord annotations inside provider tab rows through the song form", async () => {
+  const content = [
+    "Intro: Em  G6  D5(9)  C9  A5(9)",
+    "E|-[Em]---------0--------[G6]---------0------------ ",
+    "B|------------0------------------3--------- ",
+    "G|-------0------0-----------0------0------- ",
+    "D|-----2----------0-------0----------0----- ",
+    "A|---2------------------2------------------ ",
+    "E|-0----------------3---------------------- ",
+    "",
+    "Verso 1:",
+    "N[Em]o one knows what it's l[G6]ike, to be the b[D5(9)]ad man,",
+    "To be the s[C9]ad man, beh[A5(9)]ind blue eyes"
+  ].join("\n");
+  jest
+    .mocked(lookupSongContent)
+    .mockResolvedValue([{ ...plainChart, content, source: "Cifra Club" }]);
+  await start();
+  const draft = await openEditor();
+  expect(draft.content).not.toMatch(/[EBGDA]\|/);
+  expect(draft.content).toContain("N[Em]o one knows");
+  const persisted = await save();
+  expect(persisted.tablature.notes).toContainEqual(
+    expect.objectContaining({ string: 0, fret: 0, tick: 0 })
+  );
+  expect(persisted.tablature.notes).toContainEqual(
+    expect.objectContaining({ string: 1, fret: 2 })
+  );
 });
 
 async function press(label: string) {
@@ -315,20 +349,31 @@ test.each(["recognized", "looked up"])(
     expect(
       writes.find((write) => write.sql.startsWith("INSERT INTO songs"))
     ).toMatchObject({
-      args: [
-        "Track",
-        arrangementText,
-        11,
-        "",
-        "",
-        "track"
-      ]
+      args: ["Track", arrangementText, 11, "", "", "track"]
     });
     expect(lookupSongTempo).toHaveBeenCalledTimes(
       fallback === "recognized" ? 0 : 1
     );
   }
 );
+
+test("recognition carries an automatically found guitar score through the editor and atomic save", async () => {
+  const tablature = {
+    ...emptyTablature(92),
+    tuning: [38, 43, 48, 53, 57, 62],
+    notes: [{ string: 1, fret: 0, tick: 0, duration: 24 }],
+    arrangementSource: {
+      name: "GtpTabs.com",
+      url: "https://gtptabs.com/tabs/1/artist/track.html"
+    }
+  };
+  jest
+    .mocked(lookupSongContent)
+    .mockResolvedValue([{ ...pickedChart, tablature }]);
+  await start();
+  expect((await openEditor()).tablature).toEqual(tablature);
+  expect((await save()).tablature).toMatchObject(tablature);
+});
 
 test.each([
   { fallback: 137, next: strummedChart, expectedTempo: 118 },

@@ -15,6 +15,7 @@ import { useTranslation } from "react-i18next";
 import Text from "../../components/styled-text";
 import {
   TAB_MAX_BARS,
+  TAB_TUNING,
   tabBarTicks,
   tabBeatTicks,
   tabNoteDuration,
@@ -28,6 +29,7 @@ import {
   tablatureLength
 } from "../../components/tablature";
 import palette from "../../theme/palette";
+import { noteNames } from "../tuner/tunings";
 import notationSymbols from "../../../assets/notation-symbols.json";
 import { Action, Sheet } from "../song/tools";
 import { TablatureKeypad } from "./tablature-keypad";
@@ -57,6 +59,7 @@ const lineTechniques: TabTechnique[] = ["palmMute", "letRing"];
 const stringNames = ["E", "A", "D", "G", "B", "e"];
 const stringOrder = [5, 4, 3, 2, 1, 0];
 const MIN_INSERTION_GRID = durationTicks(128, "triplet");
+// Budget the whole connected staff, independently of the number of bars.
 // A complete 4/4 bar of 128th-note triplets still has every insertion target.
 const MAX_INSERTION_COLUMNS = 192;
 const meterChoices = [
@@ -245,7 +248,56 @@ type RhythmEvent = {
   tuplet?: TabNote["tuplet"];
   continued: boolean;
   string: number;
+  pitches?: TabNote[];
 };
+
+const pitchSteps = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 5, 6];
+const writtenPitch = (
+  note: TabNote,
+  tuning: readonly number[] = TAB_TUNING
+) => {
+  const midi = tuning[note.string] + note.fret + 12;
+  return {
+    step: Math.floor(midi / 12) * 7 + pitchSteps[midi % 12],
+    sharp: [1, 3, 6, 8, 10].includes(midi % 12)
+  };
+};
+
+export function tablatureSystemLayout(
+  tab: Tablature,
+  bar: number,
+  bars: number,
+  scale: number
+) {
+  const start = bar * tabBarTicks(tab),
+    end = (bar + bars) * tabBarTicks(tab);
+  const notes = tab.notes.filter(
+    (note) => note.tick < end && note.tick + tabNoteDuration(note) > start
+  );
+  const steps = notes.map((note) => writtenPitch(note, tab.tuning).step);
+  const top = Math.max(18, (Math.max(37, ...steps) - 45) * 3 + 26);
+  const notationHeight =
+    top + 24 + Math.max(12, (37 - Math.min(37, ...steps)) * 3 + 10);
+  const effects = lineTechniques.filter((technique) =>
+    notes.some((note) => note.techniques?.includes(technique))
+  ).length;
+  const columns = new Set(
+    Array.from(
+      { length: Math.ceil((end - start) / tabBeatTicks(tab)) },
+      (_, index) => start + index * tabBeatTicks(tab)
+    )
+  );
+  notes.forEach((note) => columns.add(Math.max(start, note.tick)));
+  tab.rests
+    ?.filter((rest) => rest.tick >= start && rest.tick < end)
+    .forEach((rest) => columns.add(rest.tick));
+  return {
+    minimumWidth: Math.max(160 * scale, 24 + columns.size * 18 * scale),
+    top: top * scale,
+    notationHeight: notationHeight * scale,
+    height: (16 + notationHeight + 84) * scale + effects * 16 + 8
+  };
+}
 const RhythmNotation = React.memo(function RhythmNotation({
   events,
   columns,
@@ -253,7 +305,12 @@ const RhythmNotation = React.memo(function RhythmNotation({
   beatTicks,
   start,
   scale,
-  rowHeight
+  rowHeight,
+  notation,
+  barTicks,
+  eighthGroupTicks = beatTicks,
+  tuning,
+  rests = []
 }: {
   events: RhythmEvent[];
   columns: number[];
@@ -262,18 +319,65 @@ const RhythmNotation = React.memo(function RhythmNotation({
   start: number;
   scale: number;
   rowHeight: number;
+  notation?: { top: number; notationHeight: number };
+  barTicks?: number;
+  eighthGroupTicks?: number;
+  tuning?: readonly number[];
+  rests?: TabRest[];
 }) {
-  const staffHeight = rowHeight * 6;
+  const staffHeight = notation
+    ? notation.notationHeight - 32 * scale
+    : rowHeight * 6;
+  const accidentals = new Map<string, boolean>();
   const items = events.map((event) => {
     const parts = durationParts(event.duration);
     const denominator = event.tuplet?.denominator ?? parts?.denominator;
+    const pitches =
+      event.pitches?.map((note) => {
+        const pitch = writtenPitch(note, tuning);
+        const key = `${Math.floor(event.tick / (barTicks ?? beatTicks))}:${pitch.step}`;
+        const accidental =
+          (accidentals.get(key) ?? false) !== pitch.sharp
+            ? pitch.sharp
+              ? "♯"
+              : "♮"
+            : "";
+        accidentals.set(key, pitch.sharp);
+        return {
+          ...pitch,
+          accidental,
+          dead: note.accent === "dead",
+          y: (notation?.top ?? 0) + 24 * scale - (pitch.step - 37) * 3 * scale
+        };
+      }) ?? [];
+    const x =
+      (columns.indexOf(event.tick) + 0.5) * cellWidth +
+      (event.voice - 1) * 2 * scale;
+    const ys = pitches.map((pitch) => pitch.y);
+    const up =
+      event.voice === 1 &&
+      (!notation || !ys.length || Math.max(...ys) >= notation.top + 12 * scale);
+    const stemX = notation ? x + (up ? 4 : -4) * scale : x - 10 * scale;
+    const valueY = notation
+      ? up
+        ? Math.max(...ys)
+        : Math.min(...ys)
+      : (5 - event.string + 0.5) * rowHeight + 6 * scale;
+    const stemY = notation
+      ? up
+        ? Math.min(...ys) - 21 * scale
+        : Math.max(...ys) + 21 * scale
+      : staffHeight + 28 * scale;
     return {
       ...event,
+      pitches,
+      up,
+      stemX,
+      valueY,
+      stemY,
       parts,
       denominator,
-      x:
-        (columns.indexOf(event.tick) + 0.5) * cellWidth +
-        (event.voice - 1) * 2 * scale,
+      x,
       flags: denominator ? Math.max(0, Math.log2(denominator) - 2) : 0
     };
   });
@@ -284,26 +388,82 @@ const RhythmNotation = React.memo(function RhythmNotation({
     x2: number;
     level: number;
     voice: number;
+    y1: number;
+    y2: number;
   }[] = [];
-  for (const voice of new Set(items.map((item) => item.voice))) {
+  const connected = (
+    left: (typeof items)[number],
+    right: (typeof items)[number]
+  ) => {
+    const groupTicks =
+      notation && Math.max(left.flags, right.flags) === 1
+        ? eighthGroupTicks
+        : beatTicks;
+    return (
+      !left.continued &&
+      !right.continued &&
+      Math.min(left.flags, right.flags) > 0 &&
+      Math.abs(left.tick + left.duration - right.tick) <= 1 / 960 &&
+      Math.floor((left.tick - start) / groupTicks) ===
+        Math.floor((right.tick - start) / groupTicks)
+    );
+  };
+  const voices = new Set(items.map((item) => item.voice));
+  for (const voice of voices) {
     const line = items.filter((item) => item.voice === voice);
+    if (notation) {
+      let group: typeof items = [];
+      const align = () => {
+        if (!group.length) return;
+        const ys = group.flatMap((item) =>
+          item.pitches.map((pitch) => pitch.y)
+        );
+        const up =
+          voice === 1 &&
+          (voices.size > 1 ||
+            ys.reduce((sum, y) => sum + y, 0) / ys.length >=
+              notation.top + 12 * scale);
+        group.forEach((item) => {
+          const heights = item.pitches.map((pitch) => pitch.y);
+          item.up = up;
+          item.stemX = item.x + (up ? 4 : -4) * scale;
+          item.valueY = up ? Math.max(...heights) : Math.min(...heights);
+          item.stemY = up
+            ? Math.min(...heights) - 21 * scale
+            : Math.max(...heights) + 21 * scale;
+        });
+        const ends = group.map((item) => item.stemY);
+        const y = up ? Math.min(...ends) : Math.max(...ends);
+        group.forEach((item) => {
+          item.stemY = y;
+        });
+      };
+      for (const item of line) {
+        const previous = group.at(-1);
+        if (previous && !connected(previous, item)) {
+          align();
+          group = [];
+        }
+        group.push(item);
+      }
+      align();
+    }
     for (let index = 1; index < line.length; index++) {
       const left = line[index - 1],
         right = line[index];
-      if (
-        left.continued ||
-        right.continued ||
-        Math.abs(left.tick + left.duration - right.tick) > 1 / 960 ||
-        Math.floor((left.tick - start) / beatTicks) !==
-          Math.floor((right.tick - start) / beatTicks)
-      )
-        continue;
+      if (!connected(left, right)) continue;
       for (let level = 0; level < Math.min(left.flags, right.flags); level++)
         beams.push({
           from: left.tick,
           to: right.tick,
-          x1: left.x - 10 * scale,
-          x2: right.x - 10 * scale,
+          x1: left.stemX,
+          x2: right.stemX,
+          y1:
+            (notation ? left.stemY : staffHeight + 27 * scale) +
+            (notation && left.up ? 1 : -1) * level * 3 * scale,
+          y2:
+            (notation ? right.stemY : staffHeight + 27 * scale) +
+            (notation && right.up ? 1 : -1) * level * 3 * scale,
           level,
           voice
         });
@@ -313,13 +473,38 @@ const RhythmNotation = React.memo(function RhythmNotation({
     <Svg
       width={columns.length * cellWidth}
       height={staffHeight + 32 * scale}
-      style={[styles.rhythmSvg, { top: -staffHeight }]}
+      style={[
+        styles.rhythmSvg,
+        notation ? styles.notationSvg : { top: -staffHeight }
+      ]}
       accessible={false}
     >
+      {notation &&
+        Array.from({ length: 5 }, (_, line) => (
+          <Path
+            key={line}
+            d={`M0 ${notation.top + line * 6 * scale}H${columns.length * cellWidth}`}
+            stroke={palette.paper.line}
+            strokeWidth={1}
+          />
+        ))}
+      {notation &&
+        rests.map((rest) => (
+          <Path
+            key={rest.tick}
+            d={
+              musicGlyphs[
+                `rest${durationParts(rest.duration)?.denominator ?? 4}`
+              ]
+            }
+            transform={`translate(${(columns.indexOf(Math.max(start, rest.tick)) + 0.5) * cellWidth - 7 * scale} ${notation.top + 3 * scale}) scale(${0.6 * scale})`}
+            fill={palette.glass.accent}
+          />
+        ))}
       {items.map((item) => {
         const color = palette.glass.accent;
         const x = item.x;
-        const valueY = (5 - item.string + 0.5) * rowHeight + 6 * scale;
+        const { valueY } = item;
         const tuplet =
           item.tuplet?.actual ??
           {
@@ -344,12 +529,75 @@ const RhythmNotation = React.memo(function RhythmNotation({
             key={`${item.tick}:${item.voice}:${item.duration}`}
             testID={`tab-rhythm-event-${item.tick}-${item.voice}-${item.duration}`}
           >
+            {notation &&
+              item.pitches.map((pitch, index) => (
+                <G key={index}>
+                  {Array.from(
+                    {
+                      length: Math.max(
+                        0,
+                        Math.floor(
+                          (pitch.step < 37
+                            ? 37 - pitch.step
+                            : pitch.step - 45) / 2
+                        )
+                      )
+                    },
+                    (_, line) => {
+                      const step =
+                        pitch.step < 37 ? 35 - line * 2 : 47 + line * 2;
+                      const y =
+                        notation.top + 24 * scale - (step - 37) * 3 * scale;
+                      return (
+                        <Path
+                          key={line}
+                          d={`M${x - 8 * scale} ${y}H${x + 8 * scale}`}
+                          stroke={color}
+                          strokeWidth={1}
+                        />
+                      );
+                    }
+                  )}
+                  {pitch.accidental && (
+                    <SvgText
+                      x={x - 11 * scale}
+                      y={pitch.y + 4 * scale}
+                      fill={color}
+                      fontSize={12 * scale}
+                      textAnchor="middle"
+                    >
+                      {pitch.accidental}
+                    </SvgText>
+                  )}
+                  {pitch.dead ? (
+                    <Path
+                      d={`M${x - 4 * scale} ${pitch.y - 3 * scale}l${8 * scale} ${6 * scale}m0 ${-6 * scale}l${-8 * scale} ${6 * scale}`}
+                      stroke={color}
+                    />
+                  ) : (
+                    <Ellipse
+                      cx={x}
+                      cy={pitch.y}
+                      rx={4.5 * scale}
+                      ry={3 * scale}
+                      transform={`rotate(-15 ${x} ${pitch.y})`}
+                      fill={
+                        item.denominator && item.denominator <= 2
+                          ? palette.paper.background
+                          : color
+                      }
+                      stroke={color}
+                      strokeWidth={1.2 * scale}
+                    />
+                  )}
+                </G>
+              ))}
             {item.denominator ? (
               <>
                 {item.denominator > 1 && (
                   <Path
                     testID={`tab-rhythm-stem-${item.tick}-${item.voice}`}
-                    d={`M${x - 10 * scale} ${valueY}V${staffHeight + 28 * scale}`}
+                    d={`M${item.stemX} ${valueY}V${item.stemY}`}
                     stroke={color}
                     strokeWidth={1.2 * scale}
                   />
@@ -361,11 +609,17 @@ const RhythmNotation = React.memo(function RhythmNotation({
                       beam.level === level &&
                       [beam.from, beam.to].includes(item.tick)
                   );
-                  const y = staffHeight + (27 - level * 3) * scale;
+                  const y = notation
+                    ? item.stemY + (item.up ? 1 : -1) * level * 3 * scale
+                    : staffHeight + (27 - level * 3) * scale;
                   return connected ? null : (
                     <Path
                       key={level}
-                      d={`M${x - 10 * scale} ${y}q${-8 * scale} ${-4 * scale} ${-4 * scale} ${-10 * scale}`}
+                      d={
+                        notation
+                          ? `M${item.stemX} ${y}q${8 * scale} ${(item.up ? 4 : -4) * scale} ${4 * scale} ${(item.up ? 11 : -11) * scale}`
+                          : `M${x - 10 * scale} ${y}q${-8 * scale} ${-4 * scale} ${-4 * scale} ${-10 * scale}`
+                      }
                       stroke={color}
                       strokeWidth={1.6 * scale}
                       fill="none"
@@ -385,7 +639,11 @@ const RhythmNotation = React.memo(function RhythmNotation({
                 {tuplet && (
                   <SvgText
                     x={x}
-                    y={staffHeight + 7 * scale}
+                    y={
+                      notation
+                        ? item.stemY + (item.up ? -6 : 10) * scale
+                        : staffHeight + 7 * scale
+                    }
                     fontSize={8 * scale}
                     textAnchor="middle"
                     fill={palette.glass.accent}
@@ -419,7 +677,7 @@ const RhythmNotation = React.memo(function RhythmNotation({
         <Path
           key={`${beam.voice}:${beam.from}:${beam.level}`}
           testID={`tab-rhythm-beam-${beam.from}-${beam.to}-${beam.level}`}
-          d={`M${beam.x1} ${staffHeight + (27 - beam.level * 3) * scale}H${beam.x2}`}
+          d={`M${beam.x1} ${beam.y1}L${beam.x2} ${beam.y2}`}
           stroke={palette.glass.accent}
           strokeWidth={2.8 * scale}
         />
@@ -428,10 +686,11 @@ const RhythmNotation = React.memo(function RhythmNotation({
   );
 });
 
-/** One readable bar; empty cells become insertion targets in the editor. */
+/** Connected staff; empty cells become insertion targets in the editor. */
 const TablatureStaff = React.memo(function TablatureStaff({
   tab,
   bar,
+  barCount = 1,
   tick,
   compact = false,
   selected = null,
@@ -439,6 +698,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
   grid = 6,
   disabled = false,
   readOnly = false,
+  notation = false,
   readingScale = 1,
   followPlayback = true,
   availableHeight = 0,
@@ -449,10 +709,12 @@ const TablatureStaff = React.memo(function TablatureStaff({
   onRest,
   selectedRange = null,
   onRange,
-  onMeter
+  onMeter,
+  onSeek
 }: {
   tab: Tablature;
   bar: number;
+  barCount?: number;
   tick: number;
   compact?: boolean;
   selected?: Selection | null;
@@ -460,6 +722,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
   grid?: number;
   disabled?: boolean;
   readOnly?: boolean;
+  notation?: boolean;
   readingScale?: number;
   followPlayback?: boolean;
   availableHeight?: number;
@@ -471,10 +734,12 @@ const TablatureStaff = React.memo(function TablatureStaff({
   selectedRange?: { start: number; end: number } | null;
   onRange?: (range: { start: number; end: number }) => void;
   onMeter?: () => void;
+  onSeek?: (tick: number) => void;
 }) {
   const { t } = useTranslation();
   const { width, height, fontScale } = useWindowDimensions();
   const dense = compact && (height < 700 || width > height);
+  const reading = readOnly || notation;
   const textScale = Math.max(1, fontScale);
   const scroll = useRef<ScrollView>(null);
   const [staffWidth, setStaffWidth] = useState(0);
@@ -489,12 +754,16 @@ const TablatureStaff = React.memo(function TablatureStaff({
   const barTicks = tabBarTicks(tab);
   const beatTicks = tabBeatTicks(tab);
   const start = bar * barTicks;
+  const staffEnd = start + barCount * barTicks;
   const editable = !!onCell && !readOnly;
-  const NoteTarget = readOnly ? View : Pressable;
+  const NoteTarget = readOnly && !onSeek ? View : Pressable;
   const selectedTick = selected?.tick ?? selectedRest;
   const { eventTimes, notes, rests } = useMemo(() => {
     const times = new Set<number>();
-    const entries = new Map<string, { note: TabNote; end: number }>();
+    const entries = new Map<
+      string,
+      { note: TabNote; end: number; position: number }
+    >();
     const nextByString = new Map<number, number>();
     for (const note of [...tab.notes].sort((a, b) => b.tick - a.tick)) {
       const end = Math.min(
@@ -502,15 +771,26 @@ const TablatureStaff = React.memo(function TablatureStaff({
         nextByString.get(note.string) ?? Number.POSITIVE_INFINITY
       );
       nextByString.set(note.string, note.tick);
-      if (note.tick >= start + barTicks || end <= start) continue;
-      const position = Math.max(start, note.tick);
-      times.add(position);
-      entries.set(`${note.string}:${position}`, { note, end });
+      for (
+        let position = Math.max(start, note.tick);
+        position < Math.min(end, staffEnd);
+      ) {
+        const next = Math.min(
+          end,
+          (Math.floor(position / barTicks) + 1) * barTicks
+        );
+        times.add(position);
+        entries.set(`${note.string}:${position}`, {
+          note,
+          end: next,
+          position
+        });
+        position = next;
+      }
     }
     const pauses = new Map<number, TabRest>();
     for (const rest of tab.rests ?? []) {
-      if (rest.tick >= start + barTicks || rest.tick + rest.duration <= start)
-        continue;
+      if (rest.tick >= staffEnd || rest.tick + rest.duration <= start) continue;
       const position = Math.max(start, rest.tick);
       times.add(position);
       pauses.set(position, rest);
@@ -520,39 +800,52 @@ const TablatureStaff = React.memo(function TablatureStaff({
       notes: entries,
       rests: pauses
     };
-  }, [tab.notes, tab.rests, start, barTicks]);
+  }, [tab.notes, tab.rests, start, barTicks, staffEnd]);
   const columns = useMemo(() => {
     // A clipped audio tail may last only 1/960 tick. Bound empty insertion
     // targets independently of that duration; retain exact events below.
     const requestedStep = editable
       ? Math.max(MIN_INSERTION_GRID, grid)
       : beatTicks;
-    const step =
-      requestedStep *
-      Math.max(1, Math.ceil(barTicks / requestedStep / MAX_INSERTION_COLUMNS));
+    const step = editable
+      ? requestedStep *
+        Math.max(
+          1,
+          Math.ceil((staffEnd - start) / requestedStep / MAX_INSERTION_COLUMNS)
+        )
+      : requestedStep;
     const times = new Set(
-      Array.from({ length: Math.ceil(barTicks / step) }, (_, position) =>
-        roundTabTick(start + position * step)
-      ).filter((position) => position < start + barTicks)
+      Array.from(
+        { length: Math.ceil((staffEnd - start) / step) },
+        (_, position) => roundTabTick(start + position * step)
+      ).filter((position) => position < staffEnd)
     );
     eventTimes.forEach((tick) => times.add(tick));
+    for (let at = start; at < staffEnd; at += barTicks) times.add(at);
     // Insertion advances by note duration, which need not match the grid.
     if (
       editable &&
       selectedTick !== null &&
       selectedTick >= start &&
-      selectedTick < start + barTicks
+      selectedTick < staffEnd
     )
       times.add(selectedTick);
     return [...times].sort((a, b) => a - b);
-  }, [eventTimes, start, barTicks, beatTicks, editable, grid, selectedTick]);
-  const prefixWidth = bar === 0 && !compact && !readOnly ? 64 : 0;
-  const labelWidth = readOnly
-    ? Math.max(24, 20 * readingScale)
-    : 24 * textScale;
+  }, [
+    eventTimes,
+    start,
+    barTicks,
+    beatTicks,
+    editable,
+    grid,
+    selectedTick,
+    staffEnd
+  ]);
+  const prefixWidth = bar === 0 && !compact && !reading ? 64 : 0;
+  const labelWidth = reading ? Math.max(24, 20 * readingScale) : 24 * textScale;
   const cellWidth = Math.max(
-    readOnly
-      ? 44 * readingScale
+    reading
+      ? (notation ? 18 : 44) * readingScale
       : (multiBar ? 28 : compact ? 34 : 44) * textScale,
     (staffWidth - labelWidth - prefixWidth) / Math.max(1, columns.length)
   );
@@ -564,12 +857,20 @@ const TablatureStaff = React.memo(function TablatureStaff({
         )
       : (width > height ? 26 : 44) * textScale;
   const active =
-    tick >= start && tick < start + barTicks
+    tick >= start && tick < staffEnd
       ? columns.findIndex(
           (position, index) =>
-            tick >= position && tick < (columns[index + 1] ?? start + barTicks)
+            tick >= position && tick < (columns[index + 1] ?? staffEnd)
         )
       : -1;
+  const currentTick = columns[active] ?? start;
+  const nextTick = columns[active + 1] ?? staffEnd;
+  const cursorX =
+    (active +
+      0.5 +
+      ((tick - currentTick) / (nextTick - currentTick)) *
+        (active === columns.length - 1 ? 0.5 : 1)) *
+    cellWidth;
   useEffect(() => {
     if (!followPlayback) return;
     const target =
@@ -580,8 +881,8 @@ const TablatureStaff = React.memo(function TablatureStaff({
         animated: readOnly
       });
   }, [active, cellWidth, columns, selectedTick, followPlayback, readOnly]);
-  const rowHeight = readOnly
-    ? 32 * readingScale
+  const rowHeight = reading
+    ? (notation ? 14 : 32) * readingScale
     : dense
       ? 12 * textScale
       : compact
@@ -597,14 +898,14 @@ const TablatureStaff = React.memo(function TablatureStaff({
             .filter(
               (note) =>
                 note.techniques?.includes(technique) &&
-                note.tick < start + barTicks &&
+                note.tick < staffEnd &&
                 note.tick + tabNoteDuration(note) > start
             )
             .sort((a, b) => a.tick - b.tick)
             .forEach((note) => {
               const first = Math.max(start, note.tick);
               const last = Math.min(
-                start + barTicks,
+                staffEnd,
                 note.tick + tabNoteDuration(note)
               );
               const previous = spans.at(-1);
@@ -615,39 +916,46 @@ const TablatureStaff = React.memo(function TablatureStaff({
           return { technique, spans };
         })
         .filter(({ spans }) => spans.length),
-    [tab.notes, start, barTicks]
+    [tab.notes, start, staffEnd]
   );
   const effectHeight = effectRuns.length * 16;
-  const barLineTop = readOnly
-    ? 20 * readingScale
+  const systemLayout = useMemo(
+    () => tablatureSystemLayout(tab, bar, barCount, readingScale),
+    [tab, bar, barCount, readingScale]
+  );
+  const notationHeight = notation ? systemLayout.notationHeight : 0;
+  const barLineTop = reading
+    ? (notation ? 16 : 20) * readingScale
     : (dense ? 14 : 18) * textScale;
-  const stringsTop = barLineTop + effectHeight;
+  const stringsTop = barLineTop + notationHeight + effectHeight;
   const barLineHeight = rowHeight * 6;
-  const showRests = readOnly || notes.size > 0 || rests.size > 0;
-  const rhythmScale = readOnly ? readingScale : textScale;
+  const showRests = !notation && (readOnly || notes.size > 0 || rests.size > 0);
+  const rhythmScale = reading ? readingScale : textScale;
   const rhythmEvents = useMemo(() => {
     const events = new Map<string, RhythmEvent>();
-    for (const { note, end } of notes.values()) {
-      const position = Math.max(start, note.tick);
-      const duration =
-        note.tick < start
-          ? Math.min(end, start + barTicks) - start
-          : Math.min(tabNoteDuration(note), start + barTicks - note.tick);
+    for (const { note, end, position } of notes.values()) {
+      const duration = notation
+        ? end - position
+        : note.tick < start
+          ? Math.min(end, staffEnd) - start
+          : Math.min(tabNoteDuration(note), staffEnd - note.tick);
       const voice = note.voice ?? 1;
       const key = `${position}:${voice}:${duration}`;
+      const previous = events.get(key);
       events.set(key, {
         tick: position,
         duration,
         voice,
         tuplet: note.tuplet,
-        continued: note.tick < start,
-        string: Math.min(note.string, events.get(key)?.string ?? note.string)
+        continued: note.tick < position,
+        string: Math.min(note.string, previous?.string ?? note.string),
+        ...(notation ? { pitches: [...(previous?.pitches ?? []), note] } : {})
       });
     }
     return [...events.values()].sort(
       (left, right) => left.tick - right.tick || left.voice - right.voice
     );
-  }, [notes, start, barTicks]);
+  }, [notes, notation, staffEnd, start]);
   const beamTicks =
     tab.beatUnit === 8 && tab.beatsPerBar % 3 === 0 ? beatTicks * 3 : beatTicks;
   const coverage = useMemo(() => tabBarCoverage(tab, bar), [tab, bar]);
@@ -716,13 +1024,13 @@ const TablatureStaff = React.memo(function TablatureStaff({
     onRange({
       start: Math.min(rangeAnchor.current, position),
       end: Math.min(
-        start + barTicks,
+        staffEnd,
         Math.max(rangeAnchor.current + grid, position + eventDuration)
       )
     });
   };
   const beatPosition = (position: number) =>
-    Number((1 + (position - start) / beatTicks).toFixed(2));
+    Number((1 + ((position - start) % barTicks) / beatTicks).toFixed(2));
   return (
     <View
       ref={staffElement}
@@ -749,21 +1057,49 @@ const TablatureStaff = React.memo(function TablatureStaff({
           style={[
             styles.beatRow,
             dense && styles.denseBeats,
-            !readOnly && { height: (dense ? 14 : 18) * textScale },
-            readOnly && { height: 20 * readingScale }
+            { height: barLineTop }
           ]}
         />
+        {notation && (
+          <Svg width={labelWidth} height={notationHeight} accessible={false}>
+            {Array.from({ length: 5 }, (_, line) => (
+              <Path
+                key={line}
+                d={`M0 ${systemLayout.top + line * 6 * readingScale}H${labelWidth}`}
+                stroke={palette.paper.line}
+                strokeWidth={1}
+              />
+            ))}
+            <Path
+              d={musicGlyphs.trebleClef}
+              fill={palette.glass.accent}
+              transform={`translate(2 ${systemLayout.top - 5.4 * readingScale}) scale(${0.65 * readingScale})`}
+            />
+            <SvgText
+              x={8 * readingScale}
+              y={systemLayout.top + 38 * readingScale}
+              fontSize={8 * readingScale}
+              fill={palette.glass.muted}
+            >
+              8
+            </SvgText>
+          </Svg>
+        )}
         {effectHeight > 0 && <View style={{ height: effectHeight }} />}
         {stringOrder.map((string) => (
           <View key={string} style={[styles.stringLabel, rowStyle]}>
             <Text
-              allowFontScaling={!readOnly}
+              allowFontScaling={!reading}
               style={[
                 styles.stringName,
-                readOnly && { fontSize: 13 * readingScale }
+                reading && { fontSize: 13 * readingScale }
               ]}
             >
-              {stringNames[string]}
+              {tab.tuning
+                ? string === 5
+                  ? noteNames[tab.tuning[string] % 12].toLowerCase()
+                  : noteNames[tab.tuning[string] % 12]
+                : stringNames[string]}
             </Text>
           </View>
         ))}
@@ -846,30 +1182,72 @@ const TablatureStaff = React.memo(function TablatureStaff({
             style={[
               styles.beatRow,
               dense && styles.denseBeats,
-              !readOnly && { height: (dense ? 14 : 18) * textScale },
-              readOnly && { height: 20 * readingScale }
+              { height: barLineTop }
             ]}
           >
             {columns.map((position, index) => (
               <View key={position} style={[styles.cell, { width: cellWidth }]}>
                 <Text
-                  allowFontScaling={!readOnly}
+                  allowFontScaling={!reading}
+                  accessibilityRole={
+                    onSeek && (position - start) % barTicks === 0
+                      ? "button"
+                      : undefined
+                  }
+                  accessibilityLabel={
+                    onSeek && (position - start) % barTicks === 0
+                      ? t("TabPracticeSeekBar", {
+                          bar: Math.floor(position / barTicks) + 1
+                        })
+                      : undefined
+                  }
+                  onPress={
+                    onSeek && (position - start) % barTicks === 0
+                      ? () => onSeek(position)
+                      : undefined
+                  }
                   numberOfLines={1}
                   style={[
                     styles.beat,
-                    readOnly && { fontSize: 11 * readingScale },
+                    reading && { fontSize: 11 * readingScale },
                     index === active && styles.activeBeat
                   ]}
                 >
-                  {multiBar
-                    ? index === Math.floor(columns.length / 2)
-                      ? bar + 1
+                  {notation
+                    ? (position - start) % barTicks === 0
+                      ? Math.floor(position / barTicks) + 1
                       : ""
-                    : beatPosition(position)}
+                    : multiBar
+                      ? index === Math.floor(columns.length / 2)
+                        ? bar + 1
+                        : ""
+                      : beatPosition(position)}
                 </Text>
               </View>
             ))}
           </View>
+          {notation && (
+            <View style={{ height: notationHeight }}>
+              <RhythmNotation
+                events={rhythmEvents}
+                columns={columns}
+                cellWidth={cellWidth}
+                beatTicks={beamTicks}
+                start={start}
+                scale={rhythmScale}
+                rowHeight={rowHeight}
+                notation={systemLayout}
+                barTicks={barTicks}
+                eighthGroupTicks={
+                  tab.beatsPerBar === 4 && (tab.beatUnit ?? 4) === 4
+                    ? beatTicks * 2
+                    : beamTicks
+                }
+                tuning={tab.tuning}
+                rests={[...rests.values()]}
+              />
+            </View>
+          )}
           {effectRuns.map(({ technique, spans }) => (
             <View key={technique} style={styles.effectRow}>
               {spans.map((span) => {
@@ -902,19 +1280,28 @@ const TablatureStaff = React.memo(function TablatureStaff({
             style={[
               styles.barLines,
               {
-                top: stringsTop + rowHeight / 2,
-                height: barLineHeight - rowHeight
+                top: notation
+                  ? barLineTop + systemLayout.top
+                  : stringsTop + rowHeight / 2,
+                height: notation
+                  ? stringsTop +
+                    barLineHeight -
+                    rowHeight / 2 -
+                    barLineTop -
+                    systemLayout.top
+                  : barLineHeight - rowHeight
               }
             ]}
           >
             <View style={[styles.barLine, styles.barStart]} />
             {columns.map((position, index) =>
-              index > 0 && (position - start) % beatTicks === 0 ? (
+              index > 0 &&
+              (position - start) % (notation ? barTicks : beatTicks) === 0 ? (
                 <View
                   key={position}
                   style={[
                     styles.barLine,
-                    styles.beatLine,
+                    !notation && styles.beatLine,
                     { left: index * cellWidth }
                   ]}
                 />
@@ -932,7 +1319,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
               {columns.map((position, index) => {
                 const entry = notes.get(`${string}:${position}`);
                 const note = entry?.note;
-                const continued = !!note && note.tick < start;
+                const continued = !!note && note.tick < position;
                 const cell = { string, tick: position };
                 const chosen = sameNote(selected, note ?? cell);
                 const symbol = note
@@ -951,7 +1338,9 @@ const TablatureStaff = React.memo(function TablatureStaff({
                     {note ? (
                       <NoteTarget
                         accessible
-                        accessibilityRole={readOnly ? "text" : "button"}
+                        accessibilityRole={
+                          readOnly && !onSeek ? "text" : "button"
+                        }
                         accessibilityLabel={`${continued ? `${t("TabContinuation")}, ` : ""}${t(
                           "TabNoteDescription",
                           {
@@ -973,8 +1362,14 @@ const TablatureStaff = React.memo(function TablatureStaff({
                                 disabled: disabled || !onNote
                               }
                         }
-                        disabled={disabled || readOnly || !onNote}
-                        onPress={readOnly ? undefined : () => pressNote(note)}
+                        disabled={disabled || (readOnly ? !onSeek : !onNote)}
+                        onPress={
+                          readOnly
+                            ? onSeek
+                              ? () => onSeek(position)
+                              : undefined
+                            : () => pressNote(note)
+                        }
                         onLongPress={
                           readOnly || !onRange
                             ? undefined
@@ -994,69 +1389,77 @@ const TablatureStaff = React.memo(function TablatureStaff({
                           !compact && styles.editableCell,
                           !compact &&
                             !readOnly && { height: editingRowHeight - 2 },
-                          readOnly && { height: 32 * readingScale - 2 },
+                          readOnly && { height: rowHeight - 2 },
                           continued && styles.continuation,
                           (index === active || chosen) && styles.activeNote,
-                          styles.ovalNote,
+                          !notation && styles.ovalNote,
                           {
-                            width: readOnly
-                              ? 38 * readingScale
-                              : 34 * textScale,
+                            width: notation
+                              ? Math.min(cellWidth, 22 * readingScale)
+                              : readOnly
+                                ? 38 * readingScale
+                                : 34 * textScale,
                             height: Math.max(
                               12,
                               Math.min(rowHeight - 2, 26 * rhythmScale)
                             )
+                          },
+                          notation && styles.notationNote,
+                          notation && {
+                            height: rowHeight
                           }
                         ]}
                       >
-                        <Svg
-                          pointerEvents="none"
-                          style={StyleSheet.absoluteFillObject}
-                          width="100%"
-                          height="100%"
-                          viewBox="0 0 38 26"
-                          accessible={false}
-                        >
-                          <Ellipse
-                            testID={`tab-notehead-${position}-${string}`}
-                            cx={19}
-                            cy={13}
-                            rx={16}
-                            ry={10}
-                            transform="rotate(-12 19 13)"
-                            fill={
-                              tabNoteDuration(note) >= 48
-                                ? palette.paper.background
-                                : palette.glass.accent
-                            }
-                            stroke={palette.glass.accent}
-                            strokeWidth={1.5}
-                          />
-                          {chosen && (
+                        {!notation && (
+                          <Svg
+                            pointerEvents="none"
+                            style={StyleSheet.absoluteFillObject}
+                            width="100%"
+                            height="100%"
+                            viewBox="0 0 38 26"
+                            accessible={false}
+                          >
                             <Ellipse
+                              testID={`tab-notehead-${position}-${string}`}
                               cx={19}
                               cy={13}
-                              rx={18}
-                              ry={12}
-                              fill="none"
+                              rx={16}
+                              ry={10}
+                              transform="rotate(-12 19 13)"
+                              fill={
+                                tabNoteDuration(note) >= 48
+                                  ? palette.paper.background
+                                  : palette.glass.accent
+                              }
                               stroke={palette.glass.accent}
-                              strokeWidth={0.8}
+                              strokeWidth={1.5}
                             />
-                          )}
-                        </Svg>
+                            {chosen && (
+                              <Ellipse
+                                cx={19}
+                                cy={13}
+                                rx={18}
+                                ry={12}
+                                fill="none"
+                                stroke={palette.glass.accent}
+                                strokeWidth={0.8}
+                              />
+                            )}
+                          </Svg>
+                        )}
                         <Text
-                          allowFontScaling={!readOnly}
+                          allowFontScaling={!reading}
                           style={[
                             styles.fret,
                             compact && styles.compactFret,
                             dense && styles.denseFret,
-                            readOnly && {
-                              fontSize: 20 * readingScale,
-                              lineHeight: 22 * readingScale
+                            reading && {
+                              fontSize: (notation ? 12 : 20) * readingScale,
+                              lineHeight: (notation ? 14 : 22) * readingScale
                             },
                             {
                               color:
-                                tabNoteDuration(note) >= 48
+                                notation || tabNoteDuration(note) >= 48
                                   ? palette.glass.accent
                                   : palette.gold.ink
                             }
@@ -1084,7 +1487,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
                         accessibilityRole="button"
                         accessibilityLabel={t("TabEmptyCell", {
                           string: 6 - string,
-                          bar: bar + 1,
+                          bar: Math.floor(position / barTicks) + 1,
                           beat: beatPosition(position)
                         })}
                         accessibilityState={{ selected: chosen, disabled }}
@@ -1101,7 +1504,7 @@ const TablatureStaff = React.memo(function TablatureStaff({
                         }}
                         style={[
                           styles.emptyCell,
-                          { width: cellWidth, height: editingRowHeight },
+                          { width: cellWidth, height: rowHeight },
                           chosen && styles.cursorCell
                         ]}
                       >
@@ -1211,12 +1614,11 @@ const TablatureStaff = React.memo(function TablatureStaff({
                 }
               ]
                 .filter(
-                  (handle) =>
-                    handle.tick >= start && handle.tick <= start + barTicks
+                  (handle) => handle.tick >= start && handle.tick <= staffEnd
                 )
                 .map((handle) => {
                   const index =
-                    handle.tick === start + barTicks
+                    handle.tick === staffEnd
                       ? columns.length
                       : Math.max(
                           0,
@@ -1250,6 +1652,30 @@ const TablatureStaff = React.memo(function TablatureStaff({
                     </Pressable>
                   );
                 })}
+            </View>
+          )}
+          {active >= 0 && (
+            <View
+              pointerEvents="none"
+              testID={`tab-playhead-${bar}`}
+              style={[
+                styles.playhead,
+                {
+                  left: cursorX - 1,
+                  top: notation
+                    ? barLineTop + systemLayout.top - 4 * readingScale
+                    : stringsTop,
+                  height: notation
+                    ? stringsTop +
+                      barLineHeight -
+                      barLineTop -
+                      systemLayout.top +
+                      4 * readingScale
+                    : barLineHeight + Number(showRests) * 32 * rhythmScale
+                }
+              ]}
+            >
+              <View style={styles.playheadCap} />
             </View>
           )}
           {invalidDuration && (
@@ -1343,7 +1769,6 @@ export function TablaturePanel({
     tab.beatUnit ?? 4
   ]);
   const [keypadExpanded, setKeypadExpanded] = useState(false);
-  const [workspaceHeight, setWorkspaceHeight] = useState(0);
   const fretInput = useRef<{
     string: number;
     tick: number;
@@ -1366,7 +1791,8 @@ export function TablaturePanel({
   const readOnly = controlsLocked || status === "playing";
   const { preview, cancelPreview } = useTablaturePreview(
     visible && !readOnly && (full || expanded),
-    tab.tempo
+    tab.tempo,
+    tab.tuning
   );
   const moving = status === "playing" || recording;
   const wasMoving = useRef(false);
@@ -1724,9 +2150,22 @@ export function TablaturePanel({
     setRestSelection(null);
     setEditError(null);
   };
+  const barWidth = useMemo(
+    () =>
+      Math.max(
+        ...Array.from(
+          { length: bars },
+          (_, index) => tablatureSystemLayout(tab, index, 1, 1).minimumWidth
+        )
+      ),
+    [tab, bars]
+  );
   const barsPerRow = Math.max(
     1,
-    Math.min(4, Math.floor((width - (keypadExpanded ? 218 : 44) - 24) / 200))
+    Math.min(
+      4,
+      Math.floor((width - (keypadExpanded ? 218 : 44) - 24) / barWidth)
+    )
   );
   const barsPerPage = barsPerRow * 2;
   const windowStart = Math.floor(bar / barsPerPage) * barsPerPage;
@@ -1734,7 +2173,11 @@ export function TablaturePanel({
     { length: Math.min(barsPerPage, bars - windowStart) },
     (_, index) => windowStart + index
   );
-  const staffRows = Math.ceil(visibleBars.length / barsPerRow);
+  const staffRows = Array.from(
+    { length: Math.ceil(visibleBars.length / barsPerRow) },
+    (_, index) =>
+      visibleBars.slice(index * barsPerRow, (index + 1) * barsPerRow)
+  );
   const playback = (
     <Action
       glass
@@ -2126,9 +2569,11 @@ export function TablaturePanel({
           {hasEvents ? (
             <TablatureBar
               tab={tab}
-              bar={bar}
+              bar={Math.floor(bar / 2) * 2}
+              barCount={Math.min(2, bars - Math.floor(bar / 2) * 2)}
               tick={tick}
               compact
+              notation
               disabled={readOnly}
               onNote={showEditor}
               onRest={(rest) => {
@@ -2400,12 +2845,7 @@ export function TablaturePanel({
                   ))}
                 </View>
               )}
-            <View
-              style={styles.entryWorkspace}
-              onLayout={(event) =>
-                setWorkspaceHeight(event.nativeEvent.layout.height)
-              }
-            >
+            <View style={styles.entryWorkspace}>
               <ScrollView
                 style={styles.workspace}
                 contentContainerStyle={styles.workspaceContent}
@@ -2416,35 +2856,27 @@ export function TablaturePanel({
                   </Text>
                 )}
                 <>
-                  <View style={styles.barGrid}>
-                    {visibleBars.map((visibleBar) => (
-                      <View
-                        key={visibleBar}
-                        style={{
-                          width: `${100 / Math.min(barsPerRow, visibleBars.length)}%`
-                        }}
-                      >
-                        <TablatureBar
-                          tab={tab}
-                          bar={visibleBar}
-                          tick={tick}
-                          multiBar
-                          availableHeight={Math.max(
-                            0,
-                            workspaceHeight / staffRows - 24
-                          )}
-                          selected={moving ? null : selection}
-                          selectedRest={moving ? null : restSelection}
-                          grid={grid}
-                          disabled={readOnly}
-                          onNote={selectNote}
-                          onCell={selectCell}
-                          onRest={selectRest}
-                          selectedRange={noteRange}
-                          onRange={selectRange}
-                          onMeter={openMeter}
-                        />
-                      </View>
+                  <View>
+                    {staffRows.map((row) => (
+                      <TablatureBar
+                        key={row[0]}
+                        tab={tab}
+                        bar={row[0]}
+                        barCount={row.length}
+                        tick={tick}
+                        compact
+                        notation
+                        selected={moving ? null : selection}
+                        selectedRest={moving ? null : restSelection}
+                        grid={grid}
+                        disabled={readOnly}
+                        onNote={selectNote}
+                        onCell={selectCell}
+                        onRest={selectRest}
+                        selectedRange={noteRange}
+                        onRange={selectRange}
+                        onMeter={openMeter}
+                      />
                     ))}
                   </View>
                   {editError && (
@@ -2729,7 +3161,6 @@ export function TablaturePanel({
 }
 
 const styles = StyleSheet.create({
-  barGrid: { flexDirection: "row", flexWrap: "wrap" },
   rangeHandle: {
     position: "absolute",
     width: 36,
@@ -2939,6 +3370,14 @@ const styles = StyleSheet.create({
   staff: { flexDirection: "row", marginVertical: 4 },
   staffContent: { flexGrow: 1 },
   rhythmSvg: { position: "absolute" },
+  notationSvg: { top: 0 },
+  notationNote: {
+    minWidth: 0,
+    paddingHorizontal: 0,
+    marginHorizontal: 0,
+    backgroundColor: palette.paper.background,
+    borderRadius: 0
+  },
   stringLabels: { width: 24 },
   stringLabel: { alignItems: "center", justifyContent: "center" },
   stringName: { color: palette.glass.muted, fontSize: 12 },
@@ -2972,6 +3411,21 @@ const styles = StyleSheet.create({
   denseBeats: { height: 14 },
   beat: { color: palette.glass.muted, fontSize: 10, textAlign: "center" },
   activeBeat: { color: palette.glass.accent },
+  playhead: {
+    position: "absolute",
+    width: 2,
+    backgroundColor: palette.glass.play,
+    zIndex: 2
+  },
+  playheadCap: {
+    position: "absolute",
+    left: -2,
+    top: -3,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: palette.glass.play
+  },
   cell: { height: "100%", justifyContent: "center" },
   stringLine: {
     position: "absolute",

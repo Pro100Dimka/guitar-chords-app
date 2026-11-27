@@ -77,12 +77,15 @@ describe("deferred chord catalogue fallbacks", () => {
   });
 
   it.each([false, true])(
-    "does not contact extra catalogues after a primary chart succeeds, even with another primary pending: %s",
+    "does not contact extra catalogues after a primary chart includes accompaniment, even with another primary pending: %s",
     async (hasPendingPrimary) => {
       let waitingSignal: AbortSignal | null | undefined;
       request.mockImplementation(async (input, options) => {
         const url = String(input);
-        if (url === firstURL) return new Response(chart);
+        if (url === firstURL)
+          return new Response(
+            chart.replace("</pre>", "\nStrumming: six</pre>")
+          );
         if (hasPendingPrimary && url.startsWith("https://musicaccord.ru/")) {
           waitingSignal = options?.signal;
           return blockedResponse(waitingSignal);
@@ -102,6 +105,25 @@ describe("deferred chord catalogue fallbacks", () => {
       if (hasPendingPrimary) expect(waitingSignal?.aborted).toBe(true);
     }
   );
+
+  it("continues searching accompaniment when the primary source has only chords", async () => {
+    request.mockImplementation(async (input) => {
+      const url = String(input);
+      const pages: Record<string, string> = {
+        [firstURL]: chart,
+        [extraSearch]: extraCard,
+        [extraURL]: extraChart
+      };
+      return pages[url] ? new Response(pages[url]) : ordinaryResponse(url);
+    });
+    const pending = lookup(title, artist);
+    await jest.runAllTimersAsync();
+    expect((await pending).map((option) => option.source)).toEqual(
+      expect.arrayContaining(["Cifra Club", "Chords & Tabs"])
+    );
+    expect(extraCalls()).toContain(extraSearch);
+    expect(extraCalls()).toContain(extraURL);
+  });
 
   it("waits for primary lookups, then replaces lyrics-only results with a verified fallback chart", async () => {
     let releasePrimary: (response: Response) => void = () => {};
@@ -211,10 +233,10 @@ describe("deferred chord catalogue fallbacks", () => {
       await jest.advanceTimersByTimeAsync(100);
       expect(waitingSignal).toBeDefined();
       expect(settled).toBe(false);
-      await jest.advanceTimersByTimeAsync(1500);
+      await jest.advanceTimersByTimeAsync(4500);
       expect(settled).toBe(true);
-      expect(finishedAt! - began).toBeGreaterThanOrEqual(1500);
-      expect(finishedAt! - began).toBeLessThanOrEqual(1600);
+      expect(finishedAt! - began).toBeGreaterThanOrEqual(4500);
+      expect(finishedAt! - began).toBeLessThanOrEqual(4600);
       const result = await pending;
       expect(result).toEqual([
         expect.objectContaining({

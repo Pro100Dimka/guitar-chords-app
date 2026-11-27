@@ -1869,3 +1869,22 @@ test("export serializes each song without a second whole-library JSON pass", asy
     stringify.mockRestore();
   }
 });
+
+test.each([
+  ["D--UD--U-U-UDUD-", 2, "nine"],
+  ["D-------D-----U---U-D---D---D-DU", 4, "nine-alt"]
+])(
+  "preserves the selected nine-stroke variant when loading %s",
+  (strum, division, id) => {
+    const loaded = normalizeSongPreferences({
+      strum,
+      strumDivision: division,
+      strumPreset: "nine"
+    });
+    expect(loaded).toMatchObject({
+      strum,
+      strumDivision: division,
+      strumPreset: id
+    });
+  }
+);

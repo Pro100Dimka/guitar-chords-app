@@ -3,6 +3,95 @@ import {
   sourceSong,
   sourceTempo
 } from "../src/components/song-autofill/source-metadata";
+import {
+  matchedSongArrangement,
+  providerContext
+} from "../src/components/song-autofill/lyrics";
+import { readGuitarPro } from "../src/components/song-autofill/guitar-pro";
+
+test("Guitar Pro import follows actual attacks, preserves repeated strokes and aligns lyric cues", async () => {
+  const {
+    importer,
+    exporter
+  }: typeof import("@coderline/alphatab") = require("@coderline/alphatab");
+  const score = importer.ScoreLoader
+    .loadAlphaTex(String.raw`\title "Synthetic Song" \artist "Example Performer" \tempo 80 .
+    \section "Verse" (0.6 2.5 2.4 0.3 0.2 0.1).4 (0.6 2.5 2.4 0.3 0.2 0.1).4 (3.6 2.5 0.4 0.3 0.2 3.1).2 |
+    \section "Chorus" (3.5 2.4 0.3 1.2 0.1).2 (0.4 2.3 3.2 2.1).2 |`);
+  const data = new exporter.Gp7Exporter().export(score);
+  const input = {
+    data,
+    content:
+      "[Verse]\n[Em]First original words [G]for this verse\n\n[Chorus]\n[C]Other original words [D]for this chorus",
+    title: "Synthetic Song",
+    artist: "Example Performer",
+    source: {
+      name: "GtpTabs.com",
+      url: "https://gtptabs.com/tabs/1/example-performer/synthetic-song.html"
+    },
+    context: providerContext
+  };
+  const imported = await readGuitarPro(input);
+  expect(imported?.tablature).toMatchObject({
+    tempo: 80,
+    barCount: 2,
+    tuning: [40, 45, 50, 55, 59, 64],
+    chords: [
+      { name: "Em", tick: 0 },
+      { name: "G", tick: 48 },
+      { name: "C", tick: 96 },
+      { name: "D", tick: 144 }
+    ]
+  });
+  expect(
+    imported?.tablature.notes
+      .filter((note) => note.string === 0)
+      .map((note) => note.tick)
+  ).toEqual([0, 24, 48]);
+  expect(imported?.content).toContain("First original");
+  expect(
+    await readGuitarPro({ ...input, artist: "Another Performer" })
+  ).toBeUndefined();
+});
+
+test("a matched chorus uses timed strums while its verse retains the source picking", () => {
+  const text = [
+    "Intro",
+    "E|---------0-",
+    "B|-------0---",
+    "G|-----0-----",
+    "D|---2-------",
+    "A|--2--------",
+    "E|-0---------",
+    "Verse",
+    "[Em]Verse words",
+    "Chorus",
+    "[C]Dreams [D]aren't [G]empty",
+    "[C]Conscience [D]seems [E]to be[Esus4][E][Esus4][E]",
+    "[Bm]Hours [C9]lonely [D]vengeance [A5(9)]free"
+  ].join("\n");
+  const baseline = sourceSong(text, 120).tablature!;
+  const matched = sourceSong(
+    text,
+    120,
+    true,
+    matchedSongArrangement("Behind Blue Eyes", "Limp Bizkit")
+  ).tablature!;
+  const chorus = matched.chords!.find((chord) => chord.name === "C")!.tick;
+  expect(matched.notes.filter((note) => note.tick < chorus)).toEqual(
+    baseline.notes.filter((note) => note.tick < chorus)
+  );
+  const firstChord = matched.notes.filter(
+    (note) => note.tick >= chorus && note.tick < chorus + 96
+  );
+  expect([...new Set(firstChord.map((note) => note.tick - chorus))]).toEqual([
+    0, 48, 84
+  ]);
+  expect(
+    firstChord.every((note) => ["downBrush", "upBrush"].includes(note.pick!))
+  ).toBe(true);
+  expect(matchedSongArrangement("Behind Blue Eyes", "The Who")).toBeUndefined();
+});
 
 test.each(["Picking: B32123", "Tempo: 100-120"])(
   "keeps unresolved published instructions instead of silently deleting %s",
@@ -11,6 +100,32 @@ test.each(["Picking: B32123", "Tempo: 100-120"])(
     expect(sourceSong(content).content).toBe(content);
   }
 );
+
+test("keeps labelled chord diagrams as chord changes rather than arpeggio attacks", () => {
+  const imported = sourceSong(
+    [
+      "|-[D]0-----[A]0-",
+      "|-3-----0-",
+      "|-2-----2-",
+      "|-0-----2-",
+      "|-0-----0-",
+      "|-0-----0-",
+      "[Verse]",
+      "[D]Example words [A]for this song"
+    ].join("\n")
+  );
+  expect(imported.tablature?.chords?.map((chord) => chord.name)).toEqual([
+    "D",
+    "A",
+    "D",
+    "A"
+  ]);
+  expect([
+    ...new Set(imported.tablature?.notes.map((note) => note.tick))
+  ]).toEqual([0, 96, 192, 288]);
+  expect(imported.content).not.toContain("|-");
+  expect(imported.content).toContain("[D]Example words [A]for this song");
+});
 
 describe("explicit chart tempo", () => {
   it.each([

@@ -124,8 +124,9 @@ to the selected-note count. A final normalization comparison prevents silent
 note loss, deduplication or sustain shortening by the existing editor format.
 
 Exact short durations do not control the density of empty editor insertion
-targets. Those are bounded to 192 columns per bar, while exact note and cursor
-positions remain available. Short velocity-only notes also share the existing
+targets. Those are bounded to 192 grid columns per connected editor staff, while
+bar boundaries and exact note and cursor positions remain available. The editor
+keeps at most two visible staff rows. Short velocity-only notes also share the existing
 three-second rendered sample instead of re-rendering identical audio for each
 detected release time. Duration-shaped effects and tremolo tempo keep distinct
 samples; the transport still owns the actual release time.

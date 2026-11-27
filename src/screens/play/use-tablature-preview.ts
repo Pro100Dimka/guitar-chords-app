@@ -9,8 +9,15 @@ import { performanceAudio } from "../../components/performance-audio";
 import { TAB_TUNING, TabNote } from "../../components/tablature";
 
 /** Audition successful note edits without changing the score or transport. */
-export function useTablaturePreview(enabled: boolean, tempo = 80) {
-  const context = useMemo(() => ({ enabled, tempo }), [enabled, tempo]);
+export function useTablaturePreview(
+  enabled: boolean,
+  tempo = 80,
+  tuning: readonly number[] = TAB_TUNING
+) {
+  const context = useMemo(
+    () => ({ enabled, tempo, tuning }),
+    [enabled, tempo, tuning]
+  );
   const liveContext = useRef<typeof context | null>(null);
   const foreground = useRef(
     AppState.currentState !== "background" &&
@@ -96,13 +103,13 @@ export function useTablaturePreview(enabled: boolean, tempo = 80) {
         // Never assume JS cache residency means the bounded native cache is warm.
         await Promise.all(
           chord.map(async (note) => {
-            const key = guitarNoteKey(note, tempo);
+            const key = guitarNoteKey(note, tempo, tuning);
             const ready =
               performanceAudio.preparedFingeringSupported &&
               (await performanceAudio.prepareFingering(key, ""));
             if (!current() || ready) return;
             await warmGuitar(
-              [TAB_TUNING[note.string] + note.fret],
+              [tuning[note.string] + note.fret],
               440,
               request.signal,
               note.string,
@@ -115,7 +122,10 @@ export function useTablaturePreview(enabled: boolean, tempo = 80) {
           performanceAudio.stopGuitarString(string)
         );
         chord.forEach((note) =>
-          performanceAudio.guitarString(guitarNoteKey(note, tempo), note.string)
+          performanceAudio.guitarString(
+            guitarNoteKey(note, tempo, tuning),
+            note.string
+          )
         );
         soundingStrings.current = chord.map((note) => note.string);
       })()
@@ -126,7 +136,7 @@ export function useTablaturePreview(enabled: boolean, tempo = 80) {
           if (pending.current === request) pending.current = null;
         });
     },
-    [abortPending, context, tempo]
+    [abortPending, context, tempo, tuning]
   );
 
   return { preview, cancelPreview };
