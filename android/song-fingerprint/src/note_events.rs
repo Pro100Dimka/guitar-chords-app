@@ -220,8 +220,8 @@ fn decode_activity_run(
     let search_start = (start - ONSET_PAIR_RADIUS).max(previous_end).max(0.0);
     let mut attacks: Vec<(f64, f32)> = Vec::new();
     // The current onset lobe's crest and the lowest value since that crest.
-    // Keep this separate from event timing: a stronger ripple can raise the
-    // crest without moving the attack or cutting an already sounding note.
+    // Keep this separate from event timing, including local peaks coalesced
+    // within 60 ms, so a later ripple cannot reuse an earlier lobe's valley.
     let mut onset_lobe: Option<(f32, f32)> = None;
     for index in first_overlapping(source, search_start)..source.len() {
         let frame = source.frame(index);
@@ -270,19 +270,20 @@ fn decode_activity_run(
         {
             continue;
         }
-        let separate_lobe = if let Some((crest, valley)) = onset_lobe.as_mut() {
+        let (separate_lobe, weaker_peak) = if let Some((crest, valley)) = onset_lobe.as_mut() {
+            let weaker = value < *crest;
             let lower_peak = (*crest).min(value);
             let separate = lower_peak - *valley >= lower_peak * MIN_ONSET_PROMINENCE_RATIO;
-            if separate || value > *crest {
-                // A higher crest starts a new valley search even when both
-                // maxima belong to the same lobe. Never reuse its old valley.
+            if separate || !weaker {
+                // Keep ambiguous rising/equal peaks as before, with a fresh
+                // valley search. An early shoulder can precede a real attack.
                 *crest = value;
                 *valley = value;
             }
-            separate
+            (separate, weaker)
         } else {
             onset_lobe = Some((value, value));
-            true
+            (true, false)
         };
         if let Some(last) = attacks.last_mut() {
             if frame.time - last.0 + TIME_EPSILON < MIN_ATTACK_SEPARATION {
@@ -293,9 +294,10 @@ fn decode_activity_run(
             }
         }
         // Keep the existing close-peak coalescing above. Beyond that window,
-        // a shallow onset ripple is not another attack. This uses onset-head
-        // contrast, never recovery of the note head's preceding activity peak.
-        if !separate_lobe {
+        // suppress only a weaker shallow ripple after a stronger onset peak.
+        // Rising/equal peaks remain ambiguous and retain the previous behavior.
+        // Never require recovery of the note head's preceding activity peak.
+        if weaker_peak && !separate_lobe {
             continue;
         }
         attacks.push((frame.time, value));
@@ -417,19 +419,19 @@ mod tests {
     }
 
     #[test]
-    fn shallow_onset_ripples_keep_the_first_attack_and_its_sustain() {
+    fn weaker_shallow_onset_ripples_keep_the_attack_and_its_sustain() {
         let mut input = frames(100);
         activate(&mut input, 60, 10, 90, 0.8);
         for frame in &mut input[10..90] {
             frame.onsets[60 - FIRST_MIDI_NOTE] = 0.76;
         }
-        for (index, value) in [(10, 0.8), (20, 0.85), (30, 0.83), (40, 0.9), (50, 0.91)] {
+        for (index, value) in [(10, 0.9), (20, 0.85), (30, 0.83), (40, 0.87), (50, 0.88)] {
             input[index].onsets[60 - FIRST_MIDI_NOTE] = value;
         }
         let result = decode(&input, 1.0);
         assert_eq!(result.events.len(), 1);
         assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.9));
-        assert_eq!(result.events[0].onset_evidence, 0.8);
+        assert_eq!(result.events[0].onset_evidence, 0.9);
     }
 
     #[test]
@@ -445,6 +447,38 @@ mod tests {
         assert_eq!(result.events.len(), 1);
         assert_eq!((result.events[0].start, result.events[0].end), (0.145, 0.9));
         assert_eq!(result.events[0].onset_evidence, 0.9);
+    }
+
+    #[test]
+    fn a_stronger_peak_after_an_early_shoulder_keeps_the_supported_attack() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 14, 90, 0.45);
+        for frame in &mut input[10..18] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.58;
+        }
+        input[10].onsets[60 - FIRST_MIDI_NOTE] = 0.6;
+        input[17].onsets[60 - FIRST_MIDI_NOTE] = 0.9;
+        let result = decode(&input, 1.0);
+        // The early shoulder has less than 60 ms of note support. Merging the
+        // later real attack into it would manufacture an early false onset.
+        assert_eq!(result.events.len(), 1);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.175, 0.9));
+        assert_eq!(result.events[0].onset_evidence, 0.9);
+    }
+
+    #[test]
+    fn equally_strong_separate_peaks_retain_existing_attacks() {
+        let mut input = frames(100);
+        activate(&mut input, 60, 10, 90, 0.8);
+        for frame in &mut input[10..90] {
+            frame.onsets[60 - FIRST_MIDI_NOTE] = 0.76;
+        }
+        input[10].onsets[60 - FIRST_MIDI_NOTE] = 0.8;
+        input[20].onsets[60 - FIRST_MIDI_NOTE] = 0.8;
+        let result = decode(&input, 1.0);
+        assert_eq!(result.events.len(), 2);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.205));
+        assert_eq!((result.events[1].start, result.events[1].end), (0.205, 0.9));
     }
 
     #[test]
@@ -481,7 +515,7 @@ mod tests {
     }
 
     #[test]
-    fn a_merged_higher_crest_resets_its_valley_but_keeps_the_attack() {
+    fn rising_crests_preserve_attacks_after_an_ambiguous_early_shoulder() {
         let mut input = frames(100);
         activate(&mut input, 60, 10, 90, 0.8);
         for (first, end, value) in [(10, 20, 0.52), (20, 30, 0.88), (30, 50, 0.65)] {
@@ -493,10 +527,12 @@ mod tests {
             input[index].onsets[60 - FIRST_MIDI_NOTE] = value;
         }
         let result = decode(&input, 1.0);
-        assert_eq!(result.events.len(), 2);
-        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.505));
+        assert_eq!(result.events.len(), 4);
+        assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.205));
         assert_eq!(result.events[0].onset_evidence, 0.55);
-        assert_eq!((result.events[1].start, result.events[1].end), (0.505, 0.9));
+        assert_eq!((result.events[1].start, result.events[1].end), (0.205, 0.305));
+        assert_eq!((result.events[2].start, result.events[2].end), (0.305, 0.505));
+        assert_eq!((result.events[3].start, result.events[3].end), (0.505, 0.9));
     }
 
     #[test]
@@ -526,7 +562,7 @@ mod tests {
         }
         input[10].onsets[60 - FIRST_MIDI_NOTE] = 0.9;
         input[14].onsets[60 - FIRST_MIDI_NOTE] = 0.8;
-        input[18].onsets[60 - FIRST_MIDI_NOTE] = 0.82;
+        input[18].onsets[60 - FIRST_MIDI_NOTE] = 0.78;
         let result = decode(&input, 1.0);
         assert_eq!(result.events.len(), 1);
         assert_eq!((result.events[0].start, result.events[0].end), (0.105, 0.9));
