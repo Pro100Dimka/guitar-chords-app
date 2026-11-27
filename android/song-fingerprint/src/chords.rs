@@ -226,6 +226,20 @@ impl Default for ChordAnalyzer {
 }
 
 impl ChordAnalyzer {
+    /// Host diagnostics can inspect the exact retained model frames without
+    /// changing them or evaluating the model again. Return false to stop early.
+    pub(crate) fn visit_note_frames<E>(
+        &self,
+        mut visit: impl FnMut(&NoteFrame) -> Result<bool, E>,
+    ) -> Result<(), E> {
+        for frame in self.notes.blocks.iter().flatten() {
+            if !visit(frame)? {
+                break;
+            }
+        }
+        Ok(())
+    }
+
     pub fn new() -> Self {
         Self {
             fft: RFft1D::new(WINDOW),
